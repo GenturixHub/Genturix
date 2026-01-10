@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Toaster } from './components/ui/sonner';
 import LoginPage from './pages/LoginPage';
@@ -10,7 +10,76 @@ import HRModule from './pages/HRModule';
 import SchoolModule from './pages/SchoolModule';
 import PaymentsModule from './pages/PaymentsModule';
 import AuditModule from './pages/AuditModule';
+import ResidentUI from './pages/ResidentUI';
+import GuardUI from './pages/GuardUI';
+import StudentUI from './pages/StudentUI';
 import './App.css';
+
+// Suppress PostHog errors in development
+if (typeof window !== 'undefined') {
+  const originalPostMessage = window.postMessage;
+  window.postMessage = function(...args) {
+    try {
+      return originalPostMessage.apply(this, args);
+    } catch (e) {
+      if (e.name === 'DataCloneError') {
+        console.warn('PostMessage DataCloneError suppressed');
+        return;
+      }
+      throw e;
+    }
+  };
+}
+
+// Role-based redirect component
+const RoleBasedRedirect = () => {
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isLoading) return;
+    
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    const roles = user.roles || [];
+    
+    // Check for specific single roles first - direct to their dedicated UI
+    if (roles.length === 1) {
+      const role = roles[0];
+      switch (role) {
+        case 'Residente':
+          navigate('/resident');
+          return;
+        case 'Guarda':
+          navigate('/guard');
+          return;
+        case 'Estudiante':
+          navigate('/student');
+          return;
+        case 'Administrador':
+          navigate('/admin/dashboard');
+          return;
+        case 'Supervisor':
+          navigate('/admin/dashboard');
+          return;
+        default:
+          navigate('/select-panel');
+      }
+    } else if (roles.length > 1) {
+      // Multiple roles - show panel selection
+      navigate('/select-panel');
+    }
+  }, [user, isLoading, navigate]);
+
+  return (
+    <div className="min-h-screen bg-[#05050A] flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+};
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
@@ -29,13 +98,13 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   }
 
   if (allowedRoles.length > 0 && !hasAnyRole(...allowedRoles)) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return children;
 };
 
-// Public Route Component (redirects to dashboard if logged in)
+// Public Route Component
 const PublicRoute = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -48,7 +117,7 @@ const PublicRoute = ({ children }) => {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return children;
@@ -64,10 +133,44 @@ function AppRoutes() {
         </PublicRoute>
       } />
 
-      {/* Protected Routes */}
+      {/* Role-based entry point */}
+      <Route path="/" element={<RoleBasedRedirect />} />
+
+      {/* Panel Selection for multi-role users */}
       <Route path="/select-panel" element={
         <ProtectedRoute>
           <PanelSelectionPage />
+        </ProtectedRoute>
+      } />
+
+      {/* === ROLE-SPECIFIC UIs === */}
+      
+      {/* Resident UI - Emergency First */}
+      <Route path="/resident" element={
+        <ProtectedRoute allowedRoles={['Residente', 'Administrador']}>
+          <ResidentUI />
+        </ProtectedRoute>
+      } />
+
+      {/* Guard UI - Emergency Response */}
+      <Route path="/guard" element={
+        <ProtectedRoute allowedRoles={['Guarda', 'Supervisor', 'Administrador']}>
+          <GuardUI />
+        </ProtectedRoute>
+      } />
+
+      {/* Student UI - Learning */}
+      <Route path="/student" element={
+        <ProtectedRoute allowedRoles={['Estudiante', 'Administrador']}>
+          <StudentUI />
+        </ProtectedRoute>
+      } />
+
+      {/* === ADMIN/SUPERVISOR DASHBOARD === */}
+      
+      <Route path="/admin/dashboard" element={
+        <ProtectedRoute allowedRoles={['Administrador', 'Supervisor']}>
+          <DashboardPage />
         </ProtectedRoute>
       } />
 
@@ -119,9 +222,8 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
 
-      {/* Default redirect */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
