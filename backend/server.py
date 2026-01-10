@@ -1,15 +1,20 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List
+from pydantic import BaseModel, Field, EmailStr
+from typing import List, Optional, Dict, Any
 import uuid
-from datetime import datetime, timezone
-
+from datetime import datetime, timezone, timedelta
+from passlib.context import CryptContext
+import jwt
+from enum import Enum
+from bson import ObjectId
+from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -19,63 +24,18 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Create the main app without a prefix
-app = FastAPI()
+# JWT Configuration
+JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'default-secret-change-in-production')
+JWT_REFRESH_SECRET_KEY = os.environ.get('JWT_REFRESH_SECRET_KEY', 'default-refresh-secret')
+JWT_ALGORITHM = os.environ.get('JWT_ALGORITHM', 'HS256')
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get('ACCESS_TOKEN_EXPIRE_MINUTES', 30))
+REFRESH_TOKEN_EXPIRE_MINUTES = int(os.environ.get('REFRESH_TOKEN_EXPIRE_MINUTES', 10080))
 
-# Create a router with the /api prefix
-api_router = APIRouter(prefix="/api")
+# Password hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-
-# Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
-    
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-class StatusCheckCreate(BaseModel):
-    client_name: str
-
-# Add your routes to the router instead of directly to app
-@api_router.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
-    
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
-    
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
-
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
-    
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
-    
-    return status_checks
-
-# Include the router in the main app
-app.include_router(api_router)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Security
+security = HTTPBearer()
 
 # Configure logging
 logging.basicConfig(
@@ -83,6 +43,1033 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Create the main app
+app = FastAPI(title="GENTURIX Enterprise Platform", version="1.0.0")
+
+# Create a router with the /api prefix
+api_router = APIRouter(prefix="/api")
+
+# ==================== ENUMS ====================
+class RoleEnum(str, Enum):
+    ADMINISTRADOR = "Administrador"
+    SUPERVISOR = "Supervisor"
+    GUARDA = "Guarda"
+    RESIDENTE = "Residente"
+    ESTUDIANTE = "Estudiante"
+
+class AuditEventType(str, Enum):
+    LOGIN_SUCCESS = "login_success"
+    LOGIN_FAILURE = "login_failure"
+    LOGOUT = "logout"
+    TOKEN_REFRESH = "token_refresh"
+    PANIC_BUTTON = "panic_button"
+    ACCESS_GRANTED = "access_granted"
+    ACCESS_DENIED = "access_denied"
+    USER_CREATED = "user_created"
+    USER_UPDATED = "user_updated"
+    PAYMENT_INITIATED = "payment_initiated"
+    PAYMENT_COMPLETED = "payment_completed"
+    COURSE_ENROLLED = "course_enrolled"
+    CERTIFICATE_ISSUED = "certificate_issued"
+    SHIFT_CREATED = "shift_created"
+    SHIFT_UPDATED = "shift_updated"
+
+# ==================== MODELS ====================
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    full_name: str
+    roles: List[RoleEnum] = [RoleEnum.RESIDENTE]
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class UserResponse(BaseModel):
+    id: str
+    email: str
+    full_name: str
+    roles: List[str]
+    is_active: bool
+    created_at: str
+
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    user: UserResponse
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+# Security Module Models
+class PanicEventCreate(BaseModel):
+    location: str
+    description: Optional[str] = None
+
+class AccessLogCreate(BaseModel):
+    person_name: str
+    access_type: str  # entry, exit
+    location: str
+    notes: Optional[str] = None
+
+# HR Module Models
+class GuardCreate(BaseModel):
+    user_id: str
+    badge_number: str
+    phone: str
+    emergency_contact: str
+    hire_date: str
+    hourly_rate: float
+
+class ShiftCreate(BaseModel):
+    guard_id: str
+    start_time: str
+    end_time: str
+    location: str
+    notes: Optional[str] = None
+
+# School Module Models
+class CourseCreate(BaseModel):
+    title: str
+    description: str
+    duration_hours: int
+    instructor: str
+    category: str
+
+class EnrollmentCreate(BaseModel):
+    course_id: str
+    student_id: str
+
+class LessonProgressUpdate(BaseModel):
+    course_id: str
+    lesson_id: str
+    completed: bool
+
+# Payments Module Models
+class PaymentPackage(BaseModel):
+    package_id: str
+    origin_url: str
+
+class CheckoutStatusRequest(BaseModel):
+    session_id: str
+
+# ==================== HELPER FUNCTIONS ====================
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expire, "type": "access"})
+    return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+def create_refresh_token(data: dict) -> str:
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire, "type": "refresh"})
+    return jwt.encode(to_encode, JWT_REFRESH_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+def verify_access_token(token: str) -> Optional[dict]:
+    try:
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "access":
+            return None
+        return payload
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
+def verify_refresh_token(token: str) -> Optional[dict]:
+    try:
+        payload = jwt.decode(token, JWT_REFRESH_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "refresh":
+            return None
+        return payload
+    except jwt.ExpiredSignatureError:
+        return None
+    except jwt.InvalidTokenError:
+        return None
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    payload = verify_access_token(token)
+    
+    if not payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    user_id = payload.get("sub")
+    user = await db.users.find_one({"id": user_id})
+    
+    if not user or not user.get("is_active"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or inactive"
+        )
+    
+    return user
+
+def require_role(*allowed_roles):
+    async def check_role(current_user = Depends(get_current_user)):
+        user_roles = current_user.get("roles", [])
+        if not any(role in user_roles for role in allowed_roles):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Required roles: {', '.join(allowed_roles)}"
+            )
+        return current_user
+    return check_role
+
+async def log_audit_event(
+    event_type: AuditEventType,
+    user_id: Optional[str],
+    module: str,
+    details: dict,
+    ip_address: str = "unknown",
+    user_agent: str = "unknown"
+):
+    audit_log = {
+        "id": str(uuid.uuid4()),
+        "event_type": event_type.value,
+        "user_id": user_id,
+        "module": module,
+        "details": details,
+        "ip_address": ip_address,
+        "user_agent": user_agent,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    await db.audit_logs.insert_one(audit_log)
+
+# ==================== AUTH ROUTES ====================
+@api_router.post("/auth/register", response_model=UserResponse)
+async def register(user_data: UserCreate, request: Request):
+    existing = await db.users.find_one({"email": user_data.email})
+    if existing:
+        raise HTTPException(status_code=409, detail="Email already registered")
+    
+    user_id = str(uuid.uuid4())
+    user_doc = {
+        "id": user_id,
+        "email": user_data.email,
+        "full_name": user_data.full_name,
+        "hashed_password": hash_password(user_data.password),
+        "roles": [role.value for role in user_data.roles],
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.users.insert_one(user_doc)
+    
+    await log_audit_event(
+        AuditEventType.USER_CREATED,
+        user_id,
+        "auth",
+        {"email": user_data.email, "roles": [r.value for r in user_data.roles]},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return UserResponse(
+        id=user_id,
+        email=user_data.email,
+        full_name=user_data.full_name,
+        roles=[role.value for role in user_data.roles],
+        is_active=True,
+        created_at=user_doc["created_at"]
+    )
+
+@api_router.post("/auth/login", response_model=TokenResponse)
+async def login(credentials: UserLogin, request: Request):
+    user = await db.users.find_one({"email": credentials.email})
+    
+    if not user or not verify_password(credentials.password, user.get("hashed_password", "")):
+        await log_audit_event(
+            AuditEventType.LOGIN_FAILURE,
+            None,
+            "auth",
+            {"email": credentials.email, "reason": "invalid_credentials"},
+            request.client.host if request.client else "unknown",
+            request.headers.get("user-agent", "unknown")
+        )
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    if not user.get("is_active"):
+        raise HTTPException(status_code=403, detail="User account is inactive")
+    
+    token_data = {"sub": user["id"], "email": user["email"], "roles": user["roles"]}
+    access_token = create_access_token(token_data)
+    refresh_token = create_refresh_token(token_data)
+    
+    await log_audit_event(
+        AuditEventType.LOGIN_SUCCESS,
+        user["id"],
+        "auth",
+        {"email": user["email"]},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=UserResponse(
+            id=user["id"],
+            email=user["email"],
+            full_name=user["full_name"],
+            roles=user["roles"],
+            is_active=user["is_active"],
+            created_at=user["created_at"]
+        )
+    )
+
+@api_router.post("/auth/refresh")
+async def refresh_token(token_request: RefreshTokenRequest, request: Request):
+    payload = verify_refresh_token(token_request.refresh_token)
+    
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+    
+    user = await db.users.find_one({"id": payload["sub"]})
+    if not user or not user.get("is_active"):
+        raise HTTPException(status_code=401, detail="User not found or inactive")
+    
+    token_data = {"sub": user["id"], "email": user["email"], "roles": user["roles"]}
+    new_access_token = create_access_token(token_data)
+    new_refresh_token = create_refresh_token(token_data)
+    
+    await log_audit_event(
+        AuditEventType.TOKEN_REFRESH,
+        user["id"],
+        "auth",
+        {},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {"access_token": new_access_token, "refresh_token": new_refresh_token, "token_type": "bearer"}
+
+@api_router.post("/auth/logout")
+async def logout(request: Request, current_user = Depends(get_current_user)):
+    await log_audit_event(
+        AuditEventType.LOGOUT,
+        current_user["id"],
+        "auth",
+        {},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    return {"message": "Successfully logged out"}
+
+@api_router.get("/auth/me", response_model=UserResponse)
+async def get_me(current_user = Depends(get_current_user)):
+    return UserResponse(
+        id=current_user["id"],
+        email=current_user["email"],
+        full_name=current_user["full_name"],
+        roles=current_user["roles"],
+        is_active=current_user["is_active"],
+        created_at=current_user["created_at"]
+    )
+
+# ==================== SECURITY MODULE ====================
+@api_router.post("/security/panic")
+async def trigger_panic(event: PanicEventCreate, request: Request, current_user = Depends(get_current_user)):
+    panic_event = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user["id"],
+        "user_name": current_user["full_name"],
+        "location": event.location,
+        "description": event.description,
+        "status": "active",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "resolved_at": None
+    }
+    
+    await db.panic_events.insert_one(panic_event)
+    
+    await log_audit_event(
+        AuditEventType.PANIC_BUTTON,
+        current_user["id"],
+        "security",
+        {"location": event.location, "description": event.description},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {"message": "Panic alert sent", "event_id": panic_event["id"]}
+
+@api_router.get("/security/panic-events")
+async def get_panic_events(current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
+    events = await db.panic_events.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return events
+
+@api_router.put("/security/panic/{event_id}/resolve")
+async def resolve_panic(event_id: str, current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
+    result = await db.panic_events.update_one(
+        {"id": event_id},
+        {"$set": {"status": "resolved", "resolved_at": datetime.now(timezone.utc).isoformat(), "resolved_by": current_user["id"]}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Event not found")
+    return {"message": "Panic event resolved"}
+
+@api_router.post("/security/access-log")
+async def create_access_log(log: AccessLogCreate, request: Request, current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
+    access_log = {
+        "id": str(uuid.uuid4()),
+        "person_name": log.person_name,
+        "access_type": log.access_type,
+        "location": log.location,
+        "notes": log.notes,
+        "recorded_by": current_user["id"],
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.access_logs.insert_one(access_log)
+    
+    await log_audit_event(
+        AuditEventType.ACCESS_GRANTED,
+        current_user["id"],
+        "security",
+        {"person": log.person_name, "type": log.access_type, "location": log.location},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return access_log
+
+@api_router.get("/security/access-logs")
+async def get_access_logs(current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
+    logs = await db.access_logs.find({}, {"_id": 0}).sort("timestamp", -1).to_list(100)
+    return logs
+
+@api_router.get("/security/active-guards")
+async def get_active_guards(current_user = Depends(require_role("Administrador", "Supervisor"))):
+    now = datetime.now(timezone.utc).isoformat()
+    guards = await db.guards.find({"is_active": True}, {"_id": 0}).to_list(100)
+    return guards
+
+@api_router.get("/security/dashboard-stats")
+async def get_security_stats(current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
+    active_panic = await db.panic_events.count_documents({"status": "active"})
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    today_access = await db.access_logs.count_documents({"timestamp": {"$gte": today_start}})
+    active_guards = await db.guards.count_documents({"is_active": True})
+    total_events = await db.panic_events.count_documents({})
+    
+    return {
+        "active_alerts": active_panic,
+        "today_accesses": today_access,
+        "active_guards": active_guards,
+        "total_events": total_events
+    }
+
+# ==================== HR MODULE ====================
+@api_router.post("/hr/guards")
+async def create_guard(guard: GuardCreate, request: Request, current_user = Depends(require_role("Administrador"))):
+    user = await db.users.find_one({"id": guard.user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    guard_doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": guard.user_id,
+        "user_name": user["full_name"],
+        "email": user["email"],
+        "badge_number": guard.badge_number,
+        "phone": guard.phone,
+        "emergency_contact": guard.emergency_contact,
+        "hire_date": guard.hire_date,
+        "hourly_rate": guard.hourly_rate,
+        "is_active": True,
+        "total_hours": 0,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.guards.insert_one(guard_doc)
+    
+    # Add Guarda role to user
+    await db.users.update_one(
+        {"id": guard.user_id},
+        {"$addToSet": {"roles": "Guarda"}}
+    )
+    
+    return guard_doc
+
+@api_router.get("/hr/guards")
+async def get_guards(current_user = Depends(require_role("Administrador", "Supervisor"))):
+    guards = await db.guards.find({}, {"_id": 0}).to_list(100)
+    return guards
+
+@api_router.get("/hr/guards/{guard_id}")
+async def get_guard(guard_id: str, current_user = Depends(require_role("Administrador", "Supervisor"))):
+    guard = await db.guards.find_one({"id": guard_id}, {"_id": 0})
+    if not guard:
+        raise HTTPException(status_code=404, detail="Guard not found")
+    return guard
+
+@api_router.post("/hr/shifts")
+async def create_shift(shift: ShiftCreate, request: Request, current_user = Depends(require_role("Administrador", "Supervisor"))):
+    guard = await db.guards.find_one({"id": shift.guard_id})
+    if not guard:
+        raise HTTPException(status_code=404, detail="Guard not found")
+    
+    shift_doc = {
+        "id": str(uuid.uuid4()),
+        "guard_id": shift.guard_id,
+        "guard_name": guard["user_name"],
+        "start_time": shift.start_time,
+        "end_time": shift.end_time,
+        "location": shift.location,
+        "notes": shift.notes,
+        "status": "scheduled",
+        "created_by": current_user["id"],
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.shifts.insert_one(shift_doc)
+    
+    await log_audit_event(
+        AuditEventType.SHIFT_CREATED,
+        current_user["id"],
+        "hr",
+        {"guard_id": shift.guard_id, "location": shift.location},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return shift_doc
+
+@api_router.get("/hr/shifts")
+async def get_shifts(current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
+    shifts = await db.shifts.find({}, {"_id": 0}).sort("start_time", -1).to_list(100)
+    return shifts
+
+@api_router.get("/hr/payroll")
+async def get_payroll(current_user = Depends(require_role("Administrador"))):
+    guards = await db.guards.find({}, {"_id": 0}).to_list(100)
+    payroll = []
+    for guard in guards:
+        payroll.append({
+            "guard_id": guard["id"],
+            "guard_name": guard["user_name"],
+            "badge_number": guard["badge_number"],
+            "hourly_rate": guard["hourly_rate"],
+            "total_hours": guard.get("total_hours", 0),
+            "total_pay": guard.get("total_hours", 0) * guard["hourly_rate"]
+        })
+    return payroll
+
+# ==================== SCHOOL MODULE ====================
+@api_router.post("/school/courses")
+async def create_course(course: CourseCreate, request: Request, current_user = Depends(require_role("Administrador"))):
+    course_doc = {
+        "id": str(uuid.uuid4()),
+        "title": course.title,
+        "description": course.description,
+        "duration_hours": course.duration_hours,
+        "instructor": course.instructor,
+        "category": course.category,
+        "lessons": [],
+        "enrolled_count": 0,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.courses.insert_one(course_doc)
+    return course_doc
+
+@api_router.get("/school/courses")
+async def get_courses(current_user = Depends(get_current_user)):
+    courses = await db.courses.find({}, {"_id": 0}).to_list(100)
+    return courses
+
+@api_router.get("/school/courses/{course_id}")
+async def get_course(course_id: str, current_user = Depends(get_current_user)):
+    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    return course
+
+@api_router.post("/school/enroll")
+async def enroll_course(enrollment: EnrollmentCreate, request: Request, current_user = Depends(get_current_user)):
+    course = await db.courses.find_one({"id": enrollment.course_id})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    existing = await db.enrollments.find_one({
+        "course_id": enrollment.course_id,
+        "student_id": enrollment.student_id
+    })
+    if existing:
+        raise HTTPException(status_code=409, detail="Already enrolled")
+    
+    enrollment_doc = {
+        "id": str(uuid.uuid4()),
+        "course_id": enrollment.course_id,
+        "course_title": course["title"],
+        "student_id": enrollment.student_id,
+        "student_name": current_user["full_name"],
+        "progress": 0,
+        "completed_lessons": [],
+        "enrolled_at": datetime.now(timezone.utc).isoformat(),
+        "completed_at": None,
+        "certificate_id": None
+    }
+    
+    await db.enrollments.insert_one(enrollment_doc)
+    await db.courses.update_one({"id": enrollment.course_id}, {"$inc": {"enrolled_count": 1}})
+    
+    await log_audit_event(
+        AuditEventType.COURSE_ENROLLED,
+        current_user["id"],
+        "school",
+        {"course_id": enrollment.course_id, "course_title": course["title"]},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return enrollment_doc
+
+@api_router.get("/school/enrollments")
+async def get_my_enrollments(current_user = Depends(get_current_user)):
+    enrollments = await db.enrollments.find({"student_id": current_user["id"]}, {"_id": 0}).to_list(100)
+    return enrollments
+
+@api_router.get("/school/certificates")
+async def get_certificates(current_user = Depends(get_current_user)):
+    certificates = await db.certificates.find({"student_id": current_user["id"]}, {"_id": 0}).to_list(100)
+    return certificates
+
+@api_router.get("/school/student-progress/{student_id}")
+async def get_student_progress(student_id: str, current_user = Depends(get_current_user)):
+    if current_user["id"] != student_id and "Administrador" not in current_user["roles"]:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    enrollments = await db.enrollments.find({"student_id": student_id}, {"_id": 0}).to_list(100)
+    certificates = await db.certificates.find({"student_id": student_id}, {"_id": 0}).to_list(100)
+    
+    return {
+        "enrollments": enrollments,
+        "certificates": certificates,
+        "total_courses": len(enrollments),
+        "completed_courses": len([e for e in enrollments if e.get("completed_at")]),
+        "total_certificates": len(certificates)
+    }
+
+# ==================== PAYMENTS MODULE ====================
+PAYMENT_PACKAGES = {
+    "basic": {"name": "Plan Básico", "price": 29.99, "features": ["Acceso básico", "1 usuario"]},
+    "professional": {"name": "Plan Profesional", "price": 99.99, "features": ["Acceso completo", "5 usuarios", "Soporte prioritario"]},
+    "enterprise": {"name": "Plan Enterprise", "price": 299.99, "features": ["Todo incluido", "Usuarios ilimitados", "Soporte 24/7", "API access"]}
+}
+
+@api_router.get("/payments/packages")
+async def get_payment_packages(current_user = Depends(get_current_user)):
+    return PAYMENT_PACKAGES
+
+@api_router.post("/payments/checkout")
+async def create_checkout(package: PaymentPackage, request: Request, current_user = Depends(get_current_user)):
+    if package.package_id not in PAYMENT_PACKAGES:
+        raise HTTPException(status_code=400, detail="Invalid package")
+    
+    pkg = PAYMENT_PACKAGES[package.package_id]
+    
+    stripe_api_key = os.environ.get('STRIPE_API_KEY')
+    if not stripe_api_key:
+        raise HTTPException(status_code=500, detail="Stripe not configured")
+    
+    host_url = package.origin_url.rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    success_url = f"{host_url}/payments?session_id={{CHECKOUT_SESSION_ID}}"
+    cancel_url = f"{host_url}/payments"
+    
+    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
+    
+    checkout_request = CheckoutSessionRequest(
+        amount=pkg["price"],
+        currency="usd",
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata={
+            "user_id": current_user["id"],
+            "package_id": package.package_id,
+            "user_email": current_user["email"]
+        }
+    )
+    
+    session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)
+    
+    # Create payment transaction record
+    transaction = {
+        "id": str(uuid.uuid4()),
+        "session_id": session.session_id,
+        "user_id": current_user["id"],
+        "user_email": current_user["email"],
+        "package_id": package.package_id,
+        "package_name": pkg["name"],
+        "amount": pkg["price"],
+        "currency": "usd",
+        "payment_status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.payment_transactions.insert_one(transaction)
+    
+    await log_audit_event(
+        AuditEventType.PAYMENT_INITIATED,
+        current_user["id"],
+        "payments",
+        {"package_id": package.package_id, "amount": pkg["price"], "session_id": session.session_id},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {"url": session.url, "session_id": session.session_id}
+
+@api_router.get("/payments/status/{session_id}")
+async def get_payment_status(session_id: str, request: Request, current_user = Depends(get_current_user)):
+    stripe_api_key = os.environ.get('STRIPE_API_KEY')
+    if not stripe_api_key:
+        raise HTTPException(status_code=500, detail="Stripe not configured")
+    
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    
+    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
+    status_response: CheckoutStatusResponse = await stripe_checkout.get_checkout_status(session_id)
+    
+    # Update transaction in database
+    if status_response.payment_status == "paid":
+        transaction = await db.payment_transactions.find_one({"session_id": session_id})
+        if transaction and transaction.get("payment_status") != "completed":
+            await db.payment_transactions.update_one(
+                {"session_id": session_id},
+                {"$set": {"payment_status": "completed", "completed_at": datetime.now(timezone.utc).isoformat()}}
+            )
+            
+            await log_audit_event(
+                AuditEventType.PAYMENT_COMPLETED,
+                current_user["id"],
+                "payments",
+                {"session_id": session_id, "amount": transaction.get("amount")},
+                request.client.host if request.client else "unknown",
+                request.headers.get("user-agent", "unknown")
+            )
+    
+    return {
+        "status": status_response.status,
+        "payment_status": status_response.payment_status,
+        "amount_total": status_response.amount_total,
+        "currency": status_response.currency
+    }
+
+@api_router.get("/payments/history")
+async def get_payment_history(current_user = Depends(get_current_user)):
+    transactions = await db.payment_transactions.find(
+        {"user_id": current_user["id"]}, 
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    return transactions
+
+@api_router.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    stripe_api_key = os.environ.get('STRIPE_API_KEY')
+    if not stripe_api_key:
+        raise HTTPException(status_code=500, detail="Stripe not configured")
+    
+    body = await request.body()
+    signature = request.headers.get("Stripe-Signature")
+    
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe"
+    
+    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
+    
+    try:
+        webhook_response = await stripe_checkout.handle_webhook(body, signature)
+        
+        if webhook_response.payment_status == "paid":
+            await db.payment_transactions.update_one(
+                {"session_id": webhook_response.session_id},
+                {"$set": {"payment_status": "completed", "completed_at": datetime.now(timezone.utc).isoformat()}}
+            )
+        
+        return {"status": "success"}
+    except Exception as e:
+        logger.error(f"Webhook error: {e}")
+        return {"status": "error", "message": str(e)}
+
+# ==================== AUDIT MODULE ====================
+@api_router.get("/audit/logs")
+async def get_audit_logs(
+    module: Optional[str] = None,
+    event_type: Optional[str] = None,
+    user_id: Optional[str] = None,
+    current_user = Depends(require_role("Administrador"))
+):
+    query = {}
+    if module:
+        query["module"] = module
+    if event_type:
+        query["event_type"] = event_type
+    if user_id:
+        query["user_id"] = user_id
+    
+    logs = await db.audit_logs.find(query, {"_id": 0}).sort("timestamp", -1).to_list(500)
+    return logs
+
+@api_router.get("/audit/stats")
+async def get_audit_stats(current_user = Depends(require_role("Administrador"))):
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    
+    total_events = await db.audit_logs.count_documents({})
+    today_events = await db.audit_logs.count_documents({"timestamp": {"$gte": today_start}})
+    login_failures = await db.audit_logs.count_documents({"event_type": "login_failure"})
+    panic_events = await db.audit_logs.count_documents({"event_type": "panic_button"})
+    
+    return {
+        "total_events": total_events,
+        "today_events": today_events,
+        "login_failures": login_failures,
+        "panic_events": panic_events
+    }
+
+# ==================== DASHBOARD ====================
+@api_router.get("/dashboard/stats")
+async def get_dashboard_stats(current_user = Depends(get_current_user)):
+    stats = {
+        "total_users": await db.users.count_documents({}),
+        "active_guards": await db.guards.count_documents({"is_active": True}),
+        "active_alerts": await db.panic_events.count_documents({"status": "active"}),
+        "total_courses": await db.courses.count_documents({}),
+        "pending_payments": await db.payment_transactions.count_documents({"payment_status": "pending"})
+    }
+    return stats
+
+@api_router.get("/dashboard/recent-activity")
+async def get_recent_activity(current_user = Depends(get_current_user)):
+    activities = await db.audit_logs.find({}, {"_id": 0}).sort("timestamp", -1).to_list(20)
+    return activities
+
+# ==================== USERS MANAGEMENT ====================
+@api_router.get("/users")
+async def get_users(current_user = Depends(require_role("Administrador"))):
+    users = await db.users.find({}, {"_id": 0, "hashed_password": 0}).to_list(100)
+    return users
+
+@api_router.put("/users/{user_id}/roles")
+async def update_user_roles(user_id: str, roles: List[str], current_user = Depends(require_role("Administrador"))):
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"roles": roles, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"message": "Roles updated"}
+
+@api_router.put("/users/{user_id}/status")
+async def update_user_status(user_id: str, is_active: bool, current_user = Depends(require_role("Administrador"))):
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"is_active": is_active, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"message": "Status updated"}
+
+# ==================== DEMO DATA SEEDING ====================
+@api_router.post("/seed-demo-data")
+async def seed_demo_data():
+    """Seed demo data for testing and demonstration"""
+    
+    # Check if demo data already exists
+    existing_demo = await db.users.find_one({"email": "admin@genturix.com"})
+    if existing_demo:
+        return {"message": "Demo data already exists"}
+    
+    # Demo Users
+    demo_users = [
+        {"email": "admin@genturix.com", "full_name": "Carlos Admin", "password": "Admin123!", "roles": ["Administrador"]},
+        {"email": "supervisor@genturix.com", "full_name": "María Supervisor", "password": "Super123!", "roles": ["Supervisor"]},
+        {"email": "guarda1@genturix.com", "full_name": "Juan Pérez", "password": "Guard123!", "roles": ["Guarda"]},
+        {"email": "guarda2@genturix.com", "full_name": "Pedro García", "password": "Guard123!", "roles": ["Guarda"]},
+        {"email": "residente@genturix.com", "full_name": "Ana Martínez", "password": "Resi123!", "roles": ["Residente"]},
+        {"email": "estudiante@genturix.com", "full_name": "Luis Estudiante", "password": "Stud123!", "roles": ["Estudiante"]},
+    ]
+    
+    user_ids = {}
+    for user_data in demo_users:
+        user_id = str(uuid.uuid4())
+        user_ids[user_data["email"]] = user_id
+        user_doc = {
+            "id": user_id,
+            "email": user_data["email"],
+            "full_name": user_data["full_name"],
+            "hashed_password": hash_password(user_data["password"]),
+            "roles": user_data["roles"],
+            "is_active": True,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.users.insert_one(user_doc)
+    
+    # Demo Guards
+    demo_guards = [
+        {"user_id": user_ids["guarda1@genturix.com"], "badge": "G-001", "phone": "+1234567890", "rate": 15.0},
+        {"user_id": user_ids["guarda2@genturix.com"], "badge": "G-002", "phone": "+1234567891", "rate": 15.0},
+    ]
+    
+    guard_ids = []
+    for guard_data in demo_guards:
+        user = await db.users.find_one({"id": guard_data["user_id"]})
+        guard_id = str(uuid.uuid4())
+        guard_ids.append(guard_id)
+        guard_doc = {
+            "id": guard_id,
+            "user_id": guard_data["user_id"],
+            "user_name": user["full_name"],
+            "email": user["email"],
+            "badge_number": guard_data["badge"],
+            "phone": guard_data["phone"],
+            "emergency_contact": "+0987654321",
+            "hire_date": "2024-01-15",
+            "hourly_rate": guard_data["rate"],
+            "is_active": True,
+            "total_hours": 160,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.guards.insert_one(guard_doc)
+    
+    # Demo Shifts
+    today = datetime.now(timezone.utc).date()
+    for i, guard_id in enumerate(guard_ids):
+        shift_doc = {
+            "id": str(uuid.uuid4()),
+            "guard_id": guard_id,
+            "guard_name": demo_guards[i]["badge"],
+            "start_time": f"{today}T08:00:00Z",
+            "end_time": f"{today}T16:00:00Z",
+            "location": "Entrada Principal" if i == 0 else "Perímetro Norte",
+            "notes": "Turno regular",
+            "status": "active",
+            "created_by": user_ids["admin@genturix.com"],
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.shifts.insert_one(shift_doc)
+    
+    # Demo Courses
+    demo_courses = [
+        {"title": "Seguridad Básica", "desc": "Fundamentos de seguridad física y vigilancia", "hours": 40, "instructor": "Instructor López", "category": "Seguridad"},
+        {"title": "Primeros Auxilios", "desc": "Técnicas básicas de primeros auxilios y emergencias", "hours": 20, "instructor": "Dr. Ramírez", "category": "Salud"},
+        {"title": "Protocolos de Emergencia", "desc": "Manejo de situaciones de emergencia y evacuación", "hours": 30, "instructor": "Cap. Moreno", "category": "Seguridad"},
+    ]
+    
+    course_ids = []
+    for course_data in demo_courses:
+        course_id = str(uuid.uuid4())
+        course_ids.append(course_id)
+        course_doc = {
+            "id": course_id,
+            "title": course_data["title"],
+            "description": course_data["desc"],
+            "duration_hours": course_data["hours"],
+            "instructor": course_data["instructor"],
+            "category": course_data["category"],
+            "lessons": [
+                {"id": str(uuid.uuid4()), "title": "Introducción", "order": 1},
+                {"id": str(uuid.uuid4()), "title": "Conceptos Básicos", "order": 2},
+                {"id": str(uuid.uuid4()), "title": "Práctica", "order": 3},
+                {"id": str(uuid.uuid4()), "title": "Evaluación Final", "order": 4},
+            ],
+            "enrolled_count": 0,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.courses.insert_one(course_doc)
+    
+    # Demo Panic Events
+    panic_event = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_ids["residente@genturix.com"],
+        "user_name": "Ana Martínez",
+        "location": "Edificio A - Piso 3",
+        "description": "Ruido sospechoso en pasillo",
+        "status": "resolved",
+        "created_at": (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat(),
+        "resolved_at": (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+    }
+    await db.panic_events.insert_one(panic_event)
+    
+    # Demo Access Logs
+    demo_accesses = [
+        {"person": "Visitante 1", "type": "entry", "location": "Entrada Principal"},
+        {"person": "Proveedor ABC", "type": "entry", "location": "Entrada Servicio"},
+        {"person": "Visitante 1", "type": "exit", "location": "Entrada Principal"},
+    ]
+    
+    for access_data in demo_accesses:
+        access_log = {
+            "id": str(uuid.uuid4()),
+            "person_name": access_data["person"],
+            "access_type": access_data["type"],
+            "location": access_data["location"],
+            "notes": None,
+            "recorded_by": user_ids["guarda1@genturix.com"],
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        await db.access_logs.insert_one(access_log)
+    
+    # Demo Audit Logs
+    demo_audit = [
+        {"type": AuditEventType.LOGIN_SUCCESS, "user": user_ids["admin@genturix.com"], "module": "auth", "details": {"email": "admin@genturix.com"}},
+        {"type": AuditEventType.USER_CREATED, "user": user_ids["admin@genturix.com"], "module": "auth", "details": {"created_user": "guarda1@genturix.com"}},
+        {"type": AuditEventType.PANIC_BUTTON, "user": user_ids["residente@genturix.com"], "module": "security", "details": {"location": "Edificio A"}},
+    ]
+    
+    for audit_data in demo_audit:
+        await log_audit_event(
+            audit_data["type"],
+            audit_data["user"],
+            audit_data["module"],
+            audit_data["details"]
+        )
+    
+    return {"message": "Demo data seeded successfully", "credentials": {
+        "admin": {"email": "admin@genturix.com", "password": "Admin123!"},
+        "supervisor": {"email": "supervisor@genturix.com", "password": "Super123!"},
+        "guarda": {"email": "guarda1@genturix.com", "password": "Guard123!"},
+        "residente": {"email": "residente@genturix.com", "password": "Resi123!"},
+        "estudiante": {"email": "estudiante@genturix.com", "password": "Stud123!"}
+    }}
+
+# ==================== HEALTH CHECK ====================
+@api_router.get("/")
+async def root():
+    return {"message": "GENTURIX Enterprise Platform API", "version": "1.0.0"}
+
+@api_router.get("/health")
+async def health_check():
+    return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
+
+# Include the router in the main app
+app.include_router(api_router)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_credentials=True,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
