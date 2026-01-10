@@ -117,9 +117,16 @@ class ApiService {
   getCertificates = () => this.get('/school/certificates');
   getStudentProgress = (studentId) => this.get(`/school/student-progress/${studentId}`);
 
-  // Payments
-  getPackages = () => this.get('/payments/packages');
-  createCheckout = (data) => this.post('/payments/checkout', data);
+  // Payments - GENTURIX Model: $1 per user per month
+  getPricing = () => this.get('/payments/pricing');
+  calculatePrice = (userCount) => this.post('/payments/calculate', { user_count: userCount });
+  createCheckout = (data) => {
+    const params = new URLSearchParams({
+      user_count: data.user_count || 1,
+      origin_url: data.origin_url || window.location.origin
+    });
+    return this.post(`/payments/checkout?${params.toString()}`);
+  };
   getPaymentStatus = (sessionId) => this.get(`/payments/status/${sessionId}`);
   getPaymentHistory = () => this.get('/payments/history');
 
