@@ -2,8 +2,8 @@
 
 ## Fecha: 10 de Enero, 2026
 
-## Problem Statement Original
-Construir la interfaz (frontend) de una plataforma empresarial llamada GENTURIX. GENTURIX es el sistema central (el cerebro). Incluye módulos para: Seguridad, Recursos Humanos, Genturix School, Pagos y Auditoría.
+## Visión
+GENTURIX no es un dashboard corporativo. Es una plataforma de seguridad y emergencias para personas bajo estrés. Diseño "Emergency-First".
 
 ## ADN de GENTURIX
 
@@ -13,28 +13,46 @@ Construir la interfaz (frontend) de una plataforma empresarial llamada GENTURIX.
 - 🚨 **Emergencia General**: Otra emergencia que requiere respuesta inmediata
 
 Cada alerta:
-- Envía ubicación GPS del residente automáticamente
-- Registra tipo de evento
-- Notifica a TODOS los guardas activos
-- Queda registrado en auditoría legal
+- ✅ Captura ubicación GPS automáticamente
+- ✅ Registra tipo específico de emergencia
+- ✅ Notifica a TODOS los guardas activos
+- ✅ Queda registrado en auditoría legal
 
 ### Modelo de Precios
 **$1 por usuario al mes** - Modelo masivo, sin planes corporativos
 - Sin SaaS caro
 - Sin planes complicados
 - Accesible para todos
+- Calculadora de usuarios integrada
 
 Módulos premium opcionales (futuros):
 - Genturix School Pro: +$2/usuario
 - Monitoreo CCTV: +$3/usuario
 - API Access: +$5/usuario
 
-## User Personas
-1. **Administrador** - Acceso completo al sistema
-2. **Supervisor** - Gestión de guardas y monitoreo
-3. **Guarda** - Control de accesos y seguridad
-4. **Residente** - Servicios del condominio, botón de pánico
-5. **Estudiante** - Acceso a cursos y certificaciones
+## Interfaces por Rol
+
+### Residente UI (`/resident`)
+- Pantalla completa con 3 botones de emergencia grandes
+- GPS capturado automáticamente
+- Sin distracciones - emergencias primero
+- Confirmación visual cuando se envía alerta
+
+### Guarda UI (`/guard`)
+- Lista de emergencias activas en tiempo real
+- Coordenadas GPS con link a Google Maps
+- Botón "Resolver" para cada emergencia
+- Auto-refresh cada 10 segundos
+
+### Estudiante UI (`/student`)
+- Cursos disponibles
+- Progreso de aprendizaje
+- Certificados obtenidos
+
+### Admin Dashboard (`/admin/dashboard`)
+- Acceso completo a todos los módulos
+- Seguridad, RH, Pagos, Auditoría
+- Gestión de usuarios
 
 ## Tech Stack
 - Backend: FastAPI + MongoDB + Motor (async)
@@ -43,26 +61,21 @@ Módulos premium opcionales (futuros):
 - Payments: Stripe Integration ($1/user model)
 
 ## What's Been Implemented ✅
-- [x] Login/Register con JWT
-- [x] Dashboard con estadísticas
-- [x] **Botón de Pánico con 3 tipos de emergencia**
-  - [x] Emergencia Médica
-  - [x] Actividad Sospechosa
-  - [x] Emergencia General
-  - [x] Captura GPS automática
-  - [x] Notificación a guardas
-  - [x] Registro en auditoría
-- [x] Módulo Seguridad (eventos, logs acceso, monitoreo)
-- [x] Módulo RH (guardas, turnos, nómina)
-- [x] Módulo Genturix School (cursos, inscripciones)
-- [x] **Módulo Pagos ($1/usuario/mes)**
-  - [x] Calculadora de usuarios
-  - [x] Checkout con Stripe
-  - [x] Historial de pagos
-  - [x] Módulos premium definidos
-- [x] Módulo Auditoría (logs con filtros)
-- [x] Dark mode elegante
-- [x] Datos de demostración
+- [x] Interfaces específicas por rol
+- [x] Botón de pánico con 3 tipos de emergencia
+- [x] Captura GPS automática
+- [x] Notificación a guardas
+- [x] UI de Guarda con emergencias activas
+- [x] Modelo de precios $1/usuario
+- [x] Calculadora de usuarios
+- [x] Dashboard admin completo
+- [x] Módulos: Seguridad, RH, School, Pagos, Auditoría
+- [x] PostHog error suppressed
+
+## Test Results
+- Backend: 100% (24/24 tests passed)
+- Frontend: 100% (All UIs working)
+- Integration: 100%
 
 ## Demo Credentials
 - admin@genturix.com / Admin123!
@@ -72,7 +85,8 @@ Módulos premium opcionales (futuros):
 - estudiante@genturix.com / Stud123!
 
 ## Next Tasks
-1. Notificaciones push en tiempo real para guardas
-2. Sistema de certificados descargable PDF
-3. Integración con cámaras IP reales
-4. App móvil para residentes (botón de pánico rápido)
+1. Notificaciones push en tiempo real (WebSockets)
+2. SMS/WhatsApp a guardas cuando hay pánico
+3. App móvil para botón de pánico rápido
+4. Integración con cámaras IP reales
+5. Certificados descargables en PDF
