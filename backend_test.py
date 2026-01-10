@@ -231,10 +231,10 @@ class GenturixAPITester:
         """Test payments module endpoints"""
         print("\n💳 Testing Payments Module...")
         
-        # Test get packages
-        success, data = self.make_request('GET', '/payments/packages')
-        self.log_test("Get payment packages", success,
-                     f"Packages: {len(data) if isinstance(data, dict) else 0}" if success else f"Error: {data}")
+        # Test get pricing info
+        success, data = self.make_request('GET', '/payments/pricing')
+        self.log_test("Get pricing info", success,
+                     f"Price per user: ${data.get('price_per_user', 0)}" if success else f"Error: {data}")
         
         # Test payment history
         success, data = self.make_request('GET', '/payments/history')
