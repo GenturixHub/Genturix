@@ -165,6 +165,7 @@ class GenturixAPITester:
         
         # Test trigger panic (create)
         panic_data = {
+            "panic_type": "emergencia_general",
             "location": "Test Location - API Test",
             "description": "Automated test panic event"
         }
