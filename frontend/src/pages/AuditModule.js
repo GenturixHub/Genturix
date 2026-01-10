@@ -219,14 +219,14 @@ const AuditModule = () => {
                 </div>
               </div>
               <Select 
-                value={filters.module} 
-                onValueChange={(v) => setFilters({...filters, module: v})}
+                value={filters.module || "all"} 
+                onValueChange={(v) => setFilters({...filters, module: v === "all" ? "" : v})}
               >
                 <SelectTrigger className="w-[180px] bg-[#181B25] border-[#1E293B]" data-testid="module-filter">
                   <SelectValue placeholder="Módulo" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#0F111A] border-[#1E293B]">
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="auth">Autenticación</SelectItem>
                   <SelectItem value="security">Seguridad</SelectItem>
                   <SelectItem value="hr">Recursos Humanos</SelectItem>
@@ -235,14 +235,14 @@ const AuditModule = () => {
                 </SelectContent>
               </Select>
               <Select 
-                value={filters.event_type} 
-                onValueChange={(v) => setFilters({...filters, event_type: v})}
+                value={filters.event_type || "all"} 
+                onValueChange={(v) => setFilters({...filters, event_type: v === "all" ? "" : v})}
               >
                 <SelectTrigger className="w-[180px] bg-[#181B25] border-[#1E293B]" data-testid="event-type-filter">
                   <SelectValue placeholder="Tipo de evento" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#0F111A] border-[#1E293B]">
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="login_success">Login Exitoso</SelectItem>
                   <SelectItem value="login_failure">Login Fallido</SelectItem>
                   <SelectItem value="logout">Logout</SelectItem>
