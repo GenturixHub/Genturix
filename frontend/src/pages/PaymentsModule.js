@@ -4,7 +4,8 @@ import DashboardLayout from '../components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { ScrollArea } from '../components/ui/scroll-area';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
 import {
   Table,
   TableBody,
@@ -21,27 +22,31 @@ import {
   Clock,
   DollarSign,
   Loader2,
-  ExternalLink,
-  Star,
-  Zap,
-  Crown
+  Users,
+  Minus,
+  Plus,
+  Sparkles,
+  Shield,
+  GraduationCap,
+  FileText
 } from 'lucide-react';
 
 const PaymentsModule = () => {
   const [searchParams] = useSearchParams();
-  const [packages, setPackages] = useState({});
+  const [pricing, setPricing] = useState(null);
   const [history, setHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [processingPackage, setProcessingPackage] = useState(null);
+  const [userCount, setUserCount] = useState(1);
+  const [processingCheckout, setProcessingCheckout] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState(null);
 
   const fetchData = async () => {
     try {
-      const [packagesData, historyData] = await Promise.all([
-        api.getPackages(),
+      const [pricingData, historyData] = await Promise.all([
+        api.getPricing(),
         api.getPaymentHistory()
       ]);
-      setPackages(packagesData);
+      setPricing(pricingData);
       setHistory(historyData);
     } catch (error) {
       console.error('Error fetching payment data:', error);
@@ -73,7 +78,7 @@ const PaymentsModule = () => {
       const status = await api.getPaymentStatus(sessionId);
       
       if (status.payment_status === 'paid') {
-        setPaymentStatus({ status: 'success', message: '¡Pago exitoso! Gracias por tu compra.' });
+        setPaymentStatus({ status: 'success', message: '¡Pago exitoso! Gracias por suscribirte a GENTURIX.' });
         fetchData();
         return;
       } else if (status.status === 'expired') {
@@ -89,11 +94,11 @@ const PaymentsModule = () => {
     }
   };
 
-  const handleCheckout = async (packageId) => {
-    setProcessingPackage(packageId);
+  const handleCheckout = async () => {
+    setProcessingCheckout(true);
     try {
       const result = await api.createCheckout({
-        package_id: packageId,
+        user_count: userCount,
         origin_url: window.location.origin
       });
       
@@ -104,7 +109,7 @@ const PaymentsModule = () => {
       console.error('Error creating checkout:', error);
       alert('Error al procesar el pago. Por favor intenta de nuevo.');
     } finally {
-      setProcessingPackage(null);
+      setProcessingCheckout(false);
     }
   };
 
@@ -122,30 +127,9 @@ const PaymentsModule = () => {
     });
   };
 
-  const getPackageIcon = (packageId) => {
-    switch (packageId) {
-      case 'basic':
-        return <Star className="w-8 h-8" />;
-      case 'professional':
-        return <Zap className="w-8 h-8" />;
-      case 'enterprise':
-        return <Crown className="w-8 h-8" />;
-      default:
-        return <Star className="w-8 h-8" />;
-    }
-  };
-
-  const getPackageColors = (packageId) => {
-    switch (packageId) {
-      case 'basic':
-        return 'from-blue-500/20 to-cyan-500/20 border-blue-500/20';
-      case 'professional':
-        return 'from-purple-500/20 to-pink-500/20 border-purple-500/20';
-      case 'enterprise':
-        return 'from-yellow-500/20 to-orange-500/20 border-yellow-500/20';
-      default:
-        return 'from-gray-500/20 to-slate-500/20 border-gray-500/20';
-    }
+  const calculateTotal = () => {
+    if (!pricing) return 0;
+    return userCount * pricing.price_per_user;
   };
 
   if (isLoading) {
@@ -181,58 +165,167 @@ const PaymentsModule = () => {
           </div>
         )}
 
-        {/* Packages */}
-        <div>
-          <h2 className="text-xl font-bold font-['Outfit'] mb-4">Planes Disponibles</h2>
-          <div className="grid gap-6 md:grid-cols-3">
-            {Object.entries(packages).map(([packageId, pkg]) => (
-              <Card 
-                key={packageId}
-                className={`grid-card bg-gradient-to-br ${getPackageColors(packageId)}`}
-                data-testid={`package-card-${packageId}`}
-              >
-                <CardHeader className="text-center">
-                  <div className="w-16 h-16 mx-auto rounded-full bg-white/10 flex items-center justify-center mb-4">
-                    {getPackageIcon(packageId)}
+        {/* GENTURIX Pricing Model */}
+        <Card className="grid-card border-2 border-primary/20 overflow-hidden">
+          <div className="bg-gradient-to-r from-primary/10 to-purple-500/10 p-6 border-b border-[#1E293B]">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                <Shield className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold font-['Outfit']">GENTURIX</h2>
+                <p className="text-muted-foreground">Modelo de precios simple y accesible</p>
+              </div>
+            </div>
+          </div>
+          <CardContent className="p-6">
+            <div className="grid gap-8 lg:grid-cols-2">
+              {/* Pricing Info */}
+              <div className="space-y-6">
+                <div className="text-center p-6 rounded-xl bg-gradient-to-br from-primary/5 to-purple-500/5 border border-primary/20">
+                  <div className="flex items-baseline justify-center gap-1">
+                    <span className="text-6xl font-bold text-primary">$1</span>
+                    <span className="text-2xl text-muted-foreground">/usuario</span>
                   </div>
-                  <CardTitle className="text-xl">{pkg.name}</CardTitle>
-                  <div className="mt-4">
-                    <span className="text-4xl font-bold">{formatCurrency(pkg.price)}</span>
-                    <span className="text-muted-foreground">/mes</span>
+                  <p className="text-muted-foreground mt-2">por mes</p>
+                  <Badge className="mt-4 bg-primary/20 text-primary border-primary/30">
+                    Sin planes corporativos - Modelo masivo
+                  </Badge>
+                </div>
+
+                {/* Features */}
+                <div className="space-y-3">
+                  <h3 className="font-semibold">Incluido para cada usuario:</h3>
+                  {pricing?.features?.map((feature, index) => (
+                    <div key={index} className="flex items-center gap-3 text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      <span>{feature}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Calculator */}
+              <div className="space-y-6">
+                <div className="p-6 rounded-xl bg-muted/30 border border-[#1E293B]">
+                  <Label className="text-lg font-semibold mb-4 block">Calcular suscripción</Label>
+                  
+                  <div className="flex items-center justify-center gap-4 my-6">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-12 w-12 rounded-full border-[#1E293B]"
+                      onClick={() => setUserCount(Math.max(1, userCount - 1))}
+                      disabled={userCount <= 1}
+                      data-testid="decrease-users-btn"
+                    >
+                      <Minus className="w-5 h-5" />
+                    </Button>
+                    
+                    <div className="text-center">
+                      <Input
+                        type="number"
+                        min="1"
+                        value={userCount}
+                        onChange={(e) => setUserCount(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="w-24 h-16 text-center text-3xl font-bold bg-[#181B25] border-[#1E293B]"
+                        data-testid="user-count-input"
+                      />
+                      <p className="text-sm text-muted-foreground mt-1">usuarios</p>
+                    </div>
+                    
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-12 w-12 rounded-full border-[#1E293B]"
+                      onClick={() => setUserCount(userCount + 1)}
+                      data-testid="increase-users-btn"
+                    >
+                      <Plus className="w-5 h-5" />
+                    </Button>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-3 mb-6">
-                    {pkg.features.map((feature, index) => (
-                      <li key={index} className="flex items-center gap-2 text-sm">
-                        <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
+
+                  <div className="border-t border-[#1E293B] pt-4 mt-4">
+                    <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
+                      <span>{userCount} usuario{userCount > 1 ? 's' : ''} × $1.00</span>
+                      <span>{formatCurrency(calculateTotal())}/mes</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xl font-bold">
+                      <span>Total mensual:</span>
+                      <span className="text-primary">{formatCurrency(calculateTotal())}</span>
+                    </div>
+                  </div>
+
                   <Button
-                    className="w-full"
-                    onClick={() => handleCheckout(packageId)}
-                    disabled={processingPackage === packageId}
-                    data-testid={`checkout-btn-${packageId}`}
+                    className="w-full mt-6 h-12 text-lg"
+                    onClick={handleCheckout}
+                    disabled={processingCheckout}
+                    data-testid="checkout-btn"
                   >
-                    {processingPackage === packageId ? (
+                    {processingCheckout ? (
                       <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                         Procesando...
                       </>
                     ) : (
                       <>
-                        <CreditCard className="w-4 h-4 mr-2" />
-                        Suscribirse
+                        <CreditCard className="w-5 h-5 mr-2" />
+                        Suscribirse por {formatCurrency(calculateTotal())}/mes
                       </>
                     )}
                   </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
+                </div>
+
+                {/* Quick select */}
+                <div className="flex flex-wrap gap-2">
+                  {[1, 5, 10, 25, 50, 100].map((num) => (
+                    <Button
+                      key={num}
+                      variant="outline"
+                      size="sm"
+                      className={`border-[#1E293B] ${userCount === num ? 'bg-primary/20 border-primary' : ''}`}
+                      onClick={() => setUserCount(num)}
+                      data-testid={`quick-select-${num}`}
+                    >
+                      {num} usuario{num > 1 ? 's' : ''}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Premium Modules */}
+        {pricing?.premium_modules && pricing.premium_modules.length > 0 && (
+          <Card className="grid-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-yellow-400" />
+                Módulos Premium (Próximamente)
+              </CardTitle>
+              <CardDescription>
+                Funcionalidades adicionales que puedes agregar a tu suscripción base
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3">
+                {pricing.premium_modules.map((module, index) => (
+                  <div 
+                    key={index}
+                    className="p-4 rounded-lg bg-muted/30 border border-[#1E293B] opacity-75"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-semibold">{module.name}</span>
+                      <Badge variant="outline">+${module.price}/usuario</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{module.description}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Payment History */}
         <Card className="grid-card">
@@ -250,10 +343,9 @@ const PaymentsModule = () => {
                   <TableHeader>
                     <TableRow className="border-[#1E293B]">
                       <TableHead>Fecha</TableHead>
-                      <TableHead>Plan</TableHead>
+                      <TableHead>Usuarios</TableHead>
                       <TableHead>Monto</TableHead>
                       <TableHead>Estado</TableHead>
-                      <TableHead>ID Sesión</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -262,7 +354,12 @@ const PaymentsModule = () => {
                         <TableCell className="text-muted-foreground">
                           {formatDate(transaction.created_at)}
                         </TableCell>
-                        <TableCell className="font-medium">{transaction.package_name}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                            {transaction.user_count || 1} usuario{(transaction.user_count || 1) > 1 ? 's' : ''}
+                          </div>
+                        </TableCell>
                         <TableCell className="font-mono">{formatCurrency(transaction.amount)}</TableCell>
                         <TableCell>
                           <Badge className={
@@ -273,9 +370,6 @@ const PaymentsModule = () => {
                             {transaction.payment_status === 'completed' ? 'Completado' :
                              transaction.payment_status === 'pending' ? 'Pendiente' : 'Fallido'}
                           </Badge>
-                        </TableCell>
-                        <TableCell className="font-mono text-xs text-muted-foreground">
-                          {transaction.session_id?.slice(0, 20)}...
                         </TableCell>
                       </TableRow>
                     ))}
@@ -321,7 +415,8 @@ const PaymentsModule = () => {
               </div>
             </div>
             <p className="text-xs text-muted-foreground mt-4">
-              Todos los pagos son procesados de forma segura a través de Stripe.
+              Todos los pagos son procesados de forma segura a través de Stripe. 
+              El precio de GENTURIX es siempre <strong>$1 por usuario al mes</strong> - sin sorpresas, sin planes complicados.
             </p>
           </CardContent>
         </Card>
