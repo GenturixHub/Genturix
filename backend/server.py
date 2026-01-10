@@ -104,8 +104,16 @@ class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
 # Security Module Models
+class PanicType(str, Enum):
+    MEDICAL_EMERGENCY = "emergencia_medica"
+    SUSPICIOUS_ACTIVITY = "actividad_sospechosa"
+    GENERAL_EMERGENCY = "emergencia_general"
+
 class PanicEventCreate(BaseModel):
+    panic_type: PanicType
     location: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     description: Optional[str] = None
 
 class AccessLogCreate(BaseModel):
@@ -384,29 +392,81 @@ async def get_me(current_user = Depends(get_current_user)):
 # ==================== SECURITY MODULE ====================
 @api_router.post("/security/panic")
 async def trigger_panic(event: PanicEventCreate, request: Request, current_user = Depends(get_current_user)):
+    panic_type_labels = {
+        "emergencia_medica": "🚑 Emergencia Médica",
+        "actividad_sospechosa": "👁️ Actividad Sospechosa",
+        "emergencia_general": "🚨 Emergencia General"
+    }
+    
     panic_event = {
         "id": str(uuid.uuid4()),
         "user_id": current_user["id"],
         "user_name": current_user["full_name"],
+        "user_email": current_user["email"],
+        "panic_type": event.panic_type.value,
+        "panic_type_label": panic_type_labels.get(event.panic_type.value, "Emergencia"),
         "location": event.location,
+        "latitude": event.latitude,
+        "longitude": event.longitude,
         "description": event.description,
         "status": "active",
+        "notified_guards": [],
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "resolved_at": None
+        "resolved_at": None,
+        "resolved_by": None
     }
     
     await db.panic_events.insert_one(panic_event)
     
+    # Notify all active guards - create notifications
+    active_guards = await db.guards.find({"is_active": True}, {"_id": 0}).to_list(100)
+    for guard in active_guards:
+        notification = {
+            "id": str(uuid.uuid4()),
+            "guard_id": guard["id"],
+            "guard_user_id": guard["user_id"],
+            "panic_event_id": panic_event["id"],
+            "panic_type": event.panic_type.value,
+            "panic_type_label": panic_type_labels.get(event.panic_type.value, "Emergencia"),
+            "resident_name": current_user["full_name"],
+            "location": event.location,
+            "latitude": event.latitude,
+            "longitude": event.longitude,
+            "read": False,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.guard_notifications.insert_one(notification)
+        panic_event["notified_guards"].append(guard["id"])
+    
+    # Update panic event with notified guards
+    await db.panic_events.update_one(
+        {"id": panic_event["id"]},
+        {"$set": {"notified_guards": panic_event["notified_guards"]}}
+    )
+    
+    # Log to audit
     await log_audit_event(
         AuditEventType.PANIC_BUTTON,
         current_user["id"],
         "security",
-        {"location": event.location, "description": event.description},
+        {
+            "panic_type": event.panic_type.value,
+            "location": event.location,
+            "latitude": event.latitude,
+            "longitude": event.longitude,
+            "description": event.description,
+            "notified_guards_count": len(active_guards)
+        },
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
     )
     
-    return {"message": "Panic alert sent", "event_id": panic_event["id"]}
+    return {
+        "message": "Alerta enviada exitosamente",
+        "event_id": panic_event["id"],
+        "panic_type": event.panic_type.value,
+        "notified_guards": len(active_guards)
+    }
 
 @api_router.get("/security/panic-events")
 async def get_panic_events(current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
@@ -667,28 +727,70 @@ async def get_student_progress(student_id: str, current_user = Depends(get_curre
     }
 
 # ==================== PAYMENTS MODULE ====================
-PAYMENT_PACKAGES = {
-    "basic": {"name": "Plan Básico", "price": 29.99, "features": ["Acceso básico", "1 usuario"]},
-    "professional": {"name": "Plan Profesional", "price": 99.99, "features": ["Acceso completo", "5 usuarios", "Soporte prioritario"]},
-    "enterprise": {"name": "Plan Enterprise", "price": 299.99, "features": ["Todo incluido", "Usuarios ilimitados", "Soporte 24/7", "API access"]}
-}
+# GENTURIX PRICING MODEL: $1 per user per month
+# Simple, accessible, massive adoption model
 
-@api_router.get("/payments/packages")
-async def get_payment_packages(current_user = Depends(get_current_user)):
-    return PAYMENT_PACKAGES
+class UserSubscriptionCreate(BaseModel):
+    user_count: int = 1
+
+GENTURIX_PRICE_PER_USER = 1.00  # $1 USD per user per month
+
+def calculate_subscription_price(user_count: int) -> float:
+    """Calculate price: $1 per user per month"""
+    return round(user_count * GENTURIX_PRICE_PER_USER, 2)
+
+@api_router.get("/payments/pricing")
+async def get_pricing_info(current_user = Depends(get_current_user)):
+    """Get GENTURIX pricing model: $1 per user per month"""
+    return {
+        "model": "per_user",
+        "price_per_user": GENTURIX_PRICE_PER_USER,
+        "currency": "usd",
+        "billing_period": "monthly",
+        "description": "$1 por usuario al mes",
+        "features": [
+            "Acceso completo a GENTURIX",
+            "Botón de pánico (3 tipos de emergencia)",
+            "Registro de accesos",
+            "Genturix School básico",
+            "Auditoría completa",
+            "Soporte por email"
+        ],
+        "premium_modules": [
+            {"name": "Genturix School Pro", "price": 2.00, "description": "Cursos ilimitados y certificaciones"},
+            {"name": "Monitoreo CCTV", "price": 3.00, "description": "Integración con cámaras IP"},
+            {"name": "API Access", "price": 5.00, "description": "Acceso a API para integraciones"}
+        ]
+    }
+
+@api_router.post("/payments/calculate")
+async def calculate_price(subscription: UserSubscriptionCreate, current_user = Depends(get_current_user)):
+    """Calculate subscription price based on user count"""
+    if subscription.user_count < 1:
+        raise HTTPException(status_code=400, detail="Minimum 1 user required")
+    
+    total = calculate_subscription_price(subscription.user_count)
+    return {
+        "user_count": subscription.user_count,
+        "price_per_user": GENTURIX_PRICE_PER_USER,
+        "total": total,
+        "currency": "usd",
+        "billing_period": "monthly"
+    }
 
 @api_router.post("/payments/checkout")
-async def create_checkout(package: PaymentPackage, request: Request, current_user = Depends(get_current_user)):
-    if package.package_id not in PAYMENT_PACKAGES:
-        raise HTTPException(status_code=400, detail="Invalid package")
+async def create_checkout(request: Request, current_user = Depends(get_current_user), user_count: int = 1, origin_url: str = ""):
+    """Create checkout session for $1/user subscription"""
+    if user_count < 1:
+        raise HTTPException(status_code=400, detail="Minimum 1 user required")
     
-    pkg = PAYMENT_PACKAGES[package.package_id]
+    total_amount = calculate_subscription_price(user_count)
     
     stripe_api_key = os.environ.get('STRIPE_API_KEY')
     if not stripe_api_key:
         raise HTTPException(status_code=500, detail="Stripe not configured")
     
-    host_url = package.origin_url.rstrip('/')
+    host_url = origin_url.rstrip('/') if origin_url else str(request.base_url).rstrip('/')
     webhook_url = f"{host_url}/api/webhook/stripe"
     success_url = f"{host_url}/payments?session_id={{CHECKOUT_SESSION_ID}}"
     cancel_url = f"{host_url}/payments"
@@ -696,14 +798,15 @@ async def create_checkout(package: PaymentPackage, request: Request, current_use
     stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
     
     checkout_request = CheckoutSessionRequest(
-        amount=pkg["price"],
+        amount=total_amount,
         currency="usd",
         success_url=success_url,
         cancel_url=cancel_url,
         metadata={
             "user_id": current_user["id"],
-            "package_id": package.package_id,
-            "user_email": current_user["email"]
+            "user_email": current_user["email"],
+            "user_count": str(user_count),
+            "price_per_user": str(GENTURIX_PRICE_PER_USER)
         }
     )
     
@@ -715,9 +818,9 @@ async def create_checkout(package: PaymentPackage, request: Request, current_use
         "session_id": session.session_id,
         "user_id": current_user["id"],
         "user_email": current_user["email"],
-        "package_id": package.package_id,
-        "package_name": pkg["name"],
-        "amount": pkg["price"],
+        "user_count": user_count,
+        "price_per_user": GENTURIX_PRICE_PER_USER,
+        "amount": total_amount,
         "currency": "usd",
         "payment_status": "pending",
         "created_at": datetime.now(timezone.utc).isoformat()
@@ -729,12 +832,12 @@ async def create_checkout(package: PaymentPackage, request: Request, current_use
         AuditEventType.PAYMENT_INITIATED,
         current_user["id"],
         "payments",
-        {"package_id": package.package_id, "amount": pkg["price"], "session_id": session.session_id},
+        {"user_count": user_count, "amount": total_amount, "session_id": session.session_id},
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
     )
     
-    return {"url": session.url, "session_id": session.session_id}
+    return {"url": session.url, "session_id": session.session_id, "amount": total_amount, "user_count": user_count}
 
 @api_router.get("/payments/status/{session_id}")
 async def get_payment_status(session_id: str, request: Request, current_user = Depends(get_current_user)):
