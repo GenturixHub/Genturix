@@ -5,41 +5,64 @@
 ## Problem Statement Original
 Construir la interfaz (frontend) de una plataforma empresarial llamada GENTURIX. GENTURIX es el sistema central (el cerebro). Incluye módulos para: Seguridad, Recursos Humanos, Genturix School, Pagos y Auditoría.
 
+## ADN de GENTURIX
+
+### Botón de Pánico (3 Tipos)
+- 🚑 **Emergencia Médica**: Emergencia de salud que requiere atención médica inmediata
+- 👁️ **Actividad Sospechosa**: Comportamiento o persona sospechosa que requiere verificación  
+- 🚨 **Emergencia General**: Otra emergencia que requiere respuesta inmediata
+
+Cada alerta:
+- Envía ubicación GPS del residente automáticamente
+- Registra tipo de evento
+- Notifica a TODOS los guardas activos
+- Queda registrado en auditoría legal
+
+### Modelo de Precios
+**$1 por usuario al mes** - Modelo masivo, sin planes corporativos
+- Sin SaaS caro
+- Sin planes complicados
+- Accesible para todos
+
+Módulos premium opcionales (futuros):
+- Genturix School Pro: +$2/usuario
+- Monitoreo CCTV: +$3/usuario
+- API Access: +$5/usuario
+
 ## User Personas
 1. **Administrador** - Acceso completo al sistema
 2. **Supervisor** - Gestión de guardas y monitoreo
 3. **Guarda** - Control de accesos y seguridad
-4. **Residente** - Servicios del condominio
+4. **Residente** - Servicios del condominio, botón de pánico
 5. **Estudiante** - Acceso a cursos y certificaciones
-
-## Core Requirements
-- Login JWT con email/contraseña
-- Selección de panel por rol
-- Dashboard principal con estadísticas
-- Módulo Seguridad (botón pánico, eventos, accesos, monitoreo)
-- Módulo RH (guardas, turnos, salarios, nómina)
-- Módulo Genturix School (cursos, inscripciones, certificados)
-- Módulo Pagos (planes Stripe, historial)
-- Módulo Auditoría (logs, filtros)
 
 ## Tech Stack
 - Backend: FastAPI + MongoDB + Motor (async)
 - Frontend: React + Tailwind + Shadcn/UI
 - Auth: JWT (custom implementation)
-- Payments: Stripe Integration
+- Payments: Stripe Integration ($1/user model)
 
 ## What's Been Implemented ✅
-- [x] Backend completo con todas las APIs
 - [x] Login/Register con JWT
-- [x] Dashboard con estadísticas en tiempo real
-- [x] Módulo Seguridad (eventos pánico, logs acceso, monitoreo CCTV)
+- [x] Dashboard con estadísticas
+- [x] **Botón de Pánico con 3 tipos de emergencia**
+  - [x] Emergencia Médica
+  - [x] Actividad Sospechosa
+  - [x] Emergencia General
+  - [x] Captura GPS automática
+  - [x] Notificación a guardas
+  - [x] Registro en auditoría
+- [x] Módulo Seguridad (eventos, logs acceso, monitoreo)
 - [x] Módulo RH (guardas, turnos, nómina)
 - [x] Módulo Genturix School (cursos, inscripciones)
-- [x] Módulo Pagos (3 planes, integración Stripe)
+- [x] **Módulo Pagos ($1/usuario/mes)**
+  - [x] Calculadora de usuarios
+  - [x] Checkout con Stripe
+  - [x] Historial de pagos
+  - [x] Módulos premium definidos
 - [x] Módulo Auditoría (logs con filtros)
-- [x] Dark mode elegante estilo Twitch
+- [x] Dark mode elegante
 - [x] Datos de demostración
-- [x] Diseño responsive
 
 ## Demo Credentials
 - admin@genturix.com / Admin123!
@@ -48,29 +71,8 @@ Construir la interfaz (frontend) de una plataforma empresarial llamada GENTURIX.
 - residente@genturix.com / Resi123!
 - estudiante@genturix.com / Stud123!
 
-## Prioritized Backlog
-
-### P0 (Crítico)
-- ✅ Completado
-
-### P1 (Alta Prioridad)
-- [ ] Sistema de certificados descargable
-- [ ] Notificaciones push en tiempo real
-- [ ] Exportación de reportes PDF
-
-### P2 (Media Prioridad)
-- [ ] Light mode opcional
-- [ ] Panel de configuración avanzada
-- [ ] Integración con cámaras IP reales
-- [ ] Sistema de mensajería interna
-
-### P3 (Baja Prioridad)
-- [ ] App móvil nativa
-- [ ] Biometría
-- [ ] Multi-idioma
-
 ## Next Tasks
-1. Implementar descarga de certificados
-2. Sistema de notificaciones en tiempo real
-3. Reportes exportables en PDF
-4. Integración con cámaras IP
+1. Notificaciones push en tiempo real para guardas
+2. Sistema de certificados descargable PDF
+3. Integración con cámaras IP reales
+4. App móvil para residentes (botón de pánico rápido)
