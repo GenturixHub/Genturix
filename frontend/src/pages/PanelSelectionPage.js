@@ -17,37 +17,42 @@ const ROLE_CONFIGS = {
   'Administrador': {
     icon: Shield,
     title: 'Panel Administrador',
-    description: 'Acceso completo al sistema, gestión de usuarios, configuración y reportes.',
+    description: 'Acceso completo: usuarios, pagos, auditoría, todos los módulos.',
     color: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
     iconBg: 'bg-purple-500/20',
+    route: '/admin/dashboard'
   },
   'Supervisor': {
     icon: Users,
     title: 'Panel Supervisor',
-    description: 'Gestión de guardas, turnos, monitoreo de seguridad y reportes.',
+    description: 'Gestión de guardas, turnos, monitoreo de seguridad.',
     color: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
     iconBg: 'bg-blue-500/20',
+    route: '/admin/dashboard'
   },
   'Guarda': {
     icon: UserCheck,
     title: 'Panel Guarda',
-    description: 'Control de accesos, registro de eventos y botón de pánico.',
+    description: 'Ver emergencias activas, responder alertas, ubicaciones.',
     color: 'bg-green-500/10 text-green-400 border-green-500/20',
     iconBg: 'bg-green-500/20',
+    route: '/guard'
   },
   'Residente': {
     icon: Home,
     title: 'Panel Residente',
-    description: 'Acceso a servicios del condominio, alertas y comunicaciones.',
-    color: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
-    iconBg: 'bg-orange-500/20',
+    description: 'Botón de pánico, reportar emergencias, contactar seguridad.',
+    color: 'bg-red-500/10 text-red-400 border-red-500/20',
+    iconBg: 'bg-red-500/20',
+    route: '/resident'
   },
   'Estudiante': {
     icon: GraduationCap,
     title: 'Panel Estudiante',
-    description: 'Acceso a cursos, certificaciones y progreso académico.',
+    description: 'Cursos, certificaciones, progreso académico.',
     color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
     iconBg: 'bg-cyan-500/20',
+    route: '/student'
   },
 };
 
@@ -56,8 +61,11 @@ const PanelSelectionPage = () => {
   const { user, logout } = useAuth();
 
   const handleSelectPanel = (role) => {
-    sessionStorage.setItem('activeRole', role);
-    navigate('/dashboard');
+    const config = ROLE_CONFIGS[role];
+    if (config) {
+      sessionStorage.setItem('activeRole', role);
+      navigate(config.route);
+    }
   };
 
   const handleLogout = async () => {
@@ -75,11 +83,14 @@ const PanelSelectionPage = () => {
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold font-['Outfit']">Seleccionar Panel</h1>
-            <p className="text-muted-foreground">
-              Bienvenido, <span className="text-foreground">{user.full_name}</span>
-            </p>
+          <div className="flex items-center gap-3">
+            <Shield className="w-10 h-10 text-primary" />
+            <div>
+              <h1 className="text-2xl font-bold font-['Outfit']">GENTURIX</h1>
+              <p className="text-muted-foreground">
+                Bienvenido, <span className="text-foreground">{user.full_name}</span>
+              </p>
+            </div>
           </div>
           <Button
             variant="outline"
@@ -88,8 +99,16 @@ const PanelSelectionPage = () => {
             data-testid="logout-btn"
           >
             <LogOut className="w-4 h-4 mr-2" />
-            Cerrar Sesión
+            Salir
           </Button>
+        </div>
+
+        {/* Title */}
+        <div className="text-center mb-8">
+          <h2 className="text-xl font-semibold">Selecciona tu panel</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Tienes acceso a {user.roles.length} panel{user.roles.length > 1 ? 'es' : ''}
+          </p>
         </div>
 
         {/* Role Cards */}
@@ -103,13 +122,13 @@ const PanelSelectionPage = () => {
             return (
               <Card
                 key={role}
-                className={`grid-card cursor-pointer hover:border-primary transition-all duration-200 ${config.color}`}
+                className={`cursor-pointer transition-all duration-200 hover:scale-[1.02] ${config.color} border-2`}
                 onClick={() => handleSelectPanel(role)}
                 data-testid={`panel-card-${role.toLowerCase()}`}
               >
                 <CardHeader className="flex flex-row items-center gap-4">
-                  <div className={`w-12 h-12 rounded-lg ${config.iconBg} flex items-center justify-center`}>
-                    <IconComponent className="w-6 h-6" />
+                  <div className={`w-14 h-14 rounded-xl ${config.iconBg} flex items-center justify-center`}>
+                    <IconComponent className="w-7 h-7" />
                   </div>
                   <div className="flex-1">
                     <CardTitle className="text-lg">{config.title}</CardTitle>
@@ -117,19 +136,11 @@ const PanelSelectionPage = () => {
                       {config.description}
                     </CardDescription>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                  <ChevronRight className="w-6 h-6 text-muted-foreground" />
                 </CardHeader>
               </Card>
             );
           })}
-        </div>
-
-        {/* Info */}
-        <div className="mt-8 p-4 rounded-lg bg-muted/30 border border-border">
-          <p className="text-sm text-muted-foreground text-center">
-            Tienes acceso a <span className="text-foreground font-medium">{user.roles.length}</span> panel(es). 
-            Selecciona el que deseas usar en esta sesión.
-          </p>
         </div>
       </div>
     </div>
