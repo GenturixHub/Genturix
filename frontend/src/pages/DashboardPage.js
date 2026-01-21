@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { ScrollArea } from '../components/ui/scroll-area';
+import { useIsMobile } from '../components/layout/BottomNav';
 import api from '../services/api';
 import { 
   Users, 
@@ -18,10 +19,11 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  Loader2
+  Loader2,
+  ChevronRight
 } from 'lucide-react';
 
-const StatCard = ({ title, value, icon: Icon, trend, color = 'primary' }) => {
+const StatCard = ({ title, value, icon: Icon, trend, color = 'primary', onClick }) => {
   const colorClasses = {
     primary: 'bg-primary/10 text-primary',
     success: 'bg-green-500/10 text-green-400',
@@ -31,22 +33,30 @@ const StatCard = ({ title, value, icon: Icon, trend, color = 'primary' }) => {
   };
 
   return (
-    <Card className="grid-card">
-      <CardContent className="p-6">
+    <Card 
+      className={`grid-card ${onClick ? 'cursor-pointer hover:border-primary' : ''}`}
+      onClick={onClick}
+    >
+      <CardContent className="p-4 md:p-6">
         <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground">{title}</p>
-            <p className="text-3xl font-bold font-['Outfit'] mt-1">{value}</p>
-            {trend && (
-              <div className="flex items-center gap-1 mt-2 text-xs">
-                <TrendingUp className="w-3 h-3 text-green-400" />
-                <span className="text-green-400">{trend}</span>
-              </div>
-            )}
+          <div className="flex items-center gap-3 md:block">
+            <div className={`w-10 h-10 md:w-12 md:h-12 rounded-lg ${colorClasses[color]} flex items-center justify-center md:mb-3`}>
+              <Icon className="w-5 h-5 md:w-6 md:h-6" />
+            </div>
+            <div>
+              <p className="text-xs md:text-sm text-muted-foreground">{title}</p>
+              <p className="text-xl md:text-3xl font-bold font-['Outfit']">{value}</p>
+            </div>
           </div>
-          <div className={`w-12 h-12 rounded-lg ${colorClasses[color]} flex items-center justify-center`}>
-            <Icon className="w-6 h-6" />
-          </div>
+          {trend && (
+            <div className="flex items-center gap-1 text-xs text-green-400">
+              <TrendingUp className="w-3 h-3" />
+              <span>{trend}</span>
+            </div>
+          )}
+          {onClick && (
+            <ChevronRight className="w-5 h-5 text-muted-foreground md:hidden" />
+          )}
         </div>
       </CardContent>
     </Card>
@@ -69,12 +79,14 @@ const ActivityItem = ({ activity }) => {
 
   const formatTime = (timestamp) => {
     const date = new Date(timestamp);
-    return date.toLocaleString('es-ES', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      day: '2-digit',
-      month: 'short'
-    });
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) return 'Ahora';
+    if (diffMins < 60) return `${diffMins}m`;
+    if (diffMins < 1440) return `${Math.floor(diffMins/60)}h`;
+    return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
   };
 
   return (
@@ -86,10 +98,9 @@ const ActivityItem = ({ activity }) => {
         <p className="text-sm truncate">{activity.event_type.replace(/_/g, ' ')}</p>
         <p className="text-xs text-muted-foreground">{activity.module}</p>
       </div>
-      <div className="text-xs text-muted-foreground flex items-center gap-1">
-        <Clock className="w-3 h-3" />
+      <span className="text-xs text-muted-foreground whitespace-nowrap">
         {formatTime(activity.timestamp)}
-      </div>
+      </span>
     </div>
   );
 };
@@ -97,6 +108,7 @@ const ActivityItem = ({ activity }) => {
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { user, hasRole } = useAuth();
+  const isMobile = useIsMobile();
   const [stats, setStats] = useState(null);
   const [activities, setActivities] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -123,13 +135,13 @@ const DashboardPage = () => {
   const handlePanicButton = async () => {
     try {
       await api.triggerPanic({
-        location: 'Dashboard - Emergency',
-        description: 'Emergency panic button pressed from dashboard'
+        location: 'Dashboard - Admin Emergency',
+        description: 'Emergency panic button pressed from admin dashboard'
       });
       alert('Alerta de pánico enviada. El equipo de seguridad ha sido notificado.');
     } catch (error) {
       console.error('Error triggering panic:', error);
-      alert('Error al enviar alerta. Por favor intente de nuevo.');
+      alert('Error al enviar alerta.');
     }
   };
 
@@ -145,190 +157,185 @@ const DashboardPage = () => {
 
   return (
     <DashboardLayout title="Dashboard">
-      <div className="space-y-6">
-        {/* Welcome Section */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="space-y-4 md:space-y-6">
+        {/* Welcome - Mobile compact */}
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-2xl font-bold font-['Outfit']">
-              Bienvenido, {user?.full_name}
+            <h2 className="text-xl md:text-2xl font-bold font-['Outfit']">
+              {isMobile ? `Hola, ${user?.full_name?.split(' ')[0]}` : `Bienvenido, ${user?.full_name}`}
             </h2>
-            <p className="text-muted-foreground">
-              Panel de control de GENTURIX Enterprise
+            <p className="text-sm text-muted-foreground">
+              Panel de control GENTURIX
             </p>
           </div>
           
-          {/* Panic Button */}
-          {(hasRole('Residente') || hasRole('Guarda')) && (
+          {/* Panic Button - Mobile optimized */}
+          {(hasRole('Residente') || hasRole('Guarda') || hasRole('Administrador')) && (
             <Button
-              className="panic-button text-white font-semibold px-8 py-6 text-lg"
+              className="w-full md:w-auto bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-semibold h-12 md:h-auto md:px-6 md:py-3"
               onClick={handlePanicButton}
               data-testid="panic-button"
             >
-              <AlertTriangle className="w-6 h-6 mr-2" />
+              <AlertTriangle className="w-5 h-5 mr-2" />
               BOTÓN DE PÁNICO
             </Button>
           )}
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* Stats Grid - 2 columns on mobile, 4 on desktop */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           <StatCard
-            title="Usuarios Totales"
+            title="Usuarios"
             value={stats?.total_users || 0}
             icon={Users}
             color="primary"
+            onClick={() => navigate('/hr')}
           />
           <StatCard
-            title="Guardas Activos"
+            title="Guardas"
             value={stats?.active_guards || 0}
             icon={Shield}
-            trend="+2 esta semana"
             color="success"
+            onClick={() => navigate('/hr')}
           />
           <StatCard
-            title="Alertas Activas"
+            title="Alertas"
             value={stats?.active_alerts || 0}
             icon={AlertTriangle}
             color={stats?.active_alerts > 0 ? 'error' : 'success'}
+            onClick={() => navigate('/security')}
           />
           <StatCard
-            title="Cursos Disponibles"
+            title="Cursos"
             value={stats?.total_courses || 0}
             icon={GraduationCap}
             color="info"
+            onClick={() => navigate('/school')}
           />
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid gap-6 lg:grid-cols-3">
+        {/* Main Content - Stack on mobile */}
+        <div className="grid gap-4 md:gap-6 md:grid-cols-3">
           {/* Recent Activity */}
-          <Card className="grid-card lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="w-5 h-5 text-primary" />
+          <Card className="grid-card md:col-span-2">
+            <CardHeader className="pb-2 md:pb-4">
+              <CardTitle className="text-base md:text-lg flex items-center gap-2">
+                <Activity className="w-4 h-4 md:w-5 md:h-5 text-primary" />
                 Actividad Reciente
               </CardTitle>
-              <CardDescription>
-                Últimos eventos registrados en el sistema
-              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[400px]">
-                {activities.length > 0 ? (
-                  activities.map((activity, index) => (
-                    <ActivityItem key={activity.id || index} activity={activity} />
-                  ))
-                ) : (
-                  <p className="text-center text-muted-foreground py-8">
-                    No hay actividad reciente
-                  </p>
-                )}
+            <CardContent className="p-0 md:p-6 md:pt-0">
+              <ScrollArea className={isMobile ? 'h-[250px]' : 'h-[350px]'}>
+                <div className="px-4 md:px-0">
+                  {activities.length > 0 ? (
+                    activities.slice(0, isMobile ? 8 : 15).map((activity, index) => (
+                      <ActivityItem key={activity.id || index} activity={activity} />
+                    ))
+                  ) : (
+                    <p className="text-center text-muted-foreground py-8">
+                      Sin actividad reciente
+                    </p>
+                  )}
+                </div>
               </ScrollArea>
             </CardContent>
           </Card>
 
           {/* Quick Actions */}
           <Card className="grid-card">
-            <CardHeader>
-              <CardTitle>Acciones Rápidas</CardTitle>
-              <CardDescription>
-                Accede rápidamente a las funciones principales
-              </CardDescription>
+            <CardHeader className="pb-2 md:pb-4">
+              <CardTitle className="text-base md:text-lg">Accesos Rápidos</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-2 md:space-y-3">
               {hasRole('Administrador') && (
                 <>
                   <Button
                     variant="outline"
-                    className="w-full justify-start border-[#1E293B] hover:bg-muted"
+                    className="w-full justify-between h-12 border-[#1E293B] hover:bg-muted"
                     onClick={() => navigate('/security')}
-                    data-testid="quick-action-security"
                   >
-                    <Shield className="w-4 h-4 mr-3 text-primary" />
-                    Centro de Seguridad
+                    <span className="flex items-center gap-3">
+                      <Shield className="w-4 h-4 text-primary" />
+                      Seguridad
+                    </span>
+                    <ChevronRight className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="outline"
-                    className="w-full justify-start border-[#1E293B] hover:bg-muted"
+                    className="w-full justify-between h-12 border-[#1E293B] hover:bg-muted"
                     onClick={() => navigate('/hr')}
-                    data-testid="quick-action-hr"
                   >
-                    <Users className="w-4 h-4 mr-3 text-blue-400" />
-                    Recursos Humanos
+                    <span className="flex items-center gap-3">
+                      <Users className="w-4 h-4 text-blue-400" />
+                      Recursos Humanos
+                    </span>
+                    <ChevronRight className="w-4 h-4" />
                   </Button>
                   <Button
                     variant="outline"
-                    className="w-full justify-start border-[#1E293B] hover:bg-muted"
+                    className="w-full justify-between h-12 border-[#1E293B] hover:bg-muted"
                     onClick={() => navigate('/audit')}
-                    data-testid="quick-action-audit"
                   >
-                    <Activity className="w-4 h-4 mr-3 text-yellow-400" />
-                    Ver Auditoría
+                    <span className="flex items-center gap-3">
+                      <Activity className="w-4 h-4 text-yellow-400" />
+                      Auditoría
+                    </span>
+                    <ChevronRight className="w-4 h-4" />
                   </Button>
                 </>
               )}
               
               <Button
                 variant="outline"
-                className="w-full justify-start border-[#1E293B] hover:bg-muted"
+                className="w-full justify-between h-12 border-[#1E293B] hover:bg-muted"
                 onClick={() => navigate('/school')}
-                data-testid="quick-action-school"
               >
-                <GraduationCap className="w-4 h-4 mr-3 text-green-400" />
-                Genturix School
+                <span className="flex items-center gap-3">
+                  <GraduationCap className="w-4 h-4 text-green-400" />
+                  Genturix School
+                </span>
+                <ChevronRight className="w-4 h-4" />
               </Button>
               
               <Button
                 variant="outline"
-                className="w-full justify-start border-[#1E293B] hover:bg-muted"
+                className="w-full justify-between h-12 border-[#1E293B] hover:bg-muted"
                 onClick={() => navigate('/payments')}
-                data-testid="quick-action-payments"
               >
-                <CreditCard className="w-4 h-4 mr-3 text-cyan-400" />
-                Pagos y Suscripciones
+                <span className="flex items-center gap-3">
+                  <CreditCard className="w-4 h-4 text-cyan-400" />
+                  Pagos
+                </span>
+                <ChevronRight className="w-4 h-4" />
               </Button>
             </CardContent>
           </Card>
         </div>
 
-        {/* System Status */}
+        {/* System Status - Compact on mobile */}
         <Card className="grid-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="w-5 h-5 text-green-400" />
+          <CardHeader className="pb-2 md:pb-4">
+            <CardTitle className="text-base md:text-lg flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
               Estado del Sistema
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-4">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse" />
-                <div>
-                  <p className="text-sm font-medium">API Backend</p>
-                  <p className="text-xs text-muted-foreground">Operativo</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              {[
+                { name: 'API', status: 'online' },
+                { name: 'Base de Datos', status: 'online' },
+                { name: 'Auth', status: 'online' },
+                { name: 'Pagos', status: 'online' }
+              ].map((service) => (
+                <div key={service.name} className="flex items-center gap-2 p-2 md:p-3 rounded-lg bg-muted/30">
+                  <div className="w-2 h-2 rounded-full bg-green-400" />
+                  <div>
+                    <p className="text-xs md:text-sm font-medium">{service.name}</p>
+                    <p className="text-[10px] md:text-xs text-muted-foreground">Operativo</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse" />
-                <div>
-                  <p className="text-sm font-medium">Base de Datos</p>
-                  <p className="text-xs text-muted-foreground">Operativo</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse" />
-                <div>
-                  <p className="text-sm font-medium">Autenticación</p>
-                  <p className="text-xs text-muted-foreground">Operativo</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse" />
-                <div>
-                  <p className="text-sm font-medium">Pagos</p>
-                  <p className="text-xs text-muted-foreground">Stripe Conectado</p>
-                </div>
-              </div>
+              ))}
             </div>
           </CardContent>
         </Card>
