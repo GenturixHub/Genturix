@@ -1,62 +1,139 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
     <head>
         <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#000000" />
-        <meta name="description" content="A product of emergent.sh" />
-        <!--
-        manifest.json provides metadata used when your web app is installed on a
-        user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-        -->
-        <!--
-        Notice the use of %PUBLIC_URL% in the tags above.
-        It will be replaced with the URL of the `public` folder during the build.
-        Only files inside the `public` folder can be referenced from the HTML.
-
-        Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-        work correctly both with client-side routing and a non-root public URL.
-        Learn how to configure a non-root public URL by running `npm run build`.
-        -->
-        <title>Emergent | Fullstack App</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+        
+        <!-- PWA Meta Tags -->
+        <meta name="theme-color" content="#7C3AED" />
+        <meta name="background-color" content="#05050A" />
+        <meta name="description" content="GENTURIX - Plataforma de Seguridad y Emergencias. Protege tu comunidad. $1/usuario/mes" />
+        
+        <!-- iOS PWA Support -->
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="GENTURIX" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        
+        <!-- Android/Chrome -->
+        <link rel="manifest" href="/manifest.json" />
+        
+        <!-- Favicon -->
+        <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%237C3AED' rx='20' width='100' height='100'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white'>G</text></svg>" />
+        
+        <!-- Preconnect for performance -->
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        
+        <title>GENTURIX - Seguridad y Emergencias</title>
+        
         <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
-        <!--
-        These two scripts have been added for the Visual Edits, please do not edit or remove them
-        -->
+        
         <script>
             // Only load visual edit scripts when inside an iframe
             if (window.self !== window.top) {
-                // Load debug monitor script
                 var debugMonitorScript = document.createElement('script');
                 debugMonitorScript.src = 'https://assets.emergent.sh/scripts/debug-monitor.js';
                 document.head.appendChild(debugMonitorScript);
 
-                // Configure Tailwind
                 window.tailwind = window.tailwind || {};
                 tailwind.config = {
                     corePlugins: { preflight: false },
                 };
 
-                // Load Tailwind CDN
                 var tailwindScript = document.createElement('script');
                 tailwindScript.src = 'https://cdn.tailwindcss.com';
                 document.head.appendChild(tailwindScript);
             }
         </script>
+        
+        <style>
+            /* Critical CSS for fast first paint */
+            body {
+                margin: 0;
+                background-color: #05050A;
+                color: #FAFAFA;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+            }
+            
+            /* iOS safe area support */
+            body {
+                padding-top: env(safe-area-inset-top);
+                padding-bottom: env(safe-area-inset-bottom);
+                padding-left: env(safe-area-inset-left);
+                padding-right: env(safe-area-inset-right);
+            }
+            
+            /* PWA Install prompt styling */
+            #pwa-install-prompt {
+                display: none;
+                position: fixed;
+                bottom: 80px;
+                left: 16px;
+                right: 16px;
+                background: linear-gradient(135deg, #7C3AED 0%, #9333EA 100%);
+                color: white;
+                padding: 16px;
+                border-radius: 12px;
+                box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4);
+                z-index: 9998;
+                animation: slideUp 0.3s ease-out;
+            }
+            
+            @keyframes slideUp {
+                from { transform: translateY(100px); opacity: 0; }
+                to { transform: translateY(0); opacity: 1; }
+            }
+            
+            /* Loading state */
+            #root:empty::after {
+                content: '';
+                display: block;
+                width: 40px;
+                height: 40px;
+                margin: 100px auto;
+                border: 3px solid #1E293B;
+                border-top-color: #7C3AED;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
+            
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+        </style>
     </head>
     <body>
-        <noscript>You need to enable JavaScript to run this app.</noscript>
+        <noscript>
+            <div style="padding: 20px; text-align: center;">
+                <h1>GENTURIX</h1>
+                <p>Necesitas habilitar JavaScript para usar esta aplicación.</p>
+            </div>
+        </noscript>
+        
         <div id="root"></div>
-        <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
+        
+        <!-- PWA Install Prompt -->
+        <div id="pwa-install-prompt">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <strong>Instalar GENTURIX</strong>
+                    <p style="margin: 4px 0 0; font-size: 14px; opacity: 0.9;">Acceso rápido a emergencias</p>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button id="pwa-install-dismiss" style="background: transparent; border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 8px; cursor: pointer;">
+                        Luego
+                    </button>
+                    <button id="pwa-install-btn" style="background: white; color: #7C3AED; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                        Instalar
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Emergent Badge -->
         <a
             id="emergent-badge"
             target="_blank"
@@ -69,10 +146,7 @@
                 right: 20px;
                 text-decoration: none;
                 padding: 6px 10px;
-                font-family: -apple-system, BlinkMacSystemFont,
-                    &quot;Segoe UI&quot;, Roboto, Oxygen, Ubuntu, Cantarell,
-                    &quot;Open Sans&quot;, &quot;Helvetica Neue&quot;,
-                    sans-serif !important;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
                 font-size: 12px !important;
                 z-index: 9999 !important;
                 box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
@@ -81,29 +155,78 @@
                 border: 1px solid rgba(255, 255, 255, 0.25) !important;
             "
         >
-            <div
-                style="display: flex; flex-direction: row; align-items: center"
-            >
+            <div style="display: flex; flex-direction: row; align-items: center">
                 <img
                     style="width: 20px; height: 20px; margin-right: 8px"
                     src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4"
+                    alt="Emergent"
                 />
-                <p
-                    style="
-                        color: #000000;
-                        font-family: -apple-system, BlinkMacSystemFont,
-                            &quot;Segoe UI&quot;, Roboto, Oxygen, Ubuntu,
-                            Cantarell, &quot;Open Sans&quot;,
-                            &quot;Helvetica Neue&quot;, sans-serif !important;
-                        font-size: 12px !important;
-                        align-items: center;
-                        margin-bottom: 0;
-                    "
-                >
+                <p style="color: #000000; font-size: 12px !important; margin-bottom: 0;">
                     Made with Emergent
                 </p>
             </div>
         </a>
+        
+        <!-- Service Worker Registration -->
+        <script>
+            // Register Service Worker
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('/service-worker.js')
+                        .then(function(registration) {
+                            console.log('GENTURIX SW registered:', registration.scope);
+                        })
+                        .catch(function(error) {
+                            console.log('GENTURIX SW registration failed:', error);
+                        });
+                });
+            }
+            
+            // PWA Install Prompt
+            let deferredPrompt;
+            const installPrompt = document.getElementById('pwa-install-prompt');
+            const installBtn = document.getElementById('pwa-install-btn');
+            const dismissBtn = document.getElementById('pwa-install-dismiss');
+            
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                
+                // Show install prompt after 30 seconds or if user has been active
+                setTimeout(() => {
+                    if (deferredPrompt && !localStorage.getItem('pwa-dismissed')) {
+                        installPrompt.style.display = 'block';
+                    }
+                }, 30000);
+            });
+            
+            if (installBtn) {
+                installBtn.addEventListener('click', async () => {
+                    if (deferredPrompt) {
+                        deferredPrompt.prompt();
+                        const { outcome } = await deferredPrompt.userChoice;
+                        console.log('PWA install outcome:', outcome);
+                        deferredPrompt = null;
+                        installPrompt.style.display = 'none';
+                    }
+                });
+            }
+            
+            if (dismissBtn) {
+                dismissBtn.addEventListener('click', () => {
+                    installPrompt.style.display = 'none';
+                    localStorage.setItem('pwa-dismissed', 'true');
+                });
+            }
+            
+            // Hide prompt if already installed
+            window.addEventListener('appinstalled', () => {
+                installPrompt.style.display = 'none';
+                deferredPrompt = null;
+            });
+        </script>
+        
+        <!-- PostHog Analytics (with error suppression) -->
         <script>
             !(function (t, e) {
                 var o, n, p, r;
@@ -115,48 +238,26 @@
                             var o = e.split(".");
                             2 == o.length && ((t = t[o[0]]), (e = o[1])),
                                 (t[e] = function () {
-                                    t.push(
-                                        [e].concat(
-                                            Array.prototype.slice.call(
-                                                arguments,
-                                                0,
-                                            ),
-                                        ),
-                                    );
+                                    t.push([e].concat(Array.prototype.slice.call(arguments, 0)));
                                 });
                         }
-                        ((p = t.createElement("script")).type =
-                            "text/javascript"),
+                        ((p = t.createElement("script")).type = "text/javascript"),
                             (p.crossOrigin = "anonymous"),
                             (p.async = !0),
-                            (p.src =
-                                s.api_host.replace(
-                                    ".i.posthog.com",
-                                    "-assets.i.posthog.com",
-                                ) + "/static/array.js"),
-                            (r =
-                                t.getElementsByTagName(
-                                    "script",
-                                )[0]).parentNode.insertBefore(p, r);
+                            (p.src = s.api_host.replace(".i.posthog.com", "-assets.i.posthog.com") + "/static/array.js"),
+                            (r = t.getElementsByTagName("script")[0]).parentNode.insertBefore(p, r);
                         var u = e;
                         for (
                             void 0 !== a ? (u = e[a] = []) : (a = "posthog"),
                                 u.people = u.people || [],
                                 u.toString = function (t) {
                                     var e = "posthog";
-                                    return (
-                                        "posthog" !== a && (e += "." + a),
-                                        t || (e += " (stub)"),
-                                        e
-                                    );
+                                    return "posthog" !== a && (e += "." + a), t || (e += " (stub)"), e;
                                 },
                                 u.people.toString = function () {
                                     return u.toString(1) + ".people (stub)";
                                 },
-                                o =
-                                    "init me ws ys ps bs capture je Di ks register register_once register_for_session unregister unregister_for_session Ps getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSurveysLoaded onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey canRenderSurveyAsync identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id getGroups get_session_id get_session_replay_url alias set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty Es $s createPersonProfile Is opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing Ss debug xs getPageViewId captureTraceFeedback captureTraceMetric".split(
-                                        " ",
-                                    ),
+                                o = "init capture".split(" "),
                                 n = 0;
                             n < o.length;
                             n++
@@ -166,13 +267,17 @@
                     }),
                     (e.__SV = 1));
             })(document, window.posthog || []);
-            posthog.init("phc_xAvL2Iq4tFmANRE7kzbKwaSqp1HJjN7x48s3vr0CMjs", {
-                api_host: "https://us.i.posthog.com",
-                person_profiles: "identified_only", // or 'always' to create profiles for anonymous users as well,
-                session_recording: {
-                    recordCrossOriginIframes: true,
-                },
-            });
+            
+            try {
+                posthog.init("phc_xAvL2Iq4tFmANRE7kzbKwaSqp1HJjN7x48s3vr0CMjs", {
+                    api_host: "https://us.i.posthog.com",
+                    person_profiles: "identified_only",
+                    autocapture: false,
+                    capture_pageview: false
+                });
+            } catch (e) {
+                console.warn('PostHog init error (non-critical):', e);
+            }
         </script>
     </body>
 </html>
