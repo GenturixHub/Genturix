@@ -35,14 +35,29 @@ const LoginPage = () => {
         localStorage.removeItem('rememberedEmail');
       }
 
-      // If user has multiple roles, go to panel selection
-      if (user.roles && user.roles.length > 1) {
+      // Role-based redirect
+      const roles = user.roles || [];
+      if (roles.length === 1) {
+        switch (roles[0]) {
+          case 'Residente':
+            navigate('/resident');
+            return;
+          case 'Guarda':
+            navigate('/guard');
+            return;
+          case 'Estudiante':
+            navigate('/student');
+            return;
+          default:
+            navigate('/admin/dashboard');
+        }
+      } else if (roles.length > 1) {
         navigate('/select-panel');
       } else {
         navigate('/dashboard');
       }
     } catch (err) {
-      setError(err.message || 'Invalid email or password');
+      setError(err.message || 'Email o contraseña incorrectos');
     } finally {
       setIsLoading(false);
     }
@@ -51,12 +66,12 @@ const LoginPage = () => {
   const handleSeedDemo = async () => {
     setIsSeeding(true);
     try {
-      const result = await api.seedDemoData();
+      await api.seedDemoData();
       setError(null);
-      alert('Demo data created!\n\nAdmin: admin@genturix.com / Admin123!\nSupervisor: supervisor@genturix.com / Super123!\nGuarda: guarda1@genturix.com / Guard123!');
+      alert('✅ Datos de demo creados!\n\nAdmin: admin@genturix.com / Admin123!\nGuarda: guarda1@genturix.com / Guard123!\nResidente: residente@genturix.com / Resi123!');
     } catch (err) {
       if (err.message.includes('already exists')) {
-        alert('Demo data already exists. You can login with:\n\nAdmin: admin@genturix.com / Admin123!');
+        alert('Los datos de demo ya existen.\n\nPuedes usar:\nadmin@genturix.com / Admin123!');
       } else {
         setError(err.message);
       }
@@ -74,146 +89,153 @@ const LoginPage = () => {
   }, []);
 
   return (
-    <div 
-      className="min-h-screen flex items-center justify-center p-4 relative"
-      style={{
-        backgroundImage: 'url(https://images.pexels.com/photos/5473960/pexels-photo-5473960.jpeg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }}
-    >
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-black/80" />
+    <div className="min-h-screen flex flex-col bg-[#05050A] safe-area">
+      {/* Background */}
+      <div 
+        className="absolute inset-0 opacity-20"
+        style={{
+          backgroundImage: 'url(https://images.pexels.com/photos/5473960/pexels-photo-5473960.jpeg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-[#05050A]/90 to-[#05050A]" />
       
       {/* Content */}
-      <div className="relative z-10 w-full max-w-md">
-        {/* Logo */}
-        <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-lg bg-primary flex items-center justify-center">
-              <Shield className="w-7 h-7 text-white" />
+      <div className="relative z-10 flex-1 flex flex-col justify-center p-4 md:p-6">
+        <div className="w-full max-w-md mx-auto space-y-6 md:space-y-8">
+          {/* Logo */}
+          <div className="flex flex-col items-center text-center">
+            <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center mb-4 shadow-lg shadow-primary/30">
+              <Shield className="w-8 h-8 md:w-10 md:h-10 text-white" />
             </div>
-            <div>
-              <h1 className="text-3xl font-bold text-white font-['Outfit']">GENTURIX</h1>
-              <p className="text-xs text-muted-foreground tracking-widest">ENTERPRISE PLATFORM</p>
-            </div>
+            <h1 className="text-3xl md:text-4xl font-bold font-['Outfit'] text-white">GENTURIX</h1>
+            <p className="text-sm text-muted-foreground mt-1">Plataforma de Seguridad y Emergencias</p>
           </div>
-        </div>
 
-        {/* Login Card */}
-        <Card className="glass-dark border-white/10">
-          <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl font-['Outfit']">Iniciar Sesión</CardTitle>
-            <CardDescription>
-              Ingresa tus credenciales para acceder al sistema
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {error && (
-              <Alert variant="destructive" className="mb-4 bg-red-500/10 border-red-500/20">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
+          {/* Login Card */}
+          <Card className="bg-[#0F111A]/90 backdrop-blur-xl border-[#1E293B]">
+            <CardHeader className="space-y-1 text-center pb-4">
+              <CardTitle className="text-xl font-['Outfit']">Iniciar Sesión</CardTitle>
+              <CardDescription className="text-sm">
+                Ingresa tus credenciales
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {error && (
+                <Alert variant="destructive" className="mb-4 bg-red-500/10 border-red-500/20">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Correo Electrónico</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="tu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={isLoading}
-                  required
-                  data-testid="login-email-input"
-                  className="bg-[#181B25] border-[#1E293B] focus:border-primary"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">Contraseña</Label>
-                <div className="relative">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Correo Electrónico</Label>
                   <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    id="email"
+                    type="email"
+                    placeholder="tu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     disabled={isLoading}
                     required
-                    data-testid="login-password-input"
-                    className="bg-[#181B25] border-[#1E293B] focus:border-primary pr-10"
+                    autoComplete="email"
+                    data-testid="login-email-input"
+                    className="h-12 bg-[#181B25] border-[#1E293B] focus:border-primary"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                    data-testid="toggle-password-visibility"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password">Contraseña</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={isLoading}
+                      required
+                      autoComplete="current-password"
+                      data-testid="login-password-input"
+                      className="h-12 bg-[#181B25] border-[#1E293B] focus:border-primary pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
+                      data-testid="toggle-password-visibility"
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="remember"
+                    checked={rememberMe}
+                    onCheckedChange={setRememberMe}
+                    data-testid="remember-me-checkbox"
+                  />
+                  <Label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer">
+                    Recordar sesión
+                  </Label>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full h-12 bg-primary hover:bg-primary/90 text-base font-semibold"
+                  disabled={isLoading}
+                  data-testid="login-submit-btn"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Ingresando...
+                    </>
+                  ) : (
+                    'Ingresar'
+                  )}
+                </Button>
+              </form>
+
+              {/* Demo Data Button */}
+              <div className="mt-6 pt-6 border-t border-[#1E293B]">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-11 border-[#1E293B] hover:bg-muted text-sm"
+                  onClick={handleSeedDemo}
+                  disabled={isSeeding}
+                  data-testid="seed-demo-btn"
+                >
+                  {isSeeding ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Creando datos...
+                    </>
+                  ) : (
+                    'Crear Datos de Demo'
+                  )}
+                </Button>
+                <p className="text-xs text-center text-muted-foreground mt-2">
+                  Crea usuarios de prueba para explorar
+                </p>
               </div>
+            </CardContent>
+          </Card>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="remember"
-                  checked={rememberMe}
-                  onCheckedChange={setRememberMe}
-                  data-testid="remember-me-checkbox"
-                />
-                <Label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer">
-                  Recordar sesión
-                </Label>
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full bg-primary hover:bg-primary/90"
-                disabled={isLoading}
-                data-testid="login-submit-btn"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Ingresando...
-                  </>
-                ) : (
-                  'Ingresar'
-                )}
-              </Button>
-            </form>
-
-            <div className="mt-6 pt-6 border-t border-border">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full border-[#1E293B] hover:bg-muted"
-                onClick={handleSeedDemo}
-                disabled={isSeeding}
-                data-testid="seed-demo-btn"
-              >
-                {isSeeding ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Creando datos...
-                  </>
-                ) : (
-                  'Crear Datos de Demostración'
-                )}
-              </Button>
-              <p className="text-xs text-center text-muted-foreground mt-2">
-                Crea usuarios de prueba para explorar la plataforma
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          GENTURIX Enterprise Platform v1.0 &copy; 2025
-        </p>
+          {/* Footer */}
+          <div className="text-center space-y-2">
+            <p className="text-xs text-muted-foreground">
+              GENTURIX v1.0 • $1/usuario/mes
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              Plataforma de Seguridad Enterprise
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
