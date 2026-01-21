@@ -1,92 +1,171 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Fecha: 10 de Enero, 2026
+## Last Updated: January 21, 2026
 
-## Visión
-GENTURIX no es un dashboard corporativo. Es una plataforma de seguridad y emergencias para personas bajo estrés. Diseño "Emergency-First".
+## Vision
+GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
 
-## ADN de GENTURIX
+---
 
-### Botón de Pánico (3 Tipos)
-- 🚑 **Emergencia Médica**: Emergencia de salud que requiere atención médica inmediata
-- 👁️ **Actividad Sospechosa**: Comportamiento o persona sospechosa que requiere verificación  
-- 🚨 **Emergencia General**: Otra emergencia que requiere respuesta inmediata
+## CORE BUSINESS MODEL
 
-Cada alerta:
-- ✅ Captura ubicación GPS automáticamente
-- ✅ Registra tipo específico de emergencia
-- ✅ Notifica a TODOS los guardas activos
-- ✅ Queda registrado en auditoría legal
+### Pricing
+- **$1 per user per month** - Massive adoption model
+- No corporate plans, no SaaS pricing
+- Premium modules (additive):
+  - +$2 Genturix School Pro
+  - +$3 CCTV Integration
+  - +$5 API Access
 
-### Modelo de Precios
-**$1 por usuario al mes** - Modelo masivo, sin planes corporativos
-- Sin SaaS caro
-- Sin planes complicados
-- Accesible para todos
-- Calculadora de usuarios integrada
+---
 
-Módulos premium opcionales (futuros):
-- Genturix School Pro: +$2/usuario
-- Monitoreo CCTV: +$3/usuario
-- API Access: +$5/usuario
+## EMERGENCY SYSTEM (CORE DNA)
 
-## Interfaces por Rol
+### Panic Button - 3 Types
+1. 🚑 **Emergencia Médica** - Medical emergency requiring immediate attention
+2. 👁️ **Actividad Sospechosa** - Suspicious activity requiring verification
+3. 🚨 **Emergencia General** - Other emergency requiring immediate response
 
-### Residente UI (`/resident`)
-- Pantalla completa con 3 botones de emergencia grandes
-- GPS capturado automáticamente
-- Sin distracciones - emergencias primero
-- Confirmación visual cuando se envía alerta
+### Each Panic Event:
+- ✅ Captures GPS location automatically
+- ✅ Registers emergency type
+- ✅ Notifies ALL active guards
+- ✅ Stored in Audit Logs with full details
+- ✅ Vibration feedback on mobile devices
 
-### Guarda UI (`/guard`)
-- Lista de emergencias activas en tiempo real
-- Coordenadas GPS con link a Google Maps
-- Botón "Resolver" para cada emergencia
-- Auto-refresh cada 10 segundos
+---
 
-### Estudiante UI (`/student`)
-- Cursos disponibles
-- Progreso de aprendizaje
-- Certificados obtenidos
+## ROLES & INTERFACES
 
-### Admin Dashboard (`/admin/dashboard`)
-- Acceso completo a todos los módulos
-- Seguridad, RH, Pagos, Auditoría
-- Gestión de usuarios
+| Role | Interface | Route | Description |
+|------|-----------|-------|-------------|
+| Residente | Full-screen panic buttons | `/resident` | Emergency-first, one-touch activation |
+| Guarda | Emergency response list | `/guard` | Active alerts, GPS coords, map links |
+| Estudiante | Learning portal | `/student` | Courses, progress, certificates |
+| Supervisor | Admin dashboard | `/admin/dashboard` | Guards, shifts, monitoring |
+| Administrador | Full system | `/admin/dashboard` | All modules access |
 
-## Tech Stack
-- Backend: FastAPI + MongoDB + Motor (async)
-- Frontend: React + Tailwind + Shadcn/UI
-- Auth: JWT (custom implementation)
-- Payments: Stripe Integration ($1/user model)
+---
 
-## What's Been Implemented ✅
-- [x] Interfaces específicas por rol
-- [x] Botón de pánico con 3 tipos de emergencia
-- [x] Captura GPS automática
-- [x] Notificación a guardas
-- [x] UI de Guarda con emergencias activas
-- [x] Modelo de precios $1/usuario
-- [x] Calculadora de usuarios
-- [x] Dashboard admin completo
-- [x] Módulos: Seguridad, RH, School, Pagos, Auditoría
-- [x] PostHog error suppressed
+## TECH STACK
 
-## Test Results
-- Backend: 100% (24/24 tests passed)
-- Frontend: 100% (All UIs working)
-- Integration: 100%
+### Backend (NOT MODIFIED)
+- FastAPI + MongoDB + Motor (async)
+- JWT Authentication
+- Stripe Integration
+- RESTful API with `/api` prefix
 
-## Demo Credentials
-- admin@genturix.com / Admin123!
-- supervisor@genturix.com / Super123!
-- guarda1@genturix.com / Guard123!
-- residente@genturix.com / Resi123!
-- estudiante@genturix.com / Stud123!
+### Frontend (PWA Mobile-First)
+- React 18
+- Tailwind CSS + Shadcn/UI
+- Progressive Web App (PWA)
+- Service Worker for offline support
+- Bottom navigation (mobile) / Sidebar (desktop)
 
-## Next Tasks
-1. Notificaciones push en tiempo real (WebSockets)
-2. SMS/WhatsApp a guardas cuando hay pánico
-3. App móvil para botón de pánico rápido
-4. Integración con cámaras IP reales
-5. Certificados descargables en PDF
+---
+
+## PWA IMPLEMENTATION (COMPLETED)
+
+### Configuration Files
+- `/app/frontend/public/manifest.json` - PWA manifest with icons, shortcuts
+- `/app/frontend/public/service-worker.js` - Cache strategy, offline support
+- `/app/frontend/public/index.html` - Meta tags, iOS support, install prompt
+
+### Mobile-First Components
+- `/app/frontend/src/components/layout/BottomNav.js` - Role-based mobile navigation
+- `/app/frontend/src/components/layout/DashboardLayout.js` - Adaptive layout (mobile/desktop)
+
+### Role-Specific UIs
+- `/app/frontend/src/pages/ResidentUI.js` - Emergency buttons full-screen
+- `/app/frontend/src/pages/GuardUI.js` - Emergency response with maps
+- `/app/frontend/src/pages/StudentUI.js` - Learning interface
+- `/app/frontend/src/pages/DashboardPage.js` - Admin responsive dashboard
+
+### PWA Features
+- ✅ Installable on Android/iOS
+- ✅ Safe area support (notch, home indicator)
+- ✅ 44px minimum touch targets
+- ✅ Vibration on emergency alerts
+- ✅ Direct links to Google Maps/Apple Maps
+- ✅ Direct call to 911 button
+- ✅ Install prompt after 30 seconds
+- ✅ Service worker with network-first cache
+- ✅ PWA shortcuts for quick emergency access
+
+---
+
+## DEMO CREDENTIALS
+
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | admin@genturix.com | Admin123! |
+| Supervisor | supervisor@genturix.com | Super123! |
+| Guarda | guarda1@genturix.com | Guard123! |
+| Residente | residente@genturix.com | Resi123! |
+| Estudiante | estudiante@genturix.com | Stud123! |
+
+---
+
+## NEXT SESSION PRIORITIES
+
+### 1. Security Flows Review
+- [ ] Auth flow validation (JWT tokens, refresh)
+- [ ] Role-based access control per UI
+- [ ] Session management
+- [ ] Protected routes verification
+
+### 2. Panic Event Flow E2E
+- [ ] Resident triggers panic → Guards notified
+- [ ] GPS capture accuracy
+- [ ] Guard resolution flow
+- [ ] Audit log verification
+
+### 3. Production Readiness Checklist
+- [ ] PWA audit (Lighthouse)
+- [ ] Performance optimization
+- [ ] Error handling
+- [ ] Environment variables
+- [ ] API security headers
+- [ ] Rate limiting
+- [ ] Database indexes
+
+---
+
+## FILE STRUCTURE
+
+```
+/app/frontend/
+├── public/
+│   ├── manifest.json          # PWA config
+│   ├── service-worker.js      # Offline support
+│   ├── index.html             # Meta tags, PWA setup
+│   └── icons/                 # App icons
+├── src/
+│   ├── index.css              # Mobile-first styles
+│   ├── App.js                 # Routes with role-based redirect
+│   ├── contexts/
+│   │   └── AuthContext.js     # JWT auth state
+│   ├── services/
+│   │   └── api.js             # API client
+│   ├── components/layout/
+│   │   ├── BottomNav.js       # Mobile navigation
+│   │   ├── Sidebar.js         # Desktop navigation
+│   │   ├── Header.js          # Desktop header
+│   │   └── DashboardLayout.js # Adaptive layout
+│   └── pages/
+│       ├── LoginPage.js       # Responsive login
+│       ├── PanelSelectionPage.js
+│       ├── ResidentUI.js      # Emergency buttons
+│       ├── GuardUI.js         # Emergency response
+│       ├── StudentUI.js       # Learning portal
+│       ├── DashboardPage.js   # Admin dashboard
+│       ├── SecurityModule.js  # Security management
+│       ├── HRModule.js        # Human resources
+│       ├── SchoolModule.js    # Genturix School
+│       ├── PaymentsModule.js  # $1/user pricing
+│       └── AuditModule.js     # Activity logs
+```
+
+---
+
+## STATUS: PWA Mobile-First Architecture Complete ✅
