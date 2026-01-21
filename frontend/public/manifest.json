@@ -1,0 +1,95 @@
+{
+  "name": "GENTURIX",
+  "short_name": "GENTURIX",
+  "description": "Plataforma de Seguridad y Emergencias - $1/usuario/mes",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#05050A",
+  "theme_color": "#7C3AED",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "categories": ["security", "business", "utilities"],
+  "screenshots": [
+    {
+      "src": "/screenshots/mobile-emergency.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Botones de Emergencia"
+    },
+    {
+      "src": "/screenshots/desktop-dashboard.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Dashboard Administrativo"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Emergencia Médica",
+      "short_name": "Médica",
+      "description": "Activar alerta de emergencia médica",
+      "url": "/resident?action=medical",
+      "icons": [{ "src": "/icons/medical-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Emergencia General",
+      "short_name": "Emergencia",
+      "description": "Activar alerta de emergencia general",
+      "url": "/resident?action=emergency",
+      "icons": [{ "src": "/icons/emergency-96x96.png", "sizes": "96x96" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}
