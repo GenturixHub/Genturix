@@ -178,6 +178,24 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 
 ## COMPLETED WORK (January 28, 2026)
 
+### Session 4 - Guard Role Critical Fixes (PRODUCTION BLOCKER)
+- ✅ **Guard Login Fixed:** Resolved "body stream already read" error
+- ✅ **condominium_id Bug Fixed:** 
+  - Created `POST /api/admin/fix-orphan-users` endpoint
+  - Fixed 23 users and 14 guards without condominium_id
+  - Updated `seed_demo_data` to assign condominium_id to all demo users
+- ✅ **Guard UI Production Ready:**
+  - Clock In/Out working with status banner ("En turno" / "Sin fichar")
+  - Alert resolution decreases active count correctly
+  - Visitor Entry/Exit buttons working
+  - Manual entry form creates access logs
+  - History tab shows completed alerts and visits
+- ✅ **Audit Logging Complete:**
+  - login_success events logged
+  - clock_in/clock_out events logged
+  - access_granted/access_denied events logged
+- ✅ **Test Coverage:** 100% pass rate (16/16 backend tests, all UI features)
+
 ### Session 3 - Production Release Preparation
 - ✅ **New HR Role:** Added `HR` to RoleEnum - manages employees, not payments/modules
 - ✅ **HR Recruitment Full Flow:**
