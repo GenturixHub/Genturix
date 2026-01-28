@@ -985,7 +985,7 @@ async def register_visitor_exit(
     request: Request,
     current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
 ):
-    """Guard registers visitor EXIT"""
+    """Guard registers visitor EXIT and saves to guard_history"""
     visitor = await db.visitors.find_one({"id": visitor_id})
     if not visitor:
         raise HTTPException(status_code=404, detail="Visitor not found")
@@ -1006,6 +1006,29 @@ async def register_visitor_exit(
             "updated_at": exit_time
         }}
     )
+    
+    # Get guard info if resolver is a guard
+    guard = await db.guards.find_one({"user_id": current_user["id"]})
+    guard_id = guard["id"] if guard else None
+    condo_id = visitor.get("condominium_id") or current_user.get("condominium_id")
+    
+    # Save to guard_history
+    history_entry = {
+        "id": str(uuid.uuid4()),
+        "type": "visit_completed",
+        "guard_id": guard_id,
+        "guard_user_id": current_user["id"],
+        "guard_name": current_user.get("full_name"),
+        "condominium_id": condo_id,
+        "visitor_id": visitor_id,
+        "visitor_name": visitor.get("full_name"),
+        "resident_name": visitor.get("created_by_name"),
+        "entry_at": visitor.get("entry_at"),
+        "exit_at": exit_time,
+        "notes": exit_data.notes,
+        "timestamp": exit_time
+    }
+    await db.guard_history.insert_one(history_entry)
     
     await log_audit_event(
         AuditEventType.ACCESS_DENIED,
