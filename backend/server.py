@@ -2527,18 +2527,44 @@ async def get_audit_stats(current_user = Depends(require_role("Administrador")))
 # ==================== DASHBOARD ====================
 @api_router.get("/dashboard/stats")
 async def get_dashboard_stats(current_user = Depends(get_current_user)):
-    stats = {
-        "total_users": await db.users.count_documents({}),
-        "active_guards": await db.guards.count_documents({"is_active": True}),
-        "active_alerts": await db.panic_events.count_documents({"status": "active"}),
-        "total_courses": await db.courses.count_documents({}),
-        "pending_payments": await db.payment_transactions.count_documents({"payment_status": "pending"})
-    }
+    """Dashboard stats - scoped by condominium for Admin, global for SuperAdmin"""
+    condo_id = current_user.get("condominium_id")
+    roles = current_user.get("roles", [])
+    
+    # SuperAdmin sees global data
+    if "SuperAdmin" in roles:
+        stats = {
+            "total_users": await db.users.count_documents({}),
+            "active_guards": await db.guards.count_documents({"status": "active"}),
+            "active_alerts": await db.panic_events.count_documents({"status": "active"}),
+            "total_courses": await db.courses.count_documents({}),
+            "pending_payments": await db.payment_transactions.count_documents({"payment_status": "pending"})
+        }
+    else:
+        # Admin/others see only their condominium data
+        condo_filter = {"condominium_id": condo_id} if condo_id else {"condominium_id": None}
+        stats = {
+            "total_users": await db.users.count_documents(condo_filter),
+            "active_guards": await db.guards.count_documents({**condo_filter, "status": "active"}),
+            "active_alerts": await db.panic_events.count_documents({**condo_filter, "status": "active"}),
+            "total_courses": await db.courses.count_documents(condo_filter),
+            "pending_payments": await db.payment_transactions.count_documents({**condo_filter, "payment_status": "pending"})
+        }
     return stats
 
 @api_router.get("/dashboard/recent-activity")
 async def get_recent_activity(current_user = Depends(get_current_user)):
-    activities = await db.audit_logs.find({}, {"_id": 0}).sort("timestamp", -1).to_list(20)
+    """Recent activity - scoped by condominium for Admin, global for SuperAdmin"""
+    condo_id = current_user.get("condominium_id")
+    roles = current_user.get("roles", [])
+    
+    # SuperAdmin sees global activity
+    if "SuperAdmin" in roles:
+        activities = await db.audit_logs.find({}, {"_id": 0}).sort("timestamp", -1).to_list(20)
+    else:
+        # Admin/others see only their condominium activity
+        query = {"condominium_id": condo_id} if condo_id else {}
+        activities = await db.audit_logs.find(query, {"_id": 0}).sort("timestamp", -1).to_list(20)
     return activities
 
 # ==================== USERS MANAGEMENT ====================
