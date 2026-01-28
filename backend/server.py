@@ -1614,7 +1614,7 @@ async def reject_absence(
     return updated
 
 @api_router.get("/hr/payroll")
-async def get_payroll(current_user = Depends(require_role("Administrador"))):
+async def get_payroll(current_user = Depends(require_role("Administrador", "HR"))):
     guards = await db.guards.find({}, {"_id": 0}).to_list(100)
     payroll = []
     for guard in guards:
@@ -1627,6 +1627,493 @@ async def get_payroll(current_user = Depends(require_role("Administrador"))):
             "total_pay": guard.get("total_hours", 0) * guard["hourly_rate"]
         })
     return payroll
+
+# ==================== HR RECRUITMENT ====================
+
+@api_router.post("/hr/candidates")
+async def create_candidate(
+    candidate: CandidateCreate,
+    request: Request,
+    current_user = Depends(require_role("Administrador", "HR"))
+):
+    """Create a new recruitment candidate"""
+    # Check if email already exists
+    existing = await db.hr_candidates.find_one({"email": candidate.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Ya existe un candidato con ese email")
+    
+    existing_user = await db.users.find_one({"email": candidate.email})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Este email ya está registrado como usuario")
+    
+    candidate_doc = {
+        "id": str(uuid.uuid4()),
+        "full_name": candidate.full_name,
+        "email": candidate.email,
+        "phone": candidate.phone,
+        "position": candidate.position,
+        "experience_years": candidate.experience_years,
+        "notes": candidate.notes,
+        "documents": candidate.documents or [],
+        "status": "applied",  # applied, interview, hired, rejected
+        "condominium_id": current_user.get("condominium_id"),
+        "created_by": current_user["id"],
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.hr_candidates.insert_one(candidate_doc)
+    candidate_doc.pop("_id", None)
+    
+    await log_audit_event(
+        AuditEventType.CANDIDATE_CREATED,
+        current_user["id"],
+        "hr",
+        {"candidate_id": candidate_doc["id"], "name": candidate.full_name, "position": candidate.position},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return candidate_doc
+
+@api_router.get("/hr/candidates")
+async def get_candidates(
+    status: Optional[str] = None,
+    position: Optional[str] = None,
+    current_user = Depends(require_role("Administrador", "HR"))
+):
+    """List recruitment candidates"""
+    query = {}
+    
+    # Filter by condominium for non-super-admins
+    if "SuperAdmin" not in current_user.get("roles", []):
+        condo_id = current_user.get("condominium_id")
+        if condo_id:
+            query["condominium_id"] = condo_id
+    
+    if status:
+        query["status"] = status
+    if position:
+        query["position"] = position
+    
+    candidates = await db.hr_candidates.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return candidates
+
+@api_router.get("/hr/candidates/{candidate_id}")
+async def get_candidate(
+    candidate_id: str,
+    current_user = Depends(require_role("Administrador", "HR"))
+):
+    """Get a single candidate"""
+    candidate = await db.hr_candidates.find_one({"id": candidate_id}, {"_id": 0})
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidato no encontrado")
+    return candidate
+
+@api_router.put("/hr/candidates/{candidate_id}")
+async def update_candidate(
+    candidate_id: str,
+    update: CandidateUpdate,
+    request: Request,
+    current_user = Depends(require_role("Administrador", "HR"))
+):
+    """Update candidate information"""
+    candidate = await db.hr_candidates.find_one({"id": candidate_id})
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidato no encontrado")
+    
+    update_data = {}
+    if update.full_name is not None:
+        update_data["full_name"] = update.full_name
+    if update.phone is not None:
+        update_data["phone"] = update.phone
+    if update.position is not None:
+        update_data["position"] = update.position
+    if update.experience_years is not None:
+        update_data["experience_years"] = update.experience_years
+    if update.notes is not None:
+        update_data["notes"] = update.notes
+    if update.status is not None:
+        if update.status not in ["applied", "interview", "hired", "rejected"]:
+            raise HTTPException(status_code=400, detail="Estado inválido")
+        update_data["status"] = update.status
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No hay campos para actualizar")
+    
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    update_data["updated_by"] = current_user["id"]
+    
+    await db.hr_candidates.update_one({"id": candidate_id}, {"$set": update_data})
+    
+    await log_audit_event(
+        AuditEventType.CANDIDATE_UPDATED,
+        current_user["id"],
+        "hr",
+        {"candidate_id": candidate_id, "updated_fields": list(update_data.keys())},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    updated = await db.hr_candidates.find_one({"id": candidate_id}, {"_id": 0})
+    return updated
+
+@api_router.post("/hr/candidates/{candidate_id}/hire")
+async def hire_candidate(
+    candidate_id: str,
+    hire_data: HireCandidate,
+    request: Request,
+    current_user = Depends(require_role("Administrador", "HR"))
+):
+    """Hire a candidate - creates user account and guard record"""
+    candidate = await db.hr_candidates.find_one({"id": candidate_id})
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidato no encontrado")
+    
+    if candidate["status"] == "hired":
+        raise HTTPException(status_code=400, detail="Este candidato ya fue contratado")
+    
+    if candidate["status"] == "rejected":
+        raise HTTPException(status_code=400, detail="Este candidato fue rechazado")
+    
+    # Check email not already in use
+    existing_user = await db.users.find_one({"email": candidate["email"]})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="El email ya está registrado como usuario")
+    
+    # Check badge number not in use
+    existing_badge = await db.guards.find_one({"badge_number": hire_data.badge_number})
+    if existing_badge:
+        raise HTTPException(status_code=400, detail="El número de identificación ya está en uso")
+    
+    condominium_id = current_user.get("condominium_id") or candidate.get("condominium_id")
+    
+    # 1. Create user account
+    user_id = str(uuid.uuid4())
+    role = RoleEnum.GUARDA if candidate["position"] in ["Guarda", "Guard"] else RoleEnum.SUPERVISOR
+    
+    user_doc = {
+        "id": user_id,
+        "email": candidate["email"],
+        "password_hash": hash_password(hire_data.password),
+        "full_name": candidate["full_name"],
+        "roles": [role.value],
+        "condominium_id": condominium_id,
+        "is_active": True,
+        "is_locked": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.users.insert_one(user_doc)
+    
+    # 2. Create guard/employee record
+    guard_doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "user_name": candidate["full_name"],
+        "email": candidate["email"],
+        "badge_number": hire_data.badge_number,
+        "phone": candidate["phone"],
+        "emergency_contact": "",
+        "hire_date": datetime.now(timezone.utc).date().isoformat(),
+        "hourly_rate": hire_data.hourly_rate,
+        "is_active": True,
+        "total_hours": 0,
+        "condominium_id": condominium_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.guards.insert_one(guard_doc)
+    
+    # 3. Update candidate status
+    await db.hr_candidates.update_one(
+        {"id": candidate_id},
+        {"$set": {
+            "status": "hired",
+            "hired_at": datetime.now(timezone.utc).isoformat(),
+            "hired_by": current_user["id"],
+            "user_id": user_id,
+            "guard_id": guard_doc["id"]
+        }}
+    )
+    
+    await log_audit_event(
+        AuditEventType.CANDIDATE_HIRED,
+        current_user["id"],
+        "hr",
+        {
+            "candidate_id": candidate_id,
+            "user_id": user_id,
+            "guard_id": guard_doc["id"],
+            "name": candidate["full_name"],
+            "position": candidate["position"]
+        },
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {
+        "message": f"Candidato {candidate['full_name']} contratado exitosamente",
+        "user_id": user_id,
+        "guard_id": guard_doc["id"],
+        "email": candidate["email"],
+        "credentials": {
+            "email": candidate["email"],
+            "password": "********"  # Don't return actual password
+        }
+    }
+
+@api_router.put("/hr/candidates/{candidate_id}/reject")
+async def reject_candidate(
+    candidate_id: str,
+    request: Request,
+    reason: Optional[str] = None,
+    current_user = Depends(require_role("Administrador", "HR"))
+):
+    """Reject a candidate"""
+    candidate = await db.hr_candidates.find_one({"id": candidate_id})
+    if not candidate:
+        raise HTTPException(status_code=404, detail="Candidato no encontrado")
+    
+    if candidate["status"] == "hired":
+        raise HTTPException(status_code=400, detail="No se puede rechazar un candidato ya contratado")
+    
+    await db.hr_candidates.update_one(
+        {"id": candidate_id},
+        {"$set": {
+            "status": "rejected",
+            "rejected_at": datetime.now(timezone.utc).isoformat(),
+            "rejected_by": current_user["id"],
+            "rejection_reason": reason
+        }}
+    )
+    
+    await log_audit_event(
+        AuditEventType.CANDIDATE_REJECTED,
+        current_user["id"],
+        "hr",
+        {"candidate_id": candidate_id, "name": candidate["full_name"], "reason": reason},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {"message": f"Candidato {candidate['full_name']} rechazado"}
+
+# ==================== HR EMPLOYEE MANAGEMENT ====================
+
+@api_router.post("/hr/employees")
+async def create_employee_directly(
+    employee: CreateEmployeeByHR,
+    request: Request,
+    current_user = Depends(require_role("Administrador", "HR"))
+):
+    """Create a new employee (guard) directly without recruitment"""
+    # Check email not in use
+    existing_user = await db.users.find_one({"email": employee.email})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="El email ya está registrado")
+    
+    # Check badge number
+    existing_badge = await db.guards.find_one({"badge_number": employee.badge_number})
+    if existing_badge:
+        raise HTTPException(status_code=400, detail="El número de identificación ya está en uso")
+    
+    condominium_id = current_user.get("condominium_id")
+    
+    # 1. Create user account
+    user_id = str(uuid.uuid4())
+    user_doc = {
+        "id": user_id,
+        "email": employee.email,
+        "password_hash": hash_password(employee.password),
+        "full_name": employee.full_name,
+        "roles": [RoleEnum.GUARDA.value],
+        "condominium_id": condominium_id,
+        "is_active": True,
+        "is_locked": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.users.insert_one(user_doc)
+    
+    # 2. Create guard record
+    guard_doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "user_name": employee.full_name,
+        "email": employee.email,
+        "badge_number": employee.badge_number,
+        "phone": employee.phone,
+        "emergency_contact": employee.emergency_contact,
+        "hire_date": datetime.now(timezone.utc).date().isoformat(),
+        "hourly_rate": employee.hourly_rate,
+        "is_active": True,
+        "total_hours": 0,
+        "condominium_id": condominium_id,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.guards.insert_one(guard_doc)
+    
+    await log_audit_event(
+        AuditEventType.EMPLOYEE_CREATED,
+        current_user["id"],
+        "hr",
+        {"user_id": user_id, "guard_id": guard_doc["id"], "name": employee.full_name},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {
+        "message": f"Empleado {employee.full_name} creado exitosamente",
+        "user_id": user_id,
+        "guard_id": guard_doc["id"],
+        "credentials": {
+            "email": employee.email,
+            "password": "********"
+        }
+    }
+
+@api_router.put("/hr/employees/{guard_id}/deactivate")
+async def deactivate_employee(
+    guard_id: str,
+    request: Request,
+    current_user = Depends(require_role("Administrador", "HR"))
+):
+    """Deactivate an employee"""
+    guard = await db.guards.find_one({"id": guard_id})
+    if not guard:
+        raise HTTPException(status_code=404, detail="Empleado no encontrado")
+    
+    # Deactivate guard record
+    await db.guards.update_one(
+        {"id": guard_id},
+        {"$set": {"is_active": False, "deactivated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # Deactivate user account
+    await db.users.update_one(
+        {"id": guard["user_id"]},
+        {"$set": {"is_active": False}}
+    )
+    
+    await log_audit_event(
+        AuditEventType.EMPLOYEE_DEACTIVATED,
+        current_user["id"],
+        "hr",
+        {"guard_id": guard_id, "user_id": guard["user_id"], "name": guard["user_name"]},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {"message": f"Empleado {guard['user_name']} desactivado"}
+
+@api_router.put("/hr/employees/{guard_id}/activate")
+async def activate_employee(
+    guard_id: str,
+    request: Request,
+    current_user = Depends(require_role("Administrador", "HR"))
+):
+    """Reactivate an employee"""
+    guard = await db.guards.find_one({"id": guard_id})
+    if not guard:
+        raise HTTPException(status_code=404, detail="Empleado no encontrado")
+    
+    # Activate guard record
+    await db.guards.update_one(
+        {"id": guard_id},
+        {"$set": {"is_active": True, "reactivated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # Activate user account
+    await db.users.update_one(
+        {"id": guard["user_id"]},
+        {"$set": {"is_active": True}}
+    )
+    
+    await log_audit_event(
+        AuditEventType.EMPLOYEE_ACTIVATED,
+        current_user["id"],
+        "hr",
+        {"guard_id": guard_id, "user_id": guard["user_id"], "name": guard["user_name"]},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {"message": f"Empleado {guard['user_name']} reactivado"}
+
+# ==================== ADMIN USER MANAGEMENT ====================
+
+@api_router.post("/admin/users")
+async def create_user_by_admin(
+    user_data: CreateUserByAdmin,
+    request: Request,
+    current_user = Depends(require_role("Administrador", "SuperAdmin"))
+):
+    """Admin creates a user (Resident, HR, Guard, etc.)"""
+    # Check email not in use
+    existing = await db.users.find_one({"email": user_data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="El email ya está registrado")
+    
+    # Validate role
+    valid_roles = ["Residente", "HR", "Guarda", "Supervisor"]
+    if user_data.role not in valid_roles:
+        raise HTTPException(status_code=400, detail=f"Rol inválido. Use: {', '.join(valid_roles)}")
+    
+    condominium_id = current_user.get("condominium_id")
+    
+    user_id = str(uuid.uuid4())
+    user_doc = {
+        "id": user_id,
+        "email": user_data.email,
+        "password_hash": hash_password(user_data.password),
+        "full_name": user_data.full_name,
+        "roles": [user_data.role],
+        "condominium_id": condominium_id,
+        "phone": user_data.phone,
+        "is_active": True,
+        "is_locked": False,
+        "created_by": current_user["id"],
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.users.insert_one(user_doc)
+    
+    await log_audit_event(
+        AuditEventType.USER_CREATED,
+        current_user["id"],
+        "admin",
+        {"user_id": user_id, "email": user_data.email, "role": user_data.role},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {
+        "message": f"Usuario {user_data.full_name} creado exitosamente",
+        "user_id": user_id,
+        "credentials": {
+            "email": user_data.email,
+            "password": "********"
+        }
+    }
+
+@api_router.get("/admin/users")
+async def get_users_by_admin(
+    role: Optional[str] = None,
+    current_user = Depends(require_role("Administrador", "SuperAdmin"))
+):
+    """Get users in admin's condominium"""
+    query = {}
+    
+    # Filter by condominium for non-super-admins
+    if "SuperAdmin" not in current_user.get("roles", []):
+        query["condominium_id"] = current_user.get("condominium_id")
+    
+    if role:
+        query["roles"] = role
+    
+    users = await db.users.find(query, {"_id": 0, "password_hash": 0}).to_list(500)
+    return users
 
 # ==================== SCHOOL MODULE ====================
 @api_router.post("/school/courses")
