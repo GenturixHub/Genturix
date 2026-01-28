@@ -1,0 +1,131 @@
+{
+  "summary": "Completed comprehensive testing of GENTURIX Guard UI features (Iteration 10). All Guard Role critical issues have been fixed and verified: Guard login works with redirect to /guard, Clock In/Out toggles correctly, Alert resolution decreases count, Visitor management (entry/exit) works, Manual entry creates access logs, and all guard actions are logged in audit system.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/visitors/{id}/entry and /exit",
+        "issue": "API requires visitor_id in body even though it's in URL path - redundant but working",
+        "priority": "LOW"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "Guard Login - POST /api/auth/login returns 200 with access_token",
+    "Guard has condominium_id - User object contains condominium_id (not null)",
+    "Guard has Guarda role - User roles array contains 'Guarda'",
+    "Clock Status - GET /api/hr/clock/status returns is_clocked_in, employee_id",
+    "Clock IN - POST /api/hr/clock with type=IN returns 200",
+    "Clock OUT - POST /api/hr/clock with type=OUT returns 200",
+    "Get Panic Events - GET /api/security/panic-events returns list",
+    "Resolve Panic Event - PUT /api/security/panic/{id}/resolve returns 200",
+    "Get Pending Visitors - GET /api/visitors/pending returns list with status",
+    "Register Visitor Entry - POST /api/visitors/{id}/entry returns 200 with entry_at",
+    "Register Visitor Exit - POST /api/visitors/{id}/exit returns 200 with exit_at",
+    "Create Access Log - POST /api/security/access-log returns 200",
+    "Get Access Logs - GET /api/security/access-logs returns list",
+    "Login creates audit log - login_success event logged",
+    "Clock creates audit log - clock_in/clock_out events logged",
+    "Security Stats - GET /api/security/dashboard-stats returns active_alerts, today_accesses",
+    "UI: Guard login redirects to /guard page",
+    "UI: Clock button shows ENTRADA when not clocked in",
+    "UI: Clock button changes to SALIDA after clock in",
+    "UI: Status banner shows 'En turno' when clocked in",
+    "UI: Alerts tab shows active alert count (12 ALERTAS ACTIVAS)",
+    "UI: ATENDIDA button resolves alert and decreases count",
+    "UI: Visitas tab shows DENTRO and ESPERADOS sections",
+    "UI: REGISTRAR ENTRADA button registers visitor entry",
+    "UI: REGISTRAR SALIDA button registers visitor exit",
+    "UI: Registro tab has manual entry form",
+    "UI: Manual entry shows success banner after submission",
+    "UI: Historial tab shows Alertas Atendidas and Visitas Completadas sections",
+    "UI: Date filter dropdown (Hoy / Últimos 7 días) works"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_guard_ui.py",
+    "/app/test_reports/pytest/guard_ui_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_guard_ui.py - Created comprehensive Guard UI tests (16 tests)"
+  ],
+  "success_rate": {
+    "backend": "100% (16/16 tests passed)",
+    "frontend": "100% (All UI features working)"
+  },
+  "seed_data_creation": "Used existing TEST_ prefixed visitors and panic events",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Guard UI fully tested and working. All critical issues fixed: 1) Guard login works (body stream error fixed), 2) Guards have condominium_id assigned, 3) Guard UI is production-ready with Clock In/Out, Alert resolution, Visitor management, Manual entry, and History tabs. Audit logs are being created for all guard actions (login, clock, access_granted, access_denied).",
+  "features_verified": {
+    "guard_login": {
+      "login_success": "PASS - Returns 200 with access_token",
+      "has_condominium_id": "PASS - condominium_id: 267195e5-c18f-4374-a3a6-8016cfe70d86",
+      "has_guarda_role": "PASS - roles: ['Guarda']",
+      "redirect_to_guard": "PASS - Redirects to /guard page"
+    },
+    "clock_in_out": {
+      "get_status": "PASS - Returns is_clocked_in, employee_id, today_logs",
+      "clock_in": "PASS - Button changes to SALIDA, status shows 'En turno'",
+      "clock_out": "PASS - Button changes to ENTRADA, status shows 'Sin fichar'",
+      "audit_logged": "PASS - clock_in/clock_out events in audit_logs"
+    },
+    "alert_resolution": {
+      "get_events": "PASS - Returns 37 events (12 active, 25 resolved)",
+      "resolve_event": "PASS - PUT returns 200, count decreases",
+      "ui_update": "PASS - Alert count updates from 13 to 12"
+    },
+    "visitor_management": {
+      "get_pending": "PASS - Returns 26 visitors (22 pending, 4 inside)",
+      "register_entry": "PASS - POST returns 200 with entry_at",
+      "register_exit": "PASS - POST returns 200 with exit_at",
+      "ui_counts_update": "PASS - DENTRO/ESPERADOS counts update correctly"
+    },
+    "manual_entry": {
+      "create_log": "PASS - POST returns 200 with person_name, access_type",
+      "success_banner": "PASS - Shows 'registrado a las HH:MM'",
+      "form_fields": "PASS - Name, ID, Plate, Destination, Reason"
+    },
+    "history_tab": {
+      "alerts_section": "PASS - Shows 'Alertas Atendidas' with count",
+      "visits_section": "PASS - Shows 'Visitas Completadas' with count",
+      "date_filter": "PASS - Hoy / Últimos 7 días dropdown works"
+    },
+    "audit_logging": {
+      "login_logged": "PASS - login_success events in DB",
+      "clock_logged": "PASS - clock_in/clock_out events in DB",
+      "access_logged": "PASS - access_granted/access_denied events in DB"
+    }
+  },
+  "test_credentials": {
+    "guard": "guarda1@genturix.com / Guard123!",
+    "admin": "admin@genturix.com / Admin123!"
+  },
+  "guard_user_details": {
+    "id": "d197eb06-0be4-4bdb-be61-442fdb91e59c",
+    "email": "guarda1@genturix.com",
+    "full_name": "Juan Pérez",
+    "roles": ["Guarda"],
+    "condominium_id": "267195e5-c18f-4374-a3a6-8016cfe70d86",
+    "is_active": true
+  },
+  "api_endpoints_tested": [
+    "POST /api/auth/login",
+    "GET /api/hr/clock/status",
+    "POST /api/hr/clock",
+    "GET /api/security/panic-events",
+    "PUT /api/security/panic/{id}/resolve",
+    "GET /api/visitors/pending",
+    "POST /api/visitors/{id}/entry",
+    "POST /api/visitors/{id}/exit",
+    "POST /api/security/access-log",
+    "GET /api/security/access-logs",
+    "GET /api/security/dashboard-stats"
+  ]
+}
