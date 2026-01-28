@@ -195,7 +195,7 @@ function AppRoutes() {
 
       {/* RRHH - Módulo Central de Recursos Humanos (incluye Turnos) */}
       <Route path="/rrhh" element={
-        <ProtectedRoute allowedRoles={['Administrador', 'Supervisor', 'Guarda']}>
+        <ProtectedRoute allowedRoles={['Administrador', 'Supervisor', 'Guarda', 'HR']}>
           <RRHHModule />
         </ProtectedRoute>
       } />
