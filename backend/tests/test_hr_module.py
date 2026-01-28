@@ -117,10 +117,12 @@ class TestShifts:
     
     def test_create_shift_success(self, admin_headers, test_guard_id):
         """POST /api/hr/shifts - Create shift with valid data"""
-        # Create shift for tomorrow to avoid conflicts
-        tomorrow = datetime.now() + timedelta(days=1)
-        start_time = tomorrow.replace(hour=8, minute=0, second=0, microsecond=0).isoformat()
-        end_time = tomorrow.replace(hour=16, minute=0, second=0, microsecond=0).isoformat()
+        # Create shift far in the future to avoid conflicts with existing shifts
+        # Use a random offset to ensure uniqueness
+        import random
+        future_day = datetime.now() + timedelta(days=100 + random.randint(1, 100))
+        start_time = future_day.replace(hour=8, minute=0, second=0, microsecond=0).isoformat()
+        end_time = future_day.replace(hour=16, minute=0, second=0, microsecond=0).isoformat()
         
         shift_data = {
             "guard_id": test_guard_id,
@@ -138,7 +140,6 @@ class TestShifts:
         assert data["status"] == "scheduled"
         assert data["location"] == "TEST_Entrada Principal"
         print(f"✓ POST /api/hr/shifts - Created shift: {data['id']}")
-        return data["id"]
     
     def test_create_shift_invalid_guard(self, admin_headers):
         """POST /api/hr/shifts - 404 for non-existent guard"""
@@ -198,8 +199,9 @@ class TestShifts:
     
     def test_update_shift(self, admin_headers, test_guard_id):
         """PUT /api/hr/shifts/{id} - Update shift"""
-        # First create a shift
-        day_after = datetime.now() + timedelta(days=4)
+        # First create a shift far in the future
+        import random
+        day_after = datetime.now() + timedelta(days=200 + random.randint(1, 50))
         shift_data = {
             "guard_id": test_guard_id,
             "start_time": day_after.replace(hour=9).isoformat(),
@@ -207,7 +209,7 @@ class TestShifts:
             "location": "TEST_Original Location"
         }
         create_resp = requests.post(f"{BASE_URL}/api/hr/shifts", json=shift_data, headers=admin_headers)
-        assert create_resp.status_code == 200
+        assert create_resp.status_code == 200, f"Failed to create shift for update test: {create_resp.text}"
         shift_id = create_resp.json()["id"]
         
         # Update the shift
@@ -224,8 +226,9 @@ class TestShifts:
     
     def test_update_shift_invalid_status(self, admin_headers, test_guard_id):
         """PUT /api/hr/shifts/{id} - 400 for invalid status"""
-        # Create a shift first
-        day_after = datetime.now() + timedelta(days=5)
+        # Create a shift first far in the future
+        import random
+        day_after = datetime.now() + timedelta(days=250 + random.randint(1, 50))
         shift_data = {
             "guard_id": test_guard_id,
             "start_time": day_after.replace(hour=10).isoformat(),
@@ -233,6 +236,7 @@ class TestShifts:
             "location": "TEST_Status Test"
         }
         create_resp = requests.post(f"{BASE_URL}/api/hr/shifts", json=shift_data, headers=admin_headers)
+        assert create_resp.status_code == 200, f"Failed to create shift: {create_resp.text}"
         shift_id = create_resp.json()["id"]
         
         # Try invalid status
@@ -243,8 +247,9 @@ class TestShifts:
     
     def test_delete_shift(self, admin_headers, test_guard_id):
         """DELETE /api/hr/shifts/{id} - Soft delete (cancel) shift"""
-        # Create a shift first
-        day_after = datetime.now() + timedelta(days=6)
+        # Create a shift first far in the future
+        import random
+        day_after = datetime.now() + timedelta(days=300 + random.randint(1, 50))
         shift_data = {
             "guard_id": test_guard_id,
             "start_time": day_after.replace(hour=7).isoformat(),
@@ -252,6 +257,7 @@ class TestShifts:
             "location": "TEST_To Be Deleted"
         }
         create_resp = requests.post(f"{BASE_URL}/api/hr/shifts", json=shift_data, headers=admin_headers)
+        assert create_resp.status_code == 200, f"Failed to create shift: {create_resp.text}"
         shift_id = create_resp.json()["id"]
         
         # Delete the shift
