@@ -227,7 +227,7 @@ class TestVisitorManagement:
             response = requests.post(
                 f"{BASE_URL}/api/visitors/{visitor_id}/entry",
                 headers={"Authorization": f"Bearer {guard_token}"},
-                json={"notes": "TEST entry"}
+                json={"visitor_id": visitor_id, "notes": "TEST entry"}
             )
             assert response.status_code == 200
             data = response.json()
@@ -251,7 +251,7 @@ class TestVisitorManagement:
             response = requests.post(
                 f"{BASE_URL}/api/visitors/{visitor_id}/exit",
                 headers={"Authorization": f"Bearer {guard_token}"},
-                json={"notes": "TEST exit"}
+                json={"visitor_id": visitor_id, "notes": "TEST exit"}
             )
             assert response.status_code == 200
             data = response.json()
