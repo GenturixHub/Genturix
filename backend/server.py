@@ -617,17 +617,21 @@ async def get_me(current_user = Depends(get_current_user)):
 # ==================== SECURITY MODULE ====================
 @api_router.post("/security/panic")
 async def trigger_panic(event: PanicEventCreate, request: Request, current_user = Depends(get_current_user)):
+    """Trigger panic alert - scoped to user's condominium, only notifies guards in same condo"""
     panic_type_labels = {
         "emergencia_medica": "🚑 Emergencia Médica",
         "actividad_sospechosa": "👁️ Actividad Sospechosa",
         "emergencia_general": "🚨 Emergencia General"
     }
     
+    condo_id = current_user.get("condominium_id")
+    
     panic_event = {
         "id": str(uuid.uuid4()),
         "user_id": current_user["id"],
         "user_name": current_user["full_name"],
         "user_email": current_user["email"],
+        "condominium_id": condo_id,  # CRITICAL: Multi-tenant filter
         "panic_type": event.panic_type.value,
         "panic_type_label": panic_type_labels.get(event.panic_type.value, "Emergencia"),
         "location": event.location,
@@ -635,6 +639,7 @@ async def trigger_panic(event: PanicEventCreate, request: Request, current_user 
         "longitude": event.longitude,
         "description": event.description,
         "status": "active",
+        "is_test": False,  # Mark as real data
         "notified_guards": [],
         "created_at": datetime.now(timezone.utc).isoformat(),
         "resolved_at": None,
@@ -643,14 +648,19 @@ async def trigger_panic(event: PanicEventCreate, request: Request, current_user 
     
     await db.panic_events.insert_one(panic_event)
     
-    # Notify all active guards - create notifications
-    active_guards = await db.guards.find({"is_active": True}, {"_id": 0}).to_list(100)
+    # Notify ONLY guards in the same condominium
+    guard_query = {"status": "active"}
+    if condo_id:
+        guard_query["condominium_id"] = condo_id
+    
+    active_guards = await db.guards.find(guard_query, {"_id": 0}).to_list(100)
     for guard in active_guards:
         notification = {
             "id": str(uuid.uuid4()),
             "guard_id": guard["id"],
-            "guard_user_id": guard["user_id"],
+            "guard_user_id": guard.get("user_id"),
             "panic_event_id": panic_event["id"],
+            "condominium_id": condo_id,
             "panic_type": event.panic_type.value,
             "panic_type_label": panic_type_labels.get(event.panic_type.value, "Emergencia"),
             "resident_name": current_user["full_name"],
