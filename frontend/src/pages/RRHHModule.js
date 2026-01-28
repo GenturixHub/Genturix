@@ -422,56 +422,53 @@ const AusenciasSubmodule = ({ employees }) => {
 };
 
 // ============================================
-// SUBMÓDULO: CONTROL HORARIO
+// SUBMÓDULO: CONTROL HORARIO (COMING SOON)
 // ============================================
 const ControlHorarioSubmodule = ({ employees, currentUser, hasRole }) => {
-  const [isClockedIn, setIsClockedIn] = useState(false);
-  const [clockTime, setClockTime] = useState(null);
-
-  const handleClock = () => {
-    setIsClockedIn(!isClockedIn);
-    setClockTime(new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }));
-  };
-
   return (
     <div className="space-y-6">
-      {/* Clock In/Out for Guards */}
+      {/* Coming Soon Notice */}
+      <div className="p-4 rounded-lg bg-yellow-500/5 border border-yellow-500/20">
+        <div className="flex items-center gap-2 mb-2">
+          <Clock className="w-5 h-5 text-yellow-400" />
+          <span className="font-medium text-yellow-400">Módulo en Desarrollo</span>
+          <ComingSoonBadge />
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Próximamente: Fichaje de entrada/salida, registro de horas trabajadas y reportes de asistencia.
+        </p>
+      </div>
+
+      {/* Clock In/Out Preview (Disabled) */}
       {hasRole('Guarda') && (
-        <Card className={`${isClockedIn ? 'bg-green-500/10 border-green-500/30' : 'bg-[#0F111A] border-[#1E293B]'}`}>
+        <Card className="bg-[#0F111A] border-[#1E293B] opacity-60">
           <CardContent className="p-6">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
-                <h3 className="text-xl font-bold text-white">
-                  {isClockedIn ? '✓ Fichado' : 'Sin fichar'}
-                </h3>
-                {clockTime && (
-                  <p className="text-sm text-muted-foreground">
-                    {isClockedIn ? 'Entrada' : 'Salida'}: {clockTime}
-                  </p>
-                )}
+                <h3 className="text-xl font-bold text-white">Sistema de Fichaje</h3>
+                <p className="text-sm text-muted-foreground">Disponible próximamente</p>
               </div>
               <Button 
                 size="lg" 
-                className={isClockedIn ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}
-                onClick={handleClock}
+                className="bg-green-600/50 cursor-not-allowed"
+                disabled
               >
-                {isClockedIn ? (
-                  <><LogOutIcon className="w-5 h-5 mr-2" /> Fichar Salida</>
-                ) : (
-                  <><LogIn className="w-5 h-5 mr-2" /> Fichar Entrada</>
-                )}
+                <LogIn className="w-5 h-5 mr-2" /> Fichar Entrada
               </Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Admin/Supervisor View */}
+      {/* Admin/Supervisor View Preview */}
       {(hasRole('Administrador') || hasRole('Supervisor')) && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Registro de Hoy</h3>
+        <div className="space-y-4 opacity-60">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            Registro de Hoy
+            <ComingSoonBadge />
+          </h3>
           <div className="grid gap-3">
-            {employees.slice(0, 5).map(emp => (
+            {employees.slice(0, 3).map(emp => (
               <div key={emp.id} className="flex items-center justify-between p-3 rounded-lg bg-[#0F111A] border border-[#1E293B]">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold">
@@ -480,9 +477,9 @@ const ControlHorarioSubmodule = ({ employees, currentUser, hasRole }) => {
                   <span className="text-white">{emp.user_name}</span>
                 </div>
                 <div className="flex items-center gap-4 text-sm">
-                  <span className="text-green-400">08:00</span>
+                  <span className="text-muted-foreground">--:--</span>
                   <span className="text-muted-foreground">-</span>
-                  <span className="text-red-400">--:--</span>
+                  <span className="text-muted-foreground">--:--</span>
                 </div>
               </div>
             ))}
