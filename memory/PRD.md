@@ -11,118 +11,108 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 
 ### Pricing
 - **$1 per user per month** - Massive adoption model
-- No corporate plans, no SaaS pricing
-- Premium modules (additive):
-  - +$2 Genturix School Pro
-  - +$3 CCTV Integration
-  - +$5 API Access
+- Premium modules (additive): +$2 School Pro, +$3 CCTV, +$5 API Access
 
 ---
 
 ## ARCHITECTURE: MULTI-TENANT (3 LAYERS)
 
-### Layer 1: Global Platform
-- Super Admin controls
-- Tenant (Condominium) management
-- Module configuration per tenant
-
-### Layer 2: Condominium/Tenant
-- Each condominium has its own configuration
-- Enabled/disabled modules
-- User limits and billing
-
+### Layer 1: Global Platform (Super Admin)
+### Layer 2: Condominium/Tenant 
 ### Layer 3: Module Rules
-- Each module has specific settings
-- Role-based access within modules
 
-### Multi-Tenant API Endpoints
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/condominiums` | POST | Create new condominium |
-| `/api/condominiums` | GET | List all condominiums |
-| `/api/condominiums/{id}` | GET | Get condominium details |
-| `/api/condominiums/{id}` | PATCH | Update condominium |
-| `/api/condominiums/{id}` | DELETE | Deactivate condominium |
-| `/api/condominiums/{id}/users` | GET | Get condominium users |
-| `/api/condominiums/{id}/billing` | GET | Get billing info |
-| `/api/condominiums/{id}/modules/{module}` | PATCH | Enable/disable module |
+### Multi-Tenant API: `/api/condominiums/*`
+
+---
+
+## VISITOR ACCESS FLOW (CRITICAL)
+
+**FLOW: Resident CREATES → Guard EXECUTES → Admin AUDITS**
+
+### 1. Resident Pre-Registration
+- Tab "Visitas" in ResidentUI
+- Creates PENDING visitor record with:
+  - Full name, National ID (Cédula), Vehicle plate
+  - Visit type (familiar, friend, delivery, service, other)
+  - Expected date/time, Notes
+- Resident can CANCEL pending visitors
+- Resident does NOT approve entry/exit
+- Resident does NOT receive guard notifications
+
+### 2. Guard Execution
+- Tab "Visitas" in GuardUI shows expected visitors
+- Search by name, plate, cédula, or resident
+- Actions:
+  - Confirm identity
+  - Register ENTRY → Status: `entry_registered`
+  - Register EXIT → Status: `exit_registered`
+- Tab "Directo" for walk-in visitors (no pre-registration)
+
+### 3. Admin Audit
+- All visitor events in Auditoría module
+- Shows: visitor, resident who created, guard who executed, timestamps
+
+### Visitor API Endpoints
+| Endpoint | Method | Role | Description |
+|----------|--------|------|-------------|
+| `/api/visitors/pre-register` | POST | Resident | Create visitor |
+| `/api/visitors/my-visitors` | GET | Resident | List my visitors |
+| `/api/visitors/{id}` | DELETE | Resident | Cancel pending |
+| `/api/visitors/pending` | GET | Guard | Expected visitors |
+| `/api/visitors/{id}/entry` | POST | Guard | Register entry |
+| `/api/visitors/{id}/exit` | POST | Guard | Register exit |
+| `/api/visitors/all` | GET | Admin | All visitors |
 
 ---
 
 ## EMERGENCY SYSTEM (CORE DNA)
 
-### Panic Button - 3 Types with Psychological Color Coding
-1. 🔴 **Emergencia Médica** (RED) - Life threat, critical
-2. 🟡 **Actividad Sospechosa** (AMBER/YELLOW) - Caution, observation
-3. 🟠 **Emergencia General** (ORANGE) - Urgent, immediate action
+### Panic Button - 3 Types (NOT MODIFIED)
+1. 🔴 **Emergencia Médica** (RED)
+2. 🟡 **Actividad Sospechosa** (AMBER)
+3. 🟠 **Emergencia General** (ORANGE)
 
-### Each Panic Event:
-- ✅ Captures GPS location automatically
-- ✅ Registers emergency type
-- ✅ Notifies ALL active guards
-- ✅ Stored in Audit Logs with full details
-- ✅ Vibration feedback on mobile devices
-- ✅ Full-screen, touch-optimized buttons (min 120px height)
-- ✅ Glow/pulse animations for urgency
+---
+
+## UI ARCHITECTURE (Tab-Based, No Vertical Bloat)
+
+### ResidentUI Tabs
+1. **Emergencia** - Panic buttons
+2. **Visitas** - Pre-register visitors
+
+### GuardUI Tabs
+1. **Alertas** - Emergency alerts (compact cards)
+2. **Visitas** - Expected visitors from residents
+3. **Directo** - Walk-in registration
+4. **Bitácora** - Logbook entries
+
+### StudentUI Tabs
+1. **Cursos** - Course list with filters
+2. **Plan** - Subscription & pricing ($1/user/month explained)
+3. **Avisos** - Notifications
+4. **Perfil** - Profile & logout
 
 ---
 
 ## MODULES
 
-### RRHH (Recursos Humanos) - Central Module
-**IMPORTANTE: RRHH es el ÚNICO módulo de personal. Turnos NO es módulo separado.**
+### RRHH (Unified HR Module)
+- "Turnos" is a SUB-module, NOT separate
+- Routes: `/rrhh` (legacy `/hr`, `/shifts` redirect here)
 
-Sub-módulos dentro de RRHH:
-1. **Solicitudes de Ausencia** - Vacaciones, permisos, aprobaciones
-2. **Control Horario** - Entrada/salida, ajustes, reportes
-3. **Planificación de Turnos** - Creación, asignación, calendario
-4. **Reclutamiento** - Candidatos, pipeline, contratación
-5. **Onboarding/Offboarding** - Accesos, equipos, desactivación
-6. **Evaluación de Desempeño** - Evaluaciones, feedback, historial
-
-**Rutas:**
-- `/rrhh` → Módulo RRHH principal
-- `/hr` → Redirige a `/rrhh` (legacy)
-- `/shifts` → Redirige a `/rrhh` (legacy)
-
-### Otros Módulos
-- **Security** - Emergencias, accesos, monitoreo
-- **Genturix School** - Cursos, progreso, certificados
-- **Payments** - Stripe integration, $1/usuario/mes
-- **Audit** - Logs de eventos del sistema
-- **Reservations** - (Disabled by default)
-- **Access Control** - Control de acceso
-- **Messaging** - (Disabled by default)
+### Other Modules
+- Security, School, Payments, Audit, Reservations, Access Control, Messaging
 
 ---
 
 ## ROLES & INTERFACES
 
-| Role | Interface | Route | Description |
-|------|-----------|-------|-------------|
-| Residente | Full-screen panic buttons | `/resident` | Emergency-first, one-touch activation |
-| Guarda | Emergency response list | `/guard` | Active alerts, GPS coords, map links |
-| Estudiante | Learning portal | `/student` | Courses, progress, certificates |
-| Supervisor | Admin dashboard + RRHH | `/admin/dashboard`, `/rrhh` | Guards, shifts, monitoring |
-| Administrador | Full system | `/admin/dashboard` | All modules access |
-
----
-
-## TECH STACK
-
-### Backend
-- FastAPI + MongoDB + Motor (async)
-- JWT Authentication with condominium_id
-- Stripe Integration
-- RESTful API with `/api` prefix
-- Multi-tenant architecture
-
-### Frontend (PWA Mobile-First)
-- React 18
-- Tailwind CSS + Shadcn/UI
-- Progressive Web App (PWA)
-- Service Worker for offline support
-- Bottom navigation (mobile) / Sidebar (desktop)
+| Role | Interface | Route |
+|------|-----------|-------|
+| Residente | Panic + Visitors | `/resident` |
+| Guarda | Alerts + Visitors + Access | `/guard` |
+| Estudiante | Courses + Subscription | `/student` |
+| Admin | Full system | `/admin/dashboard` |
 
 ---
 
@@ -131,52 +121,42 @@ Sub-módulos dentro de RRHH:
 | Role | Email | Password |
 |------|-------|----------|
 | Admin | admin@genturix.com | Admin123! |
-| Supervisor | supervisor@genturix.com | Super123! |
 | Guarda | guarda1@genturix.com | Guard123! |
 | Residente | residente@genturix.com | Resi123! |
 | Estudiante | estudiante@genturix.com | Stud123! |
 
 ---
 
-## COMPLETED WORK
+## COMPLETED WORK (January 28, 2026)
 
-### January 28, 2026
-- ✅ Refactorización módulo RRHH - Turnos ahora es submódulo
-- ✅ Eliminado ShiftsModule.js y HRModule.js (redundantes)
-- ✅ Implementada arquitectura Multi-Tenant en backend
-- ✅ Endpoints de gestión de condominios (CRUD)
-- ✅ Endpoint de facturación por condominio
-- ✅ Endpoint para habilitar/deshabilitar módulos
-- ✅ Token JWT incluye condominium_id
-- ✅ Redirecciones /hr y /shifts a /rrhh
-- ✅ Testing completo (100% backend, 100% frontend)
+### Session 2
+- ✅ Visitor flow correction: Resident creates → Guard executes → Admin audits
+- ✅ ResidentUI Tab "Visitas" with pre-registration form
+- ✅ GuardUI Tab "Visitas" for expected visitors + "Directo" for walk-ins
+- ✅ All visitor API endpoints implemented and tested
+- ✅ Audit integration for all visitor events
 
-### Previous Sessions
-- ✅ PWA completo con manifest, service worker, icons
-- ✅ Botón de pánico con 3 tipos y colores
-- ✅ UIs específicas por rol (Resident, Guard, Student)
-- ✅ Integración Stripe para pagos
-- ✅ Sistema de autenticación JWT
-- ✅ Navegación adaptativa (Sidebar/BottomNav)
+### Session 1
+- ✅ RRHH module refactor (Turnos as sub-module)
+- ✅ Multi-tenant backend architecture
+- ✅ Guard/Student/Resident UI refactors (tab-based)
+- ✅ Student subscription tab with clear pricing
 
 ---
 
-## BACKLOG / FUTURE TASKS
+## BACKLOG
 
 ### P1 - High Priority
-- [ ] Push notifications para alertas de pánico
-- [ ] Dashboard de estadísticas por condominio
-- [ ] Reportes de facturación exportables
+- [ ] Push notifications for panic alerts
+- [ ] Dashboard statistics per condominium
 
 ### P2 - Medium Priority
-- [ ] Integración con servicios de mensajería
-- [ ] Sistema de reservaciones
-- [ ] Integración CCTV
+- [ ] Reservations module
+- [ ] CCTV integration
 
 ### P3 - Low Priority
-- [ ] App nativa (React Native)
-- [ ] API pública con rate limiting
-- [ ] Integraciones con IoT
+- [ ] Native app (React Native)
+- [ ] Public API with rate limiting
 
 ---
 
@@ -185,25 +165,17 @@ Sub-módulos dentro de RRHH:
 ```
 /app/
 ├── backend/
-│   ├── server.py           # FastAPI app with multi-tenant
-│   ├── requirements.txt
-│   └── .env
+│   └── server.py           # FastAPI with visitors, multi-tenant
 ├── frontend/
-│   ├── public/
-│   │   ├── manifest.json
-│   │   ├── service-worker.js
-│   │   └── index.html
 │   └── src/
-│       ├── App.js          # Routes with redirects
 │       ├── pages/
-│       │   ├── RRHHModule.js    # Central HR module
-│       │   ├── ResidentUI.js    # Panic buttons
-│       │   ├── GuardUI.js       # Emergency response
-│       │   └── ...
-│       └── components/
-│           └── layout/
-│               ├── Sidebar.js
-│               └── BottomNav.js
+│       │   ├── ResidentUI.js    # Panic + Visitors tabs
+│       │   ├── GuardUI.js       # Alerts + Visitors + Direct + Logbook
+│       │   ├── StudentUI.js     # Courses + Plan + Notifications + Profile
+│       │   ├── RRHHModule.js    # Unified HR module
+│       │   └── AuditModule.js   # Admin audit
+│       └── services/
+│           └── api.js          # All API methods including visitors
 └── memory/
     └── PRD.md
 ```
