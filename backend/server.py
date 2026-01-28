@@ -163,6 +163,52 @@ class PaymentPackage(BaseModel):
 class CheckoutStatusRequest(BaseModel):
     session_id: str
 
+# ==================== MULTI-TENANT MODELS ====================
+# Configuración de módulos habilitados por condominio
+class ModuleConfig(BaseModel):
+    enabled: bool = False
+    settings: Dict[str, Any] = {}
+
+class CondominiumModules(BaseModel):
+    security: ModuleConfig = ModuleConfig(enabled=True)
+    hr: ModuleConfig = ModuleConfig(enabled=True)
+    school: ModuleConfig = ModuleConfig(enabled=False)
+    payments: ModuleConfig = ModuleConfig(enabled=True)
+    audit: ModuleConfig = ModuleConfig(enabled=True)
+    reservations: ModuleConfig = ModuleConfig(enabled=False)
+    access_control: ModuleConfig = ModuleConfig(enabled=True)
+    messaging: ModuleConfig = ModuleConfig(enabled=False)
+
+class CondominiumCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    address: str = Field(..., min_length=5)
+    contact_email: EmailStr
+    contact_phone: str
+    max_users: int = Field(default=100, ge=1)
+    modules: Optional[CondominiumModules] = None
+
+class CondominiumUpdate(BaseModel):
+    name: Optional[str] = None
+    address: Optional[str] = None
+    contact_email: Optional[EmailStr] = None
+    contact_phone: Optional[str] = None
+    max_users: Optional[int] = None
+    modules: Optional[CondominiumModules] = None
+    is_active: Optional[bool] = None
+
+class CondominiumResponse(BaseModel):
+    id: str
+    name: str
+    address: str
+    contact_email: str
+    contact_phone: str
+    max_users: int
+    current_users: int
+    modules: Dict[str, Any]
+    is_active: bool
+    created_at: str
+    price_per_user: float = 1.0  # $1 USD per user per month
+
 # ==================== HELPER FUNCTIONS ====================
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
