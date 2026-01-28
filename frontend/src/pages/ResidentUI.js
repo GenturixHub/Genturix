@@ -1,22 +1,20 @@
 /**
- * GENTURIX - ResidentUI (Emergency-First Design)
+ * GENTURIX - ResidentUI (Emergency-First Design with Notifications)
  * 
- * REFACTORED: Complete UX overhaul for panic button system
+ * UPDATED: Added "Avisos" tab for guest entry/exit notifications
  * 
  * Design Principles:
  * - Emergency-first: One scared person, one touch available
- * - Psychological color coding:
- *   • Medical (RED) = Life threat, critical
- *   • Suspicious (AMBER) = Alert, observation needed
- *   • General (ORANGE) = Urgent, immediate response
- * - Minimum 64px touch targets
- * - Immediate feedback (visual + haptic)
- * - Zero distractions
+ * - Psychological color coding for panic buttons
+ * - Notifications for guest access events
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { ScrollArea } from '../components/ui/scroll-area';
+import { Badge } from '../components/ui/badge';
 import api from '../services/api';
 import { 
   Heart, 
@@ -30,12 +28,15 @@ import {
   CheckCircle,
   MapPin,
   Wifi,
-  WifiOff
+  WifiOff,
+  Bell,
+  UserPlus,
+  UserMinus,
+  Clock
 } from 'lucide-react';
 
 // ============================================
 // EMERGENCY TYPE CONFIGURATION
-// Psychological color mapping for stress situations
 // ============================================
 const EMERGENCY_TYPES = {
   emergencia_medica: {
@@ -43,7 +44,6 @@ const EMERGENCY_TYPES = {
     label: 'EMERGENCIA MÉDICA',
     subLabel: 'Necesito ayuda médica',
     icon: Heart,
-    // RED = Life threat, critical, blood, medical
     colors: {
       bg: 'bg-gradient-to-b from-red-600 to-red-700',
       bgActive: 'bg-red-700',
@@ -53,14 +53,13 @@ const EMERGENCY_TYPES = {
       text: 'text-white',
       icon: 'text-white',
     },
-    priority: 1, // Highest - life threatening
+    priority: 1,
   },
   actividad_sospechosa: {
     id: 'actividad_sospechosa',
     label: 'ACTIVIDAD SOSPECHOSA',
     subLabel: 'Veo algo sospechoso',
     icon: Eye,
-    // AMBER/YELLOW = Caution, observation, alert
     colors: {
       bg: 'bg-gradient-to-b from-amber-500 to-yellow-600',
       bgActive: 'bg-amber-600',
@@ -70,14 +69,13 @@ const EMERGENCY_TYPES = {
       text: 'text-black',
       icon: 'text-black',
     },
-    priority: 2, // Medium - needs verification
+    priority: 2,
   },
   emergencia_general: {
     id: 'emergencia_general',
     label: 'EMERGENCIA GENERAL',
     subLabel: 'Necesito ayuda urgente',
     icon: AlertTriangle,
-    // ORANGE = Urgent, warning, immediate action
     colors: {
       bg: 'bg-gradient-to-b from-orange-500 to-orange-600',
       bgActive: 'bg-orange-600',
@@ -87,13 +85,12 @@ const EMERGENCY_TYPES = {
       text: 'text-white',
       icon: 'text-white',
     },
-    priority: 3, // High - urgent response
+    priority: 3,
   },
 };
 
 // ============================================
 // EMERGENCY BUTTON COMPONENT
-// Single-purpose, high-contrast, touch-optimized
 // ============================================
 const EmergencyButton = ({ config, onPress, disabled, isLoading }) => {
   const [isPressed, setIsPressed] = useState(false);
@@ -101,15 +98,9 @@ const EmergencyButton = ({ config, onPress, disabled, isLoading }) => {
 
   const handlePress = () => {
     if (disabled || isLoading) return;
-    
-    // Haptic feedback
-    if (navigator.vibrate) {
-      navigator.vibrate(50);
-    }
-    
+    if (navigator.vibrate) navigator.vibrate(50);
     setIsPressed(true);
     onPress(config.id);
-    
     setTimeout(() => setIsPressed(false), 200);
   };
 
@@ -132,27 +123,16 @@ const EmergencyButton = ({ config, onPress, disabled, isLoading }) => {
       `}
       style={{ WebkitTapHighlightColor: 'transparent' }}
     >
-      {/* Pulse animation overlay for urgency */}
-      <div className={`
-        absolute inset-0 ${config.colors.bg} opacity-0
-        ${!disabled && !isLoading ? 'animate-pulse' : ''}
-      `} />
-      
-      {/* Content */}
+      <div className={`absolute inset-0 ${config.colors.bg} opacity-0 ${!disabled && !isLoading ? 'animate-pulse' : ''}`} />
       <div className="relative z-10 flex flex-col items-center justify-center h-full p-4 gap-2">
         {isLoading ? (
           <Loader2 className={`w-12 h-12 ${config.colors.icon} animate-spin`} />
         ) : (
           <IconComponent className={`w-12 h-12 md:w-14 md:h-14 ${config.colors.icon}`} strokeWidth={2.5} />
         )}
-        
         <div className="text-center">
-          <p className={`text-lg md:text-xl font-bold tracking-wide ${config.colors.text}`}>
-            {config.label}
-          </p>
-          <p className={`text-sm ${config.colors.text} opacity-80 mt-1`}>
-            {config.subLabel}
-          </p>
+          <p className={`text-lg md:text-xl font-bold tracking-wide ${config.colors.text}`}>{config.label}</p>
+          <p className={`text-sm ${config.colors.text} opacity-80 mt-1`}>{config.subLabel}</p>
         </div>
       </div>
     </button>
@@ -161,7 +141,6 @@ const EmergencyButton = ({ config, onPress, disabled, isLoading }) => {
 
 // ============================================
 // GPS STATUS INDICATOR
-// Clear visual feedback on location status
 // ============================================
 const GPSStatus = ({ location, isLoading, error }) => {
   if (isLoading) {
@@ -172,7 +151,6 @@ const GPSStatus = ({ location, isLoading, error }) => {
       </div>
     );
   }
-
   if (error || !location) {
     return (
       <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-full bg-yellow-500/20 border border-yellow-500/30">
@@ -181,23 +159,19 @@ const GPSStatus = ({ location, isLoading, error }) => {
       </div>
     );
   }
-
   return (
     <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-full bg-green-500/20 border border-green-500/30">
       <div className="relative">
         <Wifi className="w-4 h-4 text-green-400" />
         <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-400 rounded-full animate-pulse" />
       </div>
-      <span className="text-xs text-green-400 font-medium">
-        GPS Activo • ±{Math.round(location.accuracy || 10)}m
-      </span>
+      <span className="text-xs text-green-400 font-medium">GPS Activo • ±{Math.round(location.accuracy || 10)}m</span>
     </div>
   );
 };
 
 // ============================================
 // SUCCESS CONFIRMATION SCREEN
-// Clear feedback after emergency sent
 // ============================================
 const SuccessScreen = ({ alert, onDismiss }) => {
   const config = EMERGENCY_TYPES[alert.type];
@@ -205,43 +179,25 @@ const SuccessScreen = ({ alert, onDismiss }) => {
 
   return (
     <div className="fixed inset-0 z-50 bg-[#05050A] flex flex-col items-center justify-center p-6 safe-area">
-      {/* Animated success indicator */}
       <div className="relative mb-8">
         <div className="w-32 h-32 rounded-full bg-green-500/20 flex items-center justify-center">
           <CheckCircle className="w-16 h-16 text-green-400" />
         </div>
-        {/* Ripple effect */}
         <div className="absolute inset-0 w-32 h-32 rounded-full border-4 border-green-400/50 animate-ping" />
         <div className="absolute inset-0 w-32 h-32 rounded-full border-2 border-green-400/30 animate-pulse" />
       </div>
-
-      {/* Confirmation message */}
       <div className="text-center space-y-4 max-w-sm">
-        <h1 className="text-3xl font-bold text-green-400">
-          ¡ALERTA ENVIADA!
-        </h1>
-        
-        {/* Emergency type badge */}
-        <div className={`
-          inline-flex items-center gap-2 px-5 py-3 rounded-xl
-          ${config.colors.bg} ${config.colors.border} border-2
-        `}>
+        <h1 className="text-3xl font-bold text-green-400">¡ALERTA ENVIADA!</h1>
+        <div className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl ${config.colors.bg} ${config.colors.border} border-2`}>
           <IconComponent className={`w-6 h-6 ${config.colors.icon}`} />
           <span className={`font-bold ${config.colors.text}`}>{config.label}</span>
         </div>
-
-        {/* Guards notified count */}
         <div className="p-6 rounded-2xl bg-[#0F111A] border border-green-500/30 space-y-3">
           <div className="flex items-center justify-center gap-3">
             <span className="text-5xl font-bold text-green-400">{alert.guards}</span>
             <span className="text-xl text-white">guardas<br/>notificados</span>
           </div>
-          
-          <p className="text-muted-foreground">
-            Mantente en un lugar seguro.<br/>
-            <strong className="text-green-400">Ayuda en camino.</strong>
-          </p>
-
+          <p className="text-muted-foreground">Mantente en un lugar seguro.<br/><strong className="text-green-400">Ayuda en camino.</strong></p>
           {alert.location && (
             <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground font-mono">
               <MapPin className="w-3 h-3" />
@@ -249,15 +205,9 @@ const SuccessScreen = ({ alert, onDismiss }) => {
             </div>
           )}
         </div>
-
         <p className="text-sm text-muted-foreground">{alert.time}</p>
       </div>
-
-      {/* Dismiss button */}
-      <button
-        onClick={onDismiss}
-        className="mt-8 w-full max-w-sm py-4 rounded-xl bg-[#1E293B] text-white font-medium hover:bg-[#2D3B4F] transition-colors"
-      >
+      <button onClick={onDismiss} className="mt-8 w-full max-w-sm py-4 rounded-xl bg-[#1E293B] text-white font-medium hover:bg-[#2D3B4F] transition-colors">
         Volver al inicio
       </button>
     </div>
@@ -265,13 +215,150 @@ const SuccessScreen = ({ alert, onDismiss }) => {
 };
 
 // ============================================
+// EMERGENCY TAB (Panic Buttons)
+// ============================================
+const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, sendingType }) => (
+  <div className="flex-1 flex flex-col p-4 gap-4">
+    <div className="flex justify-center py-2">
+      <GPSStatus location={location} isLoading={locationLoading} error={locationError} />
+    </div>
+    <p className="text-center text-sm text-muted-foreground">Presiona el botón de emergencia</p>
+    <div className="flex-1 flex flex-col justify-center gap-4 max-w-lg mx-auto w-full">
+      {Object.values(EMERGENCY_TYPES)
+        .sort((a, b) => a.priority - b.priority)
+        .map((config) => (
+          <EmergencyButton
+            key={config.id}
+            config={config}
+            onPress={onEmergency}
+            disabled={!!sendingType}
+            isLoading={sendingType === config.id}
+          />
+        ))}
+    </div>
+  </div>
+);
+
+// ============================================
+// NOTIFICATIONS TAB (Avisos)
+// ============================================
+const NotificationsTab = ({ user }) => {
+  const [notifications, setNotifications] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchNotifications();
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchNotifications = async () => {
+    try {
+      // Get access logs that mention this resident
+      const accessLogs = await api.getAccessLogs();
+      // Filter logs that are visits for this resident
+      const residentNotifications = accessLogs.filter(log => 
+        log.notes?.toLowerCase().includes(user?.full_name?.toLowerCase()) ||
+        log.notes?.toLowerCase().includes('visita')
+      ).slice(0, 20);
+      
+      setNotifications(residentNotifications);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatTime = (timestamp) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    
+    if (diffMins < 1) return 'Ahora';
+    if (diffMins < 60) return `Hace ${diffMins}m`;
+    if (diffHours < 24) return `Hace ${diffHours}h`;
+    return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 space-y-3">
+      <h2 className="text-sm font-semibold text-muted-foreground mb-4">Avisos de Visitantes</h2>
+      
+      {notifications.length > 0 ? (
+        notifications.map((notif) => (
+          <div 
+            key={notif.id}
+            className={`p-4 rounded-xl border ${
+              notif.access_type === 'entry' 
+                ? 'bg-green-500/10 border-green-500/30' 
+                : 'bg-orange-500/10 border-orange-500/30'
+            }`}
+            data-testid={`notification-${notif.id}`}
+          >
+            <div className="flex items-start gap-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                notif.access_type === 'entry' ? 'bg-green-500/20' : 'bg-orange-500/20'
+              }`}>
+                {notif.access_type === 'entry' ? (
+                  <UserPlus className="w-5 h-5 text-green-400" />
+                ) : (
+                  <UserMinus className="w-5 h-5 text-orange-400" />
+                )}
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1">
+                  <Badge className={notif.access_type === 'entry' ? 'bg-green-500/20 text-green-400' : 'bg-orange-500/20 text-orange-400'}>
+                    {notif.access_type === 'entry' ? 'Entrada' : 'Salida'}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">{formatTime(notif.timestamp)}</span>
+                </div>
+                
+                <p className="font-semibold text-white text-sm">{notif.person_name}</p>
+                
+                {notif.notes && (
+                  <p className="text-xs text-muted-foreground mt-1">{notif.notes}</p>
+                )}
+                
+                <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+                  <MapPin className="w-3 h-3" />
+                  <span>{notif.location}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))
+      ) : (
+        <div className="text-center py-12 text-muted-foreground">
+          <Bell className="w-12 h-12 mx-auto mb-4 opacity-30" />
+          <p className="text-sm">No hay avisos de visitantes</p>
+          <p className="text-xs mt-1">Aquí verás cuando alguien te visite</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================
 // MAIN RESIDENT UI COMPONENT
-// Emergency-first interface for residents
 // ============================================
 const ResidentUI = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, logout } = useAuth();
+  const [activeTab, setActiveTab] = useState('emergency');
   
   // Location state
   const [location, setLocation] = useState(null);
@@ -282,9 +369,7 @@ const ResidentUI = () => {
   const [sendingType, setSendingType] = useState(null);
   const [sentAlert, setSentAlert] = useState(null);
 
-  // ============================================
-  // GPS LOCATION TRACKING
-  // ============================================
+  // GPS Location tracking
   useEffect(() => {
     if (!navigator.geolocation) {
       setLocationError('GPS no soportado');
@@ -292,7 +377,6 @@ const ResidentUI = () => {
       return;
     }
 
-    // Get initial position
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setLocation({
@@ -310,7 +394,6 @@ const ResidentUI = () => {
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
 
-    // Watch position updates
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
         setLocation({
@@ -326,9 +409,7 @@ const ResidentUI = () => {
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
-  // ============================================
-  // PWA SHORTCUTS HANDLER
-  // ============================================
+  // PWA Shortcuts handler
   useEffect(() => {
     const action = searchParams.get('action');
     if (action === 'medical') {
@@ -338,16 +419,10 @@ const ResidentUI = () => {
     }
   }, [searchParams]);
 
-  // ============================================
-  // EMERGENCY HANDLER
-  // ============================================
+  // Emergency handler
   const handleEmergency = useCallback(async (emergencyType) => {
     if (sendingType) return;
-
-    // Strong haptic feedback for confirmation
-    if (navigator.vibrate) {
-      navigator.vibrate([100, 50, 100]);
-    }
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
 
     setSendingType(emergencyType);
 
@@ -360,64 +435,38 @@ const ResidentUI = () => {
         description: `Alerta ${EMERGENCY_TYPES[emergencyType].label} activada por ${user.full_name}`,
       });
 
-      // Success haptic pattern
-      if (navigator.vibrate) {
-        navigator.vibrate([200, 100, 200, 100, 300]);
-      }
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 300]);
 
       setSentAlert({
         type: emergencyType,
         guards: result.notified_guards,
         location: location,
-        time: new Date().toLocaleTimeString('es-ES', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        }),
+        time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
       });
 
-      // Auto-dismiss after 20 seconds
       setTimeout(() => setSentAlert(null), 20000);
-
     } catch (error) {
       console.error('Emergency send error:', error);
-      
-      // Error haptic
-      if (navigator.vibrate) {
-        navigator.vibrate(500);
-      }
-      
+      if (navigator.vibrate) navigator.vibrate(500);
       alert('Error al enviar alerta. Intenta de nuevo o llama al 911.');
     } finally {
       setSendingType(null);
     }
   }, [sendingType, location, user]);
 
-  // ============================================
-  // LOGOUT HANDLER
-  // ============================================
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
 
-  // ============================================
-  // SUCCESS SCREEN
-  // ============================================
+  // Success Screen
   if (sentAlert) {
-    return (
-      <SuccessScreen 
-        alert={sentAlert} 
-        onDismiss={() => setSentAlert(null)} 
-      />
-    );
+    return <SuccessScreen alert={sentAlert} onDismiss={() => setSentAlert(null)} />;
   }
 
-  // ============================================
-  // MAIN RENDER
-  // ============================================
   return (
     <div className="min-h-screen bg-[#05050A] flex flex-col safe-area">
-      {/* ========== HEADER ========== */}
+      {/* Header */}
       <header className="flex items-center justify-between p-4 border-b border-[#1E293B]/50">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
@@ -425,12 +474,9 @@ const ResidentUI = () => {
           </div>
           <div>
             <h1 className="text-sm font-bold text-white">GENTURIX</h1>
-            <p className="text-xs text-muted-foreground truncate max-w-[140px]">
-              {user?.full_name}
-            </p>
+            <p className="text-xs text-muted-foreground truncate max-w-[140px]">{user?.full_name}</p>
           </div>
         </div>
-        
         <button
           onClick={handleLogout}
           className="p-2 rounded-lg text-muted-foreground hover:text-white hover:bg-white/5 transition-colors"
@@ -440,46 +486,49 @@ const ResidentUI = () => {
         </button>
       </header>
 
-      {/* ========== GPS STATUS ========== */}
-      <div className="flex justify-center py-3 border-b border-[#1E293B]/30">
-        <GPSStatus 
-          location={location} 
-          isLoading={locationLoading} 
-          error={locationError} 
-        />
-      </div>
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+        <TabsList className="grid grid-cols-2 bg-[#0F111A] border-b border-[#1E293B] rounded-none h-12">
+          <TabsTrigger 
+            value="emergency" 
+            className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-red-500 rounded-none"
+            data-testid="tab-emergency"
+          >
+            <AlertTriangle className="w-4 h-4 mr-2 text-red-400" />
+            Emergencia
+          </TabsTrigger>
+          <TabsTrigger 
+            value="notifications" 
+            className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+            data-testid="tab-avisos"
+          >
+            <Bell className="w-4 h-4 mr-2" />
+            Avisos
+          </TabsTrigger>
+        </TabsList>
 
-      {/* ========== EMERGENCY BUTTONS ========== */}
-      <main className="flex-1 flex flex-col p-4 gap-4">
-        {/* Instruction */}
-        <p className="text-center text-sm text-muted-foreground mb-2">
-          Presiona el botón de emergencia
-        </p>
+        <TabsContent value="emergency" className="flex-1 flex flex-col mt-0">
+          <EmergencyTab
+            location={location}
+            locationLoading={locationLoading}
+            locationError={locationError}
+            onEmergency={handleEmergency}
+            sendingType={sendingType}
+          />
+        </TabsContent>
 
-        {/* Emergency buttons - ordered by priority */}
-        <div className="flex-1 flex flex-col justify-center gap-4 max-w-lg mx-auto w-full">
-          {Object.values(EMERGENCY_TYPES)
-            .sort((a, b) => a.priority - b.priority)
-            .map((config) => (
-              <EmergencyButton
-                key={config.id}
-                config={config}
-                onPress={handleEmergency}
-                disabled={!!sendingType}
-                isLoading={sendingType === config.id}
-              />
-            ))}
-        </div>
-      </main>
+        <TabsContent value="notifications" className="flex-1 mt-0">
+          <ScrollArea className="h-[calc(100vh-180px)]">
+            <NotificationsTab user={user} />
+          </ScrollArea>
+        </TabsContent>
+      </Tabs>
 
-      {/* ========== EMERGENCY CALL FOOTER ========== */}
+      {/* Emergency Call Footer */}
       <footer className="p-4 border-t border-[#1E293B]/50">
         <a
           href="tel:911"
-          className="flex items-center justify-center gap-3 py-4 rounded-xl 
-            bg-[#1E293B] hover:bg-[#2D3B4F] 
-            border border-[#3D4B5F]
-            transition-colors"
+          className="flex items-center justify-center gap-3 py-4 rounded-xl bg-[#1E293B] hover:bg-[#2D3B4F] border border-[#3D4B5F] transition-colors"
         >
           <Phone className="w-5 h-5 text-red-400" />
           <span className="text-white font-semibold">Llamar al 911</span>
