@@ -655,7 +655,7 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
               <Label htmlFor="role">Rol *</Label>
               <Select 
                 value={form.role} 
-                onValueChange={(value) => setForm({ ...form, role: value })}
+                onValueChange={handleRoleChange}
               >
                 <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B]" data-testid="create-user-role">
                   <SelectValue placeholder="Seleccionar rol" />
@@ -695,6 +695,9 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
               />
             </div>
           </div>
+
+          {/* Role-specific fields */}
+          {form.role && renderRoleFields()}
 
           {/* Info Banner */}
           <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm">
