@@ -2600,11 +2600,27 @@ async def get_recent_activity(current_user = Depends(get_current_user)):
 # ==================== USERS MANAGEMENT ====================
 @api_router.get("/users")
 async def get_users(current_user = Depends(require_role("Administrador"))):
-    users = await db.users.find({}, {"_id": 0, "hashed_password": 0}).to_list(100)
+    """Get users - scoped by condominium"""
+    query = {}
+    if "SuperAdmin" not in current_user.get("roles", []):
+        condo_id = current_user.get("condominium_id")
+        if condo_id:
+            query["condominium_id"] = condo_id
+    users = await db.users.find(query, {"_id": 0, "hashed_password": 0}).to_list(100)
     return users
 
 @api_router.put("/users/{user_id}/roles")
 async def update_user_roles(user_id: str, roles: List[str], current_user = Depends(require_role("Administrador"))):
+    """Update user roles - only for users in same condominium"""
+    # Verify user belongs to same condominium
+    target_user = await db.users.find_one({"id": user_id})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if "SuperAdmin" not in current_user.get("roles", []):
+        if target_user.get("condominium_id") != current_user.get("condominium_id"):
+            raise HTTPException(status_code=403, detail="No tienes permiso para modificar este usuario")
+    
     result = await db.users.update_one(
         {"id": user_id},
         {"$set": {"roles": roles, "updated_at": datetime.now(timezone.utc).isoformat()}}
