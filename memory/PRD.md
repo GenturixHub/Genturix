@@ -1,15 +1,35 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 28, 2026 (Session 7 - Production User Management Complete)
+## Last Updated: January 28, 2026 (Session 8 - Multi-Tenant Fix)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
 
 ---
 
-## PLATFORM STATUS: 100% PRODUCTION READY - SALES READY ✅
+## PLATFORM STATUS: 100% PRODUCTION READY - MULTI-TENANT SECURE ✅
 
-### Session 7 - Production User & Credential Management (January 28, 2026) ⭐⭐ CRITICAL
+### Session 8 - Critical Multi-Tenant & Dynamic Form Fixes (January 28, 2026) ⭐⭐⭐ P0
+- ✅ **Multi-Tenant Dashboard Isolation (CRITICAL)**:
+  - All endpoints now filter by `condominium_id`
+  - New condo admin sees ZERO data (users=1 self, guards=0, alerts=0, shifts=0)
+  - Existing condo admin sees ONLY their condo's data
+  - SuperAdmin sees global data
+  - Fixed endpoints: `/dashboard/stats`, `/security/dashboard-stats`, `/security/panic-events`, `/security/access-logs`, `/hr/shifts`, `/hr/absences`, `/hr/guards`, `/hr/payroll`, `/users`
+- ✅ **Dynamic Role Forms (CRITICAL)**:
+  - Selecting role in Create User modal renders role-specific fields
+  - Residente: apartment_number (required), tower_block, resident_type
+  - Guarda: badge_number (required), main_location, initial_shift
+  - HR: department, permission_level
+  - Estudiante: subscription_plan, subscription_status
+  - Supervisor: supervised_area
+- ✅ **Backend Validation**:
+  - Residente without apartment → 400 error
+  - Guarda without badge → 400 error
+  - role_data stored in user document
+- 📋 Test report: `/app/test_reports/iteration_14.json` - 17/17 tests passed
+
+### Session 7 - Production User & Credential Management (January 28, 2026)
 - ✅ **Super Admin → Condo Admin Creation**:
   - Button in Condominiums table (UserPlus icon)
   - Modal with: Name, Email, Password (auto-generated), Phone
