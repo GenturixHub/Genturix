@@ -132,6 +132,25 @@ class TokenResponse(BaseModel):
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
+# Profile Models
+class ProfileResponse(BaseModel):
+    id: str
+    email: str
+    full_name: str
+    roles: List[str]
+    is_active: bool
+    created_at: str
+    condominium_id: Optional[str] = None
+    condominium_name: Optional[str] = None
+    phone: Optional[str] = None
+    profile_photo: Optional[str] = None
+    role_data: Optional[Dict[str, Any]] = None
+
+class ProfileUpdate(BaseModel):
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    profile_photo: Optional[str] = None
+
 # Security Module Models
 class PanicType(str, Enum):
     MEDICAL_EMERGENCY = "emergencia_medica"
