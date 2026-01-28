@@ -47,6 +47,12 @@ const RoleBasedRedirect = () => {
 
     const roles = user.roles || [];
     
+    // Check for Super Admin first
+    if (roles.includes('SuperAdmin')) {
+      navigate('/super-admin');
+      return;
+    }
+    
     // Check for specific single roles first - direct to their dedicated UI
     if (roles.length === 1) {
       const role = roles[0];
