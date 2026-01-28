@@ -2064,7 +2064,7 @@ async def create_user_by_admin(
         raise HTTPException(status_code=400, detail="El email ya está registrado")
     
     # Validate role
-    valid_roles = ["Residente", "HR", "Guarda", "Supervisor"]
+    valid_roles = ["Residente", "HR", "Guarda", "Supervisor", "Estudiante"]
     if user_data.role not in valid_roles:
         raise HTTPException(status_code=400, detail=f"Rol inválido. Use: {', '.join(valid_roles)}")
     
