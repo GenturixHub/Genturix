@@ -607,6 +607,9 @@ async def create_access_log(log: AccessLogCreate, request: Request, current_user
     
     await db.access_logs.insert_one(access_log)
     
+    # Remove MongoDB _id before returning
+    access_log.pop("_id", None)
+    
     # Use appropriate audit event type based on access type
     audit_event = AuditEventType.ACCESS_GRANTED if log.access_type == "entry" else AuditEventType.ACCESS_DENIED
     
