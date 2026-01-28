@@ -195,21 +195,41 @@ const OverviewTab = ({ stats, isLoading, onRefresh, onNavigateTab }) => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Button variant="outline" className="h-auto py-4 flex-col gap-2 border-[#1E293B] hover:bg-[#1E293B]">
+            <Button 
+              variant="outline" 
+              className="h-auto py-4 flex-col gap-2 border-[#1E293B] hover:bg-[#1E293B]"
+              onClick={() => onNavigateTab('condominiums')}
+              data-testid="quick-action-new-condo"
+            >
               <Building2 className="w-5 h-5 text-blue-400" />
               <span className="text-xs">Nuevo Condominio</span>
             </Button>
-            <Button variant="outline" className="h-auto py-4 flex-col gap-2 border-[#1E293B] hover:bg-[#1E293B]">
+            <Button 
+              variant="outline" 
+              className="h-auto py-4 flex-col gap-2 border-[#1E293B] hover:bg-[#1E293B]"
+              onClick={() => onNavigateTab('condominiums')}
+              data-testid="quick-action-create-demo"
+            >
               <Play className="w-5 h-5 text-green-400" />
               <span className="text-xs">Crear Demo</span>
             </Button>
-            <Button variant="outline" className="h-auto py-4 flex-col gap-2 border-[#1E293B] hover:bg-[#1E293B]">
+            <Button 
+              variant="outline" 
+              className="h-auto py-4 flex-col gap-2 border-[#1E293B] hover:bg-[#1E293B]"
+              onClick={() => onNavigateTab('users')}
+              data-testid="quick-action-view-users"
+            >
               <Users className="w-5 h-5 text-purple-400" />
               <span className="text-xs">Ver Usuarios</span>
             </Button>
-            <Button variant="outline" className="h-auto py-4 flex-col gap-2 border-[#1E293B] hover:bg-[#1E293B]">
+            <Button 
+              variant="outline" 
+              className="h-auto py-4 flex-col gap-2 border-[#1E293B] hover:bg-[#1E293B]"
+              onClick={() => onNavigateTab('content')}
+              data-testid="quick-action-view-audit"
+            >
               <Activity className="w-5 h-5 text-orange-400" />
-              <span className="text-xs">Ver Auditoría</span>
+              <span className="text-xs">Ver Contenido</span>
             </Button>
           </div>
         </CardContent>
