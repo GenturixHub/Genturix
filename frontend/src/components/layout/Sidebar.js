@@ -13,15 +13,24 @@ import {
   Settings,
   LogOut,
   ChevronLeft,
-  Building2
+  Building2,
+  Clock,
+  Briefcase
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
-import { Separator } from '../ui/separator';
+
+/**
+ * GENTURIX - Sidebar Navigation
+ * 
+ * Updated navigation structure:
+ * - RRHH (Recursos Humanos) = Personas, datos laborales
+ * - Turnos = Operaciones, asignaciones de tiempo
+ */
 
 const Sidebar = ({ collapsed, onToggle }) => {
   const navigate = useNavigate();
-  const { user, logout, hasRole, hasAnyRole } = useAuth();
+  const { user, logout, hasAnyRole } = useAuth();
   const activeRole = sessionStorage.getItem('activeRole') || user?.roles?.[0];
 
   const handleLogout = async () => {
@@ -34,6 +43,7 @@ const Sidebar = ({ collapsed, onToggle }) => {
     navigate('/select-panel');
   };
 
+  // Navigation items with clear separation of concerns
   const navItems = [
     {
       title: 'Dashboard',
@@ -46,18 +56,23 @@ const Sidebar = ({ collapsed, onToggle }) => {
       icon: AlertTriangle,
       href: '/security',
       roles: ['Administrador', 'Supervisor', 'Guarda'],
+      description: 'Emergencias, accesos, monitoreo'
     },
+    // HR Module - PEOPLE FOCUSED
     {
       title: 'Recursos Humanos',
-      icon: Users,
-      href: '/hr',
+      icon: Briefcase,
+      href: '/rrhh',
       roles: ['Administrador', 'Supervisor'],
+      description: 'Gestión de personal'
     },
+    // Shifts Module - OPERATIONS FOCUSED
     {
       title: 'Turnos',
-      icon: Calendar,
-      href: '/shifts',
+      icon: Clock,
+      href: '/turnos',
       roles: ['Administrador', 'Supervisor', 'Guarda'],
+      description: 'Horarios y asignaciones'
     },
     {
       title: 'Genturix School',
@@ -148,9 +163,19 @@ const Sidebar = ({ collapsed, onToggle }) => {
                     `sidebar-item ${isActive ? 'active' : ''} ${collapsed ? 'justify-center px-2' : ''}`
                   }
                   data-testid={`nav-${item.href.replace('/', '')}`}
+                  title={collapsed ? item.title : undefined}
                 >
                   <IconComponent className="w-5 h-5 flex-shrink-0" />
-                  {!collapsed && <span>{item.title}</span>}
+                  {!collapsed && (
+                    <div className="flex-1 min-w-0">
+                      <span className="block">{item.title}</span>
+                      {item.description && (
+                        <span className="text-[10px] text-muted-foreground block truncate">
+                          {item.description}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </NavLink>
               );
             })}
