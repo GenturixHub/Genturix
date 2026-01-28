@@ -1008,17 +1008,29 @@ async def get_guard_logbook(current_user = Depends(require_role("Administrador",
 
 @api_router.get("/security/active-guards")
 async def get_active_guards(current_user = Depends(require_role("Administrador", "Supervisor"))):
-    now = datetime.now(timezone.utc).isoformat()
-    guards = await db.guards.find({"is_active": True}, {"_id": 0}).to_list(100)
+    """Get active guards - scoped by condominium"""
+    query = {"status": "active"}
+    if "SuperAdmin" not in current_user.get("roles", []):
+        condo_id = current_user.get("condominium_id")
+        if condo_id:
+            query["condominium_id"] = condo_id
+    guards = await db.guards.find(query, {"_id": 0}).to_list(100)
     return guards
 
 @api_router.get("/security/dashboard-stats")
 async def get_security_stats(current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
-    active_panic = await db.panic_events.count_documents({"status": "active"})
+    """Security stats - scoped by condominium"""
+    condo_filter = {}
+    if "SuperAdmin" not in current_user.get("roles", []):
+        condo_id = current_user.get("condominium_id")
+        if condo_id:
+            condo_filter["condominium_id"] = condo_id
+    
+    active_panic = await db.panic_events.count_documents({**condo_filter, "status": "active"})
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
-    today_access = await db.access_logs.count_documents({"timestamp": {"$gte": today_start}})
-    active_guards = await db.guards.count_documents({"is_active": True})
-    total_events = await db.panic_events.count_documents({})
+    today_access = await db.access_logs.count_documents({**condo_filter, "timestamp": {"$gte": today_start}})
+    active_guards = await db.guards.count_documents({**condo_filter, "status": "active"})
+    total_events = await db.panic_events.count_documents(condo_filter)
     
     return {
         "active_alerts": active_panic,
