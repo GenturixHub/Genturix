@@ -165,6 +165,39 @@ class PaymentPackage(BaseModel):
 class CheckoutStatusRequest(BaseModel):
     session_id: str
 
+# ==================== VISITOR PRE-REGISTRATION MODELS ====================
+class VisitTypeEnum(str, Enum):
+    FAMILIAR = "familiar"
+    DELIVERY = "delivery"
+    SERVICE = "service"
+    FRIEND = "friend"
+    OTHER = "other"
+
+class VisitorStatusEnum(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    ENTRY_REGISTERED = "entry_registered"
+    EXIT_REGISTERED = "exit_registered"
+    CANCELLED = "cancelled"
+    EXPIRED = "expired"
+
+class VisitorPreRegistration(BaseModel):
+    full_name: str = Field(..., min_length=2, max_length=100)
+    national_id: Optional[str] = None  # Cedula
+    vehicle_plate: Optional[str] = None
+    visit_type: VisitTypeEnum = VisitTypeEnum.FRIEND
+    expected_date: str  # ISO format date
+    expected_time: Optional[str] = None
+    notes: Optional[str] = None
+
+class VisitorEntry(BaseModel):
+    visitor_id: str
+    notes: Optional[str] = None
+
+class VisitorExit(BaseModel):
+    visitor_id: str
+    notes: Optional[str] = None
+
 # ==================== MULTI-TENANT MODELS ====================
 # Configuración de módulos habilitados por condominio
 class ModuleConfig(BaseModel):
