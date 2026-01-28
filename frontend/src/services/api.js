@@ -104,6 +104,15 @@ class ApiService {
   // Resident notifications
   getResidentNotifications = () => this.get('/resident/notifications');
 
+  // Visitor Pre-Registration (Resident creates, Guard executes)
+  preRegisterVisitor = (data) => this.post('/visitors/pre-register', data);
+  getMyVisitors = () => this.get('/visitors/my-visitors');
+  cancelVisitor = (visitorId) => this.delete(`/visitors/${visitorId}`);
+  getPendingVisitors = (search = '') => this.get(`/visitors/pending${search ? `?search=${encodeURIComponent(search)}` : ''}`);
+  registerVisitorEntry = (visitorId, notes = '') => this.post(`/visitors/${visitorId}/entry`, { visitor_id: visitorId, notes });
+  registerVisitorExit = (visitorId, notes = '') => this.post(`/visitors/${visitorId}/exit`, { visitor_id: visitorId, notes });
+  getAllVisitors = (status = '') => this.get(`/visitors/all${status ? `?status=${status}` : ''}`);
+
   // HR
   createGuard = (data) => this.post('/hr/guards', data);
   getGuards = () => this.get('/hr/guards');
