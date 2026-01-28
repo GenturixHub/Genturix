@@ -2972,7 +2972,7 @@ async def create_condominium_admin(
     user_doc = {
         "id": user_id,
         "email": admin_data.email,
-        "password_hash": hash_password(admin_data.password),
+        "hashed_password": hash_password(admin_data.password),
         "full_name": admin_data.full_name,
         "roles": [RoleEnum.ADMINISTRADOR.value],
         "condominium_id": condo_id,  # Associate with the condominium
