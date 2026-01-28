@@ -91,6 +91,15 @@ class AuditEventType(str, Enum):
     ABSENCE_REQUESTED = "absence_requested"
     ABSENCE_APPROVED = "absence_approved"
     ABSENCE_REJECTED = "absence_rejected"
+    # Recruitment events
+    CANDIDATE_CREATED = "candidate_created"
+    CANDIDATE_UPDATED = "candidate_updated"
+    CANDIDATE_HIRED = "candidate_hired"
+    CANDIDATE_REJECTED = "candidate_rejected"
+    # User management events
+    EMPLOYEE_CREATED = "employee_created"
+    EMPLOYEE_DEACTIVATED = "employee_deactivated"
+    EMPLOYEE_ACTIVATED = "employee_activated"
 
 # ==================== MODELS ====================
 class UserCreate(BaseModel):
