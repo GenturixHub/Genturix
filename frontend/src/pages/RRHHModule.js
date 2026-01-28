@@ -86,7 +86,7 @@ const RRHH_SUBMODULES = {
     shortLabel: 'Ausencias',
     icon: CalendarOff,
     description: 'Vacaciones, permisos, aprobaciones',
-    roles: ['Administrador', 'Supervisor', 'Guarda'],
+    roles: ['Administrador', 'Supervisor', 'Guarda', 'HR'],
   },
   control_horario: {
     id: 'control_horario',
@@ -94,7 +94,7 @@ const RRHH_SUBMODULES = {
     shortLabel: 'Horario',
     icon: Clock,
     description: 'Entrada/salida, ajustes, reportes',
-    roles: ['Administrador', 'Supervisor', 'Guarda'],
+    roles: ['Administrador', 'Supervisor', 'Guarda', 'HR'],
   },
   turnos: {
     id: 'turnos',
@@ -102,7 +102,7 @@ const RRHH_SUBMODULES = {
     shortLabel: 'Turnos',
     icon: CalendarDays,
     description: 'Creación, asignación, calendario',
-    roles: ['Administrador', 'Supervisor'],
+    roles: ['Administrador', 'Supervisor', 'HR'],
   },
   reclutamiento: {
     id: 'reclutamiento',
@@ -110,7 +110,7 @@ const RRHH_SUBMODULES = {
     shortLabel: 'Reclutar',
     icon: UserPlus,
     description: 'Candidatos, pipeline, contratación',
-    roles: ['Administrador'],
+    roles: ['Administrador', 'HR'],
   },
   onboarding: {
     id: 'onboarding',
@@ -118,7 +118,7 @@ const RRHH_SUBMODULES = {
     shortLabel: 'Onboard',
     icon: ClipboardList,
     description: 'Accesos, equipos, desactivación',
-    roles: ['Administrador'],
+    roles: ['Administrador', 'HR'],
   },
   evaluacion: {
     id: 'evaluacion',
@@ -126,7 +126,7 @@ const RRHH_SUBMODULES = {
     shortLabel: 'Evaluación',
     icon: TrendingUp,
     description: 'Evaluaciones, feedback, historial',
-    roles: ['Administrador', 'Supervisor'],
+    roles: ['Administrador', 'Supervisor', 'HR'],
   },
 };
 
