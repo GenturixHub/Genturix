@@ -1544,6 +1544,268 @@ async def update_module_config(
     
     return {"message": f"Module '{module_name}' {'enabled' if enabled else 'disabled'} successfully"}
 
+# ==================== SUPER ADMIN ENDPOINTS ====================
+
+@api_router.get("/super-admin/stats")
+async def get_platform_stats(
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
+):
+    """Get global platform statistics"""
+    total_condos = await db.condominiums.count_documents({})
+    active_condos = await db.condominiums.count_documents({"is_active": True})
+    demo_condos = await db.condominiums.count_documents({"is_demo": True})
+    total_users = await db.users.count_documents({})
+    active_users = await db.users.count_documents({"is_active": True})
+    total_alerts = await db.panic_events.count_documents({})
+    active_alerts = await db.panic_events.count_documents({"status": "active"})
+    
+    # Calculate MRR (Monthly Recurring Revenue)
+    condos = await db.condominiums.find({"is_active": True}, {"_id": 0}).to_list(1000)
+    mrr = 0.0
+    for condo in condos:
+        user_count = await db.users.count_documents({"condominium_id": condo.get("id"), "is_active": True})
+        price = condo.get("price_per_user", 1.0)
+        discount = condo.get("discount_percent", 0)
+        mrr += user_count * price * (1 - discount / 100)
+    
+    return {
+        "condominiums": {
+            "total": total_condos,
+            "active": active_condos,
+            "demo": demo_condos,
+            "suspended": total_condos - active_condos
+        },
+        "users": {
+            "total": total_users,
+            "active": active_users
+        },
+        "alerts": {
+            "total": total_alerts,
+            "active": active_alerts
+        },
+        "revenue": {
+            "mrr_usd": round(mrr, 2),
+            "price_per_user": 1.0
+        }
+    }
+
+@api_router.get("/super-admin/users")
+async def get_all_users_global(
+    condo_id: Optional[str] = None,
+    role: Optional[str] = None,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
+):
+    """Get all users across all condominiums with filters"""
+    query = {}
+    if condo_id:
+        query["condominium_id"] = condo_id
+    if role:
+        query["roles"] = role
+    
+    users = await db.users.find(query, {"_id": 0, "hashed_password": 0}).to_list(1000)
+    
+    # Enrich with condominium name
+    for user in users:
+        if user.get("condominium_id"):
+            condo = await db.condominiums.find_one({"id": user["condominium_id"]}, {"name": 1})
+            user["condominium_name"] = condo.get("name") if condo else "Unknown"
+    
+    return users
+
+@api_router.put("/super-admin/users/{user_id}/lock")
+async def lock_user(
+    user_id: str,
+    request: Request,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
+):
+    """Lock a user account (security)"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"is_active": False, "locked_by": current_user["id"], "locked_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    await log_audit_event(
+        AuditEventType.USER_LOCKED,
+        current_user["id"],
+        "super_admin",
+        {"user_id": user_id, "email": user.get("email"), "action": "locked"},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {"message": "User locked successfully"}
+
+@api_router.put("/super-admin/users/{user_id}/unlock")
+async def unlock_user(
+    user_id: str,
+    request: Request,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
+):
+    """Unlock a user account"""
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"is_active": True, "locked_by": None, "locked_at": None}}
+    )
+    
+    await log_audit_event(
+        AuditEventType.USER_UNLOCKED,
+        current_user["id"],
+        "super_admin",
+        {"user_id": user_id, "email": user.get("email"), "action": "unlocked"},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {"message": "User unlocked successfully"}
+
+@api_router.post("/super-admin/condominiums/{condo_id}/make-demo")
+async def make_demo_condominium(
+    condo_id: str,
+    max_users: int = 10,
+    request: Request = None,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
+):
+    """Convert a condominium to demo/sandbox mode"""
+    result = await db.condominiums.update_one(
+        {"id": condo_id},
+        {"$set": {
+            "is_demo": True,
+            "status": "demo",
+            "max_users": max_users,
+            "price_per_user": 0,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Condominium not found")
+    
+    return {"message": "Condominium converted to demo mode"}
+
+@api_router.post("/super-admin/condominiums/{condo_id}/reset-demo")
+async def reset_demo_data(
+    condo_id: str,
+    request: Request,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
+):
+    """Reset demo data for a sandbox condominium"""
+    condo = await db.condominiums.find_one({"id": condo_id})
+    if not condo:
+        raise HTTPException(status_code=404, detail="Condominium not found")
+    
+    if not condo.get("is_demo"):
+        raise HTTPException(status_code=400, detail="Only demo condominiums can be reset")
+    
+    # Delete associated data
+    await db.panic_events.delete_many({"condominium_id": condo_id})
+    await db.visitors.delete_many({"condominium_id": condo_id})
+    await db.access_logs.delete_many({"condominium_id": condo_id})
+    
+    await log_audit_event(
+        AuditEventType.DEMO_RESET,
+        current_user["id"],
+        "super_admin",
+        {"condo_id": condo_id, "name": condo.get("name"), "action": "demo_reset"},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {"message": "Demo data reset successfully"}
+
+@api_router.patch("/super-admin/condominiums/{condo_id}/pricing")
+async def update_condo_pricing(
+    condo_id: str,
+    discount_percent: Optional[int] = None,
+    free_modules: Optional[List[str]] = None,
+    plan: Optional[str] = None,
+    request: Request = None,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
+):
+    """Update pricing/plan for a condominium"""
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    if discount_percent is not None:
+        update_data["discount_percent"] = max(0, min(100, discount_percent))
+    if free_modules is not None:
+        update_data["free_modules"] = free_modules
+    if plan is not None:
+        update_data["plan"] = plan
+    
+    result = await db.condominiums.update_one({"id": condo_id}, {"$set": update_data})
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Condominium not found")
+    
+    if request:
+        await log_audit_event(
+            AuditEventType.PLAN_UPDATED,
+            current_user["id"],
+            "super_admin",
+            {"condo_id": condo_id, "changes": update_data},
+            request.client.host if request.client else "unknown",
+            request.headers.get("user-agent", "unknown")
+        )
+    
+    return {"message": "Pricing updated successfully"}
+
+@api_router.patch("/super-admin/condominiums/{condo_id}/status")
+async def update_condo_status(
+    condo_id: str,
+    status: str,
+    request: Request,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
+):
+    """Update condominium status (active/demo/suspended)"""
+    valid_statuses = ["active", "demo", "suspended"]
+    if status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Invalid status. Valid: {', '.join(valid_statuses)}")
+    
+    result = await db.condominiums.update_one(
+        {"id": condo_id},
+        {"$set": {
+            "status": status,
+            "is_active": status != "suspended",
+            "is_demo": status == "demo",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Condominium not found")
+    
+    await log_audit_event(
+        AuditEventType.CONDO_UPDATED,
+        current_user["id"],
+        "super_admin",
+        {"condo_id": condo_id, "new_status": status},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {"message": f"Status updated to {status}"}
+
+@api_router.get("/super-admin/audit")
+async def get_super_admin_audit(
+    module: Optional[str] = "super_admin",
+    limit: int = 100,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
+):
+    """Get audit logs for super admin actions"""
+    query = {}
+    if module:
+        query["module"] = module
+    
+    logs = await db.audit_logs.find(query, {"_id": 0}).sort("timestamp", -1).to_list(limit)
+    return logs
+
 # ==================== DEMO DATA SEEDING ====================
 @api_router.post("/seed-demo-data")
 async def seed_demo_data():
