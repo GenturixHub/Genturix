@@ -6,6 +6,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { ScrollArea } from '../components/ui/scroll-area';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 import { useIsMobile } from '../components/layout/BottomNav';
 import api from '../services/api';
 import { 
@@ -20,7 +37,8 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
-  ChevronRight
+  ChevronRight,
+  UserPlus
 } from 'lucide-react';
 
 const StatCard = ({ title, value, icon: Icon, trend, color = 'primary', onClick }) => {
