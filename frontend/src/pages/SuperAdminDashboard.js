@@ -364,6 +364,16 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate }) => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="h-8 w-8" 
+                          onClick={() => handleCreateAdmin(condo)}
+                          title="Crear Administrador"
+                          data-testid={`create-admin-${condo.id}`}
+                        >
+                          <UserPlus className="w-4 h-4 text-blue-400" />
+                        </Button>
                         <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setSelectedCondo(condo)}>
                           <Settings className="w-4 h-4" />
                         </Button>
