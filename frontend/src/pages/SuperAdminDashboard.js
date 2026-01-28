@@ -419,6 +419,16 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate }) => {
           onSuccess={() => { setSelectedCondo(null); onRefresh(); }}
         />
       )}
+
+      {/* Create Admin Dialog */}
+      {adminTargetCondo && (
+        <CreateAdminDialog
+          condo={adminTargetCondo}
+          open={showCreateAdminDialog}
+          onClose={() => { setShowCreateAdminDialog(false); setAdminTargetCondo(null); }}
+          onSuccess={() => { setShowCreateAdminDialog(false); setAdminTargetCondo(null); onRefresh(); }}
+        />
+      )}
     </div>
   );
 };
