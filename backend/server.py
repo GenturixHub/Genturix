@@ -1190,7 +1190,7 @@ async def update_shift(
     shift_id: str,
     shift_update: ShiftUpdate,
     request: Request,
-    current_user = Depends(require_role("Administrador", "Supervisor"))
+    current_user = Depends(require_role("Administrador", "Supervisor", "HR"))
 ):
     """Update an existing shift"""
     shift = await db.shifts.find_one({"id": shift_id})
