@@ -705,12 +705,14 @@ async def trigger_panic(event: PanicEventCreate, request: Request, current_user 
 
 @api_router.get("/security/panic-events")
 async def get_panic_events(current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
-    """Get panic events - scoped by condominium"""
-    query = {}
+    """Get panic events - scoped by condominium, excludes test/demo data"""
+    query = {"is_test": {"$ne": True}}  # Exclude test data
+    
     if "SuperAdmin" not in current_user.get("roles", []):
         condo_id = current_user.get("condominium_id")
         if condo_id:
             query["condominium_id"] = condo_id
+    
     events = await db.panic_events.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
     return events
 
