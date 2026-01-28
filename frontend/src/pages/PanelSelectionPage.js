@@ -10,7 +10,8 @@ import {
   Home, 
   GraduationCap, 
   LogOut,
-  ChevronRight 
+  ChevronRight,
+  Briefcase
 } from 'lucide-react';
 
 const ROLE_CONFIGS = {
@@ -22,13 +23,21 @@ const ROLE_CONFIGS = {
     iconBg: 'bg-purple-500/20',
     route: '/admin/dashboard'
   },
+  'HR': {
+    icon: Briefcase,
+    title: 'Panel Recursos Humanos',
+    description: 'Gestión de personal, reclutamiento, turnos, ausencias.',
+    color: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+    iconBg: 'bg-orange-500/20',
+    route: '/rrhh'
+  },
   'Supervisor': {
     icon: Users,
     title: 'Panel Supervisor',
     description: 'Gestión de guardas, turnos, monitoreo de seguridad.',
     color: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
     iconBg: 'bg-blue-500/20',
-    route: '/admin/dashboard'
+    route: '/rrhh'
   },
   'Guarda': {
     icon: UserCheck,
