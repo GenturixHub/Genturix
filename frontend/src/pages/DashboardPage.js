@@ -339,19 +339,6 @@ const DashboardPage = () => {
     fetchData();
   }, []);
 
-  const handlePanicButton = async () => {
-    try {
-      await api.triggerPanic({
-        location: 'Dashboard - Admin Emergency',
-        description: 'Emergency panic button pressed from admin dashboard'
-      });
-      alert('Alerta de pánico enviada. El equipo de seguridad ha sido notificado.');
-    } catch (error) {
-      console.error('Error triggering panic:', error);
-      alert('Error al enviar alerta.');
-    }
-  };
-
   if (isLoading) {
     return (
       <DashboardLayout title="Dashboard">
