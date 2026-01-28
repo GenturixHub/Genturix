@@ -1155,7 +1155,7 @@ async def create_shift(shift: ShiftCreate, request: Request, current_user = Depe
 async def get_shifts(
     status: Optional[str] = None,
     guard_id: Optional[str] = None,
-    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
+    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda", "HR"))
 ):
     """Get shifts with optional filters"""
     query = {}
@@ -1518,7 +1518,7 @@ async def create_absence_request(
 async def get_absences(
     status: Optional[str] = None,
     employee_id: Optional[str] = None,
-    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
+    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda", "HR"))
 ):
     """Get absence requests with filters"""
     query = {}
