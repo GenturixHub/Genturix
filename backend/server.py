@@ -1422,6 +1422,17 @@ async def list_condominiums(
 ):
     """List all condominiums (Super Admin only)"""
     condos = await db.condominiums.find({}, {"_id": 0}).to_list(100)
+    # Enrich with default values for fields that may not exist
+    for condo in condos:
+        condo.setdefault("status", "active")
+        condo.setdefault("is_demo", False)
+        condo.setdefault("discount_percent", 0.0)
+        condo.setdefault("plan", "basic")
+        condo.setdefault("price_per_user", 1.0)
+        # Calculate current_users from database if not set
+        if condo.get("current_users", 0) == 0:
+            user_count = await db.users.count_documents({"condominium_id": condo["id"], "is_active": True})
+            condo["current_users"] = user_count
     return condos
 
 @api_router.get("/condominiums/{condo_id}", response_model=CondominiumResponse)
