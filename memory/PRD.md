@@ -156,6 +156,7 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 
 | Role | Email | Password |
 |------|-------|----------|
+| SuperAdmin | superadmin@genturix.com | SuperAdmin123! |
 | Admin | admin@genturix.com | Admin123! |
 | Guarda | guarda1@genturix.com | Guard123! |
 | Residente | residente@genturix.com | Resi123! |
