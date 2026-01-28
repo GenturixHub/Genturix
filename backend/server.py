@@ -194,6 +194,46 @@ class AbsenceAction(BaseModel):
     action: str  # approve, reject
     admin_notes: Optional[str] = None
 
+# Recruitment Models
+class CandidateCreate(BaseModel):
+    full_name: str
+    email: EmailStr
+    phone: str
+    position: str  # Guarda, Supervisor
+    experience_years: int = 0
+    notes: Optional[str] = None
+    documents: Optional[List[str]] = None  # URLs to documents
+
+class CandidateUpdate(BaseModel):
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    position: Optional[str] = None
+    experience_years: Optional[int] = None
+    notes: Optional[str] = None
+    status: Optional[str] = None  # applied, interview, hired, rejected
+
+class HireCandidate(BaseModel):
+    badge_number: str
+    hourly_rate: float
+    password: str = Field(..., min_length=8)
+
+# User Management Models (for Admin/HR creating users)
+class CreateUserByAdmin(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    full_name: str
+    role: str  # Single role: Residente, Guarda, HR, Supervisor
+    phone: Optional[str] = None
+
+class CreateEmployeeByHR(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    full_name: str
+    badge_number: str
+    phone: str
+    emergency_contact: str
+    hourly_rate: float
+
 # School Module Models
 class CourseCreate(BaseModel):
     title: str
