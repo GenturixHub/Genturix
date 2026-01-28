@@ -1532,7 +1532,7 @@ const RRHHModule = () => {
             </TabsContent>
 
             <TabsContent value="reclutamiento">
-              <ReclutamientoSubmodule />
+              <ReclutamientoSubmodule onRefresh={fetchData} />
             </TabsContent>
 
             <TabsContent value="onboarding">
