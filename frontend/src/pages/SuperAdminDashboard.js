@@ -106,7 +106,7 @@ const STATUS_CONFIG = {
 // ============================================
 // OVERVIEW TAB
 // ============================================
-const OverviewTab = ({ stats, isLoading, onRefresh }) => {
+const OverviewTab = ({ stats, isLoading, onRefresh, onNavigateTab }) => {
   if (isLoading) {
     return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   }
