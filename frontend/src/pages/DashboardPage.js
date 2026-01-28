@@ -318,6 +318,7 @@ const DashboardPage = () => {
   const [stats, setStats] = useState(null);
   const [activities, setActivities] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showCreateUser, setShowCreateUser] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
