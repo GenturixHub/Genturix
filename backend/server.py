@@ -695,17 +695,31 @@ async def trigger_panic(event: PanicEventCreate, request: Request, current_user 
 
 @api_router.get("/security/panic-events")
 async def get_panic_events(current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
-    events = await db.panic_events.find({}, {"_id": 0}).sort("created_at", -1).to_list(100)
+    """Get panic events - scoped by condominium"""
+    query = {}
+    if "SuperAdmin" not in current_user.get("roles", []):
+        condo_id = current_user.get("condominium_id")
+        if condo_id:
+            query["condominium_id"] = condo_id
+    events = await db.panic_events.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
     return events
 
 @api_router.put("/security/panic/{event_id}/resolve")
-async def resolve_panic(event_id: str, current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
+async def resolve_panic(event_id: str, request: Request, current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
+    """Resolve a panic event - must belong to user's condominium"""
+    # Verify event belongs to user's condominium
+    event = await db.panic_events.find_one({"id": event_id})
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    if "SuperAdmin" not in current_user.get("roles", []):
+        if event.get("condominium_id") != current_user.get("condominium_id"):
+            raise HTTPException(status_code=403, detail="No tienes permiso para resolver esta alerta")
+    
     result = await db.panic_events.update_one(
         {"id": event_id},
         {"$set": {"status": "resolved", "resolved_at": datetime.now(timezone.utc).isoformat(), "resolved_by": current_user["id"]}}
     )
-    if result.modified_count == 0:
-        raise HTTPException(status_code=404, detail="Event not found")
     return {"message": "Panic event resolved"}
 
 @api_router.post("/security/access-log")
