@@ -84,6 +84,14 @@ class ApiService {
     await this.request(endpoint, { method: 'DELETE' });
   }
 
+  async patch(endpoint, data) {
+    const response = await this.request(endpoint, {
+      method: 'PATCH',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+    return response.json();
+  }
+
   // Auth endpoints
   seedDemoData = () => this.post('/seed-demo-data');
 
@@ -179,9 +187,12 @@ class ApiService {
   makeCondoDemo = (condoId, maxUsers = 10) => 
     this.post(`/super-admin/condominiums/${condoId}/make-demo?max_users=${maxUsers}`);
   resetDemoData = (condoId) => this.post(`/super-admin/condominiums/${condoId}/reset-demo`);
-  updateCondoPricing = (condoId, data) => this.patch(`/super-admin/condominiums/${condoId}/pricing`, null, {
-    params: data
-  });
+  updateCondoPricing = (condoId, discountPercent, plan) => {
+    const params = new URLSearchParams();
+    params.append('discount_percent', discountPercent);
+    params.append('plan', plan);
+    return this.patch(`/super-admin/condominiums/${condoId}/pricing?${params.toString()}`);
+  };
   updateCondoStatus = (condoId, status) => 
     this.patch(`/super-admin/condominiums/${condoId}/status?status=${status}`);
   getSuperAdminAudit = (module = 'super_admin', limit = 100) => 
