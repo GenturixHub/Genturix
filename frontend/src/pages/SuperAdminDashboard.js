@@ -529,17 +529,7 @@ const EditCondoDialog = ({ condo, open, onClose, onSuccess }) => {
   const handleSavePricing = async () => {
     setIsSubmitting(true);
     try {
-      // Build query params
-      const params = new URLSearchParams();
-      params.append('discount_percent', pricing.discount_percent);
-      params.append('plan', pricing.plan);
-      
-      await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/super-admin/condominiums/${condo.id}/pricing?${params.toString()}`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        }
-      });
+      await api.updateCondoPricing(condo.id, pricing.discount_percent, pricing.plan);
       onSuccess();
     } catch (error) {
       alert('Error updating pricing');
