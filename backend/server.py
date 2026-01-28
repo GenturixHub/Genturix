@@ -1932,7 +1932,7 @@ async def create_employee_directly(
     user_doc = {
         "id": user_id,
         "email": employee.email,
-        "password_hash": hash_password(employee.password),
+        "hashed_password": hash_password(employee.password),
         "full_name": employee.full_name,
         "roles": [RoleEnum.GUARDA.value],
         "condominium_id": condominium_id,
