@@ -6,7 +6,7 @@ import LoginPage from './pages/LoginPage';
 import PanelSelectionPage from './pages/PanelSelectionPage';
 import DashboardPage from './pages/DashboardPage';
 import SecurityModule from './pages/SecurityModule';
-import HRModule from './pages/HRModule';
+import RRHHModule from './pages/RRHHModule';
 import SchoolModule from './pages/SchoolModule';
 import PaymentsModule from './pages/PaymentsModule';
 import AuditModule from './pages/AuditModule';
@@ -186,17 +186,16 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
 
-      <Route path="/hr" element={
-        <ProtectedRoute allowedRoles={['Administrador', 'Supervisor']}>
-          <HRModule />
+      {/* RRHH - Módulo Central de Recursos Humanos (incluye Turnos) */}
+      <Route path="/rrhh" element={
+        <ProtectedRoute allowedRoles={['Administrador', 'Supervisor', 'Guarda']}>
+          <RRHHModule />
         </ProtectedRoute>
       } />
 
-      <Route path="/shifts" element={
-        <ProtectedRoute allowedRoles={['Administrador', 'Supervisor', 'Guarda']}>
-          <HRModule />
-        </ProtectedRoute>
-      } />
+      {/* Redirect legacy /hr and /shifts to /rrhh */}
+      <Route path="/hr" element={<Navigate to="/rrhh" replace />} />
+      <Route path="/shifts" element={<Navigate to="/rrhh" replace />} />
 
       <Route path="/school" element={
         <ProtectedRoute allowedRoles={['Administrador', 'Estudiante', 'Guarda']}>
