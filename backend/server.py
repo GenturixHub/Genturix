@@ -1665,7 +1665,13 @@ async def reject_absence(
 
 @api_router.get("/hr/payroll")
 async def get_payroll(current_user = Depends(require_role("Administrador", "HR"))):
-    guards = await db.guards.find({}, {"_id": 0}).to_list(100)
+    """Get payroll data - scoped by condominium"""
+    query = {}
+    if "SuperAdmin" not in current_user.get("roles", []):
+        condo_id = current_user.get("condominium_id")
+        if condo_id:
+            query["condominium_id"] = condo_id
+    guards = await db.guards.find(query, {"_id": 0}).to_list(100)
     payroll = []
     for guard in guards:
         payroll.append({
