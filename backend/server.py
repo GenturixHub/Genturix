@@ -1802,7 +1802,7 @@ async def hire_candidate(
     user_doc = {
         "id": user_id,
         "email": candidate["email"],
-        "password_hash": hash_password(hire_data.password),
+        "hashed_password": hash_password(hire_data.password),
         "full_name": candidate["full_name"],
         "roles": [role.value],
         "condominium_id": condominium_id,
