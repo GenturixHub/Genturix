@@ -288,20 +288,23 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ```
 /app/
 ├── backend/
-│   ├── server.py              # FastAPI with visitors, multi-tenant, super-admin
+│   ├── server.py              # FastAPI with visitors, multi-tenant, super-admin, fix-orphan-users
 │   └── tests/
-│       └── test_super_admin.py # Super Admin API tests
+│       ├── test_super_admin.py # Super Admin API tests
+│       └── test_guard_ui.py    # Guard UI tests (16 tests)
 ├── frontend/
 │   └── src/
 │       ├── pages/
 │       │   ├── SuperAdminDashboard.js # Platform management (4 tabs)
 │       │   ├── ResidentUI.js    # Panic + Visitors tabs
-│       │   ├── GuardUI.js       # Alerts + Visitors + Direct + Logbook
+│       │   ├── GuardUI.js       # Alerts + Visitors + Registro + Historial (PRODUCTION READY)
 │       │   ├── StudentUI.js     # Courses + Plan + Notifications + Profile
 │       │   ├── RRHHModule.js    # Unified HR module
 │       │   └── AuditModule.js   # Admin audit
 │       └── services/
 │           └── api.js          # All API methods including super-admin
+├── test_reports/
+│   └── iteration_10.json       # Guard UI test results (100% pass)
 └── memory/
     └── PRD.md
 ```
