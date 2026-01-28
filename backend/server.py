@@ -222,8 +222,26 @@ class CreateUserByAdmin(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8)
     full_name: str
-    role: str  # Single role: Residente, Guarda, HR, Supervisor
+    role: str  # Single role: Residente, Guarda, HR, Supervisor, Estudiante
     phone: Optional[str] = None
+    # Role-specific fields (all optional, validated per role)
+    # Residente
+    apartment_number: Optional[str] = None
+    tower_block: Optional[str] = None
+    resident_type: Optional[str] = None  # owner, tenant
+    # Guarda
+    badge_number: Optional[str] = None
+    main_location: Optional[str] = None
+    initial_shift: Optional[str] = None
+    # HR
+    department: Optional[str] = None
+    permission_level: Optional[str] = None  # HR, HR_SUPERVISOR
+    # Estudiante
+    subscription_plan: Optional[str] = None  # basic, pro
+    subscription_status: Optional[str] = None  # trial, active
+    # Supervisor
+    supervised_area: Optional[str] = None
+    guard_assignments: Optional[List[str]] = None
 
 class CreateEmployeeByHR(BaseModel):
     email: EmailStr
