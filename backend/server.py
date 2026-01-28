@@ -55,6 +55,7 @@ class RoleEnum(str, Enum):
     SUPER_ADMIN = "SuperAdmin"
     ADMINISTRADOR = "Administrador"
     SUPERVISOR = "Supervisor"
+    HR = "HR"  # Human Resources - manages employees, recruitment, absences
     GUARDA = "Guarda"
     RESIDENTE = "Residente"
     ESTUDIANTE = "Estudiante"
