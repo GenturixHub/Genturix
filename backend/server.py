@@ -3151,10 +3151,16 @@ async def fix_orphan_users(
 
 # ==================== SUPER ADMIN: CONDOMINIUM ADMIN CREATION ====================
 
+class CreateCondoAdminRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    full_name: str
+    phone: Optional[str] = None
+
 @api_router.post("/super-admin/condominiums/{condo_id}/admin")
 async def create_condominium_admin(
     condo_id: str,
-    admin_data: CreateUserByAdmin,
+    admin_data: CreateCondoAdminRequest,
     request: Request,
     current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
 ):
