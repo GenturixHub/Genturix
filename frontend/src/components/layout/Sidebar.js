@@ -12,7 +12,8 @@ import {
   LogOut,
   ChevronLeft,
   Building2,
-  Briefcase
+  Briefcase,
+  Users
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
@@ -23,6 +24,7 @@ import { ScrollArea } from '../ui/scroll-area';
  * ESTRUCTURA ACTUALIZADA:
  * - Turnos YA NO es un módulo separado
  * - RRHH es el módulo central que contiene Turnos como submódulo
+ * - Gestión de Usuarios para Administradores
  */
 
 const Sidebar = ({ collapsed, onToggle }) => {
@@ -49,6 +51,13 @@ const Sidebar = ({ collapsed, onToggle }) => {
       roles: ['Administrador', 'Supervisor', 'Guarda', 'Residente', 'Estudiante'],
     },
     {
+      title: 'Usuarios',
+      icon: Users,
+      href: '/admin/users',
+      roles: ['Administrador'],
+      description: 'Crear y gestionar usuarios'
+    },
+    {
       title: 'Seguridad',
       icon: AlertTriangle,
       href: '/security',
@@ -60,7 +69,7 @@ const Sidebar = ({ collapsed, onToggle }) => {
       title: 'Recursos Humanos',
       icon: Briefcase,
       href: '/rrhh',
-      roles: ['Administrador', 'Supervisor', 'Guarda'],
+      roles: ['Administrador', 'Supervisor', 'Guarda', 'HR'],
       description: 'Personal, turnos, ausencias'
     },
     {
