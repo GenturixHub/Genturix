@@ -13,6 +13,7 @@ import AuditModule from './pages/AuditModule';
 import ResidentUI from './pages/ResidentUI';
 import GuardUI from './pages/GuardUI';
 import StudentUI from './pages/StudentUI';
+import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import './App.css';
 
 // Suppress PostHog errors in development
