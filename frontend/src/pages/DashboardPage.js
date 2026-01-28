@@ -123,6 +123,194 @@ const ActivityItem = ({ activity }) => {
   );
 };
 
+// ============================================
+// CREATE USER DIALOG
+// ============================================
+const CreateUserDialog = ({ open, onClose, onSuccess }) => {
+  const [form, setForm] = useState({
+    email: '',
+    password: '',
+    full_name: '',
+    role: '',
+    phone: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+
+  const ROLES = [
+    { value: 'Residente', label: 'Residente', description: 'Acceso a pánico y visitas' },
+    { value: 'Guarda', label: 'Guarda', description: 'Panel de seguridad y alertas' },
+    { value: 'HR', label: 'Recursos Humanos', description: 'Gestión de personal y reclutamiento' },
+    { value: 'Supervisor', label: 'Supervisor', description: 'Supervisión de turnos y empleados' },
+    { value: 'Estudiante', label: 'Estudiante', description: 'Acceso a Genturix School' }
+  ];
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.email || !form.password || !form.full_name || !form.role) {
+      setError('Por favor complete todos los campos obligatorios');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const result = await api.createUserByAdmin(form);
+      setSuccess(`Usuario ${form.full_name} creado exitosamente`);
+      setTimeout(() => {
+        setForm({ email: '', password: '', full_name: '', role: '', phone: '' });
+        setSuccess(null);
+        onSuccess?.();
+        onClose();
+      }, 2000);
+    } catch (err) {
+      setError(err.message || 'Error al crear usuario');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const generatePassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$';
+    let password = '';
+    for (let i = 0; i < 12; i++) {
+      password += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setForm({ ...form, password });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <UserPlus className="w-5 h-5 text-primary" />
+            Crear Nuevo Usuario
+          </DialogTitle>
+          <DialogDescription>
+            Crea un usuario para tu condominio. Se asignará automáticamente a tu organización.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+              {error}
+            </div>
+          )}
+          
+          {success && (
+            <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-sm flex items-center gap-2">
+              <CheckCircle className="w-4 h-4" />
+              {success}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="full_name">Nombre Completo *</Label>
+            <Input
+              id="full_name"
+              value={form.full_name}
+              onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+              placeholder="Juan Pérez"
+              className="bg-[#0A0A0F] border-[#1E293B]"
+              required
+              data-testid="create-user-name"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email *</Label>
+            <Input
+              id="email"
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              placeholder="usuario@ejemplo.com"
+              className="bg-[#0A0A0F] border-[#1E293B]"
+              required
+              data-testid="create-user-email"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Contraseña *</Label>
+            <div className="flex gap-2">
+              <Input
+                id="password"
+                type="text"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder="Mínimo 8 caracteres"
+                className="bg-[#0A0A0F] border-[#1E293B] flex-1"
+                required
+                minLength={8}
+                data-testid="create-user-password"
+              />
+              <Button type="button" variant="outline" size="sm" onClick={generatePassword}>
+                Generar
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="role">Rol *</Label>
+            <Select value={form.role} onValueChange={(value) => setForm({ ...form, role: value })}>
+              <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B]" data-testid="create-user-role">
+                <SelectValue placeholder="Selecciona un rol" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#0F111A] border-[#1E293B]">
+                {ROLES.map((role) => (
+                  <SelectItem key={role.value} value={role.value}>
+                    <div className="flex flex-col">
+                      <span>{role.label}</span>
+                      <span className="text-xs text-muted-foreground">{role.description}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone">Teléfono (opcional)</Label>
+            <Input
+              id="phone"
+              type="tel"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              placeholder="+1234567890"
+              className="bg-[#0A0A0F] border-[#1E293B]"
+              data-testid="create-user-phone"
+            />
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={isSubmitting} data-testid="create-user-submit">
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Creando...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Crear Usuario
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { user, hasRole } = useAuth();
