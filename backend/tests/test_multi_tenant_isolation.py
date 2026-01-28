@@ -306,7 +306,8 @@ class TestDynamicRoleForms:
         response = self.session.post(f"{BASE_URL}/api/admin/users", json=payload)
         print(f"Residente with apartment_number: {response.status_code}")
         
-        if response.status_code == 201:
+        # API returns 200 for successful creation
+        if response.status_code in [200, 201]:
             data = response.json()
             assert data.get("role_data", {}).get("apartment_number") == "A-101", \
                 "role_data should contain apartment_number"
@@ -358,7 +359,8 @@ class TestDynamicRoleForms:
         response = self.session.post(f"{BASE_URL}/api/admin/users", json=payload)
         print(f"Guarda with badge_number: {response.status_code}")
         
-        if response.status_code == 201:
+        # API returns 200 for successful creation
+        if response.status_code in [200, 201]:
             data = response.json()
             assert data.get("role_data", {}).get("badge_number") == payload["badge_number"], \
                 "role_data should contain badge_number"
@@ -388,7 +390,8 @@ class TestDynamicRoleForms:
         response = self.session.post(f"{BASE_URL}/api/admin/users", json=payload)
         print(f"HR user creation: {response.status_code}")
         
-        if response.status_code == 201:
+        # API returns 200 for successful creation
+        if response.status_code in [200, 201]:
             data = response.json()
             role_data = data.get("role_data", {})
             assert role_data.get("department") == "Recursos Humanos"
@@ -397,7 +400,7 @@ class TestDynamicRoleForms:
             print(f"✓ HR creation works (user already exists)")
         else:
             # HR fields are optional, so should not fail
-            assert response.status_code in [201, 409], f"Unexpected: {response.status_code}"
+            assert response.status_code in [200, 201, 409], f"Unexpected: {response.status_code}"
     
     # ==================== ESTUDIANTE FORM ====================
     
