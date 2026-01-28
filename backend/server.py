@@ -1414,7 +1414,7 @@ async def create_condominium(
 
 @api_router.get("/condominiums")
 async def list_condominiums(
-    current_user = Depends(require_role(RoleEnum.ADMINISTRADOR))
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
 ):
     """List all condominiums (Super Admin only)"""
     condos = await db.condominiums.find({}, {"_id": 0}).to_list(100)
