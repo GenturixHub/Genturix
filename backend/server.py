@@ -630,21 +630,215 @@ async def get_access_logs(current_user = Depends(require_role("Administrador", "
 @api_router.get("/resident/notifications")
 async def get_resident_notifications(current_user = Depends(get_current_user)):
     """Get visitor entry/exit notifications for a resident"""
-    resident_name = current_user.get("full_name", "").lower()
+    # Get visitor records created by this resident that have been executed
+    visitors = await db.visitors.find(
+        {"created_by": current_user["id"], "status": {"$in": ["entry_registered", "exit_registered"]}},
+        {"_id": 0}
+    ).sort("updated_at", -1).to_list(20)
     
-    # Get all access logs that mention this resident or are marked as visits
-    logs = await db.access_logs.find({}, {"_id": 0}).sort("timestamp", -1).to_list(100)
+    return visitors
+
+# ==================== VISITOR PRE-REGISTRATION MODULE ====================
+# Flow: Resident creates → Guard executes → Admin audits
+
+@api_router.post("/visitors/pre-register")
+async def create_visitor_preregistration(
+    visitor: VisitorPreRegistration,
+    request: Request,
+    current_user = Depends(get_current_user)
+):
+    """Resident pre-registers a visitor - creates PENDING record"""
+    visitor_id = str(uuid.uuid4())
     
-    # Filter logs that might be relevant to this resident
-    notifications = [
-        log for log in logs 
-        if log.get("notes") and (
-            resident_name in log.get("notes", "").lower() or 
-            "visita" in log.get("notes", "").lower()
-        )
-    ]
+    visitor_doc = {
+        "id": visitor_id,
+        "full_name": visitor.full_name,
+        "national_id": visitor.national_id,
+        "vehicle_plate": visitor.vehicle_plate,
+        "visit_type": visitor.visit_type.value,
+        "expected_date": visitor.expected_date,
+        "expected_time": visitor.expected_time,
+        "notes": visitor.notes,
+        "status": VisitorStatusEnum.PENDING.value,
+        "created_by": current_user["id"],
+        "created_by_name": current_user.get("full_name", "Resident"),
+        "condominium_id": current_user.get("condominium_id"),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "entry_at": None,
+        "entry_by": None,
+        "entry_by_name": None,
+        "exit_at": None,
+        "exit_by": None,
+        "exit_by_name": None
+    }
     
-    return notifications[:20]
+    await db.visitors.insert_one(visitor_doc)
+    
+    await log_audit_event(
+        AuditEventType.ACCESS_GRANTED,
+        current_user["id"],
+        "visitors",
+        {"action": "pre_registration", "visitor": visitor.full_name, "expected_date": visitor.expected_date, "resident": current_user.get("full_name")},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {"id": visitor_id, "message": "Visitor pre-registered successfully", "status": "pending"}
+
+@api_router.get("/visitors/my-visitors")
+async def get_my_visitors(current_user = Depends(get_current_user)):
+    """Get visitors pre-registered by the current resident"""
+    visitors = await db.visitors.find(
+        {"created_by": current_user["id"]},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    return visitors
+
+@api_router.delete("/visitors/{visitor_id}")
+async def cancel_visitor_preregistration(
+    visitor_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Resident cancels their own visitor pre-registration"""
+    result = await db.visitors.update_one(
+        {"id": visitor_id, "created_by": current_user["id"], "status": "pending"},
+        {"$set": {"status": "cancelled", "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Visitor not found or cannot be cancelled")
+    
+    return {"message": "Visitor pre-registration cancelled"}
+
+@api_router.get("/visitors/pending")
+async def get_pending_visitors(
+    search: Optional[str] = None,
+    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
+):
+    """Guard gets list of pending visitors expected today or with matching search"""
+    query = {"status": {"$in": ["pending", "entry_registered"]}}
+    
+    visitors = await db.visitors.find(query, {"_id": 0}).sort("expected_date", -1).to_list(100)
+    
+    # Filter by search term if provided
+    if search:
+        search_lower = search.lower()
+        visitors = [
+            v for v in visitors 
+            if search_lower in v.get("full_name", "").lower() or
+               search_lower in (v.get("vehicle_plate") or "").lower() or
+               search_lower in (v.get("created_by_name") or "").lower() or
+               search_lower in (v.get("national_id") or "").lower()
+        ]
+    
+    return visitors
+
+@api_router.post("/visitors/{visitor_id}/entry")
+async def register_visitor_entry(
+    visitor_id: str,
+    entry_data: VisitorEntry,
+    request: Request,
+    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
+):
+    """Guard registers visitor ENTRY"""
+    visitor = await db.visitors.find_one({"id": visitor_id})
+    if not visitor:
+        raise HTTPException(status_code=404, detail="Visitor not found")
+    
+    if visitor.get("status") not in ["pending", "approved"]:
+        raise HTTPException(status_code=400, detail=f"Cannot register entry. Current status: {visitor.get('status')}")
+    
+    entry_time = datetime.now(timezone.utc).isoformat()
+    
+    await db.visitors.update_one(
+        {"id": visitor_id},
+        {"$set": {
+            "status": "entry_registered",
+            "entry_at": entry_time,
+            "entry_by": current_user["id"],
+            "entry_by_name": current_user.get("full_name", "Guard"),
+            "entry_notes": entry_data.notes,
+            "updated_at": entry_time
+        }}
+    )
+    
+    await log_audit_event(
+        AuditEventType.ACCESS_GRANTED,
+        current_user["id"],
+        "visitors",
+        {
+            "action": "entry_registered",
+            "visitor": visitor.get("full_name"),
+            "visitor_id": visitor_id,
+            "resident": visitor.get("created_by_name"),
+            "guard": current_user.get("full_name")
+        },
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {"message": "Visitor entry registered", "entry_at": entry_time}
+
+@api_router.post("/visitors/{visitor_id}/exit")
+async def register_visitor_exit(
+    visitor_id: str,
+    exit_data: VisitorExit,
+    request: Request,
+    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
+):
+    """Guard registers visitor EXIT"""
+    visitor = await db.visitors.find_one({"id": visitor_id})
+    if not visitor:
+        raise HTTPException(status_code=404, detail="Visitor not found")
+    
+    if visitor.get("status") != "entry_registered":
+        raise HTTPException(status_code=400, detail=f"Cannot register exit. Current status: {visitor.get('status')}")
+    
+    exit_time = datetime.now(timezone.utc).isoformat()
+    
+    await db.visitors.update_one(
+        {"id": visitor_id},
+        {"$set": {
+            "status": "exit_registered",
+            "exit_at": exit_time,
+            "exit_by": current_user["id"],
+            "exit_by_name": current_user.get("full_name", "Guard"),
+            "exit_notes": exit_data.notes,
+            "updated_at": exit_time
+        }}
+    )
+    
+    await log_audit_event(
+        AuditEventType.ACCESS_DENIED,
+        current_user["id"],
+        "visitors",
+        {
+            "action": "exit_registered",
+            "visitor": visitor.get("full_name"),
+            "visitor_id": visitor_id,
+            "resident": visitor.get("created_by_name"),
+            "guard": current_user.get("full_name"),
+            "duration_minutes": None  # Could calculate from entry_at
+        },
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {"message": "Visitor exit registered", "exit_at": exit_time}
+
+@api_router.get("/visitors/all")
+async def get_all_visitors(
+    status: Optional[str] = None,
+    current_user = Depends(require_role("Administrador", "Supervisor"))
+):
+    """Admin gets all visitor records for audit"""
+    query = {}
+    if status:
+        query["status"] = status
+    
+    visitors = await db.visitors.find(query, {"_id": 0}).sort("created_at", -1).to_list(200)
+    return visitors
 
 # Endpoint for Guards to write to their logbook
 @api_router.get("/security/logbook")
