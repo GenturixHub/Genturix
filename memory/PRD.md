@@ -269,13 +269,15 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 
 ### P1 - High Priority
 - [ ] Push notifications for panic alerts
-- [ ] Dashboard statistics per condominium
+- [ ] Performance evaluations in RRHH (marked "Coming Soon")
 
 ### P2 - Medium Priority
+- [ ] Dashboard statistics per condominium
 - [ ] Reservations module
 - [ ] CCTV integration
 
 ### P3 - Low Priority
+- [ ] Fix PostHog console error (cosmetic)
 - [ ] Native app (React Native)
 - [ ] Public API with rate limiting
 
