@@ -987,7 +987,7 @@ async def get_security_stats(current_user = Depends(require_role("Administrador"
 
 # ==================== HR MODULE ====================
 @api_router.post("/hr/guards")
-async def create_guard(guard: GuardCreate, request: Request, current_user = Depends(require_role("Administrador"))):
+async def create_guard(guard: GuardCreate, request: Request, current_user = Depends(require_role("Administrador", "HR"))):
     user = await db.users.find_one({"id": guard.user_id})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -1004,6 +1004,7 @@ async def create_guard(guard: GuardCreate, request: Request, current_user = Depe
         "hourly_rate": guard.hourly_rate,
         "is_active": True,
         "total_hours": 0,
+        "condominium_id": current_user.get("condominium_id"),
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     
@@ -1018,12 +1019,19 @@ async def create_guard(guard: GuardCreate, request: Request, current_user = Depe
     return guard_doc
 
 @api_router.get("/hr/guards")
-async def get_guards(current_user = Depends(require_role("Administrador", "Supervisor"))):
-    guards = await db.guards.find({}, {"_id": 0}).to_list(100)
+async def get_guards(current_user = Depends(require_role("Administrador", "Supervisor", "HR"))):
+    query = {}
+    # Filter by condominium for non-super-admins
+    if "SuperAdmin" not in current_user.get("roles", []):
+        condo_id = current_user.get("condominium_id")
+        if condo_id:
+            query["condominium_id"] = condo_id
+    
+    guards = await db.guards.find(query, {"_id": 0}).to_list(100)
     return guards
 
 @api_router.get("/hr/guards/{guard_id}")
-async def get_guard(guard_id: str, current_user = Depends(require_role("Administrador", "Supervisor"))):
+async def get_guard(guard_id: str, current_user = Depends(require_role("Administrador", "Supervisor", "HR"))):
     guard = await db.guards.find_one({"id": guard_id}, {"_id": 0})
     if not guard:
         raise HTTPException(status_code=404, detail="Guard not found")
