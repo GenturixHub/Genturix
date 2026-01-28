@@ -121,13 +121,51 @@ class ApiService {
   registerVisitorExit = (visitorId, notes = '') => this.post(`/visitors/${visitorId}/exit`, { visitor_id: visitorId, notes });
   getAllVisitors = (status = '') => this.get(`/visitors/all${status ? `?status=${status}` : ''}`);
 
-  // HR
+  // HR - Guards
   createGuard = (data) => this.post('/hr/guards', data);
   getGuards = () => this.get('/hr/guards');
   getGuard = (id) => this.get(`/hr/guards/${id}`);
   updateGuard = (id, data) => this.put(`/hr/guards/${id}`, data);
+  
+  // HR - Shifts
   createShift = (data) => this.post('/hr/shifts', data);
-  getShifts = () => this.get('/hr/shifts');
+  getShifts = (status = '', guardId = '') => {
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    if (guardId) params.append('guard_id', guardId);
+    const query = params.toString();
+    return this.get(`/hr/shifts${query ? `?${query}` : ''}`);
+  };
+  getShift = (id) => this.get(`/hr/shifts/${id}`);
+  updateShift = (id, data) => this.put(`/hr/shifts/${id}`, data);
+  deleteShift = (id) => this.delete(`/hr/shifts/${id}`);
+  
+  // HR - Clock In/Out
+  clockInOut = (type) => this.post('/hr/clock', { type });
+  getClockStatus = () => this.get('/hr/clock/status');
+  getClockHistory = (employeeId = '', startDate = '', endDate = '') => {
+    const params = new URLSearchParams();
+    if (employeeId) params.append('employee_id', employeeId);
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    const query = params.toString();
+    return this.get(`/hr/clock/history${query ? `?${query}` : ''}`);
+  };
+  
+  // HR - Absences
+  createAbsence = (data) => this.post('/hr/absences', data);
+  getAbsences = (status = '', employeeId = '') => {
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    if (employeeId) params.append('employee_id', employeeId);
+    const query = params.toString();
+    return this.get(`/hr/absences${query ? `?${query}` : ''}`);
+  };
+  getAbsence = (id) => this.get(`/hr/absences/${id}`);
+  approveAbsence = (id, notes = '') => this.put(`/hr/absences/${id}/approve${notes ? `?admin_notes=${encodeURIComponent(notes)}` : ''}`);
+  rejectAbsence = (id, notes = '') => this.put(`/hr/absences/${id}/reject${notes ? `?admin_notes=${encodeURIComponent(notes)}` : ''}`);
+  
+  // HR - Payroll
   getPayroll = () => this.get('/hr/payroll');
 
   // School
