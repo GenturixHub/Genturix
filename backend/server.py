@@ -461,7 +461,8 @@ async def get_me(current_user = Depends(get_current_user)):
         full_name=current_user["full_name"],
         roles=current_user["roles"],
         is_active=current_user["is_active"],
-        created_at=current_user["created_at"]
+        created_at=current_user["created_at"],
+        condominium_id=current_user.get("condominium_id")
     )
 
 # ==================== SECURITY MODULE ====================
