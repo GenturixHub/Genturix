@@ -1,0 +1,99 @@
+{
+  "summary": "Completed comprehensive testing of GENTURIX Multi-Tenant Isolation and Dynamic Role Forms (Iteration 14). 23/23 backend tests passed. Frontend dynamic forms working correctly. CRITICAL BUG FOUND: /hr/shifts endpoint leaks data across condominiums.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "GET /api/hr/shifts",
+        "issue": "Shifts endpoint does NOT filter by condominium_id - new condo admin sees shifts from other condos (Juan Pérez shifts visible to isolation_admin)",
+        "priority": "CRITICAL",
+        "fix_required": "Add condominium_id filter similar to other endpoints: if 'SuperAdmin' not in roles, filter by condo_id"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "passed_tests": [
+    "Multi-tenant Isolation - New condo admin sees total_users=1 (self) - PASS",
+    "Multi-tenant Isolation - New condo admin sees active_guards=0 - PASS",
+    "Multi-tenant Isolation - New condo admin sees active_alerts=0 - PASS",
+    "Multi-tenant Isolation - Existing condo admin sees their data (113 users, 9 guards) - PASS",
+    "Dashboard Stats Scoped - GET /api/dashboard/stats filtered by condominium_id - PASS",
+    "Security Stats Scoped - GET /api/security/dashboard-stats filtered by condo - PASS",
+    "Users Endpoint Scoped - GET /api/admin/users returns only users from admin's condo - PASS",
+    "Panic Events Scoped - GET /api/security/panic-events filtered by condo - PASS",
+    "Access Logs Scoped - GET /api/security/access-logs filtered by condo - PASS",
+    "Guards Scoped - GET /api/hr/guards filtered by condo - PASS",
+    "SuperAdmin Global Data - SuperAdmin sees all data across condos - PASS",
+    "Dynamic Form Residente - Shows apartment_number (required), tower_block, resident_type fields - PASS",
+    "Dynamic Form Guarda - Shows badge_number (required), main_location, initial_shift fields - PASS",
+    "Dynamic Form HR - Shows department, permission_level fields - PASS",
+    "Dynamic Form Estudiante - Shows subscription_plan, subscription_status fields - PASS",
+    "Dynamic Form Supervisor - Shows supervised_area field - PASS",
+    "Validation Residente - Creating without apartment_number returns 400 - PASS",
+    "Validation Guarda - Creating without badge_number returns 400 - PASS",
+    "Role Data Stored - User document contains role_data with role-specific fields - PASS",
+    "No Cross-Condo User Leakage - Admins see only their condo users - PASS",
+    "No Cross-Condo Guard Leakage - Admins see only their condo guards - PASS",
+    "SuperAdmin Condominiums List - SuperAdmin sees all condos - PASS",
+    "New User Immediate Login - Created users can login immediately - PASS"
+  ],
+  "failed_tests": [
+    "Shifts Endpoint Scoped - GET /api/hr/shifts NOT filtered by condo - FAIL (CRITICAL BUG)"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_multi_tenant_isolation.py",
+    "/app/test_reports/pytest/multi_tenant_results.xml"
+  ],
+  "action_items": [
+    "CRITICAL: Fix /api/hr/shifts endpoint to filter by condominium_id for non-SuperAdmin users (line ~1215 in server.py)"
+  ],
+  "critical_code_review_comments": [
+    "GET /api/hr/shifts (line 1208-1232) missing condominium_id filter - causes cross-condo data leakage",
+    "Suggested fix: Add same pattern as other endpoints - if 'SuperAdmin' not in roles, add condo_filter['condominium_id'] = condo_id"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_multi_tenant_isolation.py - Created comprehensive multi-tenant isolation tests (23 tests)"
+  ],
+  "success_rate": {
+    "backend": "100% (23/23 tests passed)",
+    "frontend": "100% (Dynamic forms working correctly)"
+  },
+  "seed_data_creation": "Used existing test users: isolation_admin@genturix.com, admin@genturix.com, superadmin@genturix.com",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Multi-tenant isolation mostly working. CRITICAL: /hr/shifts endpoint needs condominium_id filter. All other endpoints properly scoped. Dynamic role forms working with Residente requiring apartment_number and Guarda requiring badge_number.",
+  "test_credentials": {
+    "admin_existing": "admin@genturix.com / Admin123!",
+    "admin_new_condo": "isolation_admin@genturix.com / IsolationAdmin123!",
+    "super_admin": "superadmin@genturix.com / SuperAdmin123!"
+  },
+  "condo_ids": {
+    "test_isolation_condo": "5d08fa37-13f8-403b-849f-5e937472627a",
+    "existing_condo": "267195e5-c18f-4374-a3a6-8016cfe70d86"
+  },
+  "verified_isolation_stats": {
+    "new_condo_admin_dashboard": {
+      "total_users": 1,
+      "active_guards": 0,
+      "active_alerts": 0,
+      "total_courses": 0
+    },
+    "existing_condo_admin_dashboard": {
+      "total_users": 113,
+      "active_guards": 9,
+      "active_alerts": 0
+    }
+  },
+  "bug_details": {
+    "endpoint": "GET /api/hr/shifts",
+    "file": "/app/backend/server.py",
+    "line_range": "1208-1232",
+    "issue": "Missing condominium_id filter in query",
+    "evidence": "isolation_admin sees Juan Pérez shifts from another condo",
+    "suggested_fix": "Add: if 'SuperAdmin' not in current_user.get('roles', []): condo_id = current_user.get('condominium_id'); if condo_id: query['condominium_id'] = condo_id"
+  }
+}
