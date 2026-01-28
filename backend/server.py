@@ -312,6 +312,17 @@ async def register(user_data: UserCreate, request: Request):
     if existing:
         raise HTTPException(status_code=409, detail="Email already registered")
     
+    # Validate condominium if provided
+    if user_data.condominium_id:
+        condo = await db.condominiums.find_one({"id": user_data.condominium_id, "is_active": True})
+        if not condo:
+            raise HTTPException(status_code=400, detail="Invalid or inactive condominium")
+        
+        # Check user limit
+        current_users = await db.users.count_documents({"condominium_id": user_data.condominium_id, "is_active": True})
+        if current_users >= condo.get("max_users", 100):
+            raise HTTPException(status_code=400, detail="Condominium user limit reached")
+    
     user_id = str(uuid.uuid4())
     user_doc = {
         "id": user_id,
@@ -319,6 +330,7 @@ async def register(user_data: UserCreate, request: Request):
         "full_name": user_data.full_name,
         "hashed_password": hash_password(user_data.password),
         "roles": [role.value for role in user_data.roles],
+        "condominium_id": user_data.condominium_id,
         "is_active": True,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat()
@@ -326,11 +338,18 @@ async def register(user_data: UserCreate, request: Request):
     
     await db.users.insert_one(user_doc)
     
+    # Update condominium user count
+    if user_data.condominium_id:
+        await db.condominiums.update_one(
+            {"id": user_data.condominium_id},
+            {"$inc": {"current_users": 1}}
+        )
+    
     await log_audit_event(
         AuditEventType.USER_CREATED,
         user_id,
         "auth",
-        {"email": user_data.email, "roles": [r.value for r in user_data.roles]},
+        {"email": user_data.email, "roles": [r.value for r in user_data.roles], "condominium_id": user_data.condominium_id},
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
     )
@@ -341,7 +360,8 @@ async def register(user_data: UserCreate, request: Request):
         full_name=user_data.full_name,
         roles=[role.value for role in user_data.roles],
         is_active=True,
-        created_at=user_doc["created_at"]
+        created_at=user_doc["created_at"],
+        condominium_id=user_data.condominium_id
     )
 
 @api_router.post("/auth/login", response_model=TokenResponse)
