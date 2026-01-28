@@ -634,6 +634,75 @@ async def get_me(current_user = Depends(get_current_user)):
         condominium_id=current_user.get("condominium_id")
     )
 
+# ==================== PROFILE MODULE ====================
+@api_router.get("/profile", response_model=ProfileResponse)
+async def get_profile(current_user = Depends(get_current_user)):
+    """Get current user's full profile with role-specific data"""
+    condo_name = None
+    if current_user.get("condominium_id"):
+        condo = await db.condominiums.find_one({"id": current_user["condominium_id"]}, {"_id": 0, "name": 1})
+        if condo:
+            condo_name = condo.get("name")
+    
+    return ProfileResponse(
+        id=current_user["id"],
+        email=current_user["email"],
+        full_name=current_user["full_name"],
+        roles=current_user["roles"],
+        is_active=current_user["is_active"],
+        created_at=current_user["created_at"],
+        condominium_id=current_user.get("condominium_id"),
+        condominium_name=condo_name,
+        phone=current_user.get("phone"),
+        profile_photo=current_user.get("profile_photo"),
+        role_data=current_user.get("role_data")
+    )
+
+@api_router.patch("/profile", response_model=ProfileResponse)
+async def update_profile(profile_data: ProfileUpdate, current_user = Depends(get_current_user)):
+    """Update current user's profile (name, phone, photo only)"""
+    update_fields = {}
+    
+    if profile_data.full_name is not None:
+        update_fields["full_name"] = profile_data.full_name
+    if profile_data.phone is not None:
+        update_fields["phone"] = profile_data.phone
+    if profile_data.profile_photo is not None:
+        update_fields["profile_photo"] = profile_data.profile_photo
+    
+    if not update_fields:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    
+    update_fields["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {"$set": update_fields}
+    )
+    
+    # Fetch updated user
+    updated_user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    
+    condo_name = None
+    if updated_user.get("condominium_id"):
+        condo = await db.condominiums.find_one({"id": updated_user["condominium_id"]}, {"_id": 0, "name": 1})
+        if condo:
+            condo_name = condo.get("name")
+    
+    return ProfileResponse(
+        id=updated_user["id"],
+        email=updated_user["email"],
+        full_name=updated_user["full_name"],
+        roles=updated_user["roles"],
+        is_active=updated_user["is_active"],
+        created_at=updated_user["created_at"],
+        condominium_id=updated_user.get("condominium_id"),
+        condominium_name=condo_name,
+        phone=updated_user.get("phone"),
+        profile_photo=updated_user.get("profile_photo"),
+        role_data=updated_user.get("role_data")
+    )
+
 # ==================== SECURITY MODULE ====================
 @api_router.post("/security/panic")
 async def trigger_panic(event: PanicEventCreate, request: Request, current_user = Depends(get_current_user)):
