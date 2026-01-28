@@ -237,7 +237,7 @@ const CredentialsDialog = ({ open, onClose, credentials }) => {
 };
 
 // ============================================
-// CREATE USER DIALOG
+// CREATE USER DIALOG WITH DYNAMIC ROLE FORMS
 // ============================================
 const CreateUserDialog = ({ open, onClose, onSuccess }) => {
   const [form, setForm] = useState({
@@ -246,7 +246,19 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
     full_name: '',
     role: '',
     phone: '',
-    is_active: true
+    // Role-specific fields
+    apartment_number: '',
+    tower_block: '',
+    resident_type: 'owner',
+    badge_number: '',
+    main_location: 'Entrada Principal',
+    initial_shift: '',
+    department: 'Recursos Humanos',
+    permission_level: 'HR',
+    subscription_plan: 'basic',
+    subscription_status: 'trial',
+    supervised_area: '',
+    guard_assignments: []
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -259,6 +271,33 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
       setForm(prev => ({ ...prev, password: generateSecurePassword() }));
     }
   }, [open, useAutoPassword]);
+
+  // Reset form when role changes
+  const handleRoleChange = (role) => {
+    setForm(prev => ({ ...prev, role }));
+    setError(null);
+  };
+
+  // Validate role-specific required fields
+  const validateRoleFields = () => {
+    switch (form.role) {
+      case 'Residente':
+        if (!form.apartment_number) {
+          setError('Número de apartamento/casa es requerido');
+          return false;
+        }
+        break;
+      case 'Guarda':
+        if (!form.badge_number) {
+          setError('Número de placa es requerido');
+          return false;
+        }
+        break;
+      default:
+        break;
+    }
+    return true;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -273,6 +312,10 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
       return;
     }
 
+    if (!validateRoleFields()) {
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 
@@ -284,7 +327,15 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
         full_name: form.full_name,
         role: form.role
       });
-      setForm({ email: '', password: '', full_name: '', role: '', phone: '', is_active: true });
+      // Reset form
+      setForm({
+        email: '', password: '', full_name: '', role: '', phone: '',
+        apartment_number: '', tower_block: '', resident_type: 'owner',
+        badge_number: '', main_location: 'Entrada Principal', initial_shift: '',
+        department: 'Recursos Humanos', permission_level: 'HR',
+        subscription_plan: 'basic', subscription_status: 'trial',
+        supervised_area: '', guard_assignments: []
+      });
       onClose();
     } catch (err) {
       setError(err.message || 'Error al crear usuario');
@@ -295,6 +346,199 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
 
   const regeneratePassword = () => {
     setForm({ ...form, password: generateSecurePassword() });
+  };
+
+  // Role-specific form fields
+  const renderRoleFields = () => {
+    switch (form.role) {
+      case 'Residente':
+        return (
+          <div className="space-y-3 p-3 rounded-lg bg-blue-500/5 border border-blue-500/20">
+            <p className="text-xs font-medium text-blue-400 flex items-center gap-2">
+              <Home className="w-4 h-4" />
+              Datos de Residente
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Apartamento / Casa *</Label>
+                <Input
+                  value={form.apartment_number}
+                  onChange={(e) => setForm({ ...form, apartment_number: e.target.value })}
+                  placeholder="Ej: A-101, Casa 5"
+                  className="bg-[#0A0A0F] border-[#1E293B] h-9 text-sm"
+                  data-testid="resident-apartment"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Torre / Bloque</Label>
+                <Input
+                  value={form.tower_block}
+                  onChange={(e) => setForm({ ...form, tower_block: e.target.value })}
+                  placeholder="Ej: Torre A, Bloque 2"
+                  className="bg-[#0A0A0F] border-[#1E293B] h-9 text-sm"
+                  data-testid="resident-tower"
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Tipo de Residente</Label>
+              <Select value={form.resident_type} onValueChange={(v) => setForm({ ...form, resident_type: v })}>
+                <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B] h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0F111A] border-[#1E293B]">
+                  <SelectItem value="owner">Propietario</SelectItem>
+                  <SelectItem value="tenant">Arrendatario</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        );
+
+      case 'Guarda':
+        return (
+          <div className="space-y-3 p-3 rounded-lg bg-green-500/5 border border-green-500/20">
+            <p className="text-xs font-medium text-green-400 flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              Datos de Guardia
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Número de Placa *</Label>
+                <Input
+                  value={form.badge_number}
+                  onChange={(e) => setForm({ ...form, badge_number: e.target.value })}
+                  placeholder="Ej: G-001"
+                  className="bg-[#0A0A0F] border-[#1E293B] h-9 text-sm"
+                  data-testid="guard-badge"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Ubicación Principal</Label>
+                <Select value={form.main_location} onValueChange={(v) => setForm({ ...form, main_location: v })}>
+                  <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B] h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0F111A] border-[#1E293B]">
+                    <SelectItem value="Entrada Principal">Entrada Principal</SelectItem>
+                    <SelectItem value="Entrada Vehicular">Entrada Vehicular</SelectItem>
+                    <SelectItem value="Entrada Peatonal">Entrada Peatonal</SelectItem>
+                    <SelectItem value="Rondín">Rondín</SelectItem>
+                    <SelectItem value="Centro de Control">Centro de Control</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Turno Inicial</Label>
+              <Select value={form.initial_shift} onValueChange={(v) => setForm({ ...form, initial_shift: v })}>
+                <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B] h-9 text-sm">
+                  <SelectValue placeholder="Seleccionar turno" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0F111A] border-[#1E293B]">
+                  <SelectItem value="">Sin asignar</SelectItem>
+                  <SelectItem value="morning">Matutino (6:00 - 14:00)</SelectItem>
+                  <SelectItem value="afternoon">Vespertino (14:00 - 22:00)</SelectItem>
+                  <SelectItem value="night">Nocturno (22:00 - 6:00)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        );
+
+      case 'HR':
+        return (
+          <div className="space-y-3 p-3 rounded-lg bg-orange-500/5 border border-orange-500/20">
+            <p className="text-xs font-medium text-orange-400 flex items-center gap-2">
+              <Briefcase className="w-4 h-4" />
+              Datos de Recursos Humanos
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Departamento</Label>
+                <Input
+                  value={form.department}
+                  onChange={(e) => setForm({ ...form, department: e.target.value })}
+                  placeholder="Recursos Humanos"
+                  className="bg-[#0A0A0F] border-[#1E293B] h-9 text-sm"
+                  data-testid="hr-department"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Nivel de Permisos</Label>
+                <Select value={form.permission_level} onValueChange={(v) => setForm({ ...form, permission_level: v })}>
+                  <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B] h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0F111A] border-[#1E293B]">
+                    <SelectItem value="HR">Solo RRHH</SelectItem>
+                    <SelectItem value="HR_SUPERVISOR">RRHH + Supervisor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'Estudiante':
+        return (
+          <div className="space-y-3 p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
+            <p className="text-xs font-medium text-cyan-400 flex items-center gap-2">
+              <GraduationCap className="w-4 h-4" />
+              Datos de Estudiante
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Plan de Suscripción</Label>
+                <Select value={form.subscription_plan} onValueChange={(v) => setForm({ ...form, subscription_plan: v })}>
+                  <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B] h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0F111A] border-[#1E293B]">
+                    <SelectItem value="basic">Básico ($1/mes)</SelectItem>
+                    <SelectItem value="pro">Pro ($3/mes)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Estado de Suscripción</Label>
+                <Select value={form.subscription_status} onValueChange={(v) => setForm({ ...form, subscription_status: v })}>
+                  <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B] h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0F111A] border-[#1E293B]">
+                    <SelectItem value="trial">Prueba (14 días)</SelectItem>
+                    <SelectItem value="active">Activo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'Supervisor':
+        return (
+          <div className="space-y-3 p-3 rounded-lg bg-purple-500/5 border border-purple-500/20">
+            <p className="text-xs font-medium text-purple-400 flex items-center gap-2">
+              <UserCheck className="w-4 h-4" />
+              Datos de Supervisor
+            </p>
+            <div className="space-y-1">
+              <Label className="text-xs">Área Supervisada</Label>
+              <Input
+                value={form.supervised_area}
+                onChange={(e) => setForm({ ...form, supervised_area: e.target.value })}
+                placeholder="Ej: Seguridad Perimetral, Accesos"
+                className="bg-[#0A0A0F] border-[#1E293B] h-9 text-sm"
+                data-testid="supervisor-area"
+              />
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
   };
 
   return (
