@@ -1477,7 +1477,7 @@ async def update_condominium(
 @api_router.delete("/condominiums/{condo_id}")
 async def deactivate_condominium(
     condo_id: str,
-    current_user = Depends(require_role(RoleEnum.ADMINISTRADOR))
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
 ):
     """Deactivate a condominium (soft delete)"""
     result = await db.condominiums.update_one(
