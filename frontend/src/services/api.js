@@ -125,6 +125,7 @@ class ApiService {
   createGuard = (data) => this.post('/hr/guards', data);
   getGuards = () => this.get('/hr/guards');
   getGuard = (id) => this.get(`/hr/guards/${id}`);
+  updateGuard = (id, data) => this.put(`/hr/guards/${id}`, data);
   createShift = (data) => this.post('/hr/shifts', data);
   getShifts = () => this.get('/hr/shifts');
   getPayroll = () => this.get('/hr/payroll');
