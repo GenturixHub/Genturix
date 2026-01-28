@@ -383,37 +383,40 @@ const AbsenceCard = ({ absence }) => {
 };
 
 // ============================================
-// SUBMÓDULO: SOLICITUDES DE AUSENCIA
+// SUBMÓDULO: SOLICITUDES DE AUSENCIA (COMING SOON)
 // ============================================
 const AusenciasSubmodule = ({ employees }) => {
-  // Demo data - en producción vendría de la API
-  const [absences] = useState([
+  // Demo data - feature coming soon
+  const absences = [
     { id: '1', employee_name: 'Juan Pérez', type: 'Vacaciones', reason: 'Viaje familiar', start_date: '2026-02-01', end_date: '2026-02-15', status: 'pending' },
     { id: '2', employee_name: 'María García', type: 'Permiso médico', reason: 'Cita médica', start_date: '2026-01-25', end_date: '2026-01-25', status: 'approved' },
-  ]);
+  ];
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Solicitudes de Ausencia</h3>
-        <Button size="sm">
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold">Solicitudes de Ausencia</h3>
+          <ComingSoonBadge />
+        </div>
+        <Button size="sm" disabled className="opacity-50 cursor-not-allowed">
           <Plus className="w-4 h-4 mr-2" />
           Nueva Solicitud
         </Button>
       </div>
       
-      <div className="grid gap-3 sm:grid-cols-2">
+      {/* Coming Soon Notice */}
+      <div className="p-4 rounded-lg bg-yellow-500/5 border border-yellow-500/20">
+        <p className="text-sm text-yellow-400/80">
+          📋 Este módulo está en desarrollo. Próximamente podrás gestionar solicitudes de vacaciones, permisos y ausencias.
+        </p>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 opacity-60">
         {absences.map(absence => (
           <AbsenceCard key={absence.id} absence={absence} />
         ))}
       </div>
-
-      {absences.length === 0 && (
-        <div className="text-center py-8 text-muted-foreground">
-          <CalendarOff className="w-12 h-12 mx-auto mb-2 opacity-30" />
-          <p>No hay solicitudes pendientes</p>
-        </div>
-      )}
     </div>
   );
 };
