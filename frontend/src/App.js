@@ -15,6 +15,7 @@ import GuardUI from './pages/GuardUI';
 import StudentUI from './pages/StudentUI';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import UserManagementPage from './pages/UserManagementPage';
+import ProfilePage from './pages/ProfilePage';
 import './App.css';
 
 // Suppress PostHog errors in development
