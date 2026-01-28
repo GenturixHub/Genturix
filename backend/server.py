@@ -1038,6 +1038,182 @@ async def update_user_status(user_id: str, is_active: bool, current_user = Depen
         raise HTTPException(status_code=404, detail="User not found")
     return {"message": "Status updated"}
 
+# ==================== MULTI-TENANT MODULE ====================
+# Condominium/Tenant Management Endpoints
+
+@api_router.post("/condominiums", response_model=CondominiumResponse)
+async def create_condominium(
+    condo_data: CondominiumCreate,
+    current_user = Depends(require_role(RoleEnum.ADMINISTRADOR))
+):
+    """Create a new condominium/tenant (Super Admin only)"""
+    condo_id = str(uuid.uuid4())
+    
+    # Initialize module config with defaults
+    modules = condo_data.modules if condo_data.modules else CondominiumModules()
+    
+    condo_doc = {
+        "id": condo_id,
+        "name": condo_data.name,
+        "address": condo_data.address,
+        "contact_email": condo_data.contact_email,
+        "contact_phone": condo_data.contact_phone,
+        "max_users": condo_data.max_users,
+        "current_users": 0,
+        "modules": modules.model_dump(),
+        "is_active": True,
+        "price_per_user": 1.0,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.condominiums.insert_one(condo_doc)
+    
+    return CondominiumResponse(
+        id=condo_id,
+        name=condo_data.name,
+        address=condo_data.address,
+        contact_email=condo_data.contact_email,
+        contact_phone=condo_data.contact_phone,
+        max_users=condo_data.max_users,
+        current_users=0,
+        modules=modules.model_dump(),
+        is_active=True,
+        created_at=condo_doc["created_at"]
+    )
+
+@api_router.get("/condominiums")
+async def list_condominiums(
+    current_user = Depends(require_role(RoleEnum.ADMINISTRADOR))
+):
+    """List all condominiums (Super Admin only)"""
+    condos = await db.condominiums.find({}, {"_id": 0}).to_list(100)
+    return condos
+
+@api_router.get("/condominiums/{condo_id}", response_model=CondominiumResponse)
+async def get_condominium(
+    condo_id: str,
+    current_user = Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPERVISOR))
+):
+    """Get condominium details"""
+    condo = await db.condominiums.find_one({"id": condo_id}, {"_id": 0})
+    if not condo:
+        raise HTTPException(status_code=404, detail="Condominium not found")
+    return condo
+
+@api_router.patch("/condominiums/{condo_id}")
+async def update_condominium(
+    condo_id: str,
+    update_data: CondominiumUpdate,
+    current_user = Depends(require_role(RoleEnum.ADMINISTRADOR))
+):
+    """Update condominium details (Super Admin only)"""
+    update_fields = {k: v for k, v in update_data.model_dump().items() if v is not None}
+    
+    if not update_fields:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    
+    # Convert modules Pydantic model to dict if present
+    if "modules" in update_fields and update_fields["modules"]:
+        update_fields["modules"] = update_fields["modules"].model_dump() if hasattr(update_fields["modules"], "model_dump") else update_fields["modules"]
+    
+    update_fields["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    result = await db.condominiums.update_one(
+        {"id": condo_id},
+        {"$set": update_fields}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Condominium not found")
+    
+    return {"message": "Condominium updated successfully"}
+
+@api_router.delete("/condominiums/{condo_id}")
+async def deactivate_condominium(
+    condo_id: str,
+    current_user = Depends(require_role(RoleEnum.ADMINISTRADOR))
+):
+    """Deactivate a condominium (soft delete)"""
+    result = await db.condominiums.update_one(
+        {"id": condo_id},
+        {"$set": {"is_active": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Condominium not found")
+    
+    return {"message": "Condominium deactivated"}
+
+@api_router.get("/condominiums/{condo_id}/users")
+async def get_condominium_users(
+    condo_id: str,
+    current_user = Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPERVISOR))
+):
+    """Get all users belonging to a condominium"""
+    users = await db.users.find(
+        {"condominium_id": condo_id},
+        {"_id": 0, "hashed_password": 0}
+    ).to_list(500)
+    return users
+
+@api_router.get("/condominiums/{condo_id}/billing")
+async def get_condominium_billing(
+    condo_id: str,
+    current_user = Depends(require_role(RoleEnum.ADMINISTRADOR))
+):
+    """Get billing information for a condominium"""
+    condo = await db.condominiums.find_one({"id": condo_id}, {"_id": 0})
+    if not condo:
+        raise HTTPException(status_code=404, detail="Condominium not found")
+    
+    # Calculate monthly cost
+    user_count = await db.users.count_documents({"condominium_id": condo_id, "is_active": True})
+    price_per_user = condo.get("price_per_user", 1.0)
+    monthly_cost = user_count * price_per_user
+    
+    return {
+        "condominium_id": condo_id,
+        "condominium_name": condo.get("name"),
+        "active_users": user_count,
+        "price_per_user": price_per_user,
+        "monthly_cost_usd": monthly_cost,
+        "billing_cycle": "monthly",
+        "currency": "USD"
+    }
+
+@api_router.patch("/condominiums/{condo_id}/modules/{module_name}")
+async def update_module_config(
+    condo_id: str,
+    module_name: str,
+    enabled: bool,
+    settings: Optional[Dict[str, Any]] = None,
+    current_user = Depends(require_role(RoleEnum.ADMINISTRADOR))
+):
+    """Enable/disable a module for a condominium"""
+    valid_modules = ["security", "hr", "school", "payments", "audit", "reservations", "access_control", "messaging"]
+    
+    if module_name not in valid_modules:
+        raise HTTPException(status_code=400, detail=f"Invalid module. Valid modules: {', '.join(valid_modules)}")
+    
+    update_data = {
+        f"modules.{module_name}.enabled": enabled,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    if settings:
+        update_data[f"modules.{module_name}.settings"] = settings
+    
+    result = await db.condominiums.update_one(
+        {"id": condo_id},
+        {"$set": update_data}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Condominium not found")
+    
+    return {"message": f"Module '{module_name}' {'enabled' if enabled else 'disabled'} successfully"}
+
 # ==================== DEMO DATA SEEDING ====================
 @api_router.post("/seed-demo-data")
 async def seed_demo_data():
