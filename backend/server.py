@@ -253,6 +253,10 @@ class CondominiumResponse(BaseModel):
     is_active: bool
     created_at: str
     price_per_user: float = 1.0  # $1 USD per user per month
+    status: str = "active"  # active, demo, suspended
+    is_demo: bool = False
+    discount_percent: float = 0.0
+    plan: str = "basic"
 
 # ==================== HELPER FUNCTIONS ====================
 def hash_password(password: str) -> str:
