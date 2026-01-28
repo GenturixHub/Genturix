@@ -2473,8 +2473,59 @@ async def update_user_roles(user_id: str, roles: List[str], current_user = Depen
         raise HTTPException(status_code=404, detail="User not found")
     return {"message": "Roles updated"}
 
+class UserStatusUpdate(BaseModel):
+    is_active: bool
+
+@api_router.patch("/admin/users/{user_id}/status")
+async def update_user_status(
+    user_id: str, 
+    status_data: UserStatusUpdate,
+    request: Request,
+    current_user = Depends(require_role("Administrador", "SuperAdmin"))
+):
+    """Update user active status (Admin only)"""
+    # Get the user to update
+    target_user = await db.users.find_one({"id": user_id})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # Admin can only update users from their condominium
+    if "SuperAdmin" not in current_user.get("roles", []):
+        if target_user.get("condominium_id") != current_user.get("condominium_id"):
+            raise HTTPException(status_code=403, detail="No tienes permiso para modificar este usuario")
+    
+    # Cannot deactivate yourself
+    if target_user["id"] == current_user["id"]:
+        raise HTTPException(status_code=400, detail="No puedes desactivarte a ti mismo")
+    
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"is_active": status_data.is_active, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="No se pudo actualizar el usuario")
+    
+    # Log audit event
+    await log_audit_event(
+        AuditEventType.USER_UPDATED,
+        current_user["id"],
+        "users",
+        {
+            "action": "status_change",
+            "target_user_id": user_id,
+            "target_user_email": target_user.get("email"),
+            "new_status": "active" if status_data.is_active else "inactive"
+        },
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {"message": f"Usuario {'activado' if status_data.is_active else 'desactivado'} exitosamente"}
+
 @api_router.put("/users/{user_id}/status")
-async def update_user_status(user_id: str, is_active: bool, current_user = Depends(require_role("Administrador"))):
+async def update_user_status_legacy(user_id: str, is_active: bool, current_user = Depends(require_role("Administrador"))):
+    """Legacy endpoint - use PATCH /admin/users/{user_id}/status instead"""
     result = await db.users.update_one(
         {"id": user_id},
         {"$set": {"is_active": is_active, "updated_at": datetime.now(timezone.utc).isoformat()}}
