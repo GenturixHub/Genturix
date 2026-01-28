@@ -157,6 +157,27 @@ class ShiftCreate(BaseModel):
     location: str
     notes: Optional[str] = None
 
+class ShiftUpdate(BaseModel):
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    location: Optional[str] = None
+    notes: Optional[str] = None
+    status: Optional[str] = None  # scheduled, in_progress, completed, cancelled
+
+class ClockRequest(BaseModel):
+    type: str  # "IN" or "OUT"
+
+class AbsenceCreate(BaseModel):
+    reason: str
+    type: str  # vacaciones, permiso_medico, personal, otro
+    start_date: str
+    end_date: str
+    notes: Optional[str] = None
+
+class AbsenceAction(BaseModel):
+    action: str  # approve, reject
+    admin_notes: Optional[str] = None
+
 # School Module Models
 class CourseCreate(BaseModel):
     title: str
