@@ -166,6 +166,15 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 
 ## COMPLETED WORK (January 28, 2026)
 
+### Session 3 - Super Admin Dashboard
+- ✅ Super Admin Dashboard with 4 tabs (Resumen, Condominios, Usuarios, Contenido)
+- ✅ Platform-wide KPIs (condominiums, users, MRR, alerts)
+- ✅ Condominium management (list, status change, modules config, pricing)
+- ✅ Global user oversight with filters and lock/unlock actions
+- ✅ Content management placeholder for Genturix School
+- ✅ Backend fixes: patch() method in api.js, SuperAdmin role in endpoints
+- ✅ Test suite: /app/backend/tests/test_super_admin.py
+
 ### Session 2
 - ✅ Visitor flow correction: Resident creates → Guard executes → Admin audits
 - ✅ ResidentUI Tab "Visitas" with pre-registration form
