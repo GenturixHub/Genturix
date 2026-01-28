@@ -80,11 +80,11 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 1. **Emergencia** - Panic buttons
 2. **Visitas** - Pre-register visitors
 
-### GuardUI Tabs
-1. **Alertas** - Emergency alerts (compact cards)
-2. **Visitas** - Expected visitors from residents
-3. **Directo** - Walk-in registration
-4. **Bitácora** - Logbook entries
+### GuardUI Tabs (Operational Panel)
+1. **Alertas** - Active panic alerts with compact cards, MAPA/ATENDIDA buttons
+2. **Visitas** - Pre-registered visitors (entry/exit execution)
+3. **Registro** - Manual walk-in registration form
+4. **Historial** - Read-only past records (Today / Last 7 days filter)
 
 ### StudentUI Tabs
 1. **Cursos** - Course list with filters
