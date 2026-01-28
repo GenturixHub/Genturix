@@ -99,6 +99,17 @@ const AuditModule = () => {
         return <LogOut className="w-4 h-4 text-blue-400" />;
       case 'panic_button':
         return <AlertTriangle className="w-4 h-4 text-red-400" />;
+      case 'access_granted':
+      case 'access_entry':
+        return <LogIn className="w-4 h-4 text-cyan-400" />;
+      case 'access_denied':
+      case 'access_exit':
+        return <LogOut className="w-4 h-4 text-orange-400" />;
+      case 'payment_initiated':
+      case 'payment_completed':
+        return <Activity className="w-4 h-4 text-green-400" />;
+      case 'course_enrolled':
+        return <Activity className="w-4 h-4 text-cyan-400" />;
       default:
         return <Activity className="w-4 h-4 text-purple-400" />;
     }
@@ -229,6 +240,7 @@ const AuditModule = () => {
                   <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="auth">Autenticación</SelectItem>
                   <SelectItem value="security">Seguridad</SelectItem>
+                  <SelectItem value="access">Control de Acceso</SelectItem>
                   <SelectItem value="hr">Recursos Humanos</SelectItem>
                   <SelectItem value="school">Escuela</SelectItem>
                   <SelectItem value="payments">Pagos</SelectItem>
@@ -247,6 +259,10 @@ const AuditModule = () => {
                   <SelectItem value="login_failure">Login Fallido</SelectItem>
                   <SelectItem value="logout">Logout</SelectItem>
                   <SelectItem value="panic_button">Botón Pánico</SelectItem>
+                  <SelectItem value="access_granted">Entrada Visitante</SelectItem>
+                  <SelectItem value="access_denied">Salida Visitante</SelectItem>
+                  <SelectItem value="payment_completed">Pago Completado</SelectItem>
+                  <SelectItem value="course_enrolled">Inscripción Curso</SelectItem>
                   <SelectItem value="user_created">Usuario Creado</SelectItem>
                 </SelectContent>
               </Select>
