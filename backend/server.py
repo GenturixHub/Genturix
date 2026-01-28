@@ -1442,6 +1442,9 @@ async def create_absence_request(
     
     await db.hr_absences.insert_one(absence_doc)
     
+    # Remove MongoDB _id
+    absence_doc.pop("_id", None)
+    
     await log_audit_event(
         AuditEventType.ABSENCE_REQUESTED,
         current_user["id"],
