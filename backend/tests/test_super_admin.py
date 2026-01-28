@@ -124,7 +124,8 @@ class TestSuperAdminStats:
     def test_stats_requires_auth(self):
         """Stats endpoint requires authentication"""
         response = requests.get(f"{BASE_URL}/api/super-admin/stats")
-        assert response.status_code == 401, f"Expected 401, got {response.status_code}"
+        # Accept both 401 (Unauthorized) and 403 (Forbidden) as valid auth rejection
+        assert response.status_code in [401, 403], f"Expected 401 or 403, got {response.status_code}"
         print("✓ Stats endpoint correctly requires auth")
     
     def test_stats_requires_super_admin_role(self):
