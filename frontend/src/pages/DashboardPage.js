@@ -457,6 +457,17 @@ const DashboardPage = () => {
               {hasRole('Administrador') && (
                 <>
                   <Button
+                    className="w-full justify-between h-12 bg-primary hover:bg-primary/90"
+                    onClick={() => setShowCreateUser(true)}
+                    data-testid="create-user-btn"
+                  >
+                    <span className="flex items-center gap-3">
+                      <UserPlus className="w-4 h-4" />
+                      Crear Usuario
+                    </span>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                  <Button
                     variant="outline"
                     className="w-full justify-between h-12 border-[#1E293B] hover:bg-muted"
                     onClick={() => navigate('/security')}
