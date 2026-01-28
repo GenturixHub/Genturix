@@ -155,11 +155,159 @@ const EmployeeCard = ({ employee, onEdit }) => (
           <span>{employee.phone}</span>
         </div>
       </div>
-      <Button variant="ghost" size="icon" onClick={() => onEdit(employee)}>
+      <Button variant="ghost" size="icon" onClick={() => onEdit(employee)} data-testid="edit-employee-btn">
         <Edit className="w-4 h-4" />
       </Button>
     </div>
   </div>
+);
+
+// ============================================
+// EDIT EMPLOYEE DIALOG (PRIORITY 1 FIX)
+// ============================================
+const EditEmployeeDialog = ({ employee, open, onClose, onSuccess }) => {
+  const [form, setForm] = useState({
+    badge_number: '',
+    phone: '',
+    emergency_contact: '',
+    hourly_rate: 0,
+    is_active: true
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Load employee data when dialog opens
+  useEffect(() => {
+    if (employee && open) {
+      setForm({
+        badge_number: employee.badge_number || '',
+        phone: employee.phone || '',
+        emergency_contact: employee.emergency_contact || '',
+        hourly_rate: employee.hourly_rate || 0,
+        is_active: employee.is_active !== false
+      });
+      setError(null);
+    }
+  }, [employee, open]);
+
+  const handleSubmit = async () => {
+    if (!employee) return;
+    
+    setIsSubmitting(true);
+    setError(null);
+    
+    try {
+      await api.updateGuard(employee.id, {
+        badge_number: form.badge_number,
+        phone: form.phone,
+        emergency_contact: form.emergency_contact,
+        hourly_rate: parseFloat(form.hourly_rate) || 0,
+        is_active: form.is_active
+      });
+      onSuccess();
+    } catch (err) {
+      setError(err.message || 'Error al actualizar empleado');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!employee) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Edit className="w-5 h-5 text-primary" />
+            Editar Empleado
+          </DialogTitle>
+          <DialogDescription>
+            {employee.user_name} - {employee.email}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          {error && (
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <Label>Número de Identificación</Label>
+            <Input
+              value={form.badge_number}
+              onChange={(e) => setForm({...form, badge_number: e.target.value})}
+              placeholder="GRD-001"
+              className="bg-[#0A0A0F] border-[#1E293B] mt-1"
+            />
+          </div>
+
+          <div>
+            <Label>Teléfono</Label>
+            <Input
+              value={form.phone}
+              onChange={(e) => setForm({...form, phone: e.target.value})}
+              placeholder="+52 555 123 4567"
+              className="bg-[#0A0A0F] border-[#1E293B] mt-1"
+            />
+          </div>
+
+          <div>
+            <Label>Contacto de Emergencia</Label>
+            <Input
+              value={form.emergency_contact}
+              onChange={(e) => setForm({...form, emergency_contact: e.target.value})}
+              placeholder="Nombre y teléfono"
+              className="bg-[#0A0A0F] border-[#1E293B] mt-1"
+            />
+          </div>
+
+          <div>
+            <Label>Tarifa por Hora (USD)</Label>
+            <Input
+              type="number"
+              step="0.01"
+              value={form.hourly_rate}
+              onChange={(e) => setForm({...form, hourly_rate: e.target.value})}
+              className="bg-[#0A0A0F] border-[#1E293B] mt-1"
+            />
+          </div>
+
+          <div className="flex items-center justify-between p-3 rounded-lg bg-[#0A0A0F] border border-[#1E293B]">
+            <div>
+              <p className="font-medium">Estado Activo</p>
+              <p className="text-xs text-muted-foreground">El empleado puede trabajar</p>
+            </div>
+            <Switch
+              checked={form.is_active}
+              onCheckedChange={(checked) => setForm({...form, is_active: checked})}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSubmit} disabled={isSubmitting}>
+            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+            Guardar Cambios
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// ============================================
+// COMING SOON BADGE COMPONENT
+// ============================================
+const ComingSoonBadge = () => (
+  <Badge className="bg-yellow-500/10 text-yellow-400 border-yellow-500/30 text-[10px]">
+    Próximamente
+  </Badge>
 );
 
 // ============================================
