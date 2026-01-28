@@ -81,6 +81,7 @@ class UserCreate(BaseModel):
     password: str = Field(..., min_length=8)
     full_name: str
     roles: List[RoleEnum] = [RoleEnum.RESIDENTE]
+    condominium_id: Optional[str] = None  # Multi-tenant support
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -93,6 +94,7 @@ class UserResponse(BaseModel):
     roles: List[str]
     is_active: bool
     created_at: str
+    condominium_id: Optional[str] = None  # Multi-tenant support
 
 class TokenResponse(BaseModel):
     access_token: str
