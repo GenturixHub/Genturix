@@ -383,9 +383,11 @@ class TestAbsences:
     
     def test_create_absence_success(self, guard_headers):
         """POST /api/hr/absences - Create absence request"""
-        # Use future dates
-        start_date = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
-        end_date = (datetime.now() + timedelta(days=32)).strftime("%Y-%m-%d")
+        # Use future dates with random offset to avoid conflicts
+        import random
+        offset = random.randint(100, 200)
+        start_date = (datetime.now() + timedelta(days=offset)).strftime("%Y-%m-%d")
+        end_date = (datetime.now() + timedelta(days=offset + 2)).strftime("%Y-%m-%d")
         
         absence_data = {
             "reason": "TEST_Vacaciones familiares",
@@ -402,7 +404,6 @@ class TestAbsences:
         assert data["status"] == "pending"
         assert data["type"] == "vacaciones"
         print(f"✓ POST /api/hr/absences - Created: {data['id']}")
-        return data["id"]
     
     def test_create_absence_invalid_dates(self, guard_headers):
         """POST /api/hr/absences - 400 for end_date before start_date"""
@@ -451,9 +452,11 @@ class TestAbsences:
     
     def test_approve_absence(self, admin_headers, guard_headers):
         """PUT /api/hr/absences/{id}/approve - Admin approves absence"""
-        # Create a new absence to approve
-        start_date = (datetime.now() + timedelta(days=60)).strftime("%Y-%m-%d")
-        end_date = (datetime.now() + timedelta(days=61)).strftime("%Y-%m-%d")
+        # Create a new absence to approve with random offset
+        import random
+        offset = random.randint(200, 300)
+        start_date = (datetime.now() + timedelta(days=offset)).strftime("%Y-%m-%d")
+        end_date = (datetime.now() + timedelta(days=offset + 1)).strftime("%Y-%m-%d")
         
         absence_data = {
             "reason": "TEST_To be approved",
@@ -462,6 +465,7 @@ class TestAbsences:
             "end_date": end_date
         }
         create_resp = requests.post(f"{BASE_URL}/api/hr/absences", json=absence_data, headers=guard_headers)
+        assert create_resp.status_code == 200, f"Failed to create absence: {create_resp.text}"
         absence_id = create_resp.json()["id"]
         
         # Approve it
@@ -474,9 +478,11 @@ class TestAbsences:
     
     def test_reject_absence(self, admin_headers, guard_headers):
         """PUT /api/hr/absences/{id}/reject - Admin rejects absence"""
-        # Create a new absence to reject
-        start_date = (datetime.now() + timedelta(days=70)).strftime("%Y-%m-%d")
-        end_date = (datetime.now() + timedelta(days=71)).strftime("%Y-%m-%d")
+        # Create a new absence to reject with random offset
+        import random
+        offset = random.randint(300, 400)
+        start_date = (datetime.now() + timedelta(days=offset)).strftime("%Y-%m-%d")
+        end_date = (datetime.now() + timedelta(days=offset + 1)).strftime("%Y-%m-%d")
         
         absence_data = {
             "reason": "TEST_To be rejected",
@@ -485,6 +491,7 @@ class TestAbsences:
             "end_date": end_date
         }
         create_resp = requests.post(f"{BASE_URL}/api/hr/absences", json=absence_data, headers=guard_headers)
+        assert create_resp.status_code == 200, f"Failed to create absence: {create_resp.text}"
         absence_id = create_resp.json()["id"]
         
         # Reject it
@@ -497,9 +504,11 @@ class TestAbsences:
     
     def test_approve_already_processed(self, admin_headers, guard_headers):
         """PUT /api/hr/absences/{id}/approve - 400 for already processed"""
-        # Create and approve an absence
-        start_date = (datetime.now() + timedelta(days=80)).strftime("%Y-%m-%d")
-        end_date = (datetime.now() + timedelta(days=81)).strftime("%Y-%m-%d")
+        # Create and approve an absence with random offset
+        import random
+        offset = random.randint(400, 500)
+        start_date = (datetime.now() + timedelta(days=offset)).strftime("%Y-%m-%d")
+        end_date = (datetime.now() + timedelta(days=offset + 1)).strftime("%Y-%m-%d")
         
         absence_data = {
             "reason": "TEST_Already processed",
@@ -508,6 +517,7 @@ class TestAbsences:
             "end_date": end_date
         }
         create_resp = requests.post(f"{BASE_URL}/api/hr/absences", json=absence_data, headers=guard_headers)
+        assert create_resp.status_code == 200, f"Failed to create absence: {create_resp.text}"
         absence_id = create_resp.json()["id"]
         
         # Approve first
