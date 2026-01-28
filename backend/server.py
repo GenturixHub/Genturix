@@ -52,6 +52,7 @@ api_router = APIRouter(prefix="/api")
 
 # ==================== ENUMS ====================
 class RoleEnum(str, Enum):
+    SUPER_ADMIN = "SuperAdmin"
     ADMINISTRADOR = "Administrador"
     SUPERVISOR = "Supervisor"
     GUARDA = "Guarda"
@@ -73,6 +74,15 @@ class AuditEventType(str, Enum):
     COURSE_ENROLLED = "course_enrolled"
     CERTIFICATE_ISSUED = "certificate_issued"
     SHIFT_CREATED = "shift_created"
+    # Super Admin events
+    CONDO_CREATED = "condo_created"
+    CONDO_UPDATED = "condo_updated"
+    CONDO_DEACTIVATED = "condo_deactivated"
+    MODULE_TOGGLED = "module_toggled"
+    USER_LOCKED = "user_locked"
+    USER_UNLOCKED = "user_unlocked"
+    DEMO_RESET = "demo_reset"
+    PLAN_UPDATED = "plan_updated"
     SHIFT_UPDATED = "shift_updated"
 
 # ==================== MODELS ====================
