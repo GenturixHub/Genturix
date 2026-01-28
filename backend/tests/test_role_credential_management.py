@@ -583,7 +583,7 @@ class TestSuperAdminCreateCondoAdmin:
     def test_super_admin_get_condominiums(self, super_admin_token):
         """Super Admin can list condominiums"""
         headers = {"Authorization": f"Bearer {super_admin_token}"}
-        response = requests.get(f"{BASE_URL}/api/super-admin/condominiums", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/condominiums", headers=headers)
         
         print(f"Super Admin Get Condominiums: {response.status_code}")
         
@@ -601,7 +601,7 @@ class TestSuperAdminCreateCondoAdmin:
         headers = {"Authorization": f"Bearer {super_admin_token}"}
         
         # First get a condominium
-        condos_response = requests.get(f"{BASE_URL}/api/super-admin/condominiums", headers=headers)
+        condos_response = requests.get(f"{BASE_URL}/api/condominiums", headers=headers)
         if condos_response.status_code != 200:
             pytest.skip("Cannot get condominiums")
         
