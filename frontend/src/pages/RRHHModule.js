@@ -72,7 +72,8 @@ import {
   LogOut as LogOutIcon,
   CalendarOff,
   ClipboardList,
-  TrendingUp
+  TrendingUp,
+  XCircle
 } from 'lucide-react';
 
 // ============================================
