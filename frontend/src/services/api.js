@@ -154,6 +154,38 @@ class ApiService {
   getUsers = () => this.get('/users');
   updateUserRoles = (userId, roles) => this.put(`/users/${userId}/roles`, roles);
   updateUserStatus = (userId, isActive) => this.put(`/users/${userId}/status`, isActive);
+
+  // Condominiums (Multi-tenant)
+  getCondominiums = () => this.get('/condominiums');
+  getCondominium = (id) => this.get(`/condominiums/${id}`);
+  createCondominium = (data) => this.post('/condominiums', data);
+  updateCondominium = (id, data) => this.patch(`/condominiums/${id}`, data);
+  deleteCondominium = (id) => this.delete(`/condominiums/${id}`);
+  getCondominiumUsers = (id) => this.get(`/condominiums/${id}/users`);
+  getCondominiumBilling = (id) => this.get(`/condominiums/${id}/billing`);
+  updateCondoModule = (condoId, moduleName, enabled) => 
+    this.patch(`/condominiums/${condoId}/modules/${moduleName}?enabled=${enabled}`);
+
+  // Super Admin
+  getPlatformStats = () => this.get('/super-admin/stats');
+  getAllUsersGlobal = (condoId = '', role = '') => {
+    const params = new URLSearchParams();
+    if (condoId) params.append('condo_id', condoId);
+    if (role) params.append('role', role);
+    return this.get(`/super-admin/users${params.toString() ? '?' + params.toString() : ''}`);
+  };
+  lockUser = (userId) => this.put(`/super-admin/users/${userId}/lock`);
+  unlockUser = (userId) => this.put(`/super-admin/users/${userId}/unlock`);
+  makeCondoDemo = (condoId, maxUsers = 10) => 
+    this.post(`/super-admin/condominiums/${condoId}/make-demo?max_users=${maxUsers}`);
+  resetDemoData = (condoId) => this.post(`/super-admin/condominiums/${condoId}/reset-demo`);
+  updateCondoPricing = (condoId, data) => this.patch(`/super-admin/condominiums/${condoId}/pricing`, null, {
+    params: data
+  });
+  updateCondoStatus = (condoId, status) => 
+    this.patch(`/super-admin/condominiums/${condoId}/status?status=${status}`);
+  getSuperAdminAudit = (module = 'super_admin', limit = 100) => 
+    this.get(`/super-admin/audit?module=${module}&limit=${limit}`);
 }
 
 export const api = new ApiService();
