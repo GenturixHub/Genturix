@@ -2947,6 +2947,73 @@ async def get_super_admin_audit(
     logs = await db.audit_logs.find(query, {"_id": 0}).sort("timestamp", -1).to_list(limit)
     return logs
 
+
+# ==================== FIX EXISTING USERS WITHOUT CONDOMINIUM ====================
+
+@api_router.post("/admin/fix-orphan-users")
+async def fix_orphan_users(
+    request: Request,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
+):
+    """Fix users without condominium_id by assigning them to a demo condominium"""
+    # Find or create demo condominium
+    demo_condo = await db.condominiums.find_one({"name": "Residencial Las Palmas"})
+    if not demo_condo:
+        demo_condo_id = str(uuid.uuid4())
+        demo_condo = {
+            "id": demo_condo_id,
+            "name": "Residencial Las Palmas",
+            "address": "Av. Principal #123",
+            "status": "demo",
+            "is_active": True,
+            "max_users": 50,
+            "modules": {"security": True, "visitors": True, "school": True},
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.condominiums.insert_one(demo_condo)
+    
+    demo_condo_id = demo_condo["id"]
+    
+    # Find all users without condominium_id (except SuperAdmin)
+    orphan_query = {
+        "$and": [
+            {"$or": [{"condominium_id": None}, {"condominium_id": {"$exists": False}}]},
+            {"roles": {"$nin": ["SuperAdmin"]}}
+        ]
+    }
+    
+    result = await db.users.update_many(
+        orphan_query,
+        {"$set": {"condominium_id": demo_condo_id}}
+    )
+    
+    # Also fix guards without condominium_id
+    guard_result = await db.guards.update_many(
+        {"$or": [{"condominium_id": None}, {"condominium_id": {"$exists": False}}]},
+        {"$set": {"condominium_id": demo_condo_id}}
+    )
+    
+    await log_audit_event(
+        AuditEventType.USER_UPDATED,
+        current_user["id"],
+        "admin",
+        {
+            "action": "fix_orphan_users",
+            "users_fixed": result.modified_count,
+            "guards_fixed": guard_result.modified_count,
+            "assigned_condo": demo_condo_id
+        },
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {
+        "message": f"Fixed {result.modified_count} users and {guard_result.modified_count} guards",
+        "users_fixed": result.modified_count,
+        "guards_fixed": guard_result.modified_count,
+        "assigned_condominium_id": demo_condo_id
+    }
+
 # ==================== SUPER ADMIN: CONDOMINIUM ADMIN CREATION ====================
 
 @api_router.post("/super-admin/condominiums/{condo_id}/admin")
