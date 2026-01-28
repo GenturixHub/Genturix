@@ -1354,12 +1354,13 @@ async def update_user_status(user_id: str, is_active: bool, current_user = Depen
     return {"message": "Status updated"}
 
 # ==================== MULTI-TENANT MODULE ====================
-# Condominium/Tenant Management Endpoints
+# Condominium/Tenant Management Endpoints (Super Admin)
 
 @api_router.post("/condominiums", response_model=CondominiumResponse)
 async def create_condominium(
     condo_data: CondominiumCreate,
-    current_user = Depends(require_role(RoleEnum.ADMINISTRADOR))
+    request: Request,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
 ):
     """Create a new condominium/tenant (Super Admin only)"""
     condo_id = str(uuid.uuid4())
@@ -1376,13 +1377,27 @@ async def create_condominium(
         "max_users": condo_data.max_users,
         "current_users": 0,
         "modules": modules.model_dump(),
+        "status": "active",  # active, demo, suspended
+        "is_demo": False,
         "is_active": True,
         "price_per_user": 1.0,
+        "discount_percent": 0,
+        "free_modules": [],
+        "plan": "basic",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat()
     }
     
     await db.condominiums.insert_one(condo_doc)
+    
+    await log_audit_event(
+        AuditEventType.CONDO_CREATED,
+        current_user["id"],
+        "super_admin",
+        {"condo_id": condo_id, "name": condo_data.name, "action": "created"},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
     
     return CondominiumResponse(
         id=condo_id,
