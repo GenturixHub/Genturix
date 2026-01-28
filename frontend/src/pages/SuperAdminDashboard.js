@@ -1059,7 +1059,7 @@ const SuperAdminDashboard = () => {
           </TabsList>
 
           <TabsContent value="overview">
-            <OverviewTab stats={stats} isLoading={isLoading} onRefresh={fetchData} />
+            <OverviewTab stats={stats} isLoading={isLoading} onRefresh={fetchData} onNavigateTab={setActiveTab} />
           </TabsContent>
 
           <TabsContent value="condominiums">
