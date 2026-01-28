@@ -48,6 +48,12 @@ const LoginPage = () => {
           case 'Estudiante':
             navigate('/student');
             return;
+          case 'HR':
+            navigate('/rrhh');
+            return;
+          case 'Supervisor':
+            navigate('/rrhh');
+            return;
           default:
             navigate('/admin/dashboard');
         }
