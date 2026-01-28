@@ -436,7 +436,7 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
                   <SelectValue placeholder="Seleccionar turno" />
                 </SelectTrigger>
                 <SelectContent className="bg-[#0F111A] border-[#1E293B]">
-                  <SelectItem value="">Sin asignar</SelectItem>
+                  <SelectItem value="none">Sin asignar</SelectItem>
                   <SelectItem value="morning">Matutino (6:00 - 14:00)</SelectItem>
                   <SelectItem value="afternoon">Vespertino (14:00 - 22:00)</SelectItem>
                   <SelectItem value="night">Nocturno (22:00 - 6:00)</SelectItem>
