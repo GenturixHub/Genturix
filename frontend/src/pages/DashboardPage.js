@@ -558,6 +558,16 @@ const DashboardPage = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Create User Dialog */}
+      <CreateUserDialog
+        open={showCreateUser}
+        onClose={() => setShowCreateUser(false)}
+        onSuccess={() => {
+          // Refresh stats after creating user
+          api.getDashboardStats().then(setStats).catch(console.error);
+        }}
+      />
     </DashboardLayout>
   );
 };
