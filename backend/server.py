@@ -1450,7 +1450,7 @@ async def get_condominium(
 async def update_condominium(
     condo_id: str,
     update_data: CondominiumUpdate,
-    current_user = Depends(require_role(RoleEnum.ADMINISTRADOR))
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
 ):
     """Update condominium details (Super Admin only)"""
     update_fields = {k: v for k, v in update_data.model_dump().items() if v is not None}
