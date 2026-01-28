@@ -70,7 +70,10 @@ const RoleBasedRedirect = () => {
           navigate('/admin/dashboard');
           return;
         case 'Supervisor':
-          navigate('/admin/dashboard');
+          navigate('/rrhh');
+          return;
+        case 'HR':
+          navigate('/rrhh');
           return;
         default:
           navigate('/select-panel');
