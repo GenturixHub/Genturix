@@ -493,7 +493,7 @@ const ControlHorarioSubmodule = ({ employees, currentUser, hasRole }) => {
 // ============================================
 // SUBMÓDULO: PLANIFICACIÓN DE TURNOS
 // ============================================
-const TurnosSubmodule = ({ employees, shifts, onCreateShift, isLoading }) => {
+const TurnosSubmodule = ({ employees, shifts, onCreateShift, isLoading, onEditEmployee }) => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [newShift, setNewShift] = useState({
     guard_id: '',
@@ -540,6 +540,18 @@ const TurnosSubmodule = ({ employees, shifts, onCreateShift, isLoading }) => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Employees Section */}
+      {employees.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold">Empleados</h3>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {employees.map(emp => (
+              <EmployeeCard key={emp.id} employee={emp} onEdit={onEditEmployee} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex items-center justify-between">
