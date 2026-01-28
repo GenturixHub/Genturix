@@ -3026,15 +3026,33 @@ async def seed_demo_data():
     if existing_demo:
         return {"message": "Demo data already exists"}
     
-    # Demo Users
+    # Find or create demo condominium
+    demo_condo = await db.condominiums.find_one({"name": "Residencial Las Palmas"})
+    if not demo_condo:
+        demo_condo_id = str(uuid.uuid4())
+        demo_condo = {
+            "id": demo_condo_id,
+            "name": "Residencial Las Palmas",
+            "address": "Av. Principal #123",
+            "status": "demo",
+            "is_active": True,
+            "max_users": 50,
+            "modules": {"security": True, "visitors": True, "school": True},
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.condominiums.insert_one(demo_condo)
+    
+    demo_condo_id = demo_condo["id"]
+    
+    # Demo Users - SuperAdmin doesn't get condominium_id (platform-wide), others do
     demo_users = [
-        {"email": "superadmin@genturix.com", "full_name": "Super Administrador", "password": "SuperAdmin123!", "roles": ["SuperAdmin"]},
-        {"email": "admin@genturix.com", "full_name": "Carlos Admin", "password": "Admin123!", "roles": ["Administrador"]},
-        {"email": "supervisor@genturix.com", "full_name": "María Supervisor", "password": "Super123!", "roles": ["Supervisor"]},
-        {"email": "guarda1@genturix.com", "full_name": "Juan Pérez", "password": "Guard123!", "roles": ["Guarda"]},
-        {"email": "guarda2@genturix.com", "full_name": "Pedro García", "password": "Guard123!", "roles": ["Guarda"]},
-        {"email": "residente@genturix.com", "full_name": "Ana Martínez", "password": "Resi123!", "roles": ["Residente"]},
-        {"email": "estudiante@genturix.com", "full_name": "Luis Estudiante", "password": "Stud123!", "roles": ["Estudiante"]},
+        {"email": "superadmin@genturix.com", "full_name": "Super Administrador", "password": "SuperAdmin123!", "roles": ["SuperAdmin"], "condo": None},
+        {"email": "admin@genturix.com", "full_name": "Carlos Admin", "password": "Admin123!", "roles": ["Administrador"], "condo": demo_condo_id},
+        {"email": "supervisor@genturix.com", "full_name": "María Supervisor", "password": "Super123!", "roles": ["Supervisor"], "condo": demo_condo_id},
+        {"email": "guarda1@genturix.com", "full_name": "Juan Pérez", "password": "Guard123!", "roles": ["Guarda"], "condo": demo_condo_id},
+        {"email": "guarda2@genturix.com", "full_name": "Pedro García", "password": "Guard123!", "roles": ["Guarda"], "condo": demo_condo_id},
+        {"email": "residente@genturix.com", "full_name": "Ana Martínez", "password": "Resi123!", "roles": ["Residente"], "condo": demo_condo_id},
+        {"email": "estudiante@genturix.com", "full_name": "Luis Estudiante", "password": "Stud123!", "roles": ["Estudiante"], "condo": demo_condo_id},
     ]
     
     user_ids = {}
@@ -3047,6 +3065,7 @@ async def seed_demo_data():
             "full_name": user_data["full_name"],
             "hashed_password": hash_password(user_data["password"]),
             "roles": user_data["roles"],
+            "condominium_id": user_data["condo"],
             "is_active": True,
             "created_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat()
