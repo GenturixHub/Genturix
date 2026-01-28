@@ -769,6 +769,8 @@ const RRHHModule = () => {
   const [shifts, setShifts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('turnos');
+  const [editingEmployee, setEditingEmployee] = useState(null);
+  const [showEditSuccess, setShowEditSuccess] = useState(false);
 
   // Fetch data
   const fetchData = useCallback(async () => {
@@ -801,6 +803,19 @@ const RRHHModule = () => {
     }
   };
 
+  // Edit employee handler
+  const handleEditEmployee = (employee) => {
+    setEditingEmployee(employee);
+  };
+
+  // Edit success handler
+  const handleEditSuccess = () => {
+    setEditingEmployee(null);
+    setShowEditSuccess(true);
+    fetchData();
+    setTimeout(() => setShowEditSuccess(false), 3000);
+  };
+
   // Filter available submodules based on role
   const availableSubmodules = Object.values(RRHH_SUBMODULES).filter(
     submodule => submodule.roles.some(role => hasRole(role))
@@ -819,6 +834,14 @@ const RRHHModule = () => {
   return (
     <DashboardLayout title="Recursos Humanos">
       <div className="space-y-6">
+        {/* Success Toast */}
+        {showEditSuccess && (
+          <div className="fixed top-4 right-4 z-50 p-4 rounded-lg bg-green-500/20 border border-green-500/30 text-green-400 flex items-center gap-2 animate-in slide-in-from-top-2">
+            <CheckCircle className="w-5 h-5" />
+            Empleado actualizado correctamente
+          </div>
+        )}
+
         {/* Header */}
         <div>
           <h1 className="text-xl font-bold text-white">Recursos Humanos</h1>
@@ -853,7 +876,7 @@ const RRHHModule = () => {
               <CalendarOff className="w-4 h-4 text-yellow-400" />
               <span className="text-xs text-muted-foreground">Ausencias</span>
             </div>
-            <p className="text-2xl font-bold text-white">2</p>
+            <p className="text-2xl font-bold text-white">--</p>
           </div>
         </div>
 
@@ -893,6 +916,7 @@ const RRHHModule = () => {
                 shifts={shifts} 
                 onCreateShift={handleCreateShift}
                 isLoading={isLoading}
+                onEditEmployee={handleEditEmployee}
               />
             </TabsContent>
 
@@ -909,6 +933,14 @@ const RRHHModule = () => {
             </TabsContent>
           </div>
         </Tabs>
+
+        {/* Edit Employee Dialog */}
+        <EditEmployeeDialog
+          employee={editingEmployee}
+          open={!!editingEmployee}
+          onClose={() => setEditingEmployee(null)}
+          onSuccess={handleEditSuccess}
+        />
       </div>
     </DashboardLayout>
   );
