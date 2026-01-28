@@ -2074,7 +2074,7 @@ async def create_user_by_admin(
     user_doc = {
         "id": user_id,
         "email": user_data.email,
-        "password_hash": hash_password(user_data.password),
+        "hashed_password": hash_password(user_data.password),
         "full_name": user_data.full_name,
         "roles": [user_data.role],
         "condominium_id": condominium_id,
