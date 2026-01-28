@@ -1586,8 +1586,14 @@ async def get_absences(
     employee_id: Optional[str] = None,
     current_user = Depends(require_role("Administrador", "Supervisor", "Guarda", "HR"))
 ):
-    """Get absence requests with filters"""
+    """Get absence requests with filters - scoped by condominium"""
     query = {}
+    
+    # Multi-tenant filtering
+    if "SuperAdmin" not in current_user.get("roles", []):
+        condo_id = current_user.get("condominium_id")
+        if condo_id:
+            query["condominium_id"] = condo_id
     
     if status:
         if status not in ["pending", "approved", "rejected"]:
@@ -1607,7 +1613,7 @@ async def get_absences(
 
 @api_router.get("/hr/absences/{absence_id}")
 async def get_absence(absence_id: str, current_user = Depends(require_role("Administrador", "Supervisor", "Guarda", "HR"))):
-    """Get a single absence request"""
+    """Get a single absence request - must belong to user's condominium"""
     absence = await db.hr_absences.find_one({"id": absence_id}, {"_id": 0})
     if not absence:
         raise HTTPException(status_code=404, detail="Solicitud no encontrada")
