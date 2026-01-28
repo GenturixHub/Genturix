@@ -1289,6 +1289,9 @@ async def clock_in_out(
     
     await db.hr_clock_logs.insert_one(clock_doc)
     
+    # Remove MongoDB _id
+    clock_doc.pop("_id", None)
+    
     # Calculate hours if clocking out
     hours_worked = None
     if clock_req.type == "OUT" and today_logs:
