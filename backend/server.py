@@ -2075,7 +2075,7 @@ async def create_user_by_admin(
     request: Request,
     current_user = Depends(require_role("Administrador", "SuperAdmin"))
 ):
-    """Admin creates a user (Resident, HR, Guard, etc.)"""
+    """Admin creates a user (Resident, HR, Guard, etc.) with role-specific validation"""
     # Check email not in use
     existing = await db.users.find_one({"email": user_data.email})
     if existing:
@@ -2085,6 +2085,64 @@ async def create_user_by_admin(
     valid_roles = ["Residente", "HR", "Guarda", "Supervisor", "Estudiante"]
     if user_data.role not in valid_roles:
         raise HTTPException(status_code=400, detail=f"Rol inválido. Use: {', '.join(valid_roles)}")
+    
+    # Role-specific validation
+    role_data = {}
+    
+    if user_data.role == "Residente":
+        if not user_data.apartment_number:
+            raise HTTPException(status_code=400, detail="Número de apartamento/casa es requerido para Residente")
+        role_data = {
+            "apartment_number": user_data.apartment_number,
+            "tower_block": user_data.tower_block,
+            "resident_type": user_data.resident_type or "owner"
+        }
+    
+    elif user_data.role == "Guarda":
+        if not user_data.badge_number:
+            raise HTTPException(status_code=400, detail="Número de placa es requerido para Guarda")
+        role_data = {
+            "badge_number": user_data.badge_number,
+            "main_location": user_data.main_location or "Entrada Principal",
+            "initial_shift": user_data.initial_shift,
+            "total_hours": 0
+        }
+        # Also create guard record
+        guard_id = str(uuid.uuid4())
+        guard_doc = {
+            "id": guard_id,
+            "email": user_data.email,
+            "name": user_data.full_name,
+            "badge": user_data.badge_number,
+            "phone": user_data.phone,
+            "condominium_id": current_user.get("condominium_id"),
+            "status": "active",
+            "location": user_data.main_location or "Entrada Principal",
+            "rate": 15.0,
+            "total_hours": 0,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.guards.insert_one(guard_doc)
+        role_data["guard_id"] = guard_id
+    
+    elif user_data.role == "HR":
+        role_data = {
+            "department": user_data.department or "Recursos Humanos",
+            "permission_level": user_data.permission_level or "HR"
+        }
+    
+    elif user_data.role == "Estudiante":
+        role_data = {
+            "subscription_plan": user_data.subscription_plan or "basic",
+            "subscription_status": user_data.subscription_status or "trial",
+            "enrolled_courses": []
+        }
+    
+    elif user_data.role == "Supervisor":
+        role_data = {
+            "supervised_area": user_data.supervised_area or "General",
+            "guard_assignments": user_data.guard_assignments or []
+        }
     
     condominium_id = current_user.get("condominium_id")
     
@@ -2100,7 +2158,8 @@ async def create_user_by_admin(
         "is_active": True,
         "is_locked": False,
         "created_by": current_user["id"],
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "role_data": role_data  # Store role-specific data
     }
     
     await db.users.insert_one(user_doc)
@@ -2109,7 +2168,12 @@ async def create_user_by_admin(
         AuditEventType.USER_CREATED,
         current_user["id"],
         "admin",
-        {"user_id": user_id, "email": user_data.email, "role": user_data.role},
+        {
+            "user_id": user_id, 
+            "email": user_data.email, 
+            "role": user_data.role,
+            "role_data": role_data
+        },
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
     )
@@ -2117,6 +2181,8 @@ async def create_user_by_admin(
     return {
         "message": f"Usuario {user_data.full_name} creado exitosamente",
         "user_id": user_id,
+        "role": user_data.role,
+        "role_data": role_data,
         "credentials": {
             "email": user_data.email,
             "password": "********"
