@@ -62,8 +62,9 @@ class TestUserManagementSetup:
         assert response.status_code == 200
         data = response.json()
         assert "access_token" in data
-        assert "Administrador" in data.get("roles", [])
-        print(f"PASS: Admin login successful, roles: {data.get('roles')}")
+        user = data.get("user", {})
+        assert "Administrador" in user.get("roles", [])
+        print(f"PASS: Admin login successful, roles: {user.get('roles')}")
     
     def test_admin_has_condominium_id(self, admin_user_info):
         """Test admin has condominium_id assigned"""
@@ -122,10 +123,11 @@ class TestUserCreation:
         })
         assert login_response.status_code == 200, f"New Residente cannot login: {login_response.text}"
         login_data = login_response.json()
-        assert "Residente" in login_data.get("roles", [])
+        user_info = login_data.get("user", {})
+        assert "Residente" in user_info.get("roles", [])
         
         # Verify condominium_id inherited
-        assert login_data.get("condominium_id") == admin_user_info.get("condominium_id"), \
+        assert user_info.get("condominium_id") == admin_user_info.get("condominium_id"), \
             "New user did not inherit admin's condominium_id"
         print(f"PASS: Residente can login and has correct condominium_id")
         
@@ -155,7 +157,8 @@ class TestUserCreation:
         })
         assert login_response.status_code == 200
         login_data = login_response.json()
-        assert "Guarda" in login_data.get("roles", [])
+        user_info = login_data.get("user", {})
+        assert "Guarda" in user_info.get("roles", [])
         print(f"PASS: Guarda can login with correct role")
         
         return data["user_id"]
@@ -184,7 +187,8 @@ class TestUserCreation:
         })
         assert login_response.status_code == 200
         login_data = login_response.json()
-        assert "HR" in login_data.get("roles", [])
+        user_info = login_data.get("user", {})
+        assert "HR" in user_info.get("roles", [])
         print(f"PASS: HR can login with correct role")
         
         return data["user_id"]
@@ -213,7 +217,8 @@ class TestUserCreation:
         })
         assert login_response.status_code == 200
         login_data = login_response.json()
-        assert "Supervisor" in login_data.get("roles", [])
+        user_info = login_data.get("user", {})
+        assert "Supervisor" in user_info.get("roles", [])
         print(f"PASS: Supervisor can login with correct role")
         
         return data["user_id"]
@@ -242,7 +247,8 @@ class TestUserCreation:
         })
         assert login_response.status_code == 200
         login_data = login_response.json()
-        assert "Estudiante" in login_data.get("roles", [])
+        user_info = login_data.get("user", {})
+        assert "Estudiante" in user_info.get("roles", [])
         print(f"PASS: Estudiante can login with correct role")
         
         return data["user_id"]
