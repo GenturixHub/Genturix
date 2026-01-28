@@ -143,6 +143,13 @@ class GuardCreate(BaseModel):
     hire_date: str
     hourly_rate: float
 
+class GuardUpdate(BaseModel):
+    badge_number: Optional[str] = None
+    phone: Optional[str] = None
+    emergency_contact: Optional[str] = None
+    hourly_rate: Optional[float] = None
+    is_active: Optional[bool] = None
+
 class ShiftCreate(BaseModel):
     guard_id: str
     start_time: str
