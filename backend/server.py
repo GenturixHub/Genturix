@@ -84,6 +84,12 @@ class AuditEventType(str, Enum):
     DEMO_RESET = "demo_reset"
     PLAN_UPDATED = "plan_updated"
     SHIFT_UPDATED = "shift_updated"
+    SHIFT_DELETED = "shift_deleted"
+    CLOCK_IN = "clock_in"
+    CLOCK_OUT = "clock_out"
+    ABSENCE_REQUESTED = "absence_requested"
+    ABSENCE_APPROVED = "absence_approved"
+    ABSENCE_REJECTED = "absence_rejected"
 
 # ==================== MODELS ====================
 class UserCreate(BaseModel):
