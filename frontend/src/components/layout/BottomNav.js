@@ -11,8 +11,18 @@ import {
   FileText,
   LogOut,
   Home,
-  Settings
+  Settings,
+  Clock,
+  Briefcase
 } from 'lucide-react';
+
+/**
+ * GENTURIX - Bottom Navigation (Mobile)
+ * 
+ * Role-based navigation with clear separation:
+ * - RRHH = People management (Admin/Supervisor)
+ * - Turnos = Operations (Admin/Supervisor/Guard)
+ */
 
 // Hook to detect mobile
 export const useIsMobile = () => {
@@ -29,7 +39,7 @@ export const useIsMobile = () => {
 
 const BottomNav = () => {
   const navigate = useNavigate();
-  const { user, logout, hasAnyRole } = useAuth();
+  const { user, logout } = useAuth();
   const activeRole = sessionStorage.getItem('activeRole') || user?.roles?.[0];
 
   const handleLogout = async () => {
@@ -39,6 +49,7 @@ const BottomNav = () => {
 
   // Different nav items based on role
   const getNavItems = () => {
+    // Resident - Emergency focused
     if (activeRole === 'Residente') {
       return [
         { icon: Home, label: 'Inicio', href: '/resident' },
@@ -47,14 +58,16 @@ const BottomNav = () => {
       ];
     }
     
+    // Guard - Operations focused
     if (activeRole === 'Guarda') {
       return [
         { icon: AlertTriangle, label: 'Alertas', href: '/guard' },
-        { icon: Shield, label: 'Accesos', href: '/security' },
+        { icon: Clock, label: 'Turnos', href: '/turnos' },
         { icon: GraduationCap, label: 'Cursos', href: '/student' },
       ];
     }
     
+    // Student - Learning focused
     if (activeRole === 'Estudiante') {
       return [
         { icon: GraduationCap, label: 'Cursos', href: '/student' },
@@ -63,12 +76,12 @@ const BottomNav = () => {
       ];
     }
 
-    // Admin/Supervisor
+    // Admin/Supervisor - Full access with separation
     return [
-      { icon: LayoutDashboard, label: 'Dashboard', href: '/admin/dashboard' },
+      { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
       { icon: AlertTriangle, label: 'Seguridad', href: '/security' },
-      { icon: Users, label: 'RH', href: '/hr' },
-      { icon: FileText, label: 'Auditoría', href: '/audit' },
+      { icon: Clock, label: 'Turnos', href: '/turnos' },
+      { icon: Briefcase, label: 'RRHH', href: '/rrhh' },
     ];
   };
 
