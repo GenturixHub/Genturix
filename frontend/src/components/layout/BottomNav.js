@@ -2,29 +2,24 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
-  Shield, 
   LayoutDashboard, 
   AlertTriangle, 
-  Users, 
   GraduationCap,
   CreditCard,
-  FileText,
   LogOut,
   Home,
   Settings,
-  Clock,
   Briefcase
 } from 'lucide-react';
 
 /**
  * GENTURIX - Bottom Navigation (Mobile)
  * 
- * Role-based navigation with clear separation:
- * - RRHH = People management (Admin/Supervisor)
- * - Turnos = Operations (Admin/Supervisor/Guard)
+ * ESTRUCTURA ACTUALIZADA:
+ * - Turnos YA NO aparece como item separado
+ * - RRHH es el módulo central (incluye turnos)
  */
 
-// Hook to detect mobile
 export const useIsMobile = () => {
   const [isMobile, setIsMobile] = React.useState(window.innerWidth < 768);
 
@@ -47,7 +42,6 @@ const BottomNav = () => {
     navigate('/login');
   };
 
-  // Different nav items based on role
   const getNavItems = () => {
     // Resident - Emergency focused
     if (activeRole === 'Residente') {
@@ -58,11 +52,11 @@ const BottomNav = () => {
       ];
     }
     
-    // Guard - Operations focused
+    // Guard - RRHH includes their shifts
     if (activeRole === 'Guarda') {
       return [
         { icon: AlertTriangle, label: 'Alertas', href: '/guard' },
-        { icon: Clock, label: 'Turnos', href: '/turnos' },
+        { icon: Briefcase, label: 'RRHH', href: '/rrhh' },
         { icon: GraduationCap, label: 'Cursos', href: '/student' },
       ];
     }
@@ -76,11 +70,10 @@ const BottomNav = () => {
       ];
     }
 
-    // Admin/Supervisor - Full access with separation
+    // Admin/Supervisor - RRHH centralizado
     return [
       { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
       { icon: AlertTriangle, label: 'Seguridad', href: '/security' },
-      { icon: Clock, label: 'Turnos', href: '/turnos' },
       { icon: Briefcase, label: 'RRHH', href: '/rrhh' },
     ];
   };

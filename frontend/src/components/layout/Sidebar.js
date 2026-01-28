@@ -5,8 +5,6 @@ import {
   Shield, 
   LayoutDashboard, 
   AlertTriangle, 
-  Users, 
-  Calendar,
   GraduationCap,
   CreditCard,
   FileText,
@@ -14,7 +12,6 @@ import {
   LogOut,
   ChevronLeft,
   Building2,
-  Clock,
   Briefcase
 } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -23,9 +20,9 @@ import { ScrollArea } from '../ui/scroll-area';
 /**
  * GENTURIX - Sidebar Navigation
  * 
- * Updated navigation structure:
- * - RRHH (Recursos Humanos) = Personas, datos laborales
- * - Turnos = Operaciones, asignaciones de tiempo
+ * ESTRUCTURA ACTUALIZADA:
+ * - Turnos YA NO es un módulo separado
+ * - RRHH es el módulo central que contiene Turnos como submódulo
  */
 
 const Sidebar = ({ collapsed, onToggle }) => {
@@ -43,7 +40,7 @@ const Sidebar = ({ collapsed, onToggle }) => {
     navigate('/select-panel');
   };
 
-  // Navigation items with clear separation of concerns
+  // Navigation items - TURNOS REMOVIDO como módulo independiente
   const navItems = [
     {
       title: 'Dashboard',
@@ -58,21 +55,13 @@ const Sidebar = ({ collapsed, onToggle }) => {
       roles: ['Administrador', 'Supervisor', 'Guarda'],
       description: 'Emergencias, accesos, monitoreo'
     },
-    // HR Module - PEOPLE FOCUSED
+    // RRHH - Módulo central único (incluye Turnos)
     {
       title: 'Recursos Humanos',
       icon: Briefcase,
       href: '/rrhh',
-      roles: ['Administrador', 'Supervisor'],
-      description: 'Gestión de personal'
-    },
-    // Shifts Module - OPERATIONS FOCUSED
-    {
-      title: 'Turnos',
-      icon: Clock,
-      href: '/turnos',
       roles: ['Administrador', 'Supervisor', 'Guarda'],
-      description: 'Horarios y asignaciones'
+      description: 'Personal, turnos, ausencias'
     },
     {
       title: 'Genturix School',
