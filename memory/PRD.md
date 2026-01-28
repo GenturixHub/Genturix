@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 28, 2026 (Session 5 - Role & Credential Management)
+## Last Updated: January 28, 2026 (Session 6 - Admin User Management UI)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,31 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: 100% PRODUCTION READY ✅
+
+### Session 6 - Condominium Admin User Management UI (January 28, 2026) ⭐ CRITICAL
+- ✅ **Full User Management Page** (`/admin/users`)
+  - Stats cards: Total users, Active, Count by role
+  - User table with name, email, role, status, created date
+  - Search filter by name/email
+  - Role filter dropdown
+- ✅ **Create User Modal**:
+  - Fields: Name, Email, Password (auto-generated), Role, Phone
+  - Roles: Residente, Guarda, HR, Supervisor, Estudiante
+  - Admin CANNOT create SuperAdmin or Administrador
+  - Auto-assigns admin's condominium_id
+- ✅ **Credentials Dialog**:
+  - Password shown ONLY ONCE after creation
+  - Warning: "Esta es la única vez que verás la contraseña"
+  - Copy Credentials button (email + password)
+  - Close: "He guardado las credenciales"
+- ✅ **User Status Management**:
+  - Toggle Active/Inactive with confirmation dialog
+  - Cannot self-deactivate
+- ✅ **Security & Audit**:
+  - All actions logged to audit (user_created, user_updated)
+  - Multi-tenancy enforced
+- ✅ **Sidebar Updated**: "Usuarios" link for Administrador
+- 📋 Test report: `/app/test_reports/iteration_12.json` - 100% pass rate (20/20)
 
 ### Session 5 - Role & Credential Management (January 28, 2026)
 - ✅ **HR Role Implemented** - Full permissions for personnel management
