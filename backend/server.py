@@ -1088,6 +1088,37 @@ async def get_guard_logbook(current_user = Depends(require_role("Administrador",
     
     return logbook_entries
 
+
+# ==================== GUARD HISTORY ====================
+@api_router.get("/guard/history")
+async def get_guard_history(
+    history_type: Optional[str] = None,
+    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
+):
+    """Get guard action history - alerts resolved + visits completed"""
+    query = {}
+    
+    # Multi-tenant filtering
+    if "SuperAdmin" not in current_user.get("roles", []):
+        condo_id = current_user.get("condominium_id")
+        if condo_id:
+            query["condominium_id"] = condo_id
+    
+    # Guards see only their own history, Admin/Supervisor see all in condo
+    if "Guarda" in current_user.get("roles", []) and "Administrador" not in current_user.get("roles", []):
+        guard = await db.guards.find_one({"user_id": current_user["id"]})
+        if guard:
+            query["guard_id"] = guard["id"]
+    
+    # Filter by type if specified
+    if history_type in ["alert_resolved", "visit_completed"]:
+        query["type"] = history_type
+    
+    history = await db.guard_history.find(query, {"_id": 0}).sort("timestamp", -1).to_list(100)
+    return history
+
+
+
 @api_router.get("/security/active-guards")
 async def get_active_guards(current_user = Depends(require_role("Administrador", "Supervisor"))):
     """Get active guards - scoped by condominium"""
