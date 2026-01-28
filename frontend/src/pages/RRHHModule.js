@@ -613,13 +613,13 @@ const TurnosSubmodule = ({ employees, shifts, onCreateShift, isLoading }) => {
 };
 
 // ============================================
-// SUBMÓDULO: RECLUTAMIENTO
+// SUBMÓDULO: RECLUTAMIENTO (COMING SOON)
 // ============================================
 const ReclutamientoSubmodule = () => {
-  const [candidates] = useState([
+  const candidates = [
     { id: '1', name: 'Carlos López', position: 'Guardia', status: 'interview', applied: '2026-01-15' },
     { id: '2', name: 'Ana Martínez', position: 'Supervisor', status: 'applied', applied: '2026-01-18' },
-  ]);
+  ];
 
   const statusLabels = {
     applied: { label: 'Aplicó', color: 'bg-blue-500/10 text-blue-400' },
@@ -631,14 +631,24 @@ const ReclutamientoSubmodule = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Pipeline de Reclutamiento</h3>
-        <Button size="sm">
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold">Pipeline de Reclutamiento</h3>
+          <ComingSoonBadge />
+        </div>
+        <Button size="sm" disabled className="opacity-50 cursor-not-allowed">
           <Plus className="w-4 h-4 mr-2" />
           Nuevo Candidato
         </Button>
       </div>
 
-      <div className="grid gap-3">
+      {/* Coming Soon Notice */}
+      <div className="p-4 rounded-lg bg-yellow-500/5 border border-yellow-500/20">
+        <p className="text-sm text-yellow-400/80">
+          👥 Este módulo está en desarrollo. Próximamente podrás gestionar candidatos, entrevistas y contrataciones.
+        </p>
+      </div>
+
+      <div className="grid gap-3 opacity-60">
         {candidates.map(candidate => (
           <div key={candidate.id} className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B]">
             <div className="flex items-center justify-between mb-2">
