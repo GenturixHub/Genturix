@@ -792,6 +792,10 @@ const GuardUI = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [resolvingId, setResolvingId] = useState(null);
+  
+  // Clock In/Out state
+  const [clockStatus, setClockStatus] = useState(null);
+  const [isClocking, setIsClocking] = useState(false);
 
   const fetchAlerts = useCallback(async () => {
     try {
@@ -805,11 +809,21 @@ const GuardUI = () => {
     }
   }, []);
 
+  const fetchClockStatus = useCallback(async () => {
+    try {
+      const status = await api.getClockStatus();
+      setClockStatus(status);
+    } catch (error) {
+      console.error('Error fetching clock status:', error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchAlerts();
+    fetchClockStatus();
     const interval = setInterval(fetchAlerts, 5000);
     return () => clearInterval(interval);
-  }, [fetchAlerts]);
+  }, [fetchAlerts, fetchClockStatus]);
 
   // Vibrate on new active alerts
   useEffect(() => {
@@ -818,6 +832,20 @@ const GuardUI = () => {
       navigator.vibrate([200, 100, 200]);
     }
   }, [alerts]);
+
+  const handleClockInOut = async () => {
+    setIsClocking(true);
+    try {
+      const type = clockStatus?.is_clocked_in ? 'OUT' : 'IN';
+      await api.clockInOut(type);
+      if (navigator.vibrate) navigator.vibrate(100);
+      fetchClockStatus();
+    } catch (error) {
+      alert(error.message || 'Error al fichar');
+    } finally {
+      setIsClocking(false);
+    }
+  };
 
   const handleResolve = async (alertId) => {
     setResolvingId(alertId);
@@ -843,6 +871,7 @@ const GuardUI = () => {
   };
 
   const activeAlertCount = alerts.filter(a => a.status === 'active').length;
+  const isClockedIn = clockStatus?.is_clocked_in || false;
 
   if (isLoading) {
     return (
@@ -857,23 +886,59 @@ const GuardUI = () => {
 
   return (
     <div className="h-screen bg-[#05050A] flex flex-col overflow-hidden">
-      {/* Header */}
-      <header className="flex-shrink-0 p-3 flex items-center justify-between border-b border-[#1E293B] bg-[#0A0A0F]">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
-            <Shield className="w-5 h-5 text-green-400" />
+      {/* Header with Clock Status */}
+      <header className="flex-shrink-0 p-2 flex items-center justify-between border-b border-[#1E293B] bg-[#0A0A0F]">
+        <div className="flex items-center gap-2">
+          <div className={`w-9 h-9 rounded-lg ${isClockedIn ? 'bg-green-500/20' : 'bg-gray-500/20'} flex items-center justify-center`}>
+            <Shield className={`w-5 h-5 ${isClockedIn ? 'text-green-400' : 'text-gray-400'}`} />
           </div>
           <div>
-            <h1 className="text-sm font-bold tracking-wide">GENTURIX SECURITY</h1>
-            <p className="text-xs text-muted-foreground truncate max-w-[140px]">{user?.full_name}</p>
+            <h1 className="text-xs font-bold tracking-wide">GENTURIX</h1>
+            <p className="text-[10px] text-muted-foreground truncate max-w-[100px]">{user?.full_name}</p>
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={handleLogout}>
-            <LogOut className="w-5 h-5" />
+        
+        {/* Clock In/Out Button */}
+        <div className="flex items-center gap-2">
+          <Button 
+            size="sm"
+            variant={isClockedIn ? "destructive" : "default"}
+            className={`h-8 px-3 text-xs font-bold ${isClockedIn ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+            onClick={handleClockInOut}
+            disabled={isClocking}
+            data-testid="clock-btn"
+          >
+            {isClocking ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <>
+                <Clock className="w-4 h-4 mr-1" />
+                {isClockedIn ? 'SALIDA' : 'ENTRADA'}
+              </>
+            )}
+          </Button>
+          
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleLogout}>
+            <LogOut className="w-4 h-4" />
           </Button>
         </div>
       </header>
+
+      {/* Clock Status Banner */}
+      {clockStatus && (
+        <div className={`px-3 py-1.5 ${isClockedIn ? 'bg-green-500/10' : 'bg-amber-500/10'} border-b border-[#1E293B]`}>
+          <div className="flex items-center justify-between text-xs">
+            <span className={isClockedIn ? 'text-green-400' : 'text-amber-400'}>
+              {isClockedIn ? '✓ En turno' : '○ Sin fichar'}
+            </span>
+            {clockStatus.last_time && (
+              <span className="text-muted-foreground">
+                Último: {new Date(clockStatus.last_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
