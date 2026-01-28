@@ -168,6 +168,34 @@ class ApiService {
   // HR - Payroll
   getPayroll = () => this.get('/hr/payroll');
 
+  // HR - Recruitment
+  createCandidate = (data) => this.post('/hr/candidates', data);
+  getCandidates = (status = '', position = '') => {
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    if (position) params.append('position', position);
+    const query = params.toString();
+    return this.get(`/hr/candidates${query ? `?${query}` : ''}`);
+  };
+  getCandidate = (id) => this.get(`/hr/candidates/${id}`);
+  updateCandidate = (id, data) => this.put(`/hr/candidates/${id}`, data);
+  hireCandidate = (id, data) => this.post(`/hr/candidates/${id}/hire`, data);
+  rejectCandidate = (id, reason = '') => this.put(`/hr/candidates/${id}/reject${reason ? `?reason=${encodeURIComponent(reason)}` : ''}`);
+  
+  // HR - Employee Management
+  createEmployee = (data) => this.post('/hr/employees', data);
+  deactivateEmployee = (guardId) => this.put(`/hr/employees/${guardId}/deactivate`);
+  activateEmployee = (guardId) => this.put(`/hr/employees/${guardId}/activate`);
+  
+  // Admin - User Management
+  createUserByAdmin = (data) => this.post('/admin/users', data);
+  getUsersByAdmin = (role = '') => {
+    return this.get(`/admin/users${role ? `?role=${role}` : ''}`);
+  };
+  
+  // Super Admin - Condo Admin Creation
+  createCondoAdmin = (condoId, data) => this.post(`/super-admin/condominiums/${condoId}/admin`, data);
+
   // School
   createCourse = (data) => this.post('/school/courses', data);
   getCourses = () => this.get('/school/courses');
