@@ -1178,7 +1178,7 @@ async def get_shifts(
     return shifts
 
 @api_router.get("/hr/shifts/{shift_id}")
-async def get_shift(shift_id: str, current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
+async def get_shift(shift_id: str, current_user = Depends(require_role("Administrador", "Supervisor", "Guarda", "HR"))):
     """Get a single shift by ID"""
     shift = await db.shifts.find_one({"id": shift_id}, {"_id": 0})
     if not shift:
@@ -1540,7 +1540,7 @@ async def get_absences(
     return absences
 
 @api_router.get("/hr/absences/{absence_id}")
-async def get_absence(absence_id: str, current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
+async def get_absence(absence_id: str, current_user = Depends(require_role("Administrador", "Supervisor", "Guarda", "HR"))):
     """Get a single absence request"""
     absence = await db.hr_absences.find_one({"id": absence_id}, {"_id": 0})
     if not absence:
