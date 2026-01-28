@@ -568,16 +568,20 @@ async def create_access_log(log: AccessLogCreate, request: Request, current_user
         "location": log.location,
         "notes": log.notes,
         "recorded_by": current_user["id"],
+        "recorded_by_name": current_user.get("full_name", "Guard"),
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
     
     await db.access_logs.insert_one(access_log)
     
+    # Use appropriate audit event type based on access type
+    audit_event = AuditEventType.ACCESS_GRANTED if log.access_type == "entry" else AuditEventType.ACCESS_DENIED
+    
     await log_audit_event(
-        AuditEventType.ACCESS_GRANTED,
+        audit_event,
         current_user["id"],
-        "security",
-        {"person": log.person_name, "type": log.access_type, "location": log.location},
+        "access",
+        {"person": log.person_name, "type": log.access_type, "location": log.location, "guard": current_user.get("full_name")},
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
     )
