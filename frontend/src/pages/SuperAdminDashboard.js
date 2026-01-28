@@ -253,6 +253,8 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate }) => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedCondo, setSelectedCondo] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showCreateAdminDialog, setShowCreateAdminDialog] = useState(false);
+  const [adminTargetCondo, setAdminTargetCondo] = useState(null);
 
   const filteredCondos = condos.filter(c => {
     const matchesSearch = c.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -271,6 +273,11 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate }) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCreateAdmin = (condo) => {
+    setAdminTargetCondo(condo);
+    setShowCreateAdminDialog(true);
   };
 
   return (
