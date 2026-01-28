@@ -235,8 +235,9 @@ class TestMultiTenantIsolation:
         result = self.login(SUPER_ADMIN)
         assert result is not None
         
-        response = self.session.get(f"{BASE_URL}/api/super-admin/condominiums")
-        assert response.status_code == 200
+        # Correct endpoint is /api/condominiums (not /api/super-admin/condominiums)
+        response = self.session.get(f"{BASE_URL}/api/condominiums")
+        assert response.status_code == 200, f"Condominiums list failed: {response.text}"
         
         condos = response.json()
         print(f"SuperAdmin sees {len(condos)} condominiums")
