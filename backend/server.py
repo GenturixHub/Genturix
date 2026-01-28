@@ -1087,7 +1087,7 @@ async def update_guard(
 # ==================== HR SHIFTS (FULL CRUD) ====================
 
 @api_router.post("/hr/shifts")
-async def create_shift(shift: ShiftCreate, request: Request, current_user = Depends(require_role("Administrador", "Supervisor"))):
+async def create_shift(shift: ShiftCreate, request: Request, current_user = Depends(require_role("Administrador", "Supervisor", "HR"))):
     """Create a new shift with validations"""
     # Validate guard exists and is active
     guard = await db.guards.find_one({"id": shift.guard_id})
