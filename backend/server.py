@@ -718,8 +718,8 @@ async def get_panic_events(current_user = Depends(require_role("Administrador", 
 
 @api_router.put("/security/panic/{event_id}/resolve")
 async def resolve_panic(event_id: str, request: Request, current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
-    """Resolve a panic event - must belong to user's condominium"""
-    # Verify event belongs to user's condominium
+    """Resolve a panic event and save to guard_history"""
+    # Verify event exists and belongs to user's condominium
     event = await db.panic_events.find_one({"id": event_id})
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -728,10 +728,56 @@ async def resolve_panic(event_id: str, request: Request, current_user = Depends(
         if event.get("condominium_id") != current_user.get("condominium_id"):
             raise HTTPException(status_code=403, detail="No tienes permiso para resolver esta alerta")
     
+    resolved_at = datetime.now(timezone.utc).isoformat()
+    
     result = await db.panic_events.update_one(
         {"id": event_id},
-        {"$set": {"status": "resolved", "resolved_at": datetime.now(timezone.utc).isoformat(), "resolved_by": current_user["id"]}}
+        {"$set": {
+            "status": "resolved", 
+            "resolved_at": resolved_at, 
+            "resolved_by": current_user["id"],
+            "resolved_by_name": current_user.get("full_name", "Unknown")
+        }}
     )
+    
+    # Get guard info if resolver is a guard
+    guard = await db.guards.find_one({"user_id": current_user["id"]})
+    guard_id = guard["id"] if guard else None
+    
+    # Save to guard_history for audit trail
+    history_entry = {
+        "id": str(uuid.uuid4()),
+        "type": "alert_resolved",
+        "guard_id": guard_id,
+        "guard_user_id": current_user["id"],
+        "guard_name": current_user.get("full_name"),
+        "condominium_id": event.get("condominium_id") or current_user.get("condominium_id"),
+        "event_id": event_id,
+        "event_type": event.get("panic_type"),
+        "event_type_label": event.get("panic_type_label"),
+        "resident_name": event.get("user_name"),
+        "location": event.get("location"),
+        "original_created_at": event.get("created_at"),
+        "resolved_at": resolved_at,
+        "timestamp": resolved_at
+    }
+    await db.guard_history.insert_one(history_entry)
+    
+    # Log audit event
+    await log_audit_event(
+        AuditEventType.PANIC_RESOLVED,
+        current_user["id"],
+        "security",
+        {
+            "event_id": event_id,
+            "panic_type": event.get("panic_type"),
+            "resident_name": event.get("user_name"),
+            "location": event.get("location")
+        },
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
     return {"message": "Panic event resolved"}
 
 @api_router.post("/security/access-log")
