@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 21, 2026
+## Last Updated: January 28, 2026
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -19,12 +19,42 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 
 ---
 
+## ARCHITECTURE: MULTI-TENANT (3 LAYERS)
+
+### Layer 1: Global Platform
+- Super Admin controls
+- Tenant (Condominium) management
+- Module configuration per tenant
+
+### Layer 2: Condominium/Tenant
+- Each condominium has its own configuration
+- Enabled/disabled modules
+- User limits and billing
+
+### Layer 3: Module Rules
+- Each module has specific settings
+- Role-based access within modules
+
+### Multi-Tenant API Endpoints
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/condominiums` | POST | Create new condominium |
+| `/api/condominiums` | GET | List all condominiums |
+| `/api/condominiums/{id}` | GET | Get condominium details |
+| `/api/condominiums/{id}` | PATCH | Update condominium |
+| `/api/condominiums/{id}` | DELETE | Deactivate condominium |
+| `/api/condominiums/{id}/users` | GET | Get condominium users |
+| `/api/condominiums/{id}/billing` | GET | Get billing info |
+| `/api/condominiums/{id}/modules/{module}` | PATCH | Enable/disable module |
+
+---
+
 ## EMERGENCY SYSTEM (CORE DNA)
 
-### Panic Button - 3 Types
-1. 🚑 **Emergencia Médica** - Medical emergency requiring immediate attention
-2. 👁️ **Actividad Sospechosa** - Suspicious activity requiring verification
-3. 🚨 **Emergencia General** - Other emergency requiring immediate response
+### Panic Button - 3 Types with Psychological Color Coding
+1. 🔴 **Emergencia Médica** (RED) - Life threat, critical
+2. 🟡 **Actividad Sospechosa** (AMBER/YELLOW) - Caution, observation
+3. 🟠 **Emergencia General** (ORANGE) - Urgent, immediate action
 
 ### Each Panic Event:
 - ✅ Captures GPS location automatically
@@ -32,6 +62,37 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 - ✅ Notifies ALL active guards
 - ✅ Stored in Audit Logs with full details
 - ✅ Vibration feedback on mobile devices
+- ✅ Full-screen, touch-optimized buttons (min 120px height)
+- ✅ Glow/pulse animations for urgency
+
+---
+
+## MODULES
+
+### RRHH (Recursos Humanos) - Central Module
+**IMPORTANTE: RRHH es el ÚNICO módulo de personal. Turnos NO es módulo separado.**
+
+Sub-módulos dentro de RRHH:
+1. **Solicitudes de Ausencia** - Vacaciones, permisos, aprobaciones
+2. **Control Horario** - Entrada/salida, ajustes, reportes
+3. **Planificación de Turnos** - Creación, asignación, calendario
+4. **Reclutamiento** - Candidatos, pipeline, contratación
+5. **Onboarding/Offboarding** - Accesos, equipos, desactivación
+6. **Evaluación de Desempeño** - Evaluaciones, feedback, historial
+
+**Rutas:**
+- `/rrhh` → Módulo RRHH principal
+- `/hr` → Redirige a `/rrhh` (legacy)
+- `/shifts` → Redirige a `/rrhh` (legacy)
+
+### Otros Módulos
+- **Security** - Emergencias, accesos, monitoreo
+- **Genturix School** - Cursos, progreso, certificados
+- **Payments** - Stripe integration, $1/usuario/mes
+- **Audit** - Logs de eventos del sistema
+- **Reservations** - (Disabled by default)
+- **Access Control** - Control de acceso
+- **Messaging** - (Disabled by default)
 
 ---
 
@@ -42,18 +103,19 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 | Residente | Full-screen panic buttons | `/resident` | Emergency-first, one-touch activation |
 | Guarda | Emergency response list | `/guard` | Active alerts, GPS coords, map links |
 | Estudiante | Learning portal | `/student` | Courses, progress, certificates |
-| Supervisor | Admin dashboard | `/admin/dashboard` | Guards, shifts, monitoring |
+| Supervisor | Admin dashboard + RRHH | `/admin/dashboard`, `/rrhh` | Guards, shifts, monitoring |
 | Administrador | Full system | `/admin/dashboard` | All modules access |
 
 ---
 
 ## TECH STACK
 
-### Backend (NOT MODIFIED)
+### Backend
 - FastAPI + MongoDB + Motor (async)
-- JWT Authentication
+- JWT Authentication with condominium_id
 - Stripe Integration
 - RESTful API with `/api` prefix
+- Multi-tenant architecture
 
 ### Frontend (PWA Mobile-First)
 - React 18
@@ -61,36 +123,6 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 - Progressive Web App (PWA)
 - Service Worker for offline support
 - Bottom navigation (mobile) / Sidebar (desktop)
-
----
-
-## PWA IMPLEMENTATION (COMPLETED)
-
-### Configuration Files
-- `/app/frontend/public/manifest.json` - PWA manifest with icons, shortcuts
-- `/app/frontend/public/service-worker.js` - Cache strategy, offline support
-- `/app/frontend/public/index.html` - Meta tags, iOS support, install prompt
-
-### Mobile-First Components
-- `/app/frontend/src/components/layout/BottomNav.js` - Role-based mobile navigation
-- `/app/frontend/src/components/layout/DashboardLayout.js` - Adaptive layout (mobile/desktop)
-
-### Role-Specific UIs
-- `/app/frontend/src/pages/ResidentUI.js` - Emergency buttons full-screen
-- `/app/frontend/src/pages/GuardUI.js` - Emergency response with maps
-- `/app/frontend/src/pages/StudentUI.js` - Learning interface
-- `/app/frontend/src/pages/DashboardPage.js` - Admin responsive dashboard
-
-### PWA Features
-- ✅ Installable on Android/iOS
-- ✅ Safe area support (notch, home indicator)
-- ✅ 44px minimum touch targets
-- ✅ Vibration on emergency alerts
-- ✅ Direct links to Google Maps/Apple Maps
-- ✅ Direct call to 911 button
-- ✅ Install prompt after 30 seconds
-- ✅ Service worker with network-first cache
-- ✅ PWA shortcuts for quick emergency access
 
 ---
 
@@ -106,66 +138,72 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 
 ---
 
-## NEXT SESSION PRIORITIES
+## COMPLETED WORK
 
-### 1. Security Flows Review
-- [ ] Auth flow validation (JWT tokens, refresh)
-- [ ] Role-based access control per UI
-- [ ] Session management
-- [ ] Protected routes verification
+### January 28, 2026
+- ✅ Refactorización módulo RRHH - Turnos ahora es submódulo
+- ✅ Eliminado ShiftsModule.js y HRModule.js (redundantes)
+- ✅ Implementada arquitectura Multi-Tenant en backend
+- ✅ Endpoints de gestión de condominios (CRUD)
+- ✅ Endpoint de facturación por condominio
+- ✅ Endpoint para habilitar/deshabilitar módulos
+- ✅ Token JWT incluye condominium_id
+- ✅ Redirecciones /hr y /shifts a /rrhh
+- ✅ Testing completo (100% backend, 100% frontend)
 
-### 2. Panic Event Flow E2E
-- [ ] Resident triggers panic → Guards notified
-- [ ] GPS capture accuracy
-- [ ] Guard resolution flow
-- [ ] Audit log verification
+### Previous Sessions
+- ✅ PWA completo con manifest, service worker, icons
+- ✅ Botón de pánico con 3 tipos y colores
+- ✅ UIs específicas por rol (Resident, Guard, Student)
+- ✅ Integración Stripe para pagos
+- ✅ Sistema de autenticación JWT
+- ✅ Navegación adaptativa (Sidebar/BottomNav)
 
-### 3. Production Readiness Checklist
-- [ ] PWA audit (Lighthouse)
-- [ ] Performance optimization
-- [ ] Error handling
-- [ ] Environment variables
-- [ ] API security headers
-- [ ] Rate limiting
-- [ ] Database indexes
+---
+
+## BACKLOG / FUTURE TASKS
+
+### P1 - High Priority
+- [ ] Push notifications para alertas de pánico
+- [ ] Dashboard de estadísticas por condominio
+- [ ] Reportes de facturación exportables
+
+### P2 - Medium Priority
+- [ ] Integración con servicios de mensajería
+- [ ] Sistema de reservaciones
+- [ ] Integración CCTV
+
+### P3 - Low Priority
+- [ ] App nativa (React Native)
+- [ ] API pública con rate limiting
+- [ ] Integraciones con IoT
 
 ---
 
 ## FILE STRUCTURE
 
 ```
-/app/frontend/
-├── public/
-│   ├── manifest.json          # PWA config
-│   ├── service-worker.js      # Offline support
-│   ├── index.html             # Meta tags, PWA setup
-│   └── icons/                 # App icons
-├── src/
-│   ├── index.css              # Mobile-first styles
-│   ├── App.js                 # Routes with role-based redirect
-│   ├── contexts/
-│   │   └── AuthContext.js     # JWT auth state
-│   ├── services/
-│   │   └── api.js             # API client
-│   ├── components/layout/
-│   │   ├── BottomNav.js       # Mobile navigation
-│   │   ├── Sidebar.js         # Desktop navigation
-│   │   ├── Header.js          # Desktop header
-│   │   └── DashboardLayout.js # Adaptive layout
-│   └── pages/
-│       ├── LoginPage.js       # Responsive login
-│       ├── PanelSelectionPage.js
-│       ├── ResidentUI.js      # Emergency buttons
-│       ├── GuardUI.js         # Emergency response
-│       ├── StudentUI.js       # Learning portal
-│       ├── DashboardPage.js   # Admin dashboard
-│       ├── SecurityModule.js  # Security management
-│       ├── HRModule.js        # Human resources
-│       ├── SchoolModule.js    # Genturix School
-│       ├── PaymentsModule.js  # $1/user pricing
-│       └── AuditModule.js     # Activity logs
+/app/
+├── backend/
+│   ├── server.py           # FastAPI app with multi-tenant
+│   ├── requirements.txt
+│   └── .env
+├── frontend/
+│   ├── public/
+│   │   ├── manifest.json
+│   │   ├── service-worker.js
+│   │   └── index.html
+│   └── src/
+│       ├── App.js          # Routes with redirects
+│       ├── pages/
+│       │   ├── RRHHModule.js    # Central HR module
+│       │   ├── ResidentUI.js    # Panic buttons
+│       │   ├── GuardUI.js       # Emergency response
+│       │   └── ...
+│       └── components/
+│           └── layout/
+│               ├── Sidebar.js
+│               └── BottomNav.js
+└── memory/
+    └── PRD.md
 ```
-
----
-
-## STATUS: PWA Mobile-First Architecture Complete ✅
