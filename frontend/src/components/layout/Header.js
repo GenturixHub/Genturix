@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
 import { 
   Bell, 
   Menu, 
   Search,
-  AlertTriangle
+  AlertTriangle,
+  User
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -16,13 +18,53 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import { Input } from '../ui/input';
+import api from '../../services/api';
 
 const Header = ({ onMenuClick, title }) => {
-  const { user } = useAuth();
-  const [notifications] = React.useState([
-    { id: 1, title: 'Alerta de seguridad', message: 'Nuevo evento de pánico registrado', type: 'alert' },
-    { id: 2, title: 'Turno asignado', message: 'Se te ha asignado un nuevo turno', type: 'info' },
-  ]);
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const [notifications, setNotifications] = useState([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+
+  // Fetch real notifications/alerts for admins and guards
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!user) return;
+      const roles = user.roles || [];
+      
+      // Only fetch for roles that handle alerts
+      if (roles.includes('Administrador') || roles.includes('Supervisor') || roles.includes('Guarda')) {
+        setLoadingNotifications(true);
+        try {
+          const events = await api.get('/security/panic-events');
+          const activeAlerts = Array.isArray(events) 
+            ? events.filter(e => e.status === 'active').slice(0, 5)
+            : [];
+          setNotifications(activeAlerts.map(e => ({
+            id: e.id,
+            title: e.panic_type_label || 'Alerta de Pánico',
+            message: `${e.user_name} - ${e.location || 'Sin ubicación'}`,
+            type: 'alert'
+          })));
+        } catch (err) {
+          console.error('Error fetching notifications:', err);
+          setNotifications([]);
+        } finally {
+          setLoadingNotifications(false);
+        }
+      }
+    };
+    
+    fetchNotifications();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
 
   return (
     <header className="sticky top-0 z-30 h-16 bg-[#0F111A] border-b border-[#1E293B] px-4 flex items-center gap-4">
@@ -54,48 +96,63 @@ const Header = ({ onMenuClick, title }) => {
         </div>
       </div>
 
-      {/* Notifications */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative"
-            data-testid="notifications-btn"
-          >
-            <Bell className="w-5 h-5" />
-            {notifications.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-[10px] font-bold flex items-center justify-center">
-                {notifications.length}
+      {/* Notifications - Only for Admin/Guard roles with real data */}
+      {(user?.roles?.includes('Administrador') || user?.roles?.includes('Supervisor') || user?.roles?.includes('Guarda')) && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative"
+              data-testid="notifications-btn"
+            >
+              <Bell className="w-5 h-5" />
+              {notifications.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-[10px] font-bold flex items-center justify-center animate-pulse">
+                  {notifications.length}
+                </span>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-80 bg-[#0F111A] border-[#1E293B]">
+            <DropdownMenuLabel className="flex items-center justify-between">
+              <span>Alertas Activas</span>
+              <span className="text-xs text-muted-foreground">
+                {notifications.length > 0 ? `${notifications.length} activas` : 'Sin alertas'}
               </span>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator className="bg-[#1E293B]" />
+            {notifications.length === 0 ? (
+              <div className="p-4 text-center text-sm text-muted-foreground">
+                No hay alertas activas
+              </div>
+            ) : (
+              notifications.map((notif) => (
+                <DropdownMenuItem key={notif.id} className="flex items-start gap-3 py-3 cursor-pointer">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-red-500/20 text-red-400">
+                    <AlertTriangle className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{notif.title}</p>
+                    <p className="text-xs text-muted-foreground truncate">{notif.message}</p>
+                  </div>
+                </DropdownMenuItem>
+              ))
             )}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-80 bg-[#0F111A] border-[#1E293B]">
-          <DropdownMenuLabel className="flex items-center justify-between">
-            <span>Notificaciones</span>
-            <span className="text-xs text-muted-foreground">{notifications.length} nuevas</span>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator className="bg-[#1E293B]" />
-          {notifications.map((notif) => (
-            <DropdownMenuItem key={notif.id} className="flex items-start gap-3 py-3 cursor-pointer">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                notif.type === 'alert' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'
-              }`}>
-                <AlertTriangle className="w-4 h-4" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium">{notif.title}</p>
-                <p className="text-xs text-muted-foreground truncate">{notif.message}</p>
-              </div>
-            </DropdownMenuItem>
-          ))}
-          <DropdownMenuSeparator className="bg-[#1E293B]" />
-          <DropdownMenuItem className="text-center text-primary cursor-pointer">
-            Ver todas las notificaciones
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+            {notifications.length > 0 && (
+              <>
+                <DropdownMenuSeparator className="bg-[#1E293B]" />
+                <DropdownMenuItem 
+                  className="text-center text-primary cursor-pointer"
+                  onClick={() => navigate('/security')}
+                >
+                  Ver todas las alertas
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
 
       {/* User Menu */}
       <DropdownMenu>
@@ -121,10 +178,12 @@ const Header = ({ onMenuClick, title }) => {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator className="bg-[#1E293B]" />
-          <DropdownMenuItem className="cursor-pointer">Mi Perfil</DropdownMenuItem>
-          <DropdownMenuItem className="cursor-pointer">Configuración</DropdownMenuItem>
+          <DropdownMenuItem className="cursor-pointer" onClick={() => navigate('/profile')}>
+            <User className="w-4 h-4 mr-2" />
+            Mi Perfil
+          </DropdownMenuItem>
           <DropdownMenuSeparator className="bg-[#1E293B]" />
-          <DropdownMenuItem className="cursor-pointer text-red-400">
+          <DropdownMenuItem className="cursor-pointer text-red-400" onClick={handleLogout}>
             Cerrar Sesión
           </DropdownMenuItem>
         </DropdownMenuContent>
