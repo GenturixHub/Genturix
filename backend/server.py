@@ -756,7 +756,13 @@ async def create_access_log(log: AccessLogCreate, request: Request, current_user
 
 @api_router.get("/security/access-logs")
 async def get_access_logs(current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
-    logs = await db.access_logs.find({}, {"_id": 0}).sort("timestamp", -1).to_list(100)
+    """Get access logs - scoped by condominium"""
+    query = {}
+    if "SuperAdmin" not in current_user.get("roles", []):
+        condo_id = current_user.get("condominium_id")
+        if condo_id:
+            query["condominium_id"] = condo_id
+    logs = await db.access_logs.find(query, {"_id": 0}).sort("timestamp", -1).to_list(100)
     return logs
 
 # Endpoint for Residents to see their visitor notifications
