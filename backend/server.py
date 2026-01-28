@@ -1079,6 +1079,9 @@ async def create_shift(shift: ShiftCreate, request: Request, current_user = Depe
     
     await db.shifts.insert_one(shift_doc)
     
+    # Remove MongoDB _id before returning
+    shift_doc.pop("_id", None)
+    
     await log_audit_event(
         AuditEventType.SHIFT_CREATED,
         current_user["id"],
