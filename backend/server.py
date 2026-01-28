@@ -593,6 +593,49 @@ async def get_access_logs(current_user = Depends(require_role("Administrador", "
     logs = await db.access_logs.find({}, {"_id": 0}).sort("timestamp", -1).to_list(100)
     return logs
 
+# Endpoint for Residents to see their visitor notifications
+@api_router.get("/resident/notifications")
+async def get_resident_notifications(current_user = Depends(get_current_user)):
+    """Get visitor entry/exit notifications for a resident"""
+    resident_name = current_user.get("full_name", "").lower()
+    
+    # Get all access logs that mention this resident or are marked as visits
+    logs = await db.access_logs.find({}, {"_id": 0}).sort("timestamp", -1).to_list(100)
+    
+    # Filter logs that might be relevant to this resident
+    notifications = [
+        log for log in logs 
+        if log.get("notes") and (
+            resident_name in log.get("notes", "").lower() or 
+            "visita" in log.get("notes", "").lower()
+        )
+    ]
+    
+    return notifications[:20]
+
+# Endpoint for Guards to write to their logbook
+@api_router.get("/security/logbook")
+async def get_guard_logbook(current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
+    """Get logbook entries for guards"""
+    # Get security-related audit logs and access logs as logbook
+    logs = await db.access_logs.find({}, {"_id": 0}).sort("timestamp", -1).to_list(50)
+    
+    # Format as logbook entries
+    logbook_entries = []
+    for log in logs:
+        logbook_entries.append({
+            "id": log.get("id"),
+            "event_type": log.get("access_type", "entry"),
+            "timestamp": log.get("timestamp"),
+            "details": {
+                "person": log.get("person_name"),
+                "notes": log.get("notes"),
+                "location": log.get("location")
+            }
+        })
+    
+    return logbook_entries
+
 @api_router.get("/security/active-guards")
 async def get_active_guards(current_user = Depends(require_role("Administrador", "Supervisor"))):
     now = datetime.now(timezone.utc).isoformat()
