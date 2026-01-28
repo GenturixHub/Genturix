@@ -246,6 +246,13 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
 
+      {/* Profile - Available to all authenticated users */}
+      <Route path="/profile" element={
+        <ProtectedRoute>
+          <ProfilePage />
+        </ProtectedRoute>
+      } />
+
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
