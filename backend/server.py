@@ -1026,11 +1026,42 @@ async def update_guard(
     updated_guard = await db.guards.find_one({"id": guard_id}, {"_id": 0})
     return updated_guard
 
+# ==================== HR SHIFTS (FULL CRUD) ====================
+
 @api_router.post("/hr/shifts")
 async def create_shift(shift: ShiftCreate, request: Request, current_user = Depends(require_role("Administrador", "Supervisor"))):
+    """Create a new shift with validations"""
+    # Validate guard exists and is active
     guard = await db.guards.find_one({"id": shift.guard_id})
     if not guard:
-        raise HTTPException(status_code=404, detail="Guard not found")
+        raise HTTPException(status_code=404, detail="Empleado no encontrado")
+    if not guard.get("is_active", True):
+        raise HTTPException(status_code=400, detail="El empleado no está activo")
+    
+    # Parse and validate times
+    try:
+        start_dt = datetime.fromisoformat(shift.start_time.replace('Z', '+00:00'))
+        end_dt = datetime.fromisoformat(shift.end_time.replace('Z', '+00:00'))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de fecha inválido. Use ISO 8601")
+    
+    if start_dt >= end_dt:
+        raise HTTPException(status_code=400, detail="La hora de inicio debe ser anterior a la hora de fin")
+    
+    # Check for overlapping shifts
+    existing_shifts = await db.shifts.find({
+        "guard_id": shift.guard_id,
+        "status": {"$ne": "cancelled"},
+        "$or": [
+            {"start_time": {"$lt": shift.end_time}, "end_time": {"$gt": shift.start_time}}
+        ]
+    }).to_list(100)
+    
+    if existing_shifts:
+        raise HTTPException(status_code=400, detail="El empleado ya tiene un turno programado en ese horario")
+    
+    # Get condominium_id from user
+    condominium_id = current_user.get("condominium_id")
     
     shift_doc = {
         "id": str(uuid.uuid4()),
@@ -1041,6 +1072,7 @@ async def create_shift(shift: ShiftCreate, request: Request, current_user = Depe
         "location": shift.location,
         "notes": shift.notes,
         "status": "scheduled",
+        "condominium_id": condominium_id,
         "created_by": current_user["id"],
         "created_at": datetime.now(timezone.utc).isoformat()
     }
@@ -1051,7 +1083,7 @@ async def create_shift(shift: ShiftCreate, request: Request, current_user = Depe
         AuditEventType.SHIFT_CREATED,
         current_user["id"],
         "hr",
-        {"guard_id": shift.guard_id, "location": shift.location},
+        {"shift_id": shift_doc["id"], "guard_id": shift.guard_id, "location": shift.location},
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
     )
@@ -1059,9 +1091,468 @@ async def create_shift(shift: ShiftCreate, request: Request, current_user = Depe
     return shift_doc
 
 @api_router.get("/hr/shifts")
-async def get_shifts(current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
-    shifts = await db.shifts.find({}, {"_id": 0}).sort("start_time", -1).to_list(100)
+async def get_shifts(
+    status: Optional[str] = None,
+    guard_id: Optional[str] = None,
+    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
+):
+    """Get shifts with optional filters"""
+    query = {}
+    
+    # Filter by status if provided
+    if status:
+        query["status"] = status
+    
+    # Filter by guard if provided
+    if guard_id:
+        query["guard_id"] = guard_id
+    
+    # Guards can only see their own shifts
+    if "Guarda" in current_user.get("roles", []) and "Administrador" not in current_user.get("roles", []):
+        guard = await db.guards.find_one({"user_id": current_user["id"]})
+        if guard:
+            query["guard_id"] = guard["id"]
+    
+    shifts = await db.shifts.find(query, {"_id": 0}).sort("start_time", -1).to_list(100)
     return shifts
+
+@api_router.get("/hr/shifts/{shift_id}")
+async def get_shift(shift_id: str, current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
+    """Get a single shift by ID"""
+    shift = await db.shifts.find_one({"id": shift_id}, {"_id": 0})
+    if not shift:
+        raise HTTPException(status_code=404, detail="Turno no encontrado")
+    return shift
+
+@api_router.put("/hr/shifts/{shift_id}")
+async def update_shift(
+    shift_id: str,
+    shift_update: ShiftUpdate,
+    request: Request,
+    current_user = Depends(require_role("Administrador", "Supervisor"))
+):
+    """Update an existing shift"""
+    shift = await db.shifts.find_one({"id": shift_id})
+    if not shift:
+        raise HTTPException(status_code=404, detail="Turno no encontrado")
+    
+    update_data = {}
+    
+    if shift_update.start_time is not None:
+        update_data["start_time"] = shift_update.start_time
+    if shift_update.end_time is not None:
+        update_data["end_time"] = shift_update.end_time
+    if shift_update.location is not None:
+        update_data["location"] = shift_update.location
+    if shift_update.notes is not None:
+        update_data["notes"] = shift_update.notes
+    if shift_update.status is not None:
+        if shift_update.status not in ["scheduled", "in_progress", "completed", "cancelled"]:
+            raise HTTPException(status_code=400, detail="Estado inválido")
+        update_data["status"] = shift_update.status
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No hay campos para actualizar")
+    
+    # Validate times if both are being updated
+    new_start = update_data.get("start_time", shift["start_time"])
+    new_end = update_data.get("end_time", shift["end_time"])
+    
+    try:
+        start_dt = datetime.fromisoformat(new_start.replace('Z', '+00:00'))
+        end_dt = datetime.fromisoformat(new_end.replace('Z', '+00:00'))
+        if start_dt >= end_dt:
+            raise HTTPException(status_code=400, detail="La hora de inicio debe ser anterior a la hora de fin")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de fecha inválido")
+    
+    # Check for overlaps (excluding current shift)
+    if "start_time" in update_data or "end_time" in update_data:
+        existing = await db.shifts.find({
+            "id": {"$ne": shift_id},
+            "guard_id": shift["guard_id"],
+            "status": {"$ne": "cancelled"},
+            "$or": [
+                {"start_time": {"$lt": new_end}, "end_time": {"$gt": new_start}}
+            ]
+        }).to_list(100)
+        
+        if existing:
+            raise HTTPException(status_code=400, detail="El cambio genera conflicto con otro turno")
+    
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    update_data["updated_by"] = current_user["id"]
+    
+    await db.shifts.update_one({"id": shift_id}, {"$set": update_data})
+    
+    await log_audit_event(
+        AuditEventType.SHIFT_UPDATED,
+        current_user["id"],
+        "hr",
+        {"shift_id": shift_id, "updated_fields": list(update_data.keys())},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    updated_shift = await db.shifts.find_one({"id": shift_id}, {"_id": 0})
+    return updated_shift
+
+@api_router.delete("/hr/shifts/{shift_id}")
+async def delete_shift(
+    shift_id: str,
+    request: Request,
+    current_user = Depends(require_role("Administrador"))
+):
+    """Delete (cancel) a shift"""
+    shift = await db.shifts.find_one({"id": shift_id})
+    if not shift:
+        raise HTTPException(status_code=404, detail="Turno no encontrado")
+    
+    # Soft delete - mark as cancelled
+    await db.shifts.update_one(
+        {"id": shift_id},
+        {"$set": {
+            "status": "cancelled",
+            "cancelled_at": datetime.now(timezone.utc).isoformat(),
+            "cancelled_by": current_user["id"]
+        }}
+    )
+    
+    await log_audit_event(
+        AuditEventType.SHIFT_DELETED,
+        current_user["id"],
+        "hr",
+        {"shift_id": shift_id, "guard_id": shift["guard_id"]},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {"message": "Turno cancelado exitosamente"}
+
+# ==================== HR CLOCK IN/OUT ====================
+
+@api_router.post("/hr/clock")
+async def clock_in_out(
+    clock_req: ClockRequest,
+    request: Request,
+    current_user = Depends(require_role("Guarda", "Administrador", "Supervisor"))
+):
+    """Register clock in or clock out"""
+    if clock_req.type not in ["IN", "OUT"]:
+        raise HTTPException(status_code=400, detail="Tipo debe ser 'IN' o 'OUT'")
+    
+    # Get guard record for current user
+    guard = await db.guards.find_one({"user_id": current_user["id"]})
+    if not guard:
+        raise HTTPException(status_code=404, detail="No tienes registro como empleado")
+    
+    if not guard.get("is_active", True):
+        raise HTTPException(status_code=400, detail="Tu cuenta de empleado no está activa")
+    
+    today = datetime.now(timezone.utc).date().isoformat()
+    
+    # Get today's clock logs for this employee
+    today_logs = await db.hr_clock_logs.find({
+        "employee_id": guard["id"],
+        "date": today
+    }).sort("timestamp", -1).to_list(100)
+    
+    if clock_req.type == "IN":
+        # Check if already clocked in without clocking out
+        if today_logs:
+            last_log = today_logs[0]
+            if last_log["type"] == "IN":
+                raise HTTPException(status_code=400, detail="Ya tienes una entrada registrada. Debes registrar salida primero.")
+    
+    elif clock_req.type == "OUT":
+        # Check if there's a clock in first
+        if not today_logs:
+            raise HTTPException(status_code=400, detail="No tienes entrada registrada hoy. Debes registrar entrada primero.")
+        
+        last_log = today_logs[0]
+        if last_log["type"] == "OUT":
+            raise HTTPException(status_code=400, detail="Ya registraste salida. Debes registrar entrada primero.")
+    
+    clock_doc = {
+        "id": str(uuid.uuid4()),
+        "employee_id": guard["id"],
+        "employee_name": guard["user_name"],
+        "type": clock_req.type,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "date": today,
+        "condominium_id": current_user.get("condominium_id"),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.hr_clock_logs.insert_one(clock_doc)
+    
+    # Calculate hours if clocking out
+    hours_worked = None
+    if clock_req.type == "OUT" and today_logs:
+        last_in = next((log for log in today_logs if log["type"] == "IN"), None)
+        if last_in:
+            in_time = datetime.fromisoformat(last_in["timestamp"].replace('Z', '+00:00'))
+            out_time = datetime.fromisoformat(clock_doc["timestamp"].replace('Z', '+00:00'))
+            hours_worked = round((out_time - in_time).total_seconds() / 3600, 2)
+            
+            # Update guard's total hours
+            await db.guards.update_one(
+                {"id": guard["id"]},
+                {"$inc": {"total_hours": hours_worked}}
+            )
+    
+    await log_audit_event(
+        AuditEventType.CLOCK_IN if clock_req.type == "IN" else AuditEventType.CLOCK_OUT,
+        current_user["id"],
+        "hr",
+        {"employee_id": guard["id"], "type": clock_req.type, "hours_worked": hours_worked},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {
+        **clock_doc,
+        "hours_worked": hours_worked,
+        "message": f"{'Entrada' if clock_req.type == 'IN' else 'Salida'} registrada exitosamente"
+    }
+
+@api_router.get("/hr/clock/status")
+async def get_clock_status(current_user = Depends(require_role("Guarda", "Administrador", "Supervisor"))):
+    """Get current clock status for logged-in employee"""
+    guard = await db.guards.find_one({"user_id": current_user["id"]})
+    if not guard:
+        return {"is_clocked_in": False, "message": "No tienes registro como empleado"}
+    
+    today = datetime.now(timezone.utc).date().isoformat()
+    
+    today_logs = await db.hr_clock_logs.find({
+        "employee_id": guard["id"],
+        "date": today
+    }).sort("timestamp", -1).to_list(100)
+    
+    if not today_logs:
+        return {
+            "is_clocked_in": False,
+            "last_action": None,
+            "last_time": None,
+            "employee_id": guard["id"],
+            "employee_name": guard["user_name"]
+        }
+    
+    last_log = today_logs[0]
+    return {
+        "is_clocked_in": last_log["type"] == "IN",
+        "last_action": last_log["type"],
+        "last_time": last_log["timestamp"],
+        "employee_id": guard["id"],
+        "employee_name": guard["user_name"],
+        "today_logs": [{"type": l["type"], "timestamp": l["timestamp"]} for l in today_logs]
+    }
+
+@api_router.get("/hr/clock/history")
+async def get_clock_history(
+    employee_id: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
+):
+    """Get clock history with filters"""
+    query = {}
+    
+    # Guards can only see their own history
+    if "Guarda" in current_user.get("roles", []) and "Administrador" not in current_user.get("roles", []):
+        guard = await db.guards.find_one({"user_id": current_user["id"]})
+        if guard:
+            query["employee_id"] = guard["id"]
+    elif employee_id:
+        query["employee_id"] = employee_id
+    
+    if start_date:
+        query["date"] = {"$gte": start_date}
+    if end_date:
+        if "date" in query:
+            query["date"]["$lte"] = end_date
+        else:
+            query["date"] = {"$lte": end_date}
+    
+    logs = await db.hr_clock_logs.find(query, {"_id": 0}).sort("timestamp", -1).to_list(500)
+    return logs
+
+# ==================== HR ABSENCES ====================
+
+@api_router.post("/hr/absences")
+async def create_absence_request(
+    absence: AbsenceCreate,
+    request: Request,
+    current_user = Depends(require_role("Guarda", "Administrador", "Supervisor"))
+):
+    """Create a new absence request"""
+    # Get guard record
+    guard = await db.guards.find_one({"user_id": current_user["id"]})
+    if not guard:
+        raise HTTPException(status_code=404, detail="No tienes registro como empleado")
+    
+    # Validate dates
+    try:
+        start_dt = datetime.fromisoformat(absence.start_date)
+        end_dt = datetime.fromisoformat(absence.end_date)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de fecha inválido. Use YYYY-MM-DD")
+    
+    if start_dt > end_dt:
+        raise HTTPException(status_code=400, detail="La fecha de inicio debe ser anterior o igual a la fecha de fin")
+    
+    # Validate type
+    valid_types = ["vacaciones", "permiso_medico", "personal", "otro"]
+    if absence.type not in valid_types:
+        raise HTTPException(status_code=400, detail=f"Tipo inválido. Use: {', '.join(valid_types)}")
+    
+    # Check for overlapping requests
+    existing = await db.hr_absences.find({
+        "employee_id": guard["id"],
+        "status": {"$in": ["pending", "approved"]},
+        "$or": [
+            {"start_date": {"$lte": absence.end_date}, "end_date": {"$gte": absence.start_date}}
+        ]
+    }).to_list(100)
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="Ya tienes una solicitud para esas fechas")
+    
+    absence_doc = {
+        "id": str(uuid.uuid4()),
+        "employee_id": guard["id"],
+        "employee_name": guard["user_name"],
+        "reason": absence.reason,
+        "type": absence.type,
+        "start_date": absence.start_date,
+        "end_date": absence.end_date,
+        "notes": absence.notes,
+        "status": "pending",
+        "condominium_id": current_user.get("condominium_id"),
+        "created_by": current_user["id"],
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.hr_absences.insert_one(absence_doc)
+    
+    await log_audit_event(
+        AuditEventType.ABSENCE_REQUESTED,
+        current_user["id"],
+        "hr",
+        {"absence_id": absence_doc["id"], "type": absence.type, "dates": f"{absence.start_date} - {absence.end_date}"},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return absence_doc
+
+@api_router.get("/hr/absences")
+async def get_absences(
+    status: Optional[str] = None,
+    employee_id: Optional[str] = None,
+    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
+):
+    """Get absence requests with filters"""
+    query = {}
+    
+    if status:
+        if status not in ["pending", "approved", "rejected"]:
+            raise HTTPException(status_code=400, detail="Estado inválido")
+        query["status"] = status
+    
+    # Guards can only see their own absences
+    if "Guarda" in current_user.get("roles", []) and "Administrador" not in current_user.get("roles", []):
+        guard = await db.guards.find_one({"user_id": current_user["id"]})
+        if guard:
+            query["employee_id"] = guard["id"]
+    elif employee_id:
+        query["employee_id"] = employee_id
+    
+    absences = await db.hr_absences.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return absences
+
+@api_router.get("/hr/absences/{absence_id}")
+async def get_absence(absence_id: str, current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
+    """Get a single absence request"""
+    absence = await db.hr_absences.find_one({"id": absence_id}, {"_id": 0})
+    if not absence:
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+    return absence
+
+@api_router.put("/hr/absences/{absence_id}/approve")
+async def approve_absence(
+    absence_id: str,
+    request: Request,
+    admin_notes: Optional[str] = None,
+    current_user = Depends(require_role("Administrador", "Supervisor"))
+):
+    """Approve an absence request"""
+    absence = await db.hr_absences.find_one({"id": absence_id})
+    if not absence:
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+    
+    if absence["status"] != "pending":
+        raise HTTPException(status_code=400, detail=f"La solicitud ya fue {absence['status']}")
+    
+    await db.hr_absences.update_one(
+        {"id": absence_id},
+        {"$set": {
+            "status": "approved",
+            "approved_by": current_user["id"],
+            "approved_at": datetime.now(timezone.utc).isoformat(),
+            "admin_notes": admin_notes
+        }}
+    )
+    
+    await log_audit_event(
+        AuditEventType.ABSENCE_APPROVED,
+        current_user["id"],
+        "hr",
+        {"absence_id": absence_id, "employee_id": absence["employee_id"]},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    updated = await db.hr_absences.find_one({"id": absence_id}, {"_id": 0})
+    return updated
+
+@api_router.put("/hr/absences/{absence_id}/reject")
+async def reject_absence(
+    absence_id: str,
+    request: Request,
+    admin_notes: Optional[str] = None,
+    current_user = Depends(require_role("Administrador", "Supervisor"))
+):
+    """Reject an absence request"""
+    absence = await db.hr_absences.find_one({"id": absence_id})
+    if not absence:
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+    
+    if absence["status"] != "pending":
+        raise HTTPException(status_code=400, detail=f"La solicitud ya fue {absence['status']}")
+    
+    await db.hr_absences.update_one(
+        {"id": absence_id},
+        {"$set": {
+            "status": "rejected",
+            "rejected_by": current_user["id"],
+            "rejected_at": datetime.now(timezone.utc).isoformat(),
+            "admin_notes": admin_notes
+        }}
+    )
+    
+    await log_audit_event(
+        AuditEventType.ABSENCE_REJECTED,
+        current_user["id"],
+        "hr",
+        {"absence_id": absence_id, "employee_id": absence["employee_id"]},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    updated = await db.hr_absences.find_one({"id": absence_id}, {"_id": 0})
+    return updated
 
 @api_router.get("/hr/payroll")
 async def get_payroll(current_user = Depends(require_role("Administrador"))):
