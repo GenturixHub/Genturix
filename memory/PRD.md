@@ -109,10 +109,46 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 
 | Role | Interface | Route |
 |------|-----------|-------|
+| SuperAdmin | Platform Management | `/super-admin` |
 | Residente | Panic + Visitors | `/resident` |
 | Guarda | Alerts + Visitors + Access | `/guard` |
 | Estudiante | Courses + Subscription | `/student` |
 | Admin | Full system | `/admin/dashboard` |
+
+---
+
+## SUPER ADMIN DASHBOARD
+
+### Overview Tab (Resumen)
+- 4 KPI Cards: Condominios, Usuarios, MRR (USD), Alertas Activas
+- Quick Actions: Nuevo Condominio, Crear Demo, Ver Usuarios, Ver Auditoría
+- Business model display: $1 USD/usuario/mes
+
+### Condominios Tab
+- Table: Name, Status, Users, MRR, Actions
+- Search & Filter (Todos/Activos/Demo/Suspendidos)
+- Status dropdown: Activar, Modo Demo, Suspender
+- Create new condominium dialog
+
+### Usuarios Tab
+- Global user list across all tenants
+- Filters: By condominium, By role
+- Actions: Lock/Unlock users
+- Stats: Total, Activos, Bloqueados
+
+### Contenido Tab (Placeholder)
+- Genturix School content management (coming soon)
+
+### Super Admin API Endpoints
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/super-admin/stats` | GET | Platform-wide KPIs |
+| `/api/super-admin/users` | GET | All users with filters |
+| `/api/super-admin/users/{id}/lock` | PUT | Lock user |
+| `/api/super-admin/users/{id}/unlock` | PUT | Unlock user |
+| `/api/super-admin/condominiums/{id}/make-demo` | POST | Convert to demo |
+| `/api/super-admin/condominiums/{id}/status` | PATCH | Change status |
+| `/api/super-admin/condominiums/{id}/pricing` | PATCH | Update pricing |
 
 ---
 
