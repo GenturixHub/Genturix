@@ -982,9 +982,13 @@ async def get_all_visitors(
 # Endpoint for Guards to write to their logbook
 @api_router.get("/security/logbook")
 async def get_guard_logbook(current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
-    """Get logbook entries for guards"""
-    # Get security-related audit logs and access logs as logbook
-    logs = await db.access_logs.find({}, {"_id": 0}).sort("timestamp", -1).to_list(50)
+    """Get logbook entries for guards - scoped by condominium"""
+    query = {}
+    if "SuperAdmin" not in current_user.get("roles", []):
+        condo_id = current_user.get("condominium_id")
+        if condo_id:
+            query["condominium_id"] = condo_id
+    logs = await db.access_logs.find(query, {"_id": 0}).sort("timestamp", -1).to_list(50)
     
     # Format as logbook entries
     logbook_entries = []
