@@ -741,6 +741,326 @@ const EditCondoDialog = ({ condo, open, onClose, onSuccess }) => {
 };
 
 // ============================================
+// CREATE ADMIN DIALOG (Super Admin → Condo Admin)
+// ============================================
+const generateSecurePassword = () => {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower = 'abcdefghjkmnpqrstuvwxyz';
+  const numbers = '23456789';
+  const special = '!@#$%&*';
+  
+  let password = '';
+  password += upper[Math.floor(Math.random() * upper.length)];
+  password += lower[Math.floor(Math.random() * lower.length)];
+  password += numbers[Math.floor(Math.random() * numbers.length)];
+  password += special[Math.floor(Math.random() * special.length)];
+  
+  const allChars = upper + lower + numbers + special;
+  for (let i = 0; i < 8; i++) {
+    password += allChars[Math.floor(Math.random() * allChars.length)];
+  }
+  
+  return password.split('').sort(() => Math.random() - 0.5).join('');
+};
+
+const CreateAdminDialog = ({ condo, open, onClose, onSuccess }) => {
+  const [form, setForm] = useState({
+    full_name: '',
+    email: '',
+    password: '',
+    phone: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [useAutoPassword, setUseAutoPassword] = useState(true);
+  const [createdCredentials, setCreatedCredentials] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  // Auto-generate password on mount
+  useEffect(() => {
+    if (open && useAutoPassword) {
+      setForm(prev => ({ ...prev, password: generateSecurePassword() }));
+    }
+    // Reset state when dialog opens
+    if (open) {
+      setCreatedCredentials(null);
+      setError(null);
+    }
+  }, [open, useAutoPassword]);
+
+  const regeneratePassword = () => {
+    setForm({ ...form, password: generateSecurePassword() });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!form.email || !form.password || !form.full_name) {
+      setError('Por favor complete todos los campos obligatorios');
+      return;
+    }
+
+    if (form.password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      await api.createCondoAdmin(condo.id, {
+        email: form.email,
+        password: form.password,
+        full_name: form.full_name,
+        phone: form.phone,
+        role: 'Administrador'
+      });
+      
+      // Show credentials
+      setCreatedCredentials({
+        full_name: form.full_name,
+        email: form.email,
+        password: form.password,
+        condo_name: condo.name
+      });
+      
+    } catch (err) {
+      setError(err.message || 'Error al crear administrador');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const copyCredentials = async () => {
+    const text = `Condominio: ${createdCredentials.condo_name}\nEmail: ${createdCredentials.email}\nContraseña: ${createdCredentials.password}`;
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleClose = () => {
+    setForm({ full_name: '', email: '', password: '', phone: '' });
+    setCreatedCredentials(null);
+    setError(null);
+    if (createdCredentials) {
+      onSuccess();
+    } else {
+      onClose();
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-md">
+        {!createdCredentials ? (
+          // Form View
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-blue-400" />
+                Crear Administrador
+              </DialogTitle>
+              <DialogDescription>
+                Crear administrador para <strong className="text-white">{condo.name}</strong>
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
+                  <XCircle className="w-4 h-4 flex-shrink-0" />
+                  {error}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Nombre Completo *</Label>
+                <Input
+                  value={form.full_name}
+                  onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+                  placeholder="Carlos Administrador"
+                  className="bg-[#0A0A0F] border-[#1E293B]"
+                  required
+                  data-testid="admin-name"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Email *</Label>
+                <Input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  placeholder="admin@condominio.com"
+                  className="bg-[#0A0A0F] border-[#1E293B]"
+                  required
+                  data-testid="admin-email"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Contraseña *</Label>
+                  <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useAutoPassword}
+                      onChange={(e) => {
+                        setUseAutoPassword(e.target.checked);
+                        if (e.target.checked) {
+                          setForm({ ...form, password: generateSecurePassword() });
+                        }
+                      }}
+                      className="rounded border-[#1E293B]"
+                    />
+                    Auto-generar
+                  </label>
+                </div>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      value={form.password}
+                      onChange={(e) => setForm({ ...form, password: e.target.value })}
+                      placeholder="Mínimo 8 caracteres"
+                      className="bg-[#0A0A0F] border-[#1E293B] pr-10 font-mono"
+                      required
+                      minLength={8}
+                      disabled={useAutoPassword}
+                      data-testid="admin-password"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  {useAutoPassword && (
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="icon"
+                      onClick={regeneratePassword}
+                      title="Regenerar contraseña"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Teléfono</Label>
+                <Input
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  placeholder="+52 555 123 4567"
+                  className="bg-[#0A0A0F] border-[#1E293B]"
+                  data-testid="admin-phone"
+                />
+              </div>
+
+              <DialogFooter className="gap-2">
+                <Button type="button" variant="outline" onClick={handleClose}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={isSubmitting} data-testid="create-admin-submit">
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Creando...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Crear Administrador
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </>
+        ) : (
+          // Credentials View
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-green-400">
+                <CheckCircle className="w-5 h-5" />
+                Administrador Creado
+              </DialogTitle>
+              <DialogDescription>
+                Guarda estas credenciales. La contraseña no se mostrará de nuevo.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              {/* Warning Banner */}
+              <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-start gap-2">
+                <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-yellow-400">
+                  <strong>Importante:</strong> Esta es la única vez que verás la contraseña. 
+                  Cópiala y entrégala al administrador de forma segura.
+                </div>
+              </div>
+
+              {/* Credentials */}
+              <div className="p-4 rounded-lg bg-[#0A0A0F] border border-[#1E293B] space-y-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Condominio</Label>
+                  <p className="font-medium text-primary">{createdCredentials.condo_name}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Nombre</Label>
+                  <p className="font-medium">{createdCredentials.full_name}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Email</Label>
+                  <p className="font-mono text-primary">{createdCredentials.email}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Contraseña</Label>
+                  <code className="block p-2 rounded bg-[#1E293B] font-mono text-green-400">
+                    {createdCredentials.password}
+                  </code>
+                </div>
+              </div>
+
+              {/* Copy Button */}
+              <Button className="w-full" onClick={copyCredentials} data-testid="copy-admin-credentials">
+                {copied ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    ¡Copiado!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copiar Credenciales
+                  </>
+                )}
+              </Button>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={handleClose} className="w-full">
+                He guardado las credenciales
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// ============================================
 // USERS TAB
 // ============================================
 const UsersTab = ({ condos }) => {
