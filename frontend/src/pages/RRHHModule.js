@@ -901,58 +901,381 @@ const TurnosSubmodule = ({ employees, shifts, onCreateShift, isLoading, onEditEm
 };
 
 // ============================================
-// SUBMÓDULO: RECLUTAMIENTO (COMING SOON)
+// SUBMÓDULO: RECLUTAMIENTO (FUNCTIONAL)
 // ============================================
-const ReclutamientoSubmodule = () => {
-  const candidates = [
-    { id: '1', name: 'Carlos López', position: 'Guardia', status: 'interview', applied: '2026-01-15' },
-    { id: '2', name: 'Ana Martínez', position: 'Supervisor', status: 'applied', applied: '2026-01-18' },
-  ];
+const ReclutamientoSubmodule = ({ onRefresh }) => {
+  const [candidates, setCandidates] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showHireDialog, setShowHireDialog] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  
+  const [newCandidate, setNewCandidate] = useState({
+    full_name: '',
+    email: '',
+    phone: '',
+    position: 'Guarda',
+    experience_years: 0,
+    notes: ''
+  });
+  
+  const [hireData, setHireData] = useState({
+    badge_number: '',
+    hourly_rate: 12.0,
+    password: ''
+  });
+
+  const fetchCandidates = useCallback(async () => {
+    try {
+      const data = await api.getCandidates();
+      setCandidates(data);
+    } catch (err) {
+      console.error('Error fetching candidates:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCandidates();
+  }, [fetchCandidates]);
+
+  const handleCreateCandidate = async () => {
+    if (!newCandidate.full_name || !newCandidate.email || !newCandidate.phone) {
+      setError('Completa todos los campos requeridos');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setError(null);
+    
+    try {
+      await api.createCandidate(newCandidate);
+      setShowCreateDialog(false);
+      setNewCandidate({ full_name: '', email: '', phone: '', position: 'Guarda', experience_years: 0, notes: '' });
+      setSuccess('Candidato registrado exitosamente');
+      fetchCandidates();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err.message || 'Error al crear candidato');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateStatus = async (candidateId, newStatus) => {
+    try {
+      await api.updateCandidate(candidateId, { status: newStatus });
+      fetchCandidates();
+    } catch (err) {
+      alert(err.message || 'Error al actualizar estado');
+    }
+  };
+
+  const handleHire = async () => {
+    if (!hireData.badge_number || !hireData.password) {
+      setError('Completa todos los campos de contratación');
+      return;
+    }
+    
+    if (hireData.password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setError(null);
+    
+    try {
+      const result = await api.hireCandidate(selectedCandidate.id, hireData);
+      setShowHireDialog(false);
+      setSelectedCandidate(null);
+      setHireData({ badge_number: '', hourly_rate: 12.0, password: '' });
+      setSuccess(`${result.message}. Email: ${result.email}`);
+      fetchCandidates();
+      if (onRefresh) onRefresh();
+      setTimeout(() => setSuccess(null), 5000);
+    } catch (err) {
+      setError(err.message || 'Error al contratar candidato');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReject = async (candidateId) => {
+    if (!window.confirm('¿Estás seguro de rechazar este candidato?')) return;
+    
+    try {
+      await api.rejectCandidate(candidateId);
+      fetchCandidates();
+    } catch (err) {
+      alert(err.message || 'Error al rechazar candidato');
+    }
+  };
+
+  const openHireDialog = (candidate) => {
+    setSelectedCandidate(candidate);
+    setShowHireDialog(true);
+    setError(null);
+  };
 
   const statusLabels = {
-    applied: { label: 'Aplicó', color: 'bg-blue-500/10 text-blue-400' },
-    interview: { label: 'Entrevista', color: 'bg-yellow-500/10 text-yellow-400' },
-    hired: { label: 'Contratado', color: 'bg-green-500/10 text-green-400' },
-    rejected: { label: 'Rechazado', color: 'bg-red-500/10 text-red-400' },
+    applied: { label: 'Aplicó', color: 'bg-blue-500/10 text-blue-400 border-blue-500/30' },
+    interview: { label: 'Entrevista', color: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' },
+    hired: { label: 'Contratado', color: 'bg-green-500/10 text-green-400 border-green-500/30' },
+    rejected: { label: 'Rechazado', color: 'bg-red-500/10 text-red-400 border-red-500/30' }
   };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-32"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+  }
 
   return (
     <div className="space-y-4">
+      {/* Success/Error Messages */}
+      {success && (
+        <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400">{success}</div>
+      )}
+      {error && !showCreateDialog && !showHireDialog && (
+        <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400">{error}</div>
+      )}
+
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h3 className="text-lg font-semibold">Pipeline de Reclutamiento</h3>
-          <ComingSoonBadge />
-        </div>
-        <Button size="sm" disabled className="opacity-50 cursor-not-allowed">
+        <h3 className="text-lg font-semibold">Pipeline de Reclutamiento</h3>
+        <Button size="sm" onClick={() => setShowCreateDialog(true)} data-testid="new-candidate-btn">
           <Plus className="w-4 h-4 mr-2" />
           Nuevo Candidato
         </Button>
       </div>
 
-      {/* Coming Soon Notice */}
-      <div className="p-4 rounded-lg bg-yellow-500/5 border border-yellow-500/20">
-        <p className="text-sm text-yellow-400/80">
-          👥 Este módulo está en desarrollo. Próximamente podrás gestionar candidatos, entrevistas y contrataciones.
-        </p>
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-3">
+        <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30 text-center">
+          <p className="text-2xl font-bold text-blue-400">{candidates.filter(c => c.status === 'applied').length}</p>
+          <p className="text-xs text-muted-foreground">Aplicaron</p>
+        </div>
+        <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-center">
+          <p className="text-2xl font-bold text-yellow-400">{candidates.filter(c => c.status === 'interview').length}</p>
+          <p className="text-xs text-muted-foreground">Entrevista</p>
+        </div>
+        <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30 text-center">
+          <p className="text-2xl font-bold text-green-400">{candidates.filter(c => c.status === 'hired').length}</p>
+          <p className="text-xs text-muted-foreground">Contratados</p>
+        </div>
+        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-center">
+          <p className="text-2xl font-bold text-red-400">{candidates.filter(c => c.status === 'rejected').length}</p>
+          <p className="text-xs text-muted-foreground">Rechazados</p>
+        </div>
       </div>
 
-      <div className="grid gap-3 opacity-60">
-        {candidates.map(candidate => (
-          <div key={candidate.id} className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B]">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-semibold text-white">{candidate.name}</span>
-              <Badge className={statusLabels[candidate.status].color}>
-                {statusLabels[candidate.status].label}
-              </Badge>
+      {/* Candidates List */}
+      {candidates.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          <Briefcase className="w-12 h-12 mx-auto mb-2 opacity-30" />
+          <p>No hay candidatos registrados</p>
+        </div>
+      ) : (
+        <div className="grid gap-3">
+          {candidates.map(candidate => (
+            <div key={candidate.id} className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B]">
+              <div className="flex items-start justify-between mb-2">
+                <div>
+                  <p className="font-semibold text-white">{candidate.full_name}</p>
+                  <p className="text-sm text-muted-foreground">{candidate.email}</p>
+                </div>
+                <Badge variant="outline" className={statusLabels[candidate.status]?.color}>
+                  {statusLabels[candidate.status]?.label}
+                </Badge>
+              </div>
+              
+              <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
+                <span>{candidate.position}</span>
+                <span>•</span>
+                <span>{candidate.experience_years} años exp.</span>
+                <span>•</span>
+                <span>{candidate.phone}</span>
+              </div>
+              
+              {/* Actions */}
+              {candidate.status !== 'hired' && candidate.status !== 'rejected' && (
+                <div className="flex gap-2 pt-3 border-t border-[#1E293B]">
+                  {candidate.status === 'applied' && (
+                    <Button size="sm" variant="outline" className="text-yellow-400 border-yellow-500/30" 
+                      onClick={() => handleUpdateStatus(candidate.id, 'interview')}>
+                      Marcar Entrevista
+                    </Button>
+                  )}
+                  <Button size="sm" variant="outline" className="text-green-400 border-green-500/30"
+                    onClick={() => openHireDialog(candidate)}>
+                    <UserCheck className="w-4 h-4 mr-1" /> Contratar
+                  </Button>
+                  <Button size="sm" variant="outline" className="text-red-400 border-red-500/30"
+                    onClick={() => handleReject(candidate.id)}>
+                    <UserX className="w-4 h-4 mr-1" /> Rechazar
+                  </Button>
+                </div>
+              )}
             </div>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <span>{candidate.position}</span>
-              <span>•</span>
-              <span>Aplicó: {candidate.applied}</span>
+          ))}
+        </div>
+      )}
+
+      {/* Create Candidate Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="bg-[#0F111A] border-[#1E293B]">
+          <DialogHeader>
+            <DialogTitle>Nuevo Candidato</DialogTitle>
+            <DialogDescription>Registra un nuevo candidato para el proceso de selección</DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {error && showCreateDialog && (
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">{error}</div>
+            )}
+            
+            <div>
+              <Label>Nombre Completo *</Label>
+              <Input
+                value={newCandidate.full_name}
+                onChange={(e) => setNewCandidate({...newCandidate, full_name: e.target.value})}
+                placeholder="Juan Pérez"
+                className="bg-[#181B25] border-[#1E293B] mt-1"
+              />
+            </div>
+            
+            <div>
+              <Label>Email *</Label>
+              <Input
+                type="email"
+                value={newCandidate.email}
+                onChange={(e) => setNewCandidate({...newCandidate, email: e.target.value})}
+                placeholder="candidato@email.com"
+                className="bg-[#181B25] border-[#1E293B] mt-1"
+              />
+            </div>
+            
+            <div>
+              <Label>Teléfono *</Label>
+              <Input
+                value={newCandidate.phone}
+                onChange={(e) => setNewCandidate({...newCandidate, phone: e.target.value})}
+                placeholder="+52 555 123 4567"
+                className="bg-[#181B25] border-[#1E293B] mt-1"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Posición</Label>
+                <Select value={newCandidate.position} onValueChange={(v) => setNewCandidate({...newCandidate, position: v})}>
+                  <SelectTrigger className="bg-[#181B25] border-[#1E293B] mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0F111A] border-[#1E293B]">
+                    <SelectItem value="Guarda">Guardia</SelectItem>
+                    <SelectItem value="Supervisor">Supervisor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Años de Experiencia</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={newCandidate.experience_years}
+                  onChange={(e) => setNewCandidate({...newCandidate, experience_years: parseInt(e.target.value) || 0})}
+                  className="bg-[#181B25] border-[#1E293B] mt-1"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label>Notas</Label>
+              <Input
+                value={newCandidate.notes}
+                onChange={(e) => setNewCandidate({...newCandidate, notes: e.target.value})}
+                placeholder="Información adicional..."
+                className="bg-[#181B25] border-[#1E293B] mt-1"
+              />
             </div>
           </div>
-        ))}
-      </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancelar</Button>
+            <Button onClick={handleCreateCandidate} disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Registrar Candidato
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Hire Candidate Dialog */}
+      <Dialog open={showHireDialog} onOpenChange={setShowHireDialog}>
+        <DialogContent className="bg-[#0F111A] border-[#1E293B]">
+          <DialogHeader>
+            <DialogTitle>Contratar Candidato</DialogTitle>
+            <DialogDescription>
+              {selectedCandidate && `Creando cuenta para ${selectedCandidate.full_name}`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {error && showHireDialog && (
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">{error}</div>
+            )}
+            
+            <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
+              <p className="text-sm text-blue-400">
+                Se creará automáticamente una cuenta de usuario con el email: <strong>{selectedCandidate?.email}</strong>
+              </p>
+            </div>
+            
+            <div>
+              <Label>Número de Identificación *</Label>
+              <Input
+                value={hireData.badge_number}
+                onChange={(e) => setHireData({...hireData, badge_number: e.target.value})}
+                placeholder="GRD-003"
+                className="bg-[#181B25] border-[#1E293B] mt-1"
+              />
+            </div>
+            
+            <div>
+              <Label>Tarifa por Hora (USD)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={hireData.hourly_rate}
+                onChange={(e) => setHireData({...hireData, hourly_rate: parseFloat(e.target.value) || 0})}
+                className="bg-[#181B25] border-[#1E293B] mt-1"
+              />
+            </div>
+            
+            <div>
+              <Label>Contraseña Inicial * (mín. 8 caracteres)</Label>
+              <Input
+                type="password"
+                value={hireData.password}
+                onChange={(e) => setHireData({...hireData, password: e.target.value})}
+                placeholder="••••••••"
+                className="bg-[#181B25] border-[#1E293B] mt-1"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowHireDialog(false)}>Cancelar</Button>
+            <Button onClick={handleHire} disabled={isSubmitting} className="bg-green-600 hover:bg-green-700">
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <UserCheck className="w-4 h-4 mr-2" />}
+              Confirmar Contratación
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
