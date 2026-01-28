@@ -2939,6 +2939,75 @@ async def get_super_admin_audit(
     logs = await db.audit_logs.find(query, {"_id": 0}).sort("timestamp", -1).to_list(limit)
     return logs
 
+# ==================== SUPER ADMIN: CONDOMINIUM ADMIN CREATION ====================
+
+@api_router.post("/super-admin/condominiums/{condo_id}/admin")
+async def create_condominium_admin(
+    condo_id: str,
+    admin_data: CreateUserByAdmin,
+    request: Request,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
+):
+    """Super Admin creates a Condominium Administrator for a specific condominium"""
+    # Verify condominium exists
+    condo = await db.condominiums.find_one({"id": condo_id})
+    if not condo:
+        raise HTTPException(status_code=404, detail="Condominio no encontrado")
+    
+    # Check email not in use
+    existing = await db.users.find_one({"email": admin_data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="El email ya está registrado")
+    
+    # Force role to Administrador
+    user_id = str(uuid.uuid4())
+    user_doc = {
+        "id": user_id,
+        "email": admin_data.email,
+        "password_hash": hash_password(admin_data.password),
+        "full_name": admin_data.full_name,
+        "roles": [RoleEnum.ADMINISTRADOR.value],
+        "condominium_id": condo_id,  # Associate with the condominium
+        "phone": admin_data.phone,
+        "is_active": True,
+        "is_locked": False,
+        "created_by": current_user["id"],
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.users.insert_one(user_doc)
+    
+    # Update condominium to reference this admin
+    await db.condominiums.update_one(
+        {"id": condo_id},
+        {"$set": {"admin_id": user_id, "admin_email": admin_data.email}}
+    )
+    
+    await log_audit_event(
+        AuditEventType.USER_CREATED,
+        current_user["id"],
+        "super_admin",
+        {
+            "action": "create_condo_admin",
+            "user_id": user_id,
+            "email": admin_data.email,
+            "condominium_id": condo_id,
+            "condominium_name": condo["name"]
+        },
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {
+        "message": f"Administrador {admin_data.full_name} creado para {condo['name']}",
+        "user_id": user_id,
+        "condominium_id": condo_id,
+        "credentials": {
+            "email": admin_data.email,
+            "password": "********"
+        }
+    }
+
 # ==================== DEMO DATA SEEDING ====================
 @api_router.post("/seed-demo-data")
 async def seed_demo_data():
