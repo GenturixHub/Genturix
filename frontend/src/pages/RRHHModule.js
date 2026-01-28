@@ -716,19 +716,29 @@ const OnboardingSubmodule = ({ employees }) => (
 );
 
 // ============================================
-// SUBMÓDULO: EVALUACIÓN DE DESEMPEÑO
+// SUBMÓDULO: EVALUACIÓN DE DESEMPEÑO (COMING SOON)
 // ============================================
 const EvaluacionSubmodule = ({ employees }) => (
   <div className="space-y-4">
     <div className="flex items-center justify-between">
-      <h3 className="text-lg font-semibold">Evaluaciones de Desempeño</h3>
-      <Button size="sm">
+      <div className="flex items-center gap-2">
+        <h3 className="text-lg font-semibold">Evaluaciones de Desempeño</h3>
+        <ComingSoonBadge />
+      </div>
+      <Button size="sm" disabled className="opacity-50 cursor-not-allowed">
         <Plus className="w-4 h-4 mr-2" />
         Nueva Evaluación
       </Button>
     </div>
 
-    <div className="grid gap-3">
+    {/* Coming Soon Notice */}
+    <div className="p-4 rounded-lg bg-yellow-500/5 border border-yellow-500/20">
+      <p className="text-sm text-yellow-400/80">
+        ⭐ Este módulo está en desarrollo. Próximamente podrás crear evaluaciones, dar feedback y consultar historial de desempeño.
+      </p>
+    </div>
+
+    <div className="grid gap-3 opacity-60">
       {employees.slice(0, 4).map(emp => (
         <div key={emp.id} className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B]">
           <div className="flex items-center justify-between mb-2">
@@ -740,8 +750,8 @@ const EvaluacionSubmodule = ({ employees }) => (
             </div>
           </div>
           <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>Última evaluación: Dic 2025</span>
-            <Button variant="ghost" size="sm" className="h-6 text-xs">Ver historial</Button>
+            <span>Última evaluación: --</span>
+            <Button variant="ghost" size="sm" className="h-6 text-xs" disabled>Ver historial</Button>
           </div>
         </div>
       ))}
