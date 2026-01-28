@@ -384,107 +384,381 @@ const AbsenceCard = ({ absence }) => {
 };
 
 // ============================================
-// SUBMÓDULO: SOLICITUDES DE AUSENCIA (COMING SOON)
+// SUBMÓDULO: SOLICITUDES DE AUSENCIA (FUNCTIONAL)
 // ============================================
-const AusenciasSubmodule = ({ employees }) => {
-  // Demo data - feature coming soon
-  const absences = [
-    { id: '1', employee_name: 'Juan Pérez', type: 'Vacaciones', reason: 'Viaje familiar', start_date: '2026-02-01', end_date: '2026-02-15', status: 'pending' },
-    { id: '2', employee_name: 'María García', type: 'Permiso médico', reason: 'Cita médica', start_date: '2026-01-25', end_date: '2026-01-25', status: 'approved' },
-  ];
+const AusenciasSubmodule = ({ employees, onRefresh }) => {
+  const [absences, setAbsences] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [newAbsence, setNewAbsence] = useState({
+    reason: '',
+    type: 'vacaciones',
+    start_date: '',
+    end_date: '',
+    notes: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const { hasRole } = useAuth();
+
+  const fetchAbsences = useCallback(async () => {
+    try {
+      const data = await api.getAbsences();
+      setAbsences(data);
+    } catch (err) {
+      console.error('Error fetching absences:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAbsences();
+  }, [fetchAbsences]);
+
+  const handleCreateAbsence = async () => {
+    if (!newAbsence.reason || !newAbsence.start_date || !newAbsence.end_date) {
+      setError('Completa todos los campos requeridos');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setError(null);
+    
+    try {
+      await api.createAbsence(newAbsence);
+      setShowCreateDialog(false);
+      setNewAbsence({ reason: '', type: 'vacaciones', start_date: '', end_date: '', notes: '' });
+      fetchAbsences();
+    } catch (err) {
+      setError(err.message || 'Error al crear solicitud');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleApprove = async (absenceId) => {
+    try {
+      await api.approveAbsence(absenceId);
+      fetchAbsences();
+    } catch (err) {
+      alert(err.message || 'Error al aprobar solicitud');
+    }
+  };
+
+  const handleReject = async (absenceId) => {
+    try {
+      await api.rejectAbsence(absenceId);
+      fetchAbsences();
+    } catch (err) {
+      alert(err.message || 'Error al rechazar solicitud');
+    }
+  };
+
+  const typeLabels = {
+    vacaciones: { label: 'Vacaciones', color: 'bg-blue-500/10 text-blue-400' },
+    permiso_medico: { label: 'Permiso Médico', color: 'bg-purple-500/10 text-purple-400' },
+    personal: { label: 'Personal', color: 'bg-yellow-500/10 text-yellow-400' },
+    otro: { label: 'Otro', color: 'bg-gray-500/10 text-gray-400' }
+  };
+
+  const statusLabels = {
+    pending: { label: 'Pendiente', color: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' },
+    approved: { label: 'Aprobada', color: 'bg-green-500/10 text-green-400 border-green-500/30' },
+    rejected: { label: 'Rechazada', color: 'bg-red-500/10 text-red-400 border-red-500/30' }
+  };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-32"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <h3 className="text-lg font-semibold">Solicitudes de Ausencia</h3>
-          <ComingSoonBadge />
-        </div>
-        <Button size="sm" disabled className="opacity-50 cursor-not-allowed">
+        <h3 className="text-lg font-semibold">Solicitudes de Ausencia</h3>
+        <Button size="sm" onClick={() => setShowCreateDialog(true)} data-testid="new-absence-btn">
           <Plus className="w-4 h-4 mr-2" />
           Nueva Solicitud
         </Button>
       </div>
-      
-      {/* Coming Soon Notice */}
-      <div className="p-4 rounded-lg bg-yellow-500/5 border border-yellow-500/20">
-        <p className="text-sm text-yellow-400/80">
-          📋 Este módulo está en desarrollo. Próximamente podrás gestionar solicitudes de vacaciones, permisos y ausencias.
-        </p>
-      </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 opacity-60">
-        {absences.map(absence => (
-          <AbsenceCard key={absence.id} absence={absence} />
-        ))}
-      </div>
+      {absences.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          <CalendarOff className="w-12 h-12 mx-auto mb-2 opacity-30" />
+          <p>No hay solicitudes de ausencia</p>
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {absences.map(absence => (
+            <div key={absence.id} className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B]">
+              <div className="flex items-start justify-between mb-2">
+                <div>
+                  <p className="font-semibold text-white">{absence.employee_name}</p>
+                  <Badge className={typeLabels[absence.type]?.color || 'bg-gray-500/10'}>
+                    {typeLabels[absence.type]?.label || absence.type}
+                  </Badge>
+                </div>
+                <Badge variant="outline" className={statusLabels[absence.status]?.color}>
+                  {statusLabels[absence.status]?.label}
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground mb-2">{absence.reason}</p>
+              <p className="text-xs text-muted-foreground">
+                {absence.start_date} → {absence.end_date}
+              </p>
+              
+              {/* Admin actions */}
+              {absence.status === 'pending' && (hasRole('Administrador') || hasRole('Supervisor')) && (
+                <div className="flex gap-2 mt-3 pt-3 border-t border-[#1E293B]">
+                  <Button size="sm" variant="outline" className="flex-1 text-green-400 border-green-500/30" onClick={() => handleApprove(absence.id)}>
+                    <CheckCircle className="w-4 h-4 mr-1" /> Aprobar
+                  </Button>
+                  <Button size="sm" variant="outline" className="flex-1 text-red-400 border-red-500/30" onClick={() => handleReject(absence.id)}>
+                    <XCircle className="w-4 h-4 mr-1" /> Rechazar
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Create Absence Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="bg-[#0F111A] border-[#1E293B]">
+          <DialogHeader>
+            <DialogTitle>Nueva Solicitud de Ausencia</DialogTitle>
+            <DialogDescription>Solicita vacaciones o permisos</DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {error && (
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">{error}</div>
+            )}
+            
+            <div>
+              <Label>Tipo de Ausencia</Label>
+              <Select value={newAbsence.type} onValueChange={(v) => setNewAbsence({...newAbsence, type: v})}>
+                <SelectTrigger className="bg-[#181B25] border-[#1E293B] mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0F111A] border-[#1E293B]">
+                  <SelectItem value="vacaciones">Vacaciones</SelectItem>
+                  <SelectItem value="permiso_medico">Permiso Médico</SelectItem>
+                  <SelectItem value="personal">Personal</SelectItem>
+                  <SelectItem value="otro">Otro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label>Motivo *</Label>
+              <Input
+                value={newAbsence.reason}
+                onChange={(e) => setNewAbsence({...newAbsence, reason: e.target.value})}
+                placeholder="Describe el motivo..."
+                className="bg-[#181B25] border-[#1E293B] mt-1"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Fecha Inicio *</Label>
+                <Input
+                  type="date"
+                  value={newAbsence.start_date}
+                  onChange={(e) => setNewAbsence({...newAbsence, start_date: e.target.value})}
+                  className="bg-[#181B25] border-[#1E293B] mt-1"
+                />
+              </div>
+              <div>
+                <Label>Fecha Fin *</Label>
+                <Input
+                  type="date"
+                  value={newAbsence.end_date}
+                  onChange={(e) => setNewAbsence({...newAbsence, end_date: e.target.value})}
+                  className="bg-[#181B25] border-[#1E293B] mt-1"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label>Notas Adicionales</Label>
+              <Input
+                value={newAbsence.notes}
+                onChange={(e) => setNewAbsence({...newAbsence, notes: e.target.value})}
+                placeholder="Opcional..."
+                className="bg-[#181B25] border-[#1E293B] mt-1"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancelar</Button>
+            <Button onClick={handleCreateAbsence} disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Enviar Solicitud
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 // ============================================
-// SUBMÓDULO: CONTROL HORARIO (COMING SOON)
+// SUBMÓDULO: CONTROL HORARIO (FUNCTIONAL)
 // ============================================
 const ControlHorarioSubmodule = ({ employees, currentUser, hasRole }) => {
+  const [clockStatus, setClockStatus] = useState(null);
+  const [clockHistory, setClockHistory] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isClocking, setIsClocking] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [statusData, historyData] = await Promise.all([
+        api.getClockStatus(),
+        api.getClockHistory()
+      ]);
+      setClockStatus(statusData);
+      setClockHistory(historyData);
+    } catch (err) {
+      console.error('Error fetching clock data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleClock = async (type) => {
+    setIsClocking(true);
+    setError(null);
+    setSuccess(null);
+    
+    try {
+      const result = await api.clockInOut(type);
+      setSuccess(result.message);
+      fetchData();
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      setError(err.message || 'Error al registrar fichaje');
+    } finally {
+      setIsClocking(false);
+    }
+  };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-32"><Loader2 className="w-6 h-6 animate-spin text-primary" /></div>;
+  }
+
+  const isClockedIn = clockStatus?.is_clocked_in || false;
+
   return (
     <div className="space-y-6">
-      {/* Coming Soon Notice */}
-      <div className="p-4 rounded-lg bg-yellow-500/5 border border-yellow-500/20">
-        <div className="flex items-center gap-2 mb-2">
-          <Clock className="w-5 h-5 text-yellow-400" />
-          <span className="font-medium text-yellow-400">Módulo en Desarrollo</span>
-          <ComingSoonBadge />
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Próximamente: Fichaje de entrada/salida, registro de horas trabajadas y reportes de asistencia.
-        </p>
-      </div>
+      {/* Error/Success Messages */}
+      {error && (
+        <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400">{error}</div>
+      )}
+      {success && (
+        <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30 text-green-400">{success}</div>
+      )}
 
-      {/* Clock In/Out Preview (Disabled) */}
-      {hasRole('Guarda') && (
-        <Card className="bg-[#0F111A] border-[#1E293B] opacity-60">
+      {/* Clock In/Out for Guards */}
+      {(hasRole('Guarda') || hasRole('Supervisor')) && (
+        <Card className={`${isClockedIn ? 'bg-green-500/10 border-green-500/30' : 'bg-[#0F111A] border-[#1E293B]'}`}>
           <CardContent className="p-6">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <div>
-                <h3 className="text-xl font-bold text-white">Sistema de Fichaje</h3>
-                <p className="text-sm text-muted-foreground">Disponible próximamente</p>
+                <h3 className="text-xl font-bold text-white">
+                  {isClockedIn ? '✓ Fichado - En Turno' : 'Sin Fichar'}
+                </h3>
+                {clockStatus?.last_time && (
+                  <p className="text-sm text-muted-foreground">
+                    Última acción: {clockStatus.last_action === 'IN' ? 'Entrada' : 'Salida'} a las {new Date(clockStatus.last_time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                )}
               </div>
               <Button 
                 size="lg" 
-                className="bg-green-600/50 cursor-not-allowed"
-                disabled
+                className={isClockedIn ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}
+                onClick={() => handleClock(isClockedIn ? 'OUT' : 'IN')}
+                disabled={isClocking}
+                data-testid="clock-btn"
               >
-                <LogIn className="w-5 h-5 mr-2" /> Fichar Entrada
+                {isClocking ? (
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                ) : isClockedIn ? (
+                  <LogOutIcon className="w-5 h-5 mr-2" />
+                ) : (
+                  <LogIn className="w-5 h-5 mr-2" />
+                )}
+                {isClockedIn ? 'Fichar Salida' : 'Fichar Entrada'}
               </Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Admin/Supervisor View Preview */}
-      {(hasRole('Administrador') || hasRole('Supervisor')) && (
-        <div className="space-y-4 opacity-60">
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            Registro de Hoy
-            <ComingSoonBadge />
-          </h3>
-          <div className="grid gap-3">
-            {employees.slice(0, 3).map(emp => (
-              <div key={emp.id} className="flex items-center justify-between p-3 rounded-lg bg-[#0F111A] border border-[#1E293B]">
+      {/* Today's Logs */}
+      {clockStatus?.today_logs && clockStatus.today_logs.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-lg font-semibold">Registros de Hoy</h3>
+          <div className="grid gap-2">
+            {clockStatus.today_logs.map((log, idx) => (
+              <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-[#0F111A] border border-[#1E293B]">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold">
-                    {emp.user_name?.charAt(0)}
-                  </div>
-                  <span className="text-white">{emp.user_name}</span>
+                  {log.type === 'IN' ? (
+                    <LogIn className="w-4 h-4 text-green-400" />
+                  ) : (
+                    <LogOutIcon className="w-4 h-4 text-red-400" />
+                  )}
+                  <span className={log.type === 'IN' ? 'text-green-400' : 'text-red-400'}>
+                    {log.type === 'IN' ? 'Entrada' : 'Salida'}
+                  </span>
                 </div>
-                <div className="flex items-center gap-4 text-sm">
-                  <span className="text-muted-foreground">--:--</span>
-                  <span className="text-muted-foreground">-</span>
-                  <span className="text-muted-foreground">--:--</span>
-                </div>
+                <span className="text-muted-foreground">
+                  {new Date(log.timestamp).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                </span>
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Admin/Supervisor: All Employees Today */}
+      {(hasRole('Administrador') || hasRole('Supervisor')) && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Historial Reciente</h3>
+          {clockHistory.length === 0 ? (
+            <p className="text-muted-foreground text-center py-4">No hay registros</p>
+          ) : (
+            <div className="grid gap-2">
+              {clockHistory.slice(0, 10).map(log => (
+                <div key={log.id} className="flex items-center justify-between p-3 rounded-lg bg-[#0F111A] border border-[#1E293B]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold">
+                      {log.employee_name?.charAt(0)}
+                    </div>
+                    <div>
+                      <span className="text-white">{log.employee_name}</span>
+                      <Badge className={log.type === 'IN' ? 'ml-2 bg-green-500/10 text-green-400' : 'ml-2 bg-red-500/10 text-red-400'}>
+                        {log.type === 'IN' ? 'Entrada' : 'Salida'}
+                      </Badge>
+                    </div>
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    {new Date(log.timestamp).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
