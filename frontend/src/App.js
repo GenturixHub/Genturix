@@ -217,8 +217,15 @@ function AppRoutes() {
       } />
 
       <Route path="/audit" element={
-        <ProtectedRoute allowedRoles={['Administrador']}>
+        <ProtectedRoute allowedRoles={['Administrador', 'SuperAdmin']}>
           <AuditModule />
+        </ProtectedRoute>
+      } />
+
+      {/* Super Admin Dashboard */}
+      <Route path="/super-admin" element={
+        <ProtectedRoute allowedRoles={['SuperAdmin', 'Administrador']}>
+          <SuperAdminDashboard />
         </ProtectedRoute>
       } />
 
