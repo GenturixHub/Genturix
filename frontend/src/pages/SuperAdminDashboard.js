@@ -65,6 +65,7 @@ import {
   CheckCircle,
   XCircle,
   Eye,
+  EyeOff,
   LogOut,
   Loader2,
   Zap,
@@ -80,7 +81,9 @@ import {
   Bell,
   Calendar,
   Video,
-  ChevronRight
+  ChevronRight,
+  UserPlus,
+  Copy
 } from 'lucide-react';
 
 // ============================================
