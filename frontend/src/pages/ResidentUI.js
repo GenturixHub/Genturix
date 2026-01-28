@@ -1,12 +1,11 @@
 /**
- * GENTURIX - ResidentUI (Emergency-First Design with Notifications)
+ * GENTURIX - ResidentUI (Emergency-First Design with Visitor Pre-Registration)
  * 
- * UPDATED: Added "Avisos" tab for guest entry/exit notifications
+ * FLOW: Resident creates visitor → Guard executes entry/exit → Admin audits
  * 
- * Design Principles:
- * - Emergency-first: One scared person, one touch available
- * - Psychological color coding for panic buttons
- * - Notifications for guest access events
+ * Tabs:
+ * - Emergencia: Panic buttons (NOT modified)
+ * - Visitas: Pre-register visitors
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -15,12 +14,30 @@ import { useAuth } from '../contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Card, CardContent } from '../components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
 import api from '../services/api';
 import { 
   Heart, 
   Eye, 
   AlertTriangle,
-  Navigation,
   Loader2,
   LogOut,
   Shield,
@@ -29,10 +46,13 @@ import {
   MapPin,
   Wifi,
   WifiOff,
-  Bell,
+  Users,
   UserPlus,
-  UserMinus,
-  Clock
+  Car,
+  Calendar,
+  Clock,
+  X,
+  Trash2
 } from 'lucide-react';
 
 // ============================================
@@ -87,6 +107,23 @@ const EMERGENCY_TYPES = {
     },
     priority: 3,
   },
+};
+
+const VISIT_TYPES = [
+  { value: 'familiar', label: 'Familiar' },
+  { value: 'friend', label: 'Amigo' },
+  { value: 'delivery', label: 'Delivery / Paquetería' },
+  { value: 'service', label: 'Servicio Técnico' },
+  { value: 'other', label: 'Otro' },
+];
+
+const STATUS_CONFIG = {
+  pending: { label: 'Pendiente', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
+  approved: { label: 'Aprobado', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+  entry_registered: { label: 'Dentro', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
+  exit_registered: { label: 'Salió', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30' },
+  cancelled: { label: 'Cancelado', color: 'bg-red-500/20 text-red-400 border-red-500/30' },
+  expired: { label: 'Expirado', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30' },
 };
 
 // ============================================
@@ -184,7 +221,6 @@ const SuccessScreen = ({ alert, onDismiss }) => {
           <CheckCircle className="w-16 h-16 text-green-400" />
         </div>
         <div className="absolute inset-0 w-32 h-32 rounded-full border-4 border-green-400/50 animate-ping" />
-        <div className="absolute inset-0 w-32 h-32 rounded-full border-2 border-green-400/30 animate-pulse" />
       </div>
       <div className="text-center space-y-4 max-w-sm">
         <h1 className="text-3xl font-bold text-green-400">¡ALERTA ENVIADA!</h1>
@@ -198,14 +234,7 @@ const SuccessScreen = ({ alert, onDismiss }) => {
             <span className="text-xl text-white">guardas<br/>notificados</span>
           </div>
           <p className="text-muted-foreground">Mantente en un lugar seguro.<br/><strong className="text-green-400">Ayuda en camino.</strong></p>
-          {alert.location && (
-            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground font-mono">
-              <MapPin className="w-3 h-3" />
-              {alert.location.latitude.toFixed(5)}, {alert.location.longitude.toFixed(5)}
-            </div>
-          )}
         </div>
-        <p className="text-sm text-muted-foreground">{alert.time}</p>
       </div>
       <button onClick={onDismiss} className="mt-8 w-full max-w-sm py-4 rounded-xl bg-[#1E293B] text-white font-medium hover:bg-[#2D3B4F] transition-colors">
         Volver al inicio
@@ -240,48 +269,75 @@ const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, s
 );
 
 // ============================================
-// NOTIFICATIONS TAB (Avisos)
+// VISITORS TAB (Pre-Registration)
 // ============================================
-const NotificationsTab = ({ user }) => {
-  const [notifications, setNotifications] = useState([]);
+const VisitorsTab = ({ user }) => {
+  const [visitors, setVisitors] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    full_name: '',
+    national_id: '',
+    vehicle_plate: '',
+    visit_type: 'friend',
+    expected_date: new Date().toISOString().split('T')[0],
+    expected_time: '',
+    notes: ''
+  });
 
   useEffect(() => {
-    fetchNotifications();
-    // Poll for new notifications every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
+    fetchVisitors();
   }, []);
 
-  const fetchNotifications = async () => {
+  const fetchVisitors = async () => {
     try {
-      // Get access logs that mention this resident
-      const accessLogs = await api.getAccessLogs();
-      // Filter logs that are visits for this resident
-      const residentNotifications = accessLogs.filter(log => 
-        log.notes?.toLowerCase().includes(user?.full_name?.toLowerCase()) ||
-        log.notes?.toLowerCase().includes('visita')
-      ).slice(0, 20);
-      
-      setNotifications(residentNotifications);
+      const data = await api.getMyVisitors();
+      setVisitors(data);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      console.error('Error fetching visitors:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const formatTime = (timestamp) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
+  const handleSubmit = async () => {
+    if (!formData.full_name.trim()) return;
     
-    if (diffMins < 1) return 'Ahora';
-    if (diffMins < 60) return `Hace ${diffMins}m`;
-    if (diffHours < 24) return `Hace ${diffHours}h`;
-    return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+    setIsSubmitting(true);
+    try {
+      await api.preRegisterVisitor(formData);
+      setFormData({
+        full_name: '',
+        national_id: '',
+        vehicle_plate: '',
+        visit_type: 'friend',
+        expected_date: new Date().toISOString().split('T')[0],
+        expected_time: '',
+        notes: ''
+      });
+      setShowForm(false);
+      fetchVisitors();
+      if (navigator.vibrate) navigator.vibrate(100);
+    } catch (error) {
+      console.error('Error pre-registering visitor:', error);
+      alert('Error al registrar visitante');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCancel = async (visitorId) => {
+    try {
+      await api.cancelVisitor(visitorId);
+      fetchVisitors();
+    } catch (error) {
+      console.error('Error cancelling visitor:', error);
+    }
+  };
+
+  const formatDate = (dateStr) => {
+    return new Date(dateStr).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
   };
 
   if (isLoading) {
@@ -293,60 +349,198 @@ const NotificationsTab = ({ user }) => {
   }
 
   return (
-    <div className="p-4 space-y-3">
-      <h2 className="text-sm font-semibold text-muted-foreground mb-4">Avisos de Visitantes</h2>
-      
-      {notifications.length > 0 ? (
-        notifications.map((notif) => (
-          <div 
-            key={notif.id}
-            className={`p-4 rounded-xl border ${
-              notif.access_type === 'entry' 
-                ? 'bg-green-500/10 border-green-500/30' 
-                : 'bg-orange-500/10 border-orange-500/30'
-            }`}
-            data-testid={`notification-${notif.id}`}
-          >
-            <div className="flex items-start gap-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                notif.access_type === 'entry' ? 'bg-green-500/20' : 'bg-orange-500/20'
-              }`}>
-                {notif.access_type === 'entry' ? (
-                  <UserPlus className="w-5 h-5 text-green-400" />
-                ) : (
-                  <UserMinus className="w-5 h-5 text-orange-400" />
-                )}
+    <div className="p-4 space-y-4">
+      {/* Add Visitor Button */}
+      <Button 
+        className="w-full" 
+        onClick={() => setShowForm(true)}
+        data-testid="add-visitor-btn"
+      >
+        <UserPlus className="w-4 h-4 mr-2" />
+        Pre-registrar Visitante
+      </Button>
+
+      {/* Visitors List */}
+      <div className="space-y-2">
+        <h3 className="text-sm font-semibold text-muted-foreground">Mis Visitantes</h3>
+        
+        {visitors.length > 0 ? (
+          visitors.map((visitor) => {
+            const status = STATUS_CONFIG[visitor.status] || STATUS_CONFIG.pending;
+            
+            return (
+              <Card key={visitor.id} className="bg-[#0F111A] border-[#1E293B]">
+                <CardContent className="p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-white text-sm truncate">{visitor.full_name}</span>
+                        <Badge className={status.color}>{status.label}</Badge>
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {formatDate(visitor.expected_date)}
+                        </span>
+                        {visitor.vehicle_plate && (
+                          <span className="flex items-center gap-1">
+                            <Car className="w-3 h-3" />
+                            {visitor.vehicle_plate}
+                          </span>
+                        )}
+                        <span className="capitalize">
+                          {VISIT_TYPES.find(t => t.value === visitor.visit_type)?.label || visitor.visit_type}
+                        </span>
+                      </div>
+
+                      {visitor.entry_at && (
+                        <div className="text-xs text-green-400 mt-1">
+                          Entrada: {new Date(visitor.entry_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                          {visitor.entry_by_name && ` por ${visitor.entry_by_name}`}
+                        </div>
+                      )}
+                      {visitor.exit_at && (
+                        <div className="text-xs text-orange-400">
+                          Salida: {new Date(visitor.exit_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                      )}
+                    </div>
+
+                    {visitor.status === 'pending' && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-red-400 hover:bg-red-500/10"
+                        onClick={() => handleCancel(visitor.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            <Users className="w-12 h-12 mx-auto mb-4 opacity-30" />
+            <p className="text-sm">No tienes visitantes registrados</p>
+            <p className="text-xs mt-1">Pre-registra visitantes para agilizar su entrada</p>
+          </div>
+        )}
+      </div>
+
+      {/* Add Visitor Dialog */}
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="w-5 h-5 text-primary" />
+              Pre-registrar Visitante
+            </DialogTitle>
+            <DialogDescription>
+              El guarda recibirá esta información para verificar al visitante
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div>
+              <Label className="text-xs text-muted-foreground">Nombre Completo *</Label>
+              <Input
+                placeholder="Nombre del visitante"
+                value={formData.full_name}
+                onChange={(e) => setFormData({...formData, full_name: e.target.value})}
+                className="bg-[#181B25] border-[#1E293B] mt-1"
+                data-testid="visitor-name-input"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Cédula / ID</Label>
+                <Input
+                  placeholder="Número de ID"
+                  value={formData.national_id}
+                  onChange={(e) => setFormData({...formData, national_id: e.target.value})}
+                  className="bg-[#181B25] border-[#1E293B] mt-1"
+                />
               </div>
-              
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-1">
-                  <Badge className={notif.access_type === 'entry' ? 'bg-green-500/20 text-green-400' : 'bg-orange-500/20 text-orange-400'}>
-                    {notif.access_type === 'entry' ? 'Entrada' : 'Salida'}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">{formatTime(notif.timestamp)}</span>
-                </div>
-                
-                <p className="font-semibold text-white text-sm">{notif.person_name}</p>
-                
-                {notif.notes && (
-                  <p className="text-xs text-muted-foreground mt-1">{notif.notes}</p>
-                )}
-                
-                <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                  <MapPin className="w-3 h-3" />
-                  <span>{notif.location}</span>
-                </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Placa Vehículo</Label>
+                <Input
+                  placeholder="ABC-123"
+                  value={formData.vehicle_plate}
+                  onChange={(e) => setFormData({...formData, vehicle_plate: e.target.value.toUpperCase()})}
+                  className="bg-[#181B25] border-[#1E293B] mt-1"
+                />
               </div>
             </div>
+
+            <div>
+              <Label className="text-xs text-muted-foreground">Tipo de Visita</Label>
+              <Select 
+                value={formData.visit_type} 
+                onValueChange={(v) => setFormData({...formData, visit_type: v})}
+              >
+                <SelectTrigger className="bg-[#181B25] border-[#1E293B] mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0F111A] border-[#1E293B]">
+                  {VISIT_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Fecha Esperada *</Label>
+                <Input
+                  type="date"
+                  value={formData.expected_date}
+                  onChange={(e) => setFormData({...formData, expected_date: e.target.value})}
+                  className="bg-[#181B25] border-[#1E293B] mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Hora Aproximada</Label>
+                <Input
+                  type="time"
+                  value={formData.expected_time}
+                  onChange={(e) => setFormData({...formData, expected_time: e.target.value})}
+                  className="bg-[#181B25] border-[#1E293B] mt-1"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-xs text-muted-foreground">Notas</Label>
+              <Input
+                placeholder="Información adicional para el guarda"
+                value={formData.notes}
+                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                className="bg-[#181B25] border-[#1E293B] mt-1"
+              />
+            </div>
           </div>
-        ))
-      ) : (
-        <div className="text-center py-12 text-muted-foreground">
-          <Bell className="w-12 h-12 mx-auto mb-4 opacity-30" />
-          <p className="text-sm">No hay avisos de visitantes</p>
-          <p className="text-xs mt-1">Aquí verás cuando alguien te visite</p>
-        </div>
-      )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowForm(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleSubmit} 
+              disabled={!formData.full_name.trim() || isSubmitting}
+              data-testid="submit-visitor-btn"
+            >
+              {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <UserPlus className="w-4 h-4 mr-2" />}
+              Registrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
@@ -498,12 +692,12 @@ const ResidentUI = () => {
             Emergencia
           </TabsTrigger>
           <TabsTrigger 
-            value="notifications" 
+            value="visitors" 
             className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
-            data-testid="tab-avisos"
+            data-testid="tab-visitors"
           >
-            <Bell className="w-4 h-4 mr-2" />
-            Avisos
+            <Users className="w-4 h-4 mr-2" />
+            Visitas
           </TabsTrigger>
         </TabsList>
 
@@ -517,9 +711,9 @@ const ResidentUI = () => {
           />
         </TabsContent>
 
-        <TabsContent value="notifications" className="flex-1 mt-0">
+        <TabsContent value="visitors" className="flex-1 mt-0">
           <ScrollArea className="h-[calc(100vh-180px)]">
-            <NotificationsTab user={user} />
+            <VisitorsTab user={user} />
           </ScrollArea>
         </TabsContent>
       </Tabs>
