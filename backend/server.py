@@ -66,6 +66,7 @@ class AuditEventType(str, Enum):
     LOGOUT = "logout"
     TOKEN_REFRESH = "token_refresh"
     PANIC_BUTTON = "panic_button"
+    PANIC_RESOLVED = "panic_resolved"
     ACCESS_GRANTED = "access_granted"
     ACCESS_DENIED = "access_denied"
     USER_CREATED = "user_created"
