@@ -952,6 +952,53 @@ async def get_guard(guard_id: str, current_user = Depends(require_role("Administ
         raise HTTPException(status_code=404, detail="Guard not found")
     return guard
 
+@api_router.put("/hr/guards/{guard_id}")
+async def update_guard(
+    guard_id: str,
+    guard_update: GuardUpdate,
+    request: Request,
+    current_user = Depends(require_role("Administrador"))
+):
+    """Update guard/employee details"""
+    guard = await db.guards.find_one({"id": guard_id})
+    if not guard:
+        raise HTTPException(status_code=404, detail="Guard not found")
+    
+    # Build update dict with only provided fields
+    update_data = {}
+    if guard_update.badge_number is not None:
+        update_data["badge_number"] = guard_update.badge_number
+    if guard_update.phone is not None:
+        update_data["phone"] = guard_update.phone
+    if guard_update.emergency_contact is not None:
+        update_data["emergency_contact"] = guard_update.emergency_contact
+    if guard_update.hourly_rate is not None:
+        update_data["hourly_rate"] = guard_update.hourly_rate
+    if guard_update.is_active is not None:
+        update_data["is_active"] = guard_update.is_active
+    
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.guards.update_one(
+        {"id": guard_id},
+        {"$set": update_data}
+    )
+    
+    await log_audit_event(
+        AuditEventType.USER_UPDATED,
+        current_user["id"],
+        "hr",
+        {"guard_id": guard_id, "updated_fields": list(update_data.keys())},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    updated_guard = await db.guards.find_one({"id": guard_id}, {"_id": 0})
+    return updated_guard
+
 @api_router.post("/hr/shifts")
 async def create_shift(shift: ShiftCreate, request: Request, current_user = Depends(require_role("Administrador", "Supervisor"))):
     guard = await db.guards.find_one({"id": shift.guard_id})
