@@ -382,7 +382,13 @@ async def login(credentials: UserLogin, request: Request):
     if not user.get("is_active"):
         raise HTTPException(status_code=403, detail="User account is inactive")
     
-    token_data = {"sub": user["id"], "email": user["email"], "roles": user["roles"]}
+    # Include condominium_id in token for tenant-aware requests
+    token_data = {
+        "sub": user["id"], 
+        "email": user["email"], 
+        "roles": user["roles"],
+        "condominium_id": user.get("condominium_id")
+    }
     access_token = create_access_token(token_data)
     refresh_token = create_refresh_token(token_data)
     
@@ -404,7 +410,8 @@ async def login(credentials: UserLogin, request: Request):
             full_name=user["full_name"],
             roles=user["roles"],
             is_active=user["is_active"],
-            created_at=user["created_at"]
+            created_at=user["created_at"],
+            condominium_id=user.get("condominium_id")
         )
     )
 
