@@ -137,6 +137,37 @@ export const AuthProvider = ({ children }) => {
     return user?.roles?.some(userRole => roles.includes(userRole)) || false;
   }, [user]);
 
+  // Refresh user data from server (after profile updates)
+  const refreshUser = useCallback(async () => {
+    if (!accessToken) return;
+    
+    try {
+      const response = await fetch(`${API_URL}/api/profile`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (response.ok) {
+        const profileData = await response.json();
+        // Merge profile data with existing user data
+        const updatedUser = {
+          ...user,
+          full_name: profileData.full_name,
+          phone: profileData.phone,
+          profile_photo: profileData.profile_photo,
+          public_description: profileData.public_description,
+          role_data: profileData.role_data,
+        };
+        setUser(updatedUser);
+        sessionStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+    } catch (error) {
+      console.error('Error refreshing user:', error);
+    }
+  }, [accessToken, user]);
+
   const value = {
     user,
     accessToken,
@@ -147,6 +178,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     register,
     refreshAccessToken,
+    refreshUser,
     hasRole,
     hasAnyRole,
   };
