@@ -369,13 +369,13 @@ const PanicAlertModal = ({ alert, open, onClose, onResolve, resolutionNotes, set
           </div>
 
           {/* Resident Notes - IMPORTANT */}
-          {alert.notes && (
+          {(alert.notes || alert.description) && (
             <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
               <h4 className="text-sm font-bold text-yellow-400 uppercase tracking-wider mb-2">
                 <FileText className="w-4 h-4 inline mr-2" />
                 Notas del Residente
               </h4>
-              <p className="text-white whitespace-pre-wrap">{alert.notes}</p>
+              <p className="text-white whitespace-pre-wrap">{alert.notes || alert.description}</p>
             </div>
           )}
 
