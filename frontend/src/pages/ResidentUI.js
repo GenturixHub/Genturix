@@ -804,7 +804,7 @@ const ResidentUI = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <TabsList className="grid grid-cols-2 bg-[#0F111A] border-b border-[#1E293B] rounded-none h-12">
+        <TabsList className="grid grid-cols-3 bg-[#0F111A] border-b border-[#1E293B] rounded-none h-12">
           <TabsTrigger 
             value="emergency" 
             className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-red-500 rounded-none"
@@ -812,6 +812,14 @@ const ResidentUI = () => {
           >
             <AlertTriangle className="w-4 h-4 mr-2 text-red-400" />
             Emergencia
+          </TabsTrigger>
+          <TabsTrigger 
+            value="history" 
+            className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-yellow-500 rounded-none"
+            data-testid="tab-history"
+          >
+            <History className="w-4 h-4 mr-2 text-yellow-400" />
+            Mis Alertas
           </TabsTrigger>
           <TabsTrigger 
             value="visitors" 
@@ -831,6 +839,12 @@ const ResidentUI = () => {
             onEmergency={handleEmergency}
             sendingType={sendingType}
           />
+        </TabsContent>
+
+        <TabsContent value="history" className="flex-1 mt-0">
+          <ScrollArea className="h-[calc(100vh-180px)]">
+            <AlertHistoryTab />
+          </ScrollArea>
         </TabsContent>
 
         <TabsContent value="visitors" className="flex-1 mt-0">
