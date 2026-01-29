@@ -114,9 +114,15 @@ class ApiService {
   getGuardLogbook = () => this.get('/security/logbook');
   getActiveGuards = () => this.get('/security/active-guards');
   getSecurityStats = () => this.get('/security/dashboard-stats');
+  
+  // Guard History (for Guard UI)
+  getGuardHistory = (historyType = '') => this.get(`/guard/history${historyType ? `?history_type=${historyType}` : ''}`);
 
   // Resident notifications
   getResidentNotifications = () => this.get('/resident/notifications');
+  
+  // Resident Alert History
+  getResidentAlerts = () => this.get('/resident/my-alerts');
 
   // Visitor Pre-Registration (Resident creates, Guard executes)
   preRegisterVisitor = (data) => this.post('/visitors/pre-register', data);
