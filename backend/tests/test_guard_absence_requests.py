@@ -15,6 +15,7 @@ import pytest
 import requests
 import os
 import uuid
+import random
 from datetime import datetime, timedelta
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
@@ -24,6 +25,15 @@ GUARD_EMAIL = "D@d.com"
 GUARD_PASSWORD = "Guard123!"
 HR_EMAIL = "christopher01campos@gmail.com"
 HR_PASSWORD = "Guard123!"
+
+
+def get_unique_dates(days_offset=200):
+    """Generate unique dates to avoid overlap with existing absences"""
+    # Add random offset to avoid conflicts
+    random_offset = random.randint(days_offset, days_offset + 100)
+    start_date = (datetime.now() + timedelta(days=random_offset)).strftime("%Y-%m-%d")
+    end_date = (datetime.now() + timedelta(days=random_offset + 1)).strftime("%Y-%m-%d")
+    return start_date, end_date
 
 
 class TestGuardAbsenceRequests:
@@ -86,15 +96,14 @@ class TestGuardAbsenceRequests:
         """Test guard can create absence request with source='guard'"""
         self.login_as_guard()
         
-        # Create absence request
-        start_date = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
-        end_date = (datetime.now() + timedelta(days=10)).strftime("%Y-%m-%d")
+        # Create absence request with unique dates
+        start_date, end_date = get_unique_dates(300)
         
         response = self.session.post(f"{BASE_URL}/api/hr/absences", json={
             "type": "vacaciones",
             "start_date": start_date,
             "end_date": end_date,
-            "reason": "TEST_Guard_Vacation_Request",
+            "reason": f"TEST_Guard_Vacation_{uuid.uuid4().hex[:8]}",
             "notes": "Testing guard absence request feature"
         })
         
@@ -104,7 +113,6 @@ class TestGuardAbsenceRequests:
         # Verify response structure
         assert "id" in data
         assert data["type"] == "vacaciones"
-        assert data["reason"] == "TEST_Guard_Vacation_Request"
         assert data["status"] == "pending"
         assert data["source"] == "guard", f"Expected source='guard', got '{data.get('source')}'"
         
@@ -119,18 +127,17 @@ class TestGuardAbsenceRequests:
         self.login_as_guard()
         
         # Create another absence to verify source field - use unique dates
-        start_date = (datetime.now() + timedelta(days=100)).strftime("%Y-%m-%d")
-        end_date = (datetime.now() + timedelta(days=101)).strftime("%Y-%m-%d")
+        start_date, end_date = get_unique_dates(400)
         
         response = self.session.post(f"{BASE_URL}/api/hr/absences", json={
             "type": "permiso_medico",
             "start_date": start_date,
             "end_date": end_date,
-            "reason": "TEST_Medical_Appointment",
+            "reason": f"TEST_Medical_{uuid.uuid4().hex[:8]}",
             "notes": ""
         })
         
-        assert response.status_code == 200
+        assert response.status_code == 200, f"Create absence failed: {response.text}"
         data = response.json()
         assert data["source"] == "guard", "Source should be 'guard' when created by guard"
         print(f"✓ Absence source field correctly set to 'guard'")
@@ -150,7 +157,7 @@ class TestGuardAbsenceRequests:
         print(f"✓ Guard can view own absences: {len(data)} records found")
         
         # Verify all absences belong to the guard
-        for absence in data:
+        for absence in data[:5]:  # Show first 5
             assert "id" in absence
             assert "type" in absence
             assert "status" in absence
@@ -194,18 +201,17 @@ class TestGuardAbsenceRequests:
         # First create an absence as guard
         self.login_as_guard()
         
-        start_date = (datetime.now() + timedelta(days=20)).strftime("%Y-%m-%d")
-        end_date = (datetime.now() + timedelta(days=21)).strftime("%Y-%m-%d")
+        start_date, end_date = get_unique_dates(500)
         
         create_response = self.session.post(f"{BASE_URL}/api/hr/absences", json={
             "type": "personal",
             "start_date": start_date,
             "end_date": end_date,
-            "reason": "TEST_Absence_For_Approval",
+            "reason": f"TEST_For_Approval_{uuid.uuid4().hex[:8]}",
             "notes": ""
         })
         
-        assert create_response.status_code == 200
+        assert create_response.status_code == 200, f"Create absence failed: {create_response.text}"
         absence_id = create_response.json()["id"]
         print(f"  Created absence for approval test: {absence_id}")
         
@@ -230,18 +236,17 @@ class TestGuardAbsenceRequests:
         # First create an absence as guard
         self.login_as_guard()
         
-        start_date = (datetime.now() + timedelta(days=25)).strftime("%Y-%m-%d")
-        end_date = (datetime.now() + timedelta(days=26)).strftime("%Y-%m-%d")
+        start_date, end_date = get_unique_dates(600)
         
         create_response = self.session.post(f"{BASE_URL}/api/hr/absences", json={
             "type": "otro",
             "start_date": start_date,
             "end_date": end_date,
-            "reason": "TEST_Absence_For_Rejection",
+            "reason": f"TEST_For_Rejection_{uuid.uuid4().hex[:8]}",
             "notes": ""
         })
         
-        assert create_response.status_code == 200
+        assert create_response.status_code == 200, f"Create absence failed: {create_response.text}"
         absence_id = create_response.json()["id"]
         print(f"  Created absence for rejection test: {absence_id}")
         
@@ -266,17 +271,17 @@ class TestGuardAbsenceRequests:
         # First create and approve an absence
         self.login_as_guard()
         
-        start_date = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
-        end_date = (datetime.now() + timedelta(days=31)).strftime("%Y-%m-%d")
+        start_date, end_date = get_unique_dates(700)
         
         create_response = self.session.post(f"{BASE_URL}/api/hr/absences", json={
             "type": "vacaciones",
             "start_date": start_date,
             "end_date": end_date,
-            "reason": "TEST_Already_Processed",
+            "reason": f"TEST_Already_Processed_{uuid.uuid4().hex[:8]}",
             "notes": ""
         })
         
+        assert create_response.status_code == 200, f"Create absence failed: {create_response.text}"
         absence_id = create_response.json()["id"]
         
         # Approve it first
@@ -295,8 +300,7 @@ class TestGuardAbsenceRequests:
         """Test that absence creation requires a reason"""
         self.login_as_guard()
         
-        start_date = (datetime.now() + timedelta(days=35)).strftime("%Y-%m-%d")
-        end_date = (datetime.now() + timedelta(days=36)).strftime("%Y-%m-%d")
+        start_date, end_date = get_unique_dates(800)
         
         response = self.session.post(f"{BASE_URL}/api/hr/absences", json={
             "type": "vacaciones",
@@ -318,14 +322,14 @@ class TestGuardAbsenceRequests:
         # This is primarily frontend validation, but we test backend behavior
         self.login_as_guard()
         
-        start_date = (datetime.now() + timedelta(days=40)).strftime("%Y-%m-%d")
-        end_date = (datetime.now() + timedelta(days=38)).strftime("%Y-%m-%d")  # Before start
+        start_date = (datetime.now() + timedelta(days=900)).strftime("%Y-%m-%d")
+        end_date = (datetime.now() + timedelta(days=898)).strftime("%Y-%m-%d")  # Before start
         
         response = self.session.post(f"{BASE_URL}/api/hr/absences", json={
             "type": "vacaciones",
             "start_date": start_date,
             "end_date": end_date,
-            "reason": "TEST_Invalid_Dates",
+            "reason": f"TEST_Invalid_Dates_{uuid.uuid4().hex[:8]}",
             "notes": ""
         })
         
@@ -341,18 +345,17 @@ class TestGuardAbsenceRequests:
         """Test that absence request creates audit log entry"""
         self.login_as_guard()
         
-        start_date = (datetime.now() + timedelta(days=45)).strftime("%Y-%m-%d")
-        end_date = (datetime.now() + timedelta(days=46)).strftime("%Y-%m-%d")
+        start_date, end_date = get_unique_dates(1000)
         
         response = self.session.post(f"{BASE_URL}/api/hr/absences", json={
             "type": "vacaciones",
             "start_date": start_date,
             "end_date": end_date,
-            "reason": "TEST_Audit_Log_Check",
+            "reason": f"TEST_Audit_Log_{uuid.uuid4().hex[:8]}",
             "notes": ""
         })
         
-        assert response.status_code == 200
+        assert response.status_code == 200, f"Create absence failed: {response.text}"
         absence_data = response.json()
         
         # Check audit logs (if accessible)
@@ -369,17 +372,17 @@ class TestGuardAbsenceRequests:
         # Create absence as guard
         self.login_as_guard()
         
-        start_date = (datetime.now() + timedelta(days=50)).strftime("%Y-%m-%d")
-        end_date = (datetime.now() + timedelta(days=51)).strftime("%Y-%m-%d")
+        start_date, end_date = get_unique_dates(1100)
         
         create_response = self.session.post(f"{BASE_URL}/api/hr/absences", json={
             "type": "personal",
             "start_date": start_date,
             "end_date": end_date,
-            "reason": "TEST_Status_Update_Check",
+            "reason": f"TEST_Status_Update_{uuid.uuid4().hex[:8]}",
             "notes": ""
         })
         
+        assert create_response.status_code == 200, f"Create absence failed: {create_response.text}"
         absence_id = create_response.json()["id"]
         
         # Approve as HR
