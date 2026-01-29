@@ -154,20 +154,40 @@ const Sidebar = ({ collapsed, onToggle }) => {
           </Button>
         </div>
 
-        {/* User Info */}
+        {/* User Info with Avatar */}
         {!collapsed && (
-          <div className="p-4 border-b border-[#1E293B]">
+          <div 
+            className="p-4 border-b border-[#1E293B] cursor-pointer hover:bg-muted/30 transition-colors"
+            onClick={() => navigate('/profile')}
+            data-testid="sidebar-user-info"
+          >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <span className="text-sm font-semibold text-primary">
+              <Avatar className="w-10 h-10 border-2 border-primary/30">
+                <AvatarImage src={user?.profile_photo} />
+                <AvatarFallback className="bg-primary/20 text-primary text-sm font-semibold">
                   {user?.full_name?.charAt(0).toUpperCase()}
-                </span>
-              </div>
+                </AvatarFallback>
+              </Avatar>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{user?.full_name}</p>
                 <p className="text-xs text-muted-foreground truncate">{activeRole}</p>
               </div>
             </div>
+          </div>
+        )}
+        
+        {/* Collapsed Avatar */}
+        {collapsed && (
+          <div 
+            className="p-2 border-b border-[#1E293B] flex justify-center cursor-pointer hover:bg-muted/30"
+            onClick={() => navigate('/profile')}
+          >
+            <Avatar className="w-8 h-8 border-2 border-primary/30">
+              <AvatarImage src={user?.profile_photo} />
+              <AvatarFallback className="bg-primary/20 text-primary text-xs font-semibold">
+                {user?.full_name?.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
           </div>
         )}
 
