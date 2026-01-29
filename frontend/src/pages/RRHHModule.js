@@ -46,6 +46,8 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { useIsMobile } from '../components/layout/BottomNav';
 import api from '../services/api';
+import ProfileDirectory from '../components/ProfileDirectory';
+import EmbeddedProfile from '../components/EmbeddedProfile';
 import { 
   Users, 
   UserPlus,
@@ -73,7 +75,8 @@ import {
   CalendarOff,
   ClipboardList,
   TrendingUp,
-  XCircle
+  XCircle,
+  User
 } from 'lucide-react';
 
 // ============================================
