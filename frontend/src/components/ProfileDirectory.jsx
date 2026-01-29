@@ -47,12 +47,16 @@ const ROLE_CONFIG = {
 
 const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [directory, setDirectory] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
+
+  // Refetch when user profile_photo changes (after profile update)
+  const userPhotoKey = user?.profile_photo || 'no-photo';
 
   useEffect(() => {
     const fetchDirectory = async () => {
