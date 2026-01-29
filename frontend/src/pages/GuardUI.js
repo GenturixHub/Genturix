@@ -1238,8 +1238,10 @@ const GuardUI = () => {
       await api.clockInOut(type);
       if (navigator.vibrate) navigator.vibrate(100);
       fetchClockStatus();
+      return true; // Success
     } catch (error) {
-      alert(error.message || 'Error al fichar');
+      // Re-throw to let MyShiftTab handle the error display
+      throw error;
     } finally {
       setIsClocking(false);
     }
