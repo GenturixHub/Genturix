@@ -1961,7 +1961,7 @@ const GuardUI = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-        <TabsList className="flex-shrink-0 grid grid-cols-6 bg-[#0A0A0F] border-b border-[#1E293B] rounded-none h-14 p-0">
+        <TabsList className="flex-shrink-0 grid grid-cols-8 bg-[#0A0A0F] border-b border-[#1E293B] rounded-none h-14 p-0">
           <TabsTrigger 
             value="alerts" 
             className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-red-500 flex flex-col gap-0.5"
@@ -2021,6 +2021,24 @@ const GuardUI = () => {
           >
             <History className="w-5 h-5" />
             <span className="text-[10px]">Historial</span>
+          </TabsTrigger>
+          
+          <TabsTrigger 
+            value="directory" 
+            className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-cyan-500 flex flex-col gap-0.5"
+            data-testid="tab-directory"
+          >
+            <UsersIcon className="w-5 h-5" />
+            <span className="text-[10px]">Personas</span>
+          </TabsTrigger>
+          
+          <TabsTrigger 
+            value="profile" 
+            className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-amber-500 flex flex-col gap-0.5"
+            data-testid="tab-profile"
+          >
+            <User className="w-5 h-5" />
+            <span className="text-[10px]">Perfil</span>
           </TabsTrigger>
         </TabsList>
 
