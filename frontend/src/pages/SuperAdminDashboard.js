@@ -83,7 +83,9 @@ import {
   Video,
   ChevronRight,
   UserPlus,
-  Copy
+  Copy,
+  AlertOctagon,
+  ShieldAlert
 } from 'lucide-react';
 
 // ============================================
