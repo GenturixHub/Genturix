@@ -506,7 +506,7 @@ const VisitorsTab = ({ user }) => {
                       
                       <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
+                          <CalendarIcon className="w-3 h-3" />
                           {formatDate(visitor.expected_date)}
                         </span>
                         {visitor.vehicle_plate && (
