@@ -56,7 +56,8 @@ import {
   X,
   Trash2,
   History,
-  Bell
+  Bell,
+  User
 } from 'lucide-react';
 
 // ============================================
