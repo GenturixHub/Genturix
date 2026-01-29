@@ -1891,6 +1891,14 @@ const GuardUI = () => {
   const activeAlertCount = alerts.filter(a => a.status === 'active').length;
   const isClockedIn = clockStatus?.is_clocked_in || false;
 
+  // Update mobile nav items with alert count
+  const mobileNavItems = GUARD_MOBILE_NAV.map(item => {
+    if (item.id === 'alerts' && activeAlertCount > 0) {
+      return { ...item, badge: activeAlertCount };
+    }
+    return item;
+  });
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#05050A] flex items-center justify-center">
@@ -1903,14 +1911,14 @@ const GuardUI = () => {
   }
 
   return (
-    <div className="h-screen bg-[#05050A] flex flex-col overflow-hidden">
+    <div className={`h-screen bg-[#05050A] flex flex-col overflow-hidden ${isMobile ? 'pb-20' : ''}`}>
       {/* Header with Clock Status */}
       <header className="flex-shrink-0 p-2 flex items-center justify-between border-b border-[#1E293B] bg-[#0A0A0F]">
         <div className="flex items-center gap-2">
           {/* Clickable Avatar - navigates to profile */}
           <div 
             className="cursor-pointer group"
-            onClick={() => navigate('/profile')}
+            onClick={() => isMobile ? setActiveTab('profile') : navigate('/profile')}
             data-testid="guard-profile-avatar"
           >
             <Avatar className={`w-9 h-9 border-2 ${isClockedIn ? 'border-green-500' : 'border-gray-500'} transition-transform group-hover:scale-110`}>
@@ -1922,19 +1930,19 @@ const GuardUI = () => {
           </div>
           <div 
             className="cursor-pointer hover:opacity-80"
-            onClick={() => navigate('/profile')}
+            onClick={() => isMobile ? setActiveTab('profile') : navigate('/profile')}
           >
             <h1 className="text-xs font-bold tracking-wide">GENTURIX</h1>
             <p className="text-[10px] text-muted-foreground truncate max-w-[100px]">{user?.full_name}</p>
           </div>
         </div>
         
-        {/* Clock In/Out Button */}
+        {/* Clock In/Out Button - always visible */}
         <div className="flex items-center gap-2">
           <Button 
             size="sm"
             variant={isClockedIn ? "destructive" : "default"}
-            className={`h-8 px-3 text-xs font-bold ${isClockedIn ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+            className={`h-10 px-4 text-sm font-bold ${isClockedIn ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
             onClick={handleClockInOut}
             disabled={isClocking}
             data-testid="clock-btn-header"
@@ -1949,17 +1957,19 @@ const GuardUI = () => {
             )}
           </Button>
           
-          {/* Profile quick access */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8" 
-            onClick={() => navigate('/profile')}
-            data-testid="guard-profile-btn"
-            title="Mi Perfil"
-          >
-            <User className="w-4 h-4" />
-          </Button>
+          {/* Profile quick access - hide on mobile (use bottom nav) */}
+          {!isMobile && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8" 
+              onClick={() => navigate('/profile')}
+              data-testid="guard-profile-btn"
+              title="Mi Perfil"
+            >
+              <User className="w-4 h-4" />
+            </Button>
+          )}
           
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleLogout} data-testid="guard-logout-btn">
             <LogOut className="w-4 h-4" />
