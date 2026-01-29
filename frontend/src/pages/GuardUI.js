@@ -1515,14 +1515,15 @@ const GuardUI = () => {
     }
   };
 
-  const handleResolve = async (alertId) => {
+  const handleResolve = async (alertId, notes = '') => {
     setResolvingId(alertId);
     try {
-      await api.resolvePanic(alertId);
+      await api.resolvePanic(alertId, notes);
       if (navigator.vibrate) navigator.vibrate(100);
       fetchAlerts();
     } catch (error) {
       console.error('Error resolving alert:', error);
+      throw error; // Re-throw to let the modal handle it
     } finally {
       setResolvingId(null);
     }
