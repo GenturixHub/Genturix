@@ -1154,10 +1154,20 @@ async def register_visitor_exit(
 @api_router.get("/visitors/all")
 async def get_all_visitors(
     status: Optional[str] = None,
-    current_user = Depends(require_role("Administrador", "Supervisor"))
+    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
 ):
-    """Admin gets all visitor records for audit"""
+    """Admin/Guard gets visitor records for audit - SCOPED BY CONDOMINIUM"""
     query = {}
+    
+    # CRITICAL: Multi-tenant filtering - REQUIRED
+    if "SuperAdmin" not in current_user.get("roles", []):
+        condo_id = current_user.get("condominium_id")
+        if condo_id:
+            query["condominium_id"] = condo_id
+        else:
+            # No condominium = no data (strict isolation)
+            return []
+    
     if status:
         query["status"] = status
     
