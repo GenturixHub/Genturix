@@ -46,12 +46,14 @@ const Sidebar = ({ collapsed, onToggle }) => {
   };
 
   // Navigation items - TURNOS REMOVIDO como módulo independiente
+  // Each item can have a moduleId to check if enabled for the condominium
   const navItems = [
     {
       title: 'Dashboard',
       icon: LayoutDashboard,
       href: '/dashboard',
       roles: ['Administrador', 'Supervisor', 'Guarda', 'Residente', 'Estudiante'],
+      // Dashboard is always available
     },
     {
       title: 'Usuarios',
@@ -59,13 +61,15 @@ const Sidebar = ({ collapsed, onToggle }) => {
       href: '/admin/users',
       roles: ['Administrador'],
       description: 'Crear y gestionar usuarios'
+      // User management is always available for admins
     },
     {
       title: 'Seguridad',
       icon: AlertTriangle,
       href: '/security',
       roles: ['Administrador', 'Supervisor', 'Guarda'],
-      description: 'Emergencias, accesos, monitoreo'
+      description: 'Emergencias, accesos, monitoreo',
+      moduleId: 'security'
     },
     // RRHH - Módulo central único (incluye Turnos)
     {
@@ -73,37 +77,52 @@ const Sidebar = ({ collapsed, onToggle }) => {
       icon: Briefcase,
       href: '/rrhh',
       roles: ['Administrador', 'Supervisor', 'Guarda', 'HR'],
-      description: 'Personal, turnos, ausencias'
+      description: 'Personal, turnos, ausencias',
+      moduleId: 'hr'
     },
     {
       title: 'Genturix School',
       icon: GraduationCap,
       href: '/school',
       roles: ['Administrador', 'Estudiante', 'Guarda'],
+      moduleId: 'school'
     },
     {
       title: 'Pagos',
       icon: CreditCard,
       href: '/payments',
       roles: ['Administrador', 'Residente', 'Estudiante'],
+      moduleId: 'payments'
     },
     {
       title: 'Auditoría',
       icon: FileText,
       href: '/audit',
       roles: ['Administrador'],
+      moduleId: 'audit'
     },
     {
       title: 'Configuración',
       icon: Settings,
       href: '/settings',
       roles: ['Administrador'],
+      // Settings is always available for admins
     },
   ];
 
-  const filteredNavItems = navItems.filter(item => 
-    item.roles.includes(activeRole) || hasAnyRole(...item.roles)
-  );
+  // Filter by role AND by module availability
+  const filteredNavItems = navItems.filter(item => {
+    // First check role permission
+    const hasRolePermission = item.roles.includes(activeRole) || hasAnyRole(...item.roles);
+    if (!hasRolePermission) return false;
+    
+    // Then check if module is enabled (if moduleId is specified)
+    if (item.moduleId) {
+      return isModuleEnabled(item.moduleId);
+    }
+    
+    return true;
+  });
 
   return (
     <aside 
