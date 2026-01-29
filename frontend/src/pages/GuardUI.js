@@ -1764,9 +1764,20 @@ const HistoryTab = () => {
 // ============================================
 // MAIN COMPONENT
 // ============================================
+
+// Mobile Bottom Nav Configuration for Guard
+const GUARD_MOBILE_NAV = [
+  { id: 'alerts', label: 'Alertas', icon: AlertTriangle },
+  { id: 'visits', label: 'Visitas', icon: Users },
+  { id: 'panic', label: 'Pánico', icon: Siren, bgColor: 'bg-red-600', glowColor: 'shadow-red-500/50' },
+  { id: 'myshift', label: 'Mi Turno', icon: Briefcase },
+  { id: 'profile', label: 'Perfil', icon: User },
+];
+
 const GuardUI = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('alerts');
   const [alerts, setAlerts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -1776,6 +1787,18 @@ const GuardUI = () => {
   // Clock In/Out state
   const [clockStatus, setClockStatus] = useState(null);
   const [isClocking, setIsClocking] = useState(false);
+  
+  // Mobile panic modal state
+  const [showPanicModal, setShowPanicModal] = useState(false);
+
+  // Handle mobile nav tab changes
+  const handleMobileTabChange = (tabId) => {
+    if (tabId === 'panic') {
+      setShowPanicModal(true);
+    } else {
+      setActiveTab(tabId);
+    }
+  };
 
   const fetchAlerts = useCallback(async () => {
     try {
