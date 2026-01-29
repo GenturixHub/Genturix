@@ -296,6 +296,9 @@ class ApiService {
 
   // Profile - Public View
   getPublicProfile = (userId) => this.get(`/profile/${userId}`);
+  
+  // Profile Directory - All users in same condominium
+  getCondominiumDirectory = () => this.get('/profile/directory/condominium');
 }
 
 export const api = new ApiService();
