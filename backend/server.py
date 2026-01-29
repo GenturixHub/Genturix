@@ -677,6 +677,7 @@ async def get_profile(current_user = Depends(get_current_user)):
         condominium_name=condo_name,
         phone=current_user.get("phone"),
         profile_photo=current_user.get("profile_photo"),
+        public_description=current_user.get("public_description"),
         role_data=current_user.get("role_data")
     )
 
