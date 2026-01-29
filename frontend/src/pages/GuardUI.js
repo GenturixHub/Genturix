@@ -1880,10 +1880,23 @@ const GuardUI = () => {
       {/* Header with Clock Status */}
       <header className="flex-shrink-0 p-2 flex items-center justify-between border-b border-[#1E293B] bg-[#0A0A0F]">
         <div className="flex items-center gap-2">
-          <div className={`w-9 h-9 rounded-lg ${isClockedIn ? 'bg-green-500/20' : 'bg-gray-500/20'} flex items-center justify-center`}>
-            <Shield className={`w-5 h-5 ${isClockedIn ? 'text-green-400' : 'text-gray-400'}`} />
+          {/* Clickable Avatar - navigates to profile */}
+          <div 
+            className="cursor-pointer group"
+            onClick={() => navigate('/profile')}
+            data-testid="guard-profile-avatar"
+          >
+            <Avatar className={`w-9 h-9 border-2 ${isClockedIn ? 'border-green-500' : 'border-gray-500'} transition-transform group-hover:scale-110`}>
+              <AvatarImage src={user?.profile_photo} />
+              <AvatarFallback className={`${isClockedIn ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'} text-sm font-bold`}>
+                {user?.full_name?.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
           </div>
-          <div>
+          <div 
+            className="cursor-pointer hover:opacity-80"
+            onClick={() => navigate('/profile')}
+          >
             <h1 className="text-xs font-bold tracking-wide">GENTURIX</h1>
             <p className="text-[10px] text-muted-foreground truncate max-w-[100px]">{user?.full_name}</p>
           </div>
@@ -1909,7 +1922,19 @@ const GuardUI = () => {
             )}
           </Button>
           
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleLogout}>
+          {/* Profile quick access */}
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8" 
+            onClick={() => navigate('/profile')}
+            data-testid="guard-profile-btn"
+            title="Mi Perfil"
+          >
+            <User className="w-4 h-4" />
+          </Button>
+          
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleLogout} data-testid="guard-logout-btn">
             <LogOut className="w-4 h-4" />
           </Button>
         </div>
