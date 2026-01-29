@@ -3,6 +3,13 @@
  * 
  * Estilos que SOLO aplican en mobile (≤1023px)
  * Desktop (≥1024px) NO se ve afectado
+ * 
+ * PHASE 1: Global Mobile Rules
+ * - Minimum touch target: 48px
+ * - Increased vertical spacing
+ * - Full-width inputs
+ * - Full-screen modals
+ * - No horizontal scrolling
  */
 
 /* ============================================
@@ -10,6 +17,137 @@
    ============================================ */
 
 @media (max-width: 1023px) {
+  /* ==========================================
+     GLOBAL TOUCH TARGETS (48px minimum)
+     ========================================== */
+  
+  /* All buttons get minimum touch target */
+  button:not(.no-touch-adjust),
+  [role="button"]:not(.no-touch-adjust),
+  .btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* All interactive list items */
+  [role="listitem"],
+  [role="menuitem"],
+  [role="option"],
+  li.interactive {
+    min-height: 48px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  /* All clickable cards */
+  .card-clickable,
+  [data-clickable="true"] {
+    min-height: 48px;
+  }
+
+  /* ==========================================
+     INCREASED VERTICAL SPACING
+     ========================================== */
+  
+  .space-y-4 {
+    gap: 1.25rem;
+  }
+
+  .space-y-6 {
+    gap: 2rem;
+  }
+
+  .gap-4 {
+    gap: 1.25rem;
+  }
+
+  .gap-6 {
+    gap: 2rem;
+  }
+
+  /* ==========================================
+     FORM ELEMENTS (Full-width, taller)
+     ========================================== */
+  
+  /* All inputs get mobile sizing */
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select,
+  [role="combobox"] {
+    min-height: 48px !important;
+    font-size: 16px !important; /* Prevents iOS zoom */
+    width: 100%;
+  }
+
+  /* Form field containers */
+  .form-field,
+  .input-group {
+    width: 100%;
+  }
+
+  /* ==========================================
+     MODAL FULL-SCREEN ON MOBILE
+     ========================================== */
+  
+  /* Dialog content becomes fullscreen */
+  [role="dialog"] > div:first-child,
+  .dialog-content,
+  [data-radix-popper-content-wrapper] .dialog-content {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    transform: none !important;
+  }
+
+  /* Sheet/drawer behavior for modals */
+  .mobile-sheet {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    max-height: 90vh !important;
+    border-radius: 1rem 1rem 0 0 !important;
+    animation: slideUp 0.3s ease-out;
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  /* ==========================================
+     NO HORIZONTAL SCROLLING
+     ========================================== */
+  
+  body,
+  html {
+    overflow-x: hidden !important;
+  }
+
+  .overflow-x-auto {
+    overflow-x: hidden !important;
+  }
+
+  /* Force tables to not overflow */
+  table {
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  /* ==========================================
+     VISIBILITY UTILITIES
+     ========================================== */
+  
   /* Hide elements on mobile */
   .hide-on-mobile {
     display: none !important;
@@ -24,7 +162,10 @@
     display: flex !important;
   }
 
-  /* Safe area padding for notched phones */
+  /* ==========================================
+     SAFE AREA (Notched phones)
+     ========================================== */
+  
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom, 16px);
   }
@@ -38,6 +179,10 @@
     padding-bottom: calc(80px + env(safe-area-inset-bottom, 16px));
   }
 
+  /* ==========================================
+     BUTTON STYLES
+     ========================================== */
+  
   /* Full width buttons on mobile */
   .mobile-full-width {
     width: 100% !important;
@@ -57,6 +202,10 @@
     font-size: 1rem;
   }
 
+  /* ==========================================
+     TABLE → CARD CONVERSION
+     ========================================== */
+  
   /* Mobile card layout for tables */
   .mobile-card-grid {
     display: grid;
@@ -74,6 +223,10 @@
     display: block !important;
   }
 
+  /* ==========================================
+     MODAL FULL-SCREEN (Legacy support)
+     ========================================== */
+  
   /* Mobile modal fullscreen */
   .mobile-modal-fullscreen {
     width: 100vw !important;
