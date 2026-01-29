@@ -807,30 +807,46 @@ const ResidentUI = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <TabsList className="grid grid-cols-3 bg-[#0F111A] border-b border-[#1E293B] rounded-none h-12">
+        <TabsList className="grid grid-cols-5 bg-[#0F111A] border-b border-[#1E293B] rounded-none h-12">
           <TabsTrigger 
             value="emergency" 
-            className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-red-500 rounded-none"
+            className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-red-500 rounded-none flex flex-col items-center gap-0.5 text-[10px]"
             data-testid="tab-emergency"
           >
-            <AlertTriangle className="w-4 h-4 mr-2 text-red-400" />
+            <AlertTriangle className="w-4 h-4 text-red-400" />
             Emergencia
           </TabsTrigger>
           <TabsTrigger 
             value="history" 
-            className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-yellow-500 rounded-none"
+            className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-yellow-500 rounded-none flex flex-col items-center gap-0.5 text-[10px]"
             data-testid="tab-history"
           >
-            <History className="w-4 h-4 mr-2 text-yellow-400" />
+            <History className="w-4 h-4 text-yellow-400" />
             Mis Alertas
           </TabsTrigger>
           <TabsTrigger 
             value="visitors" 
-            className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none"
+            className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none flex flex-col items-center gap-0.5 text-[10px]"
             data-testid="tab-visitors"
           >
-            <Users className="w-4 h-4 mr-2" />
+            <UserPlus className="w-4 h-4" />
             Visitas
+          </TabsTrigger>
+          <TabsTrigger 
+            value="directory" 
+            className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-cyan-500 rounded-none flex flex-col items-center gap-0.5 text-[10px]"
+            data-testid="tab-directory"
+          >
+            <Users className="w-4 h-4 text-cyan-400" />
+            Personas
+          </TabsTrigger>
+          <TabsTrigger 
+            value="profile" 
+            className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-amber-500 rounded-none flex flex-col items-center gap-0.5 text-[10px]"
+            data-testid="tab-profile"
+          >
+            <User className="w-4 h-4 text-amber-400" />
+            Perfil
           </TabsTrigger>
         </TabsList>
 
@@ -854,6 +870,14 @@ const ResidentUI = () => {
           <ScrollArea className="h-[calc(100vh-180px)]">
             <VisitorsTab user={user} />
           </ScrollArea>
+        </TabsContent>
+        
+        <TabsContent value="directory" className="flex-1 mt-0">
+          <ProfileDirectory embedded={true} maxHeight="calc(100vh - 180px)" />
+        </TabsContent>
+        
+        <TabsContent value="profile" className="flex-1 mt-0">
+          <EmbeddedProfile />
         </TabsContent>
       </Tabs>
 
