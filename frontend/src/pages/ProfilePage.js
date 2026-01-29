@@ -63,6 +63,7 @@ const ProfilePage = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [editMode, setEditMode] = useState(false);
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
@@ -73,6 +74,9 @@ const ProfilePage = () => {
   // Determine if viewing own profile or another user's profile
   const isOwnProfile = !userId || userId === user?.id;
   const pageTitle = isOwnProfile ? 'Mi Perfil' : 'Perfil de Usuario';
+
+  // Get the current photo to display (considering edit mode)
+  const currentPhoto = editMode ? formData.profile_photo : profile?.profile_photo;
 
   // Fetch profile data
   useEffect(() => {
