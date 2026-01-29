@@ -118,9 +118,9 @@ class TestGuardAbsenceRequests:
         """Verify absence created by guard has source='guard'"""
         self.login_as_guard()
         
-        # Create another absence to verify source field
-        start_date = (datetime.now() + timedelta(days=14)).strftime("%Y-%m-%d")
-        end_date = (datetime.now() + timedelta(days=15)).strftime("%Y-%m-%d")
+        # Create another absence to verify source field - use unique dates
+        start_date = (datetime.now() + timedelta(days=100)).strftime("%Y-%m-%d")
+        end_date = (datetime.now() + timedelta(days=101)).strftime("%Y-%m-%d")
         
         response = self.session.post(f"{BASE_URL}/api/hr/absences", json={
             "type": "permiso_medico",
