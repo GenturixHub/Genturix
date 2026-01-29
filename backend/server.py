@@ -3392,6 +3392,128 @@ async def get_super_admin_audit(
     return logs
 
 
+@api_router.delete("/super-admin/condominiums/{condo_id}")
+async def permanently_delete_condominium(
+    condo_id: str,
+    delete_request: CondominiumDeleteRequest,
+    request: Request,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
+):
+    """
+    PERMANENTLY DELETE a condominium and ALL related data.
+    
+    This is an IRREVERSIBLE action. Requires Super Admin role and password verification.
+    
+    Deletes:
+    - Condominium record
+    - All users belonging to the condominium
+    - All panic events
+    - All guard history
+    - All HR data (guards, employees, shifts, absences)
+    - All visitors
+    - All audit logs linked to the condominium
+    """
+    # Step 1: Verify Super Admin password
+    user = await db.users.find_one({"id": current_user["id"]})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if not verify_password(delete_request.password, user["hashed_password"]):
+        raise HTTPException(status_code=403, detail="Contraseña incorrecta")
+    
+    # Step 2: Verify condominium exists
+    condo = await db.condominiums.find_one({"id": condo_id})
+    if not condo:
+        raise HTTPException(status_code=404, detail="Condominio no encontrado")
+    
+    condo_name = condo.get("name", "Unknown")
+    
+    # Step 3: Cascade delete all related data
+    deletion_stats = {
+        "condominium": condo_name,
+        "users_deleted": 0,
+        "panic_events_deleted": 0,
+        "guard_history_deleted": 0,
+        "guards_deleted": 0,
+        "employees_deleted": 0,
+        "shifts_deleted": 0,
+        "absences_deleted": 0,
+        "visitors_deleted": 0,
+        "audit_logs_deleted": 0,
+        "candidates_deleted": 0
+    }
+    
+    # Delete users
+    users_result = await db.users.delete_many({"condominium_id": condo_id})
+    deletion_stats["users_deleted"] = users_result.deleted_count
+    
+    # Delete panic events
+    panic_result = await db.panic_events.delete_many({"condominium_id": condo_id})
+    deletion_stats["panic_events_deleted"] = panic_result.deleted_count
+    
+    # Delete guard history
+    history_result = await db.guard_history.delete_many({"condominium_id": condo_id})
+    deletion_stats["guard_history_deleted"] = history_result.deleted_count
+    
+    # Delete guards
+    guards_result = await db.guards.delete_many({"condominium_id": condo_id})
+    deletion_stats["guards_deleted"] = guards_result.deleted_count
+    
+    # Delete employees
+    employees_result = await db.employees.delete_many({"condominium_id": condo_id})
+    deletion_stats["employees_deleted"] = employees_result.deleted_count
+    
+    # Delete shifts
+    shifts_result = await db.shifts.delete_many({"condominium_id": condo_id})
+    deletion_stats["shifts_deleted"] = shifts_result.deleted_count
+    
+    # Delete absences
+    absences_result = await db.absences.delete_many({"condominium_id": condo_id})
+    deletion_stats["absences_deleted"] = absences_result.deleted_count
+    
+    # Delete visitors
+    visitors_result = await db.visitors.delete_many({"condominium_id": condo_id})
+    deletion_stats["visitors_deleted"] = visitors_result.deleted_count
+    
+    # Delete candidates (HR recruitment)
+    candidates_result = await db.candidates.delete_many({"condominium_id": condo_id})
+    deletion_stats["candidates_deleted"] = candidates_result.deleted_count
+    
+    # Delete audit logs linked to condo users (we keep the final deletion log)
+    audit_result = await db.audit_logs.delete_many({
+        "$or": [
+            {"details.condominium_id": condo_id},
+            {"details.condo_id": condo_id}
+        ]
+    })
+    deletion_stats["audit_logs_deleted"] = audit_result.deleted_count
+    
+    # Step 4: Delete the condominium itself
+    await db.condominiums.delete_one({"id": condo_id})
+    
+    # Step 5: Log the deletion (this log persists for Super Admin audit trail)
+    await log_audit_event(
+        AuditEventType.CONDOMINIUM_DELETED,
+        current_user["id"],
+        "super_admin",
+        {
+            "action": "CONDOMINIUM_DELETED",
+            "condo_id": condo_id,
+            "condo_name": condo_name,
+            "deletion_stats": deletion_stats,
+            "performed_by_email": current_user.get("email"),
+            "irreversible": True
+        },
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {
+        "message": f"Condominio '{condo_name}' eliminado permanentemente",
+        "deletion_stats": deletion_stats
+    }
+
+
 # ==================== FIX EXISTING USERS WITHOUT CONDOMINIUM ====================
 
 @api_router.post("/admin/fix-orphan-users")
