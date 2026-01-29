@@ -1993,81 +1993,83 @@ const GuardUI = () => {
         </div>
       )}
 
-      {/* Tabs */}
+      {/* Tabs - Hidden on mobile, visible on desktop */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-        <TabsList className="flex-shrink-0 grid grid-cols-8 bg-[#0A0A0F] border-b border-[#1E293B] rounded-none h-14 p-0">
-          <TabsTrigger 
-            value="alerts" 
-            className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-red-500 flex flex-col gap-0.5"
-            data-testid="tab-alerts"
-          >
-            <div className="relative">
-              <AlertTriangle className="w-5 h-5" />
-              {activeAlertCount > 0 && (
-                <span className="absolute -top-1 -right-2 w-4 h-4 rounded-full bg-red-500 text-[10px] font-bold flex items-center justify-center animate-pulse">
-                  {activeAlertCount}
-                </span>
-              )}
-            </div>
-            <span className="text-[10px]">Alertas</span>
-          </TabsTrigger>
-          
-          <TabsTrigger 
-            value="visits" 
-            className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary flex flex-col gap-0.5"
-            data-testid="tab-visits"
-          >
-            <Users className="w-5 h-5" />
-            <span className="text-[10px]">Visitas</span>
-          </TabsTrigger>
-          
-          <TabsTrigger 
-            value="myshift" 
-            className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-500 flex flex-col gap-0.5"
-            data-testid="tab-myshift"
-          >
-            <Briefcase className="w-5 h-5" />
-            <span className="text-[10px]">Mi Turno</span>
-          </TabsTrigger>
-          
-          <TabsTrigger 
-            value="absences" 
-            className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-purple-500 flex flex-col gap-0.5"
-            data-testid="tab-absences"
-          >
-            <CalendarOff className="w-5 h-5" />
-            <span className="text-[10px]">Ausencias</span>
-          </TabsTrigger>
-          
-          <TabsTrigger 
-            value="manual" 
-            className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary flex flex-col gap-0.5"
-            data-testid="tab-manual"
-          >
-            <UserPlus className="w-5 h-5" />
-            <span className="text-[10px]">Registro</span>
-          </TabsTrigger>
-          
-          <TabsTrigger 
-            value="history" 
-            className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary flex flex-col gap-0.5"
-            data-testid="tab-history"
-          >
-            <History className="w-5 h-5" />
-            <span className="text-[10px]">Historial</span>
-          </TabsTrigger>
-          
-          <TabsTrigger 
-            value="directory" 
-            className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-cyan-500 flex flex-col gap-0.5"
-            data-testid="tab-directory"
-          >
-            <UsersIcon className="w-5 h-5" />
-            <span className="text-[10px]">Personas</span>
-          </TabsTrigger>
-          
-          <TabsTrigger 
-            value="profile" 
+        {/* Desktop Tabs - hidden on mobile */}
+        {!isMobile && (
+          <TabsList className="flex-shrink-0 grid grid-cols-8 bg-[#0A0A0F] border-b border-[#1E293B] rounded-none h-14 p-0">
+            <TabsTrigger 
+              value="alerts" 
+              className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-red-500 flex flex-col gap-0.5"
+              data-testid="tab-alerts"
+            >
+              <div className="relative">
+                <AlertTriangle className="w-5 h-5" />
+                {activeAlertCount > 0 && (
+                  <span className="absolute -top-1 -right-2 w-4 h-4 rounded-full bg-red-500 text-[10px] font-bold flex items-center justify-center animate-pulse">
+                    {activeAlertCount}
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px]">Alertas</span>
+            </TabsTrigger>
+            
+            <TabsTrigger 
+              value="visits" 
+              className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary flex flex-col gap-0.5"
+              data-testid="tab-visits"
+            >
+              <Users className="w-5 h-5" />
+              <span className="text-[10px]">Visitas</span>
+            </TabsTrigger>
+            
+            <TabsTrigger 
+              value="myshift" 
+              className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-500 flex flex-col gap-0.5"
+              data-testid="tab-myshift"
+            >
+              <Briefcase className="w-5 h-5" />
+              <span className="text-[10px]">Mi Turno</span>
+            </TabsTrigger>
+            
+            <TabsTrigger 
+              value="absences" 
+              className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-purple-500 flex flex-col gap-0.5"
+              data-testid="tab-absences"
+            >
+              <CalendarOff className="w-5 h-5" />
+              <span className="text-[10px]">Ausencias</span>
+            </TabsTrigger>
+            
+            <TabsTrigger 
+              value="manual" 
+              className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary flex flex-col gap-0.5"
+              data-testid="tab-manual"
+            >
+              <UserPlus className="w-5 h-5" />
+              <span className="text-[10px]">Registro</span>
+            </TabsTrigger>
+            
+            <TabsTrigger 
+              value="history" 
+              className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary flex flex-col gap-0.5"
+              data-testid="tab-history"
+            >
+              <History className="w-5 h-5" />
+              <span className="text-[10px]">Historial</span>
+            </TabsTrigger>
+            
+            <TabsTrigger 
+              value="directory" 
+              className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-cyan-500 flex flex-col gap-0.5"
+              data-testid="tab-directory"
+            >
+              <UsersIcon className="w-5 h-5" />
+              <span className="text-[10px]">Personas</span>
+            </TabsTrigger>
+            
+            <TabsTrigger 
+              value="profile" 
             className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-amber-500 flex flex-col gap-0.5"
             data-testid="tab-profile"
           >
