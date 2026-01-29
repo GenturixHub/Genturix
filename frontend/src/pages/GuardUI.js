@@ -1700,6 +1700,10 @@ const GuardUI = () => {
             />
           </TabsContent>
 
+          <TabsContent value="absences" className="h-full m-0 data-[state=inactive]:hidden">
+            <AbsencesTab />
+          </TabsContent>
+
           <TabsContent value="manual" className="h-full m-0 data-[state=inactive]:hidden">
             <ManualEntryTab />
           </TabsContent>
