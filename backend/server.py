@@ -680,9 +680,45 @@ async def get_profile(current_user = Depends(get_current_user)):
         role_data=current_user.get("role_data")
     )
 
+@api_router.get("/profile/{user_id}", response_model=PublicProfileResponse)
+async def get_public_profile(user_id: str, current_user = Depends(get_current_user)):
+    """Get public profile of another user - MUST be in same condominium (multi-tenant enforced)"""
+    # Fetch the target user
+    target_user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # Multi-tenant validation: Super Admin can view any profile, others only within their condo
+    is_super_admin = "SuperAdmin" in current_user.get("roles", [])
+    current_condo = current_user.get("condominium_id")
+    target_condo = target_user.get("condominium_id")
+    
+    if not is_super_admin:
+        # Users can only view profiles within their own condominium
+        if current_condo != target_condo:
+            raise HTTPException(status_code=403, detail="No tienes permiso para ver este perfil")
+    
+    # Get condominium name
+    condo_name = None
+    if target_condo:
+        condo = await db.condominiums.find_one({"id": target_condo}, {"_id": 0, "name": 1})
+        if condo:
+            condo_name = condo.get("name")
+    
+    # Return public profile (limited info)
+    return PublicProfileResponse(
+        id=target_user["id"],
+        full_name=target_user["full_name"],
+        roles=target_user["roles"],
+        profile_photo=target_user.get("profile_photo"),
+        public_description=target_user.get("public_description"),
+        condominium_name=condo_name,
+        phone=target_user.get("phone")  # Include phone for internal contacts
+    )
+
 @api_router.patch("/profile", response_model=ProfileResponse)
 async def update_profile(profile_data: ProfileUpdate, current_user = Depends(get_current_user)):
-    """Update current user's profile (name, phone, photo only)"""
+    """Update current user's profile (name, phone, photo, description)"""
     update_fields = {}
     
     if profile_data.full_name is not None:
@@ -691,6 +727,8 @@ async def update_profile(profile_data: ProfileUpdate, current_user = Depends(get
         update_fields["phone"] = profile_data.phone
     if profile_data.profile_photo is not None:
         update_fields["profile_photo"] = profile_data.profile_photo
+    if profile_data.public_description is not None:
+        update_fields["public_description"] = profile_data.public_description
     
     if not update_fields:
         raise HTTPException(status_code=400, detail="No fields to update")
@@ -722,6 +760,7 @@ async def update_profile(profile_data: ProfileUpdate, current_user = Depends(get
         condominium_name=condo_name,
         phone=updated_user.get("phone"),
         profile_photo=updated_user.get("profile_photo"),
+        public_description=updated_user.get("public_description"),
         role_data=updated_user.get("role_data")
     )
 
