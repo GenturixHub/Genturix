@@ -98,6 +98,14 @@ const Sidebar = ({ collapsed, onToggle }) => {
       moduleId: 'payments'
     },
     {
+      title: 'Reservaciones',
+      icon: Calendar,
+      href: '/reservations',
+      roles: ['Administrador', 'Residente', 'Guarda'],
+      description: 'Áreas comunes',
+      moduleId: 'reservations'
+    },
+    {
       title: 'Auditoría',
       icon: FileText,
       href: '/audit',
