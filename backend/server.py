@@ -3041,6 +3041,306 @@ async def get_users_by_admin(
     users = await db.users.find(query, {"_id": 0, "password_hash": 0}).to_list(500)
     return users
 
+# ==================== RESERVATIONS MODULE ====================
+
+async def check_module_enabled(condo_id: str, module_name: str):
+    """Helper to check if a module is enabled for a condominium"""
+    condo = await db.condominiums.find_one({"id": condo_id}, {"_id": 0, "modules": 1})
+    if not condo:
+        raise HTTPException(status_code=404, detail="Condominio no encontrado")
+    modules = condo.get("modules", {})
+    module_config = modules.get(module_name, {})
+    if not module_config.get("enabled", False):
+        raise HTTPException(status_code=403, detail=f"Módulo '{module_name}' no está habilitado para este condominio")
+    return True
+
+@api_router.get("/reservations/areas")
+async def get_areas(current_user = Depends(get_current_user)):
+    """Get all areas for reservations in the user's condominium"""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="Usuario no asignado a condominio")
+    
+    await check_module_enabled(condo_id, "reservations")
+    
+    areas = await db.areas.find(
+        {"condominium_id": condo_id, "is_active": True},
+        {"_id": 0}
+    ).to_list(100)
+    
+    return areas
+
+@api_router.post("/reservations/areas")
+async def create_area(
+    area_data: AreaCreate,
+    request: Request,
+    current_user = Depends(require_role("Administrador"))
+):
+    """Create a new area for reservations (Admin only)"""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="Usuario no asignado a condominio")
+    
+    await check_module_enabled(condo_id, "reservations")
+    
+    area_id = str(uuid.uuid4())
+    area_doc = {
+        "id": area_id,
+        "condominium_id": condo_id,
+        "name": area_data.name,
+        "area_type": area_data.area_type.value,
+        "capacity": area_data.capacity,
+        "description": area_data.description,
+        "rules": area_data.rules,
+        "available_from": area_data.available_from,
+        "available_until": area_data.available_until,
+        "requires_approval": area_data.requires_approval,
+        "max_hours_per_reservation": area_data.max_hours_per_reservation,
+        "is_active": area_data.is_active,
+        "created_by": current_user["id"],
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.areas.insert_one(area_doc)
+    
+    await log_audit_event(
+        AuditEventType.ACCESS_GRANTED,
+        current_user["id"],
+        "reservations",
+        {"action": "area_created", "area_id": area_id, "name": area_data.name},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {"message": f"Área '{area_data.name}' creada exitosamente", "area_id": area_id}
+
+@api_router.patch("/reservations/areas/{area_id}")
+async def update_area(
+    area_id: str,
+    area_data: AreaUpdate,
+    current_user = Depends(require_role("Administrador"))
+):
+    """Update an area (Admin only)"""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="Usuario no asignado a condominio")
+    
+    # Check area exists and belongs to this condo
+    area = await db.areas.find_one({"id": area_id, "condominium_id": condo_id})
+    if not area:
+        raise HTTPException(status_code=404, detail="Área no encontrada")
+    
+    update_fields = {k: v for k, v in area_data.model_dump().items() if v is not None}
+    if "area_type" in update_fields:
+        update_fields["area_type"] = update_fields["area_type"].value
+    update_fields["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.areas.update_one({"id": area_id}, {"$set": update_fields})
+    
+    return {"message": "Área actualizada exitosamente"}
+
+@api_router.delete("/reservations/areas/{area_id}")
+async def delete_area(
+    area_id: str,
+    current_user = Depends(require_role("Administrador"))
+):
+    """Soft delete an area (Admin only)"""
+    condo_id = current_user.get("condominium_id")
+    
+    result = await db.areas.update_one(
+        {"id": area_id, "condominium_id": condo_id},
+        {"$set": {"is_active": False, "deleted_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Área no encontrada")
+    
+    return {"message": "Área eliminada exitosamente"}
+
+@api_router.get("/reservations")
+async def get_reservations(
+    date: Optional[str] = None,
+    area_id: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user = Depends(get_current_user)
+):
+    """Get reservations for the condominium"""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="Usuario no asignado a condominio")
+    
+    await check_module_enabled(condo_id, "reservations")
+    
+    query = {"condominium_id": condo_id}
+    
+    # Non-admins only see their own reservations
+    if "Administrador" not in current_user.get("roles", []) and "Guarda" not in current_user.get("roles", []):
+        query["resident_id"] = current_user["id"]
+    
+    if date:
+        query["date"] = date
+    if area_id:
+        query["area_id"] = area_id
+    if status:
+        query["status"] = status
+    
+    reservations = await db.reservations.find(query, {"_id": 0}).sort("date", 1).to_list(200)
+    
+    # Enrich with area and user info
+    for res in reservations:
+        area = await db.areas.find_one({"id": res.get("area_id")}, {"_id": 0, "name": 1, "area_type": 1})
+        if area:
+            res["area_name"] = area.get("name")
+            res["area_type"] = area.get("area_type")
+        user = await db.users.find_one({"id": res.get("resident_id")}, {"_id": 0, "full_name": 1, "profile_photo": 1})
+        if user:
+            res["resident_name"] = user.get("full_name")
+            res["resident_photo"] = user.get("profile_photo")
+    
+    return reservations
+
+@api_router.post("/reservations")
+async def create_reservation(
+    reservation: ReservationCreate,
+    request: Request,
+    current_user = Depends(get_current_user)
+):
+    """Create a new reservation (Resident)"""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="Usuario no asignado a condominio")
+    
+    await check_module_enabled(condo_id, "reservations")
+    
+    # Check area exists and is active
+    area = await db.areas.find_one({"id": reservation.area_id, "condominium_id": condo_id, "is_active": True})
+    if not area:
+        raise HTTPException(status_code=404, detail="Área no encontrada o no disponible")
+    
+    # Check capacity
+    if reservation.guests_count > area.get("capacity", 10):
+        raise HTTPException(status_code=400, detail=f"El área solo permite {area['capacity']} personas")
+    
+    # Check for overlapping reservations
+    existing = await db.reservations.find_one({
+        "area_id": reservation.area_id,
+        "date": reservation.date,
+        "status": {"$in": ["pending", "approved"]},
+        "$or": [
+            {"start_time": {"$lt": reservation.end_time}, "end_time": {"$gt": reservation.start_time}}
+        ]
+    })
+    
+    if existing:
+        raise HTTPException(status_code=409, detail="Ya existe una reservación en ese horario")
+    
+    reservation_id = str(uuid.uuid4())
+    status = "pending" if area.get("requires_approval", False) else "approved"
+    
+    reservation_doc = {
+        "id": reservation_id,
+        "condominium_id": condo_id,
+        "area_id": reservation.area_id,
+        "resident_id": current_user["id"],
+        "date": reservation.date,
+        "start_time": reservation.start_time,
+        "end_time": reservation.end_time,
+        "purpose": reservation.purpose,
+        "guests_count": reservation.guests_count,
+        "status": status,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.reservations.insert_one(reservation_doc)
+    
+    await log_audit_event(
+        AuditEventType.ACCESS_GRANTED,
+        current_user["id"],
+        "reservations",
+        {"action": "reservation_created", "reservation_id": reservation_id, "area": area["name"], "date": reservation.date},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {
+        "message": "Reservación creada exitosamente",
+        "reservation_id": reservation_id,
+        "status": status,
+        "requires_approval": area.get("requires_approval", False)
+    }
+
+@api_router.patch("/reservations/{reservation_id}")
+async def update_reservation_status(
+    reservation_id: str,
+    update: ReservationUpdate,
+    request: Request,
+    current_user = Depends(get_current_user)
+):
+    """Update reservation status (Admin approves/rejects, Resident cancels own)"""
+    condo_id = current_user.get("condominium_id")
+    is_admin = "Administrador" in current_user.get("roles", [])
+    
+    query = {"id": reservation_id, "condominium_id": condo_id}
+    
+    # Non-admin can only cancel their own reservations
+    if not is_admin:
+        if update.status != ReservationStatusEnum.CANCELLED:
+            raise HTTPException(status_code=403, detail="Solo puedes cancelar tus propias reservaciones")
+        query["resident_id"] = current_user["id"]
+    
+    reservation = await db.reservations.find_one(query)
+    if not reservation:
+        raise HTTPException(status_code=404, detail="Reservación no encontrada")
+    
+    update_fields = {
+        "status": update.status.value,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "updated_by": current_user["id"]
+    }
+    
+    if update.admin_notes:
+        update_fields["admin_notes"] = update.admin_notes
+    
+    await db.reservations.update_one({"id": reservation_id}, {"$set": update_fields})
+    
+    await log_audit_event(
+        AuditEventType.ACCESS_GRANTED,
+        current_user["id"],
+        "reservations",
+        {"action": "reservation_updated", "reservation_id": reservation_id, "new_status": update.status.value},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {"message": f"Reservación {update.status.value} exitosamente"}
+
+@api_router.get("/reservations/today")
+async def get_today_reservations(current_user = Depends(get_current_user)):
+    """Get today's reservations for guard view"""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="Usuario no asignado a condominio")
+    
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    reservations = await db.reservations.find(
+        {"condominium_id": condo_id, "date": today, "status": "approved"},
+        {"_id": 0}
+    ).sort("start_time", 1).to_list(50)
+    
+    # Enrich with area and user info
+    for res in reservations:
+        area = await db.areas.find_one({"id": res.get("area_id")}, {"_id": 0, "name": 1, "area_type": 1})
+        if area:
+            res["area_name"] = area.get("name")
+            res["area_type"] = area.get("area_type")
+        user = await db.users.find_one({"id": res.get("resident_id")}, {"_id": 0, "full_name": 1, "profile_photo": 1})
+        if user:
+            res["resident_name"] = user.get("full_name")
+            res["resident_photo"] = user.get("profile_photo")
+    
+    return reservations
+
 # ==================== SCHOOL MODULE ====================
 @api_router.post("/school/courses")
 async def create_course(course: CourseCreate, request: Request, current_user = Depends(require_role("Administrador"))):
