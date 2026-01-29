@@ -796,7 +796,7 @@ const ResidentUI = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#05050A] flex flex-col safe-area">
+    <div className={`min-h-screen bg-[#05050A] flex flex-col safe-area ${isMobile ? 'pb-20' : ''}`}>
       {/* Header */}
       <header className="flex items-center justify-between p-4 border-b border-[#1E293B]/50">
         <div className="flex items-center gap-3">
@@ -819,48 +819,51 @@ const ResidentUI = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <TabsList className="grid grid-cols-5 bg-[#0F111A] border-b border-[#1E293B] rounded-none h-12">
-          <TabsTrigger 
-            value="emergency" 
-            className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-red-500 rounded-none flex flex-col items-center gap-0.5 text-[10px]"
-            data-testid="tab-emergency"
-          >
-            <AlertTriangle className="w-4 h-4 text-red-400" />
-            Emergencia
-          </TabsTrigger>
-          <TabsTrigger 
-            value="history" 
-            className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-yellow-500 rounded-none flex flex-col items-center gap-0.5 text-[10px]"
-            data-testid="tab-history"
-          >
-            <History className="w-4 h-4 text-yellow-400" />
-            Mis Alertas
-          </TabsTrigger>
-          <TabsTrigger 
-            value="visitors" 
-            className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none flex flex-col items-center gap-0.5 text-[10px]"
-            data-testid="tab-visitors"
-          >
-            <UserPlus className="w-4 h-4" />
-            Visitas
-          </TabsTrigger>
-          <TabsTrigger 
-            value="directory" 
-            className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-cyan-500 rounded-none flex flex-col items-center gap-0.5 text-[10px]"
-            data-testid="tab-directory"
-          >
-            <Users className="w-4 h-4 text-cyan-400" />
-            Personas
-          </TabsTrigger>
-          <TabsTrigger 
-            value="profile" 
-            className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-amber-500 rounded-none flex flex-col items-center gap-0.5 text-[10px]"
-            data-testid="tab-profile"
-          >
-            <User className="w-4 h-4 text-amber-400" />
-            Perfil
-          </TabsTrigger>
-        </TabsList>
+        {/* Desktop Tabs - hidden on mobile */}
+        {!isMobile && (
+          <TabsList className="grid grid-cols-5 bg-[#0F111A] border-b border-[#1E293B] rounded-none h-12">
+            <TabsTrigger 
+              value="emergency" 
+              className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-red-500 rounded-none flex flex-col items-center gap-0.5 text-[10px]"
+              data-testid="tab-emergency"
+            >
+              <AlertTriangle className="w-4 h-4 text-red-400" />
+              Emergencia
+            </TabsTrigger>
+            <TabsTrigger 
+              value="history" 
+              className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-yellow-500 rounded-none flex flex-col items-center gap-0.5 text-[10px]"
+              data-testid="tab-history"
+            >
+              <History className="w-4 h-4 text-yellow-400" />
+              Mis Alertas
+            </TabsTrigger>
+            <TabsTrigger 
+              value="visitors" 
+              className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none flex flex-col items-center gap-0.5 text-[10px]"
+              data-testid="tab-visitors"
+            >
+              <UserPlus className="w-4 h-4" />
+              Visitas
+            </TabsTrigger>
+            <TabsTrigger 
+              value="directory" 
+              className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-cyan-500 rounded-none flex flex-col items-center gap-0.5 text-[10px]"
+              data-testid="tab-directory"
+            >
+              <Users className="w-4 h-4 text-cyan-400" />
+              Personas
+            </TabsTrigger>
+            <TabsTrigger 
+              value="profile" 
+              className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-amber-500 rounded-none flex flex-col items-center gap-0.5 text-[10px]"
+              data-testid="tab-profile"
+            >
+              <User className="w-4 h-4 text-amber-400" />
+              Perfil
+            </TabsTrigger>
+          </TabsList>
+        )}
 
         <TabsContent value="emergency" className="flex-1 flex flex-col mt-0">
           <EmergencyTab
@@ -873,19 +876,19 @@ const ResidentUI = () => {
         </TabsContent>
 
         <TabsContent value="history" className="flex-1 mt-0">
-          <ScrollArea className="h-[calc(100vh-180px)]">
+          <ScrollArea className={isMobile ? "h-[calc(100vh-160px)]" : "h-[calc(100vh-180px)]"}>
             <AlertHistoryTab />
           </ScrollArea>
         </TabsContent>
 
         <TabsContent value="visitors" className="flex-1 mt-0">
-          <ScrollArea className="h-[calc(100vh-180px)]">
+          <ScrollArea className={isMobile ? "h-[calc(100vh-160px)]" : "h-[calc(100vh-180px)]"}>
             <VisitorsTab user={user} />
           </ScrollArea>
         </TabsContent>
         
         <TabsContent value="directory" className="flex-1 mt-0">
-          <ProfileDirectory embedded={true} maxHeight="calc(100vh - 180px)" />
+          <ProfileDirectory embedded={true} maxHeight={isMobile ? "calc(100vh - 160px)" : "calc(100vh - 180px)"} />
         </TabsContent>
         
         <TabsContent value="profile" className="flex-1 mt-0">
@@ -893,16 +896,28 @@ const ResidentUI = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Emergency Call Footer */}
-      <footer className="p-4 border-t border-[#1E293B]/50">
-        <a
-          href="tel:911"
-          className="flex items-center justify-center gap-3 py-4 rounded-xl bg-[#1E293B] hover:bg-[#2D3B4F] border border-[#3D4B5F] transition-colors"
-        >
-          <Phone className="w-5 h-5 text-red-400" />
-          <span className="text-white font-semibold">Llamar al 911</span>
-        </a>
-      </footer>
+      {/* Emergency Call Footer - Hidden on mobile (use bottom nav) */}
+      {!isMobile && (
+        <footer className="p-4 border-t border-[#1E293B]/50">
+          <a
+            href="tel:911"
+            className="flex items-center justify-center gap-3 py-4 rounded-xl bg-[#1E293B] hover:bg-[#2D3B4F] border border-[#3D4B5F] transition-colors"
+          >
+            <Phone className="w-5 h-5 text-red-400" />
+            <span className="text-white font-semibold">Llamar al 911</span>
+          </a>
+        </footer>
+      )}
+
+      {/* Mobile Bottom Navigation */}
+      {isMobile && (
+        <MobileBottomNav 
+          items={RESIDENT_MOBILE_NAV}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          centerIndex={0}
+        />
+      )}
     </div>
   );
 };
