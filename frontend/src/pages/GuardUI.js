@@ -75,10 +75,13 @@ import {
   CalendarClock,
   CalendarX,
   PlayCircle,
-  StopCircle
+  StopCircle,
+  Users as UsersIcon
 } from 'lucide-react';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
+import EmbeddedProfile from '../components/EmbeddedProfile';
+import ProfileDirectory from '../components/ProfileDirectory';
 
 // ============================================
 // CONFIGURATION
