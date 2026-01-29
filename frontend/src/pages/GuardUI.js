@@ -658,32 +658,53 @@ const ManualEntryTab = () => {
 // ============================================
 // TAB 4: MY SHIFT (HR Integration)
 // ============================================
-const MyShiftTab = ({ clockStatus, onClockInOut, isClocking }) => {
+const MyShiftTab = ({ clockStatus, onClockInOut, isClocking, onClockSuccess }) => {
   const [shiftData, setShiftData] = useState(null);
   const [absences, setAbsences] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [clockError, setClockError] = useState(null);
+
+  const fetchShiftData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [shiftInfo, absenceData] = await Promise.all([
+        api.getGuardMyShift(),
+        api.getGuardMyAbsences()
+      ]);
+      setShiftData(shiftInfo);
+      setAbsences(absenceData);
+    } catch (err) {
+      console.error('Error fetching shift data:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const [shiftInfo, absenceData] = await Promise.all([
-          api.getGuardMyShift(),
-          api.getGuardMyAbsences()
-        ]);
-        setShiftData(shiftInfo);
-        setAbsences(absenceData);
-      } catch (err) {
-        console.error('Error fetching shift data:', err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
+    fetchShiftData();
   }, []);
+
+  // Refresh shift data after clock action
+  useEffect(() => {
+    if (clockStatus) {
+      fetchShiftData();
+    }
+  }, [clockStatus?.is_clocked_in]);
+
+  const handleClockAction = async () => {
+    setClockError(null);
+    try {
+      await onClockInOut();
+      // Refresh data after successful clock
+      fetchShiftData();
+      if (onClockSuccess) onClockSuccess();
+    } catch (err) {
+      setClockError(err.message || 'Error al registrar fichaje');
+    }
+  };
 
   const formatShiftTime = (isoString) => {
     if (!isoString) return '--:--';
@@ -721,12 +742,47 @@ const MyShiftTab = ({ clockStatus, onClockInOut, isClocking }) => {
     return (
       <div className="p-4 text-center">
         <p className="text-red-400">{error}</p>
+        <Button onClick={fetchShiftData} variant="outline" className="mt-4">
+          Reintentar
+        </Button>
       </div>
     );
   }
 
-  const { current_shift, next_shift, has_guard_record } = shiftData || {};
+  const { current_shift, next_shift, has_guard_record, can_clock_in, clock_in_message } = shiftData || {};
   const isClockedIn = clockStatus?.is_clocked_in || false;
+  
+  // Determine if clock in is allowed
+  const canClockIn = has_guard_record && (current_shift || can_clock_in);
+  const canClockOut = isClockedIn;
+  
+  // Determine button state and message
+  const getClockButtonState = () => {
+    if (!has_guard_record) {
+      return { disabled: true, message: 'No tienes registro como empleado. Contacta a tu supervisor.' };
+    }
+    
+    if (isClockedIn) {
+      return { disabled: false, message: null }; // Can always clock out if clocked in
+    }
+    
+    if (!current_shift && !can_clock_in) {
+      if (next_shift) {
+        const nextStart = new Date(next_shift.start_time);
+        const now = new Date();
+        const diffMinutes = Math.round((nextStart - now) / (1000 * 60));
+        if (diffMinutes <= 15 && diffMinutes > 0) {
+          return { disabled: false, message: `Tu turno comienza en ${diffMinutes} minutos.` };
+        }
+        return { disabled: true, message: `Próximo turno en ${diffMinutes > 60 ? Math.round(diffMinutes/60) + ' horas' : diffMinutes + ' minutos'}. Puedes fichar 15 min antes.` };
+      }
+      return { disabled: true, message: 'No tienes un turno asignado para hoy.' };
+    }
+    
+    return { disabled: false, message: null };
+  };
+
+  const buttonState = getClockButtonState();
 
   return (
     <ScrollArea className="h-full">
@@ -747,12 +803,14 @@ const MyShiftTab = ({ clockStatus, onClockInOut, isClocking }) => {
             </div>
 
             <Button
-              onClick={onClockInOut}
-              disabled={isClocking || !has_guard_record}
+              onClick={handleClockAction}
+              disabled={isClocking || (isClockedIn ? false : buttonState.disabled)}
               className={`w-full h-16 text-lg font-bold gap-3 ${
                 isClockedIn 
                   ? 'bg-orange-600 hover:bg-orange-700' 
-                  : 'bg-green-600 hover:bg-green-700'
+                  : buttonState.disabled
+                    ? 'bg-gray-600 hover:bg-gray-600 cursor-not-allowed opacity-50'
+                    : 'bg-green-600 hover:bg-green-700'
               }`}
               data-testid="clock-btn"
             >
@@ -771,10 +829,29 @@ const MyShiftTab = ({ clockStatus, onClockInOut, isClocking }) => {
               )}
             </Button>
 
-            {!has_guard_record && (
-              <p className="text-xs text-yellow-400 mt-2 text-center">
-                No tienes registro como empleado. Contacta a tu supervisor.
+            {/* Status/Error Messages */}
+            {clockError && (
+              <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/30">
+                <p className="text-sm text-red-400 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  {clockError}
+                </p>
+              </div>
+            )}
+
+            {buttonState.message && !clockError && (
+              <p className="text-xs text-yellow-400 mt-3 text-center">
+                {buttonState.message}
               </p>
+            )}
+
+            {/* Success indicator when clocked in */}
+            {isClockedIn && current_shift && (
+              <div className="mt-3 p-2 rounded-lg bg-green-500/10 border border-green-500/30">
+                <p className="text-xs text-green-400 text-center">
+                  ✓ Entrada registrada - Turno en curso
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -809,6 +886,12 @@ const MyShiftTab = ({ clockStatus, onClockInOut, isClocking }) => {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Ubicación</span>
                     <span className="text-sm font-medium">{current_shift.location}</span>
+                  </div>
+                )}
+                {current_shift.clock_in_time && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Fichaste</span>
+                    <span className="text-sm font-medium text-green-400">{formatShiftTime(current_shift.clock_in_time)}</span>
                   </div>
                 )}
               </div>
