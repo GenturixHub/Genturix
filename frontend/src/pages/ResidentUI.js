@@ -36,6 +36,7 @@ import {
 import api from '../services/api';
 import ProfileDirectory from '../components/ProfileDirectory';
 import EmbeddedProfile from '../components/EmbeddedProfile';
+import MobileBottomNav, { useIsMobile } from '../components/layout/BottomNav';
 import { 
   Heart, 
   Eye, 
@@ -51,7 +52,7 @@ import {
   Users,
   UserPlus,
   Car,
-  Calendar,
+  Calendar as CalendarIcon,
   Clock,
   X,
   Trash2,
