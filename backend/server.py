@@ -1739,7 +1739,7 @@ async def get_clock_status(current_user = Depends(require_role("Guarda", "Admini
         "last_time": last_log["timestamp"],
         "employee_id": guard["id"],
         "employee_name": guard["user_name"],
-        "today_logs": [{"type": l["type"], "timestamp": l["timestamp"]} for l in today_logs]
+        "today_logs": [{"type": log["type"], "timestamp": log["timestamp"]} for log in today_logs]
     }
 
 @api_router.get("/hr/clock/history")
