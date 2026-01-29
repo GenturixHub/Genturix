@@ -119,7 +119,7 @@ class ApiService {
   // Security
   triggerPanic = (data) => this.post('/security/panic', data);
   getPanicEvents = () => this.get('/security/panic-events');
-  resolvePanic = (eventId) => this.put(`/security/panic/${eventId}/resolve`);
+  resolvePanic = (eventId, notes = '') => this.put(`/security/panic/${eventId}/resolve`, { notes });
   createAccessLog = (data) => this.post('/security/access-log', data);
   getAccessLogs = () => this.get('/security/access-logs');
   getGuardLogbook = () => this.get('/security/logbook');
