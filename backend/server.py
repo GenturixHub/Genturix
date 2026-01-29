@@ -1619,7 +1619,7 @@ async def update_guard(
 # ==================== HR SHIFTS (FULL CRUD) ====================
 
 @api_router.post("/hr/shifts")
-async def create_shift(shift: ShiftCreate, request: Request, current_user = Depends(require_role("Administrador", "Supervisor", "HR"))):
+async def create_shift(shift: ShiftCreate, request: Request, current_user = Depends(require_role("Administrador", "Supervisor", "HR", "SuperAdmin"))):
     """Create a new shift with validations"""
     # Validate guard exists and is active
     guard = await db.guards.find_one({"id": shift.guard_id})
@@ -1650,8 +1650,11 @@ async def create_shift(shift: ShiftCreate, request: Request, current_user = Depe
     if existing_shifts:
         raise HTTPException(status_code=400, detail="El empleado ya tiene un turno programado en ese horario")
     
-    # Get condominium_id from user
-    condominium_id = current_user.get("condominium_id")
+    # Get condominium_id - prefer user's condo, fallback to guard's condo (important for SuperAdmin)
+    condominium_id = current_user.get("condominium_id") or guard.get("condominium_id")
+    
+    if not condominium_id:
+        raise HTTPException(status_code=400, detail="No se puede determinar el condominio. El empleado debe estar asignado a un condominio.")
     
     shift_doc = {
         "id": str(uuid.uuid4()),
