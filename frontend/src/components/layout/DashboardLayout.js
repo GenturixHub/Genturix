@@ -109,11 +109,15 @@ const AdminMobileNav = ({ activeRoute }) => {
   );
 };
 
-const DashboardLayout = ({ children, title = 'Dashboard' }) => {
+const DashboardLayout = ({ children, title = 'Dashboard', variant = 'admin' }) => {
   const isMobile = useIsMobile();
   const location = useLocation();
+  const { user, hasRole } = useAuth();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Determine which nav to show based on role
+  const isHRUser = hasRole?.('HR') && !hasRole?.('Administrador') && !hasRole?.('SuperAdmin');
 
   // Mobile layout
   if (isMobile) {
@@ -132,8 +136,12 @@ const DashboardLayout = ({ children, title = 'Dashboard' }) => {
           {children}
         </main>
         
-        {/* Bottom Navigation */}
-        <AdminMobileNav activeRoute={location.pathname} />
+        {/* Bottom Navigation - HR vs Admin */}
+        {isHRUser || variant === 'hr' ? (
+          <HRMobileNav activeRoute={location.pathname + location.search} />
+        ) : (
+          <AdminMobileNav activeRoute={location.pathname} />
+        )}
       </div>
     );
   }
