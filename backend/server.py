@@ -2026,11 +2026,11 @@ async def clock_in_out(
     }
 
 @api_router.get("/hr/clock/status")
-async def get_clock_status(current_user = Depends(require_role("Guarda", "Administrador", "Supervisor"))):
+async def get_clock_status(current_user = Depends(require_role("Guarda", "Administrador", "Supervisor", "HR"))):
     """Get current clock status for logged-in employee"""
     guard = await db.guards.find_one({"user_id": current_user["id"]})
     if not guard:
-        return {"is_clocked_in": False, "message": "No tienes registro como empleado"}
+        return {"is_clocked_in": False, "message": "No tienes registro como empleado", "today_logs": []}
     
     today = datetime.now(timezone.utc).date().isoformat()
     
@@ -2045,7 +2045,8 @@ async def get_clock_status(current_user = Depends(require_role("Guarda", "Admini
             "last_action": None,
             "last_time": None,
             "employee_id": guard["id"],
-            "employee_name": guard["user_name"]
+            "employee_name": guard["user_name"],
+            "today_logs": []
         }
     
     last_log = today_logs[0]
