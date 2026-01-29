@@ -271,6 +271,126 @@ const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, s
 );
 
 // ============================================
+// ALERT HISTORY TAB (My Alerts)
+// ============================================
+const AlertHistoryTab = () => {
+  const [alerts, setAlerts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAlerts = async () => {
+      try {
+        const data = await api.getResidentAlerts();
+        setAlerts(data);
+      } catch (error) {
+        console.error('Error fetching alerts:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchAlerts();
+  }, []);
+
+  const getStatusConfig = (status) => {
+    switch (status) {
+      case 'active':
+        return { label: 'Enviada', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' };
+      case 'resolved':
+        return { label: 'Atendida', color: 'bg-green-500/20 text-green-400 border-green-500/30' };
+      default:
+        return { label: status, color: 'bg-gray-500/20 text-gray-400 border-gray-500/30' };
+    }
+  };
+
+  const getTypeConfig = (type) => {
+    return EMERGENCY_TYPES[type] || {
+      label: type,
+      icon: AlertTriangle,
+      colors: { bg: 'bg-gray-600', text: 'text-white' }
+    };
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold flex items-center gap-2">
+          <History className="w-5 h-5 text-primary" />
+          Mis Alertas
+        </h2>
+        <span className="text-xs text-muted-foreground">{alerts.length} alertas</span>
+      </div>
+
+      {alerts.length === 0 ? (
+        <div className="text-center py-12">
+          <Bell className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+          <p className="text-muted-foreground">No has enviado alertas</p>
+          <p className="text-xs text-muted-foreground mt-1">Las alertas que envíes aparecerán aquí</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {alerts.map((alert) => {
+            const statusConfig = getStatusConfig(alert.status);
+            const typeConfig = getTypeConfig(alert.panic_type);
+            const IconComponent = typeConfig.icon;
+
+            return (
+              <div 
+                key={alert.id} 
+                className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B]"
+                data-testid={`alert-history-${alert.id}`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`w-10 h-10 rounded-lg ${typeConfig.colors.bg} flex items-center justify-center flex-shrink-0`}>
+                    <IconComponent className={`w-5 h-5 ${typeConfig.colors.text}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="font-semibold text-sm truncate">{alert.panic_type_label || typeConfig.label}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs border ${statusConfig.color}`}>
+                        {statusConfig.label}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-2">{alert.location}</p>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">
+                        {new Date(alert.created_at).toLocaleDateString('es-ES', { 
+                          day: '2-digit', 
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
+                      {alert.resolved_by_name && (
+                        <span className="text-green-400">
+                          Atendido por: {alert.resolved_by_name}
+                        </span>
+                      )}
+                    </div>
+                    {alert.notified_guards > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {alert.notified_guards} guardias notificados
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ============================================
 // VISITORS TAB (Pre-Registration)
 // ============================================
 const VisitorsTab = ({ user }) => {
