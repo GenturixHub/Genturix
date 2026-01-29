@@ -1,5 +1,5 @@
 """
-GENTURIX Pre-Deployment Consolidation Tests
+GENTURIX Pre-Deployment Consolidation Tests - CORRECTED ENDPOINTS
 Tests for 8 critical points:
 1. Profile system with photo sync
 2. Directory for all roles (including Resident)
@@ -121,7 +121,9 @@ class TestProfileSystem:
 
 
 class TestDirectoryForAllRoles:
-    """Test 2: Directory accessible for all roles including Resident"""
+    """Test 2: Directory accessible for all roles including Resident
+    CORRECT ENDPOINT: /api/profile/directory/condominium
+    """
     
     @pytest.fixture(scope='class')
     def tokens(self):
@@ -135,7 +137,7 @@ class TestDirectoryForAllRoles:
     def test_admin_can_access_directory(self, tokens):
         """Admin can access directory"""
         headers = {'Authorization': f'Bearer {tokens["admin"]}'}
-        response = requests.get(f"{BASE_URL}/api/directory", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/profile/directory/condominium", headers=headers)
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -144,7 +146,7 @@ class TestDirectoryForAllRoles:
     def test_guard_can_access_directory(self, tokens):
         """Guard can access directory"""
         headers = {'Authorization': f'Bearer {tokens["guard"]}'}
-        response = requests.get(f"{BASE_URL}/api/directory", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/profile/directory/condominium", headers=headers)
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -153,7 +155,7 @@ class TestDirectoryForAllRoles:
     def test_hr_can_access_directory(self, tokens):
         """HR can access directory"""
         headers = {'Authorization': f'Bearer {tokens["hr"]}'}
-        response = requests.get(f"{BASE_URL}/api/directory", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/profile/directory/condominium", headers=headers)
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -162,7 +164,7 @@ class TestDirectoryForAllRoles:
     def test_resident_can_access_directory(self, tokens):
         """Resident can access directory"""
         headers = {'Authorization': f'Bearer {tokens["resident"]}'}
-        response = requests.get(f"{BASE_URL}/api/directory", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/profile/directory/condominium", headers=headers)
         assert response.status_code == 200
         data = response.json()
         assert isinstance(data, list)
@@ -170,7 +172,16 @@ class TestDirectoryForAllRoles:
 
 
 class TestGuardNavigation:
-    """Test 3.1: Guard navigation without dead-ends"""
+    """Test 3.1: Guard navigation without dead-ends
+    CORRECT ENDPOINTS:
+    - /api/security/panic-events (Alertas)
+    - /api/visitors/pending (Visitas)
+    - /api/guard/my-shift (Mi Turno)
+    - /api/guard/my-absences (Ausencias)
+    - /api/guard/history (Historial)
+    - /api/profile (Perfil)
+    - /api/profile/directory/condominium (Personas)
+    """
     
     @pytest.fixture(scope='class')
     def guard_token(self):
@@ -195,21 +206,21 @@ class TestGuardNavigation:
     def test_guard_my_shift(self, guard_token):
         """Guard can access my shift (Mi Turno tab)"""
         headers = {'Authorization': f'Bearer {guard_token}'}
-        response = requests.get(f"{BASE_URL}/api/guards/my-shift", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/guard/my-shift", headers=headers)
         assert response.status_code == 200
         print("✓ Guard can access my shift")
     
     def test_guard_my_absences(self, guard_token):
         """Guard can access my absences (Ausencias tab)"""
         headers = {'Authorization': f'Bearer {guard_token}'}
-        response = requests.get(f"{BASE_URL}/api/guards/my-absences", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/guard/my-absences", headers=headers)
         assert response.status_code == 200
         print("✓ Guard can access my absences")
     
     def test_guard_history(self, guard_token):
         """Guard can access history (Historial tab)"""
         headers = {'Authorization': f'Bearer {guard_token}'}
-        response = requests.get(f"{BASE_URL}/api/guards/history", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/guard/history", headers=headers)
         assert response.status_code == 200
         print("✓ Guard can access history")
     
@@ -223,13 +234,21 @@ class TestGuardNavigation:
     def test_guard_directory(self, guard_token):
         """Guard can access directory (Personas tab)"""
         headers = {'Authorization': f'Bearer {guard_token}'}
-        response = requests.get(f"{BASE_URL}/api/directory", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/profile/directory/condominium", headers=headers)
         assert response.status_code == 200
         print("✓ Guard can access directory")
 
 
 class TestHRNavigation:
-    """Test 3.2: HR navigation without dead-ends"""
+    """Test 3.2: HR navigation without dead-ends
+    CORRECT ENDPOINTS:
+    - /api/hr/guards
+    - /api/hr/shifts
+    - /api/hr/absences
+    - /api/hr/candidates
+    - /api/profile
+    - /api/profile/directory/condominium
+    """
     
     @pytest.fixture(scope='class')
     def hr_token(self):
@@ -240,28 +259,28 @@ class TestHRNavigation:
     def test_hr_guards(self, hr_token):
         """HR can access guards list"""
         headers = {'Authorization': f'Bearer {hr_token}'}
-        response = requests.get(f"{BASE_URL}/api/guards", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/hr/guards", headers=headers)
         assert response.status_code == 200
         print("✓ HR can access guards list")
     
     def test_hr_shifts(self, hr_token):
         """HR can access shifts"""
         headers = {'Authorization': f'Bearer {hr_token}'}
-        response = requests.get(f"{BASE_URL}/api/shifts", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/hr/shifts", headers=headers)
         assert response.status_code == 200
         print("✓ HR can access shifts")
     
     def test_hr_absences(self, hr_token):
         """HR can access absences"""
         headers = {'Authorization': f'Bearer {hr_token}'}
-        response = requests.get(f"{BASE_URL}/api/absences", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/hr/absences", headers=headers)
         assert response.status_code == 200
         print("✓ HR can access absences")
     
     def test_hr_candidates(self, hr_token):
         """HR can access candidates"""
         headers = {'Authorization': f'Bearer {hr_token}'}
-        response = requests.get(f"{BASE_URL}/api/candidates", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/hr/candidates", headers=headers)
         assert response.status_code == 200
         print("✓ HR can access candidates")
     
@@ -275,7 +294,7 @@ class TestHRNavigation:
     def test_hr_directory(self, hr_token):
         """HR can access directory"""
         headers = {'Authorization': f'Bearer {hr_token}'}
-        response = requests.get(f"{BASE_URL}/api/directory", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/profile/directory/condominium", headers=headers)
         assert response.status_code == 200
         print("✓ HR can access directory")
 
@@ -318,12 +337,6 @@ class TestNotifications:
 
 class TestModuleVisibility:
     """Test 5: Disabled modules hidden"""
-    
-    @pytest.fixture(scope='class')
-    def superadmin_token(self):
-        response = requests.post(f"{BASE_URL}/api/auth/login", json=CREDENTIALS['superadmin'])
-        assert response.status_code == 200
-        return response.json()['access_token']
     
     @pytest.fixture(scope='class')
     def admin_token(self):
@@ -441,7 +454,7 @@ class TestRoleSecurity:
         """Directory is scoped by condominium"""
         token, condo_id = admin_token
         headers = {'Authorization': f'Bearer {token}'}
-        response = requests.get(f"{BASE_URL}/api/directory", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/profile/directory/condominium", headers=headers)
         assert response.status_code == 200
         data = response.json()
         # All users should be from same condominium
@@ -494,12 +507,27 @@ class TestE2EGuardFlow:
         print(f"✓ Step 4: Accessed alerts: {len(alerts)} events")
         
         # Step 5: Access directory
-        response = requests.get(f"{BASE_URL}/api/directory", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/profile/directory/condominium", headers=headers)
         assert response.status_code == 200
         directory = response.json()
         print(f"✓ Step 5: Accessed directory: {len(directory)} users")
         
-        print("✓ E2E Guard flow completed successfully")
+        # Step 6: Access my shift
+        response = requests.get(f"{BASE_URL}/api/guard/my-shift", headers=headers)
+        assert response.status_code == 200
+        print("✓ Step 6: Accessed my shift")
+        
+        # Step 7: Access my absences
+        response = requests.get(f"{BASE_URL}/api/guard/my-absences", headers=headers)
+        assert response.status_code == 200
+        print("✓ Step 7: Accessed my absences")
+        
+        # Step 8: Access history
+        response = requests.get(f"{BASE_URL}/api/guard/history", headers=headers)
+        assert response.status_code == 200
+        print("✓ Step 8: Accessed history")
+        
+        print("✓ E2E Guard flow completed successfully - ALL 8 TABS ACCESSIBLE")
 
 
 if __name__ == '__main__':
