@@ -101,6 +101,8 @@ class AuditEventType(str, Enum):
     EMPLOYEE_CREATED = "employee_created"
     EMPLOYEE_DEACTIVATED = "employee_deactivated"
     EMPLOYEE_ACTIVATED = "employee_activated"
+    # Condominium management events
+    CONDOMINIUM_DELETED = "condominium_deleted"
 
 # ==================== MODELS ====================
 class UserCreate(BaseModel):
