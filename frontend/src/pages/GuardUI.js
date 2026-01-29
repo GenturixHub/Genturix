@@ -654,38 +654,27 @@ const ManualEntryTab = () => {
 // ============================================
 const HistoryTab = () => {
   const [filter, setFilter] = useState('today');
-  const [alertHistory, setAlertHistory] = useState([]);
-  const [visitHistory, setVisitHistory] = useState([]);
+  const [guardHistory, setGuardHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchHistory = async () => {
       setLoading(true);
       try {
-        const [alerts, visitors] = await Promise.all([
-          api.getPanicEvents(),
-          api.getAllVisitors('exit_registered')
-        ]);
-
+        // Use proper guard history endpoint - already scoped by condominium_id
+        const history = await api.getGuardHistory();
+        
         // Filter by date range
         const now = new Date();
         const filterDate = filter === 'today' 
-          ? new Date(now.setHours(0, 0, 0, 0))
-          : new Date(now.setDate(now.getDate() - 7));
+          ? new Date(now.getFullYear(), now.getMonth(), now.getDate())
+          : new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-        setAlertHistory(
-          alerts
-            .filter(a => a.status === 'resolved' && new Date(a.created_at) >= filterDate)
-            .slice(0, 20)
-        );
-
-        setVisitHistory(
-          visitors
-            .filter(v => new Date(v.created_at) >= filterDate)
-            .slice(0, 20)
-        );
+        const filteredHistory = history.filter(h => new Date(h.timestamp) >= filterDate);
+        setGuardHistory(filteredHistory);
       } catch (error) {
-        console.error('Error fetching history:', error);
+        console.error('Error fetching guard history:', error);
+        setGuardHistory([]);
       } finally {
         setLoading(false);
       }
@@ -697,6 +686,10 @@ const HistoryTab = () => {
   if (loading) {
     return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   }
+
+  // Separate alerts and visits from guard history
+  const alertHistory = guardHistory.filter(h => h.type === 'alert_resolved');
+  const visitHistory = guardHistory.filter(h => h.type === 'visit_completed');
 
   return (
     <div className="h-full flex flex-col">
