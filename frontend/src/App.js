@@ -229,6 +229,12 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
 
+      <Route path="/reservations" element={
+        <ProtectedRoute allowedRoles={['Administrador', 'Residente', 'Guarda']}>
+          <ReservationsModule />
+        </ProtectedRoute>
+      } />
+
       <Route path="/audit" element={
         <ProtectedRoute allowedRoles={['Administrador', 'SuperAdmin']}>
           <AuditModule />
