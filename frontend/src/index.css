@@ -4,6 +4,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile-specific styles */
+@import './styles/mobile.css';
+
 /* ========================================
    GENTURIX PWA - Mobile-First Styles
    ======================================== */
