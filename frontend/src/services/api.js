@@ -52,8 +52,19 @@ class ApiService {
     }
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Request failed' }));
-      throw new Error(error.detail || `API error: ${response.status}`);
+      // Parse error only once and create a structured error
+      let errorData = { detail: 'Request failed' };
+      try {
+        errorData = await response.json();
+      } catch {
+        // If JSON parsing fails, use default error
+      }
+      
+      // Create error with status code for proper handling
+      const error = new Error(errorData.detail || `API error: ${response.status}`);
+      error.status = response.status;
+      error.data = errorData;
+      throw error;
     }
 
     return response;
