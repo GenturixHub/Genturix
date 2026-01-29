@@ -91,18 +91,26 @@ class TestClockInOut:
         Test: Clock in with valid shift must succeed and return shift_id
         Expected: 200 OK, response contains shift_id
         """
-        # First create a shift for the guard (starting now)
-        shift_response = self._create_shift_for_guard(GUARD_ID_MAIN, start_offset_minutes=-5)
+        # Check if guard can clock in
+        my_shift = self.session.get(
+            f"{BASE_URL}/api/guard/my-shift",
+            headers={"Authorization": f"Bearer {self.guard_token}"}
+        ).json()
         
-        if shift_response.status_code != 201:
-            # Shift might already exist, check my-shift
-            my_shift = self.session.get(
-                f"{BASE_URL}/api/guard/my-shift",
-                headers={"Authorization": f"Bearer {self.guard_token}"}
-            ).json()
+        # If no current shift and can't clock in, try to create one
+        if not my_shift.get("current_shift") and not my_shift.get("can_clock_in"):
+            # Try to create a shift starting in 5 minutes (within early clock-in window)
+            shift_response = self._create_shift_for_guard(GUARD_ID_MAIN, start_offset_minutes=5)
             
-            if not my_shift.get("current_shift") and not my_shift.get("can_clock_in"):
-                pytest.skip("No valid shift available for testing")
+            if shift_response.status_code != 201:
+                # Check if we can clock in now after creation attempt
+                my_shift = self.session.get(
+                    f"{BASE_URL}/api/guard/my-shift",
+                    headers={"Authorization": f"Bearer {self.guard_token}"}
+                ).json()
+                
+                if not my_shift.get("current_shift") and not my_shift.get("can_clock_in"):
+                    pytest.skip(f"Cannot create shift for testing: {shift_response.text}")
         
         # Clock IN
         response = self.session.post(
