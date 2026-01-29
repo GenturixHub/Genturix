@@ -1008,8 +1008,17 @@ async def get_pending_visitors(
     search: Optional[str] = None,
     current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
 ):
-    """Guard gets list of pending visitors expected today or with matching search"""
+    """Guard gets list of pending visitors expected today - SCOPED BY CONDOMINIUM"""
     query = {"status": {"$in": ["pending", "entry_registered"]}}
+    
+    # CRITICAL: Multi-tenant filtering - REQUIRED
+    if "SuperAdmin" not in current_user.get("roles", []):
+        condo_id = current_user.get("condominium_id")
+        if condo_id:
+            query["condominium_id"] = condo_id
+        else:
+            # No condominium = no data (strict isolation)
+            return []
     
     visitors = await db.visitors.find(query, {"_id": 0}).sort("expected_date", -1).to_list(100)
     
