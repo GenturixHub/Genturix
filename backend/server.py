@@ -1590,10 +1590,10 @@ async def create_shift(shift: ShiftCreate, request: Request, current_user = Depe
     if start_dt >= end_dt:
         raise HTTPException(status_code=400, detail="La hora de inicio debe ser anterior a la hora de fin")
     
-    # Check for overlapping shifts
+    # Check for overlapping shifts (only scheduled or in_progress - allow creating new shifts over completed ones)
     existing_shifts = await db.shifts.find({
         "guard_id": shift.guard_id,
-        "status": {"$ne": "cancelled"},
+        "status": {"$in": ["scheduled", "in_progress"]},  # Only active shifts can cause overlap
         "$or": [
             {"start_time": {"$lt": shift.end_time}, "end_time": {"$gt": shift.start_time}}
         ]
