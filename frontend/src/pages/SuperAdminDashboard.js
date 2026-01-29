@@ -1063,6 +1063,221 @@ const CreateAdminDialog = ({ condo, open, onClose, onSuccess }) => {
 };
 
 // ============================================
+// DELETE CONDO DIALOG (Permanent Deletion)
+// ============================================
+const DeleteCondoDialog = ({ condo, open, onClose, onSuccess }) => {
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState(null);
+  const [deletionStats, setDeletionStats] = useState(null);
+
+  // Reset state when dialog opens/closes
+  useEffect(() => {
+    if (open) {
+      setPassword('');
+      setError(null);
+      setDeletionStats(null);
+    }
+  }, [open]);
+
+  const handleDelete = async () => {
+    if (!password) {
+      setError('Ingresa tu contraseña para confirmar');
+      return;
+    }
+
+    setIsDeleting(true);
+    setError(null);
+
+    try {
+      const result = await api.permanentlyDeleteCondominium(condo.id, password);
+      setDeletionStats(result.deletion_stats);
+    } catch (err) {
+      setError(err.message || 'Error al eliminar condominio');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (deletionStats) {
+      onSuccess();
+    } else {
+      onClose();
+    }
+    setPassword('');
+    setError(null);
+    setDeletionStats(null);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-md">
+        {!deletionStats ? (
+          // Confirmation View
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-red-400">
+                <AlertOctagon className="w-5 h-5" />
+                Eliminar Condominio Permanentemente
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              {/* Critical Warning */}
+              <div className="p-4 rounded-lg bg-red-500/10 border-2 border-red-500/30">
+                <div className="flex items-start gap-3">
+                  <ShieldAlert className="w-6 h-6 text-red-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold text-red-400 mb-2">
+                      Esta acción es IRREVERSIBLE
+                    </p>
+                    <p className="text-sm text-red-300/80">
+                      Todos los datos relacionados con este condominio serán eliminados permanentemente:
+                    </p>
+                    <ul className="text-xs text-red-300/70 mt-2 space-y-1 list-disc list-inside">
+                      <li>Todos los usuarios del condominio</li>
+                      <li>Eventos de pánico e historial</li>
+                      <li>Datos de RRHH (guardias, turnos, ausencias)</li>
+                      <li>Registro de visitantes</li>
+                      <li>Logs de auditoría</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Condo Info */}
+              <div className="p-3 rounded-lg bg-[#0A0A0F] border border-[#1E293B]">
+                <p className="text-xs text-muted-foreground mb-1">Condominio a eliminar:</p>
+                <p className="font-bold text-white flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-primary" />
+                  {condo?.name}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">{condo?.contact_email}</p>
+              </div>
+
+              {/* Password Input */}
+              <div className="space-y-2">
+                <Label className="text-sm">
+                  Ingresa tu contraseña de Super Admin para confirmar:
+                </Label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Tu contraseña"
+                    className="bg-[#0A0A0F] border-[#1E293B] pr-10"
+                    data-testid="delete-condo-password"
+                    autoComplete="current-password"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-full"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Error */}
+              {error && (
+                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
+                  <XCircle className="w-4 h-4 flex-shrink-0" />
+                  {error}
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={handleClose} className="flex-1">
+                Cancelar
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={handleDelete} 
+                disabled={!password || isDeleting}
+                className="flex-1 gap-2"
+                data-testid="confirm-delete-condo"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Eliminando...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Eliminar Permanentemente
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </>
+        ) : (
+          // Success View
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-green-400">
+                <CheckCircle className="w-5 h-5" />
+                Condominio Eliminado
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <p className="text-sm text-muted-foreground">
+                El condominio <strong className="text-white">{deletionStats.condominium}</strong> y todos sus datos asociados han sido eliminados permanentemente.
+              </p>
+
+              {/* Deletion Stats */}
+              <div className="p-4 rounded-lg bg-[#0A0A0F] border border-[#1E293B]">
+                <p className="text-xs text-muted-foreground mb-3">Resumen de eliminación:</p>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Usuarios:</span>
+                    <span className="font-mono">{deletionStats.users_deleted}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Alertas pánico:</span>
+                    <span className="font-mono">{deletionStats.panic_events_deleted}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Historial guardia:</span>
+                    <span className="font-mono">{deletionStats.guard_history_deleted}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Guardias:</span>
+                    <span className="font-mono">{deletionStats.guards_deleted}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Visitantes:</span>
+                    <span className="font-mono">{deletionStats.visitors_deleted}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Turnos:</span>
+                    <span className="font-mono">{deletionStats.shifts_deleted}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button onClick={handleClose} className="w-full">
+                Entendido
+              </Button>
+            </DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// ============================================
 // USERS TAB
 // ============================================
 const UsersTab = ({ condos }) => {
