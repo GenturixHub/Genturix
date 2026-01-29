@@ -1,13 +1,29 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 28, 2026 (Session 8 - Multi-Tenant Fix)
+## Last Updated: January 29, 2026 (Session 9 - Guard Clock-In Fix)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
 
 ---
 
-## PLATFORM STATUS: 100% PRODUCTION READY - MULTI-TENANT SECURE ✅
+## PLATFORM STATUS: 100% PRODUCTION READY - GUARD CLOCK-IN WORKING ✅
+
+### Session 9 - Critical Guard Clock-In/Out Fix (January 29, 2026) ⭐⭐⭐ P0
+- ✅ **Guard Clock-In Not Working (CRITICAL)**:
+  - Root cause: Shift overlap validation was including `completed` shifts, blocking creation of new shifts
+  - Fix: Changed validation to only consider `scheduled` and `in_progress` shifts (line 1593-1596)
+  - Added detailed logging to `/api/guard/my-shift` for debugging shift detection
+  - Verified end-to-end flow: Admin creates shift → Guard sees shift → Guard clocks in → Shift status updates → Guard clocks out
+- ✅ **Backend Improvements**:
+  - `GET /api/guard/my-shift`: Now logs why shifts are rejected (condo mismatch, status, time window)
+  - `POST /api/hr/shifts`: Overlap validation excludes `completed` shifts, allowing new shifts over old ones
+  - `POST /api/hr/clock`: Clock IN updates shift to `in_progress`, Clock OUT marks as `completed`
+- ✅ **Frontend Stability**:
+  - Verified `GuardUI.js` error handling works (no crashes on API errors)
+  - Clock button correctly enabled/disabled based on shift availability
+  - Error messages displayed via toast, not crashes
+- 📋 Test report: `/app/test_reports/iteration_16.json` - 100% pass rate (11 backend + all frontend tests)
 
 ### Session 8 - Critical Multi-Tenant & Dynamic Form Fixes (January 28, 2026) ⭐⭐⭐ P0
 - ✅ **Multi-Tenant Dashboard Isolation (CRITICAL)**:
