@@ -82,6 +82,7 @@ import { ScrollArea } from '../components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import EmbeddedProfile from '../components/EmbeddedProfile';
 import ProfileDirectory from '../components/ProfileDirectory';
+import MobileBottomNav, { useIsMobile } from '../components/layout/BottomNav';
 
 // ============================================
 // CONFIGURATION
