@@ -113,13 +113,7 @@ const Sidebar = ({ collapsed, onToggle }) => {
         {/* Logo */}
         <div className="flex items-center h-16 px-4 border-b border-[#1E293B]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0">
-              <img 
-                src="/genturix-logo.png" 
-                alt="Genturix" 
-                className="w-full h-full object-cover"
-              />
-            </div>
+            <GenturixLogo size={32} className="flex-shrink-0" />
             {!collapsed && (
               <span className="text-lg font-bold font-['Outfit']">GENTURIX</span>
             )}
