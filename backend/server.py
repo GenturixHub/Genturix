@@ -146,12 +146,25 @@ class ProfileResponse(BaseModel):
     condominium_name: Optional[str] = None
     phone: Optional[str] = None
     profile_photo: Optional[str] = None
+    public_description: Optional[str] = None
     role_data: Optional[Dict[str, Any]] = None
+
+class PublicProfileResponse(BaseModel):
+    """Public profile visible to other users in same condominium"""
+    id: str
+    full_name: str
+    roles: List[str]
+    profile_photo: Optional[str] = None
+    public_description: Optional[str] = None
+    condominium_name: Optional[str] = None
+    # Only show phone if user opted in
+    phone: Optional[str] = None
 
 class ProfileUpdate(BaseModel):
     full_name: Optional[str] = None
     phone: Optional[str] = None
     profile_photo: Optional[str] = None
+    public_description: Optional[str] = None
 
 # Security Module Models
 class PanicType(str, Enum):
