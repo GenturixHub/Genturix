@@ -2915,7 +2915,16 @@ async def create_user_by_admin(
             "guard_assignments": user_data.guard_assignments or []
         }
     
+    # Determine condominium_id: use from request if SuperAdmin without condo, otherwise use current user's
+    is_super_admin = "SuperAdmin" in current_user.get("roles", [])
     condominium_id = current_user.get("condominium_id")
+    
+    # If SuperAdmin without condo, use the one from the request
+    if is_super_admin and not condominium_id:
+        condominium_id = user_data.condominium_id
+    
+    if not condominium_id:
+        raise HTTPException(status_code=400, detail="Se requiere condominium_id para crear usuarios")
     
     user_id = str(uuid.uuid4())
     user_doc = {
