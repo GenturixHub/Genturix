@@ -1238,10 +1238,22 @@ const GuardUI = () => {
       await api.clockInOut(type);
       if (navigator.vibrate) navigator.vibrate(100);
       fetchClockStatus();
-      return true; // Success
+      return { success: true };
     } catch (error) {
-      // Re-throw to let MyShiftTab handle the error display
-      throw error;
+      // Handle specific HTTP status codes
+      if (error.status === 401) {
+        // Force logout on unauthorized
+        sessionStorage.clear();
+        window.location.href = '/login';
+        return { success: false, error: 'Sesión expirada' };
+      }
+      
+      // Return error for UI display - DO NOT re-throw
+      return { 
+        success: false, 
+        error: error.message || 'Error al registrar fichaje',
+        status: error.status 
+      };
     } finally {
       setIsClocking(false);
     }
