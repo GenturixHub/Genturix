@@ -402,6 +402,19 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin }) 
                             <SelectItem value="suspended">Suspender</SelectItem>
                           </SelectContent>
                         </Select>
+                        {/* Delete Button - Super Admin Only */}
+                        {isSuperAdmin && (
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="h-8 w-8 hover:bg-red-500/20" 
+                            onClick={() => handleDeleteCondo(condo)}
+                            title="Eliminar Permanentemente"
+                            data-testid={`delete-condo-${condo.id}`}
+                          >
+                            <Trash2 className="w-4 h-4 text-red-400" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
