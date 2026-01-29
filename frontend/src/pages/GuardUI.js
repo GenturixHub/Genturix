@@ -2077,6 +2077,14 @@ const GuardUI = () => {
           <TabsContent value="history" className="h-full m-0 data-[state=inactive]:hidden">
             <HistoryTab />
           </TabsContent>
+          
+          <TabsContent value="directory" className="h-full m-0 data-[state=inactive]:hidden">
+            <ProfileDirectory embedded={true} maxHeight="100%" />
+          </TabsContent>
+          
+          <TabsContent value="profile" className="h-full m-0 data-[state=inactive]:hidden">
+            <EmbeddedProfile />
+          </TabsContent>
         </div>
       </Tabs>
 
