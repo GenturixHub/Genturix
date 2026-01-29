@@ -2070,13 +2070,14 @@ const GuardUI = () => {
             
             <TabsTrigger 
               value="profile" 
-            className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-amber-500 flex flex-col gap-0.5"
-            data-testid="tab-profile"
-          >
-            <User className="w-5 h-5" />
-            <span className="text-[10px]">Perfil</span>
-          </TabsTrigger>
-        </TabsList>
+              className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-amber-500 flex flex-col gap-0.5"
+              data-testid="tab-profile"
+            >
+              <User className="w-5 h-5" />
+              <span className="text-[10px]">Perfil</span>
+            </TabsTrigger>
+          </TabsList>
+        )}
 
         {/* Tab Content */}
         <div className="flex-1 min-h-0 overflow-hidden">
@@ -2124,16 +2125,79 @@ const GuardUI = () => {
         </div>
       </Tabs>
 
-      {/* Emergency Footer */}
-      <footer className="flex-shrink-0 p-2 bg-[#0A0A0F] border-t border-[#1E293B]">
-        <a 
-          href="tel:911" 
-          className="flex items-center justify-center gap-2 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 active:bg-red-500/20"
-        >
-          <Phone className="w-5 h-5" />
-          <span className="font-bold">LLAMAR 911</span>
-        </a>
-      </footer>
+      {/* Mobile Panic Modal */}
+      <Dialog open={showPanicModal} onOpenChange={setShowPanicModal}>
+        <DialogContent className="bg-[#0A0A0F] border-[#1E293B] max-w-md p-0">
+          <DialogHeader className="p-4 border-b border-[#1E293B]">
+            <DialogTitle className="flex items-center gap-2 text-red-400">
+              <Siren className="w-6 h-6" />
+              Panel de Pánico
+            </DialogTitle>
+            <DialogDescription>
+              Activar alerta de emergencia
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-4 space-y-4">
+            <p className="text-sm text-muted-foreground text-center">
+              Solo para uso de guardias en situaciones de emergencia real.
+            </p>
+            <div className="grid gap-3">
+              <Button 
+                className="h-16 bg-red-600 hover:bg-red-700 text-lg font-bold"
+                onClick={() => {
+                  setShowPanicModal(false);
+                  // Here you would trigger the actual panic
+                }}
+              >
+                <Heart className="w-6 h-6 mr-2" />
+                EMERGENCIA MÉDICA
+              </Button>
+              <Button 
+                className="h-16 bg-amber-500 hover:bg-amber-600 text-lg font-bold text-black"
+                onClick={() => setShowPanicModal(false)}
+              >
+                <Eye className="w-6 h-6 mr-2" />
+                ACTIVIDAD SOSPECHOSA
+              </Button>
+              <Button 
+                className="h-16 bg-orange-500 hover:bg-orange-600 text-lg font-bold"
+                onClick={() => setShowPanicModal(false)}
+              >
+                <AlertTriangle className="w-6 h-6 mr-2" />
+                EMERGENCIA GENERAL
+              </Button>
+            </div>
+          </div>
+          <DialogFooter className="p-4 border-t border-[#1E293B]">
+            <Button variant="outline" className="w-full" onClick={() => setShowPanicModal(false)}>
+              Cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Emergency Footer - Hidden on mobile (use bottom nav instead) */}
+      {!isMobile && (
+        <footer className="flex-shrink-0 p-2 bg-[#0A0A0F] border-t border-[#1E293B]">
+          <a 
+            href="tel:911" 
+            className="flex items-center justify-center gap-2 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 active:bg-red-500/20"
+          >
+            <Phone className="w-5 h-5" />
+            <span className="font-bold">LLAMAR 911</span>
+          </a>
+        </footer>
+      )}
+
+      {/* Mobile Bottom Navigation */}
+      {isMobile && (
+        <MobileBottomNav 
+          items={mobileNavItems}
+          activeTab={activeTab}
+          onTabChange={handleMobileTabChange}
+          centerIndex={2}
+        />
+      )}
     </div>
   );
 };
