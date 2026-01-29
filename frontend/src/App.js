@@ -252,6 +252,13 @@ function AppRoutes() {
           <ProfilePage />
         </ProtectedRoute>
       } />
+      
+      {/* View other user's profile */}
+      <Route path="/profile/:userId" element={
+        <ProtectedRoute>
+          <ProfilePage />
+        </ProtectedRoute>
+      } />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
