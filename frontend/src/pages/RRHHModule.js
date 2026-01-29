@@ -732,8 +732,8 @@ const ControlHorarioSubmodule = ({ employees, currentUser, hasRole }) => {
         </div>
       )}
 
-      {/* Admin/Supervisor: All Employees Today */}
-      {(hasRole('Administrador') || hasRole('Supervisor')) && (
+      {/* Admin/Supervisor/HR: All Employees Today */}
+      {(hasRole('Administrador') || hasRole('Supervisor') || hasRole('HR')) && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Historial Reciente</h3>
           {clockHistory.length === 0 ? (
