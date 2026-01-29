@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 29, 2026 (Session 13 - Guard Profile Access & Photo Lightbox)
+## Last Updated: January 29, 2026 (Session 14 - Guard Navigation + Module Visibility + Profile Directory)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,31 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: 100% PRODUCTION READY ✅
+
+### Session 14 - Guard Navigation + Module Visibility + Profile Directory (January 29, 2026) ⭐⭐⭐ CRITICAL FIX
+**3 Issues Resolved:**
+
+- ✅ **ISSUE 1: Guard Profile Navigation (UX Bug) - FIXED**:
+  - GuardUI now has 8 tabs: Alertas, Visitas, Mi Turno, Ausencias, Registro, Historial, **Personas**, **Perfil**
+  - Guard can access and edit profile without leaving Guard navigation
+  - EmbeddedProfile component (`/app/frontend/src/components/EmbeddedProfile.jsx`)
+  - No logout/reload required to return to dashboard
+
+- ✅ **ISSUE 2: Module Visibility Per Condominium (Architecture Bug) - FIXED**:
+  - Created `ModulesContext.js` to provide module availability
+  - Sidebar now filters navigation items based on `enabled_modules` config
+  - DashboardPage "Accesos Rápidos" respects module config
+  - If `school: { enabled: false }`, it's completely hidden (not disabled UI)
+  - Backend `CondominiumModules` model enforces module config
+
+- ✅ **ISSUE 3: Global Profile System (Core Feature) - IMPLEMENTED**:
+  - New endpoint: `GET /api/profile/directory/condominium`
+  - Returns users grouped by role: Administrador, Supervisor, HR, Guarda, Residente
+  - ProfileDirectory component (`/app/frontend/src/components/ProfileDirectory.jsx`)
+  - Searchable directory with photo lightbox
+  - Guard/Resident/HR/Admin can see all users in their condominium
+
+- 📋 Test report: `/app/test_reports/iteration_21.json` - All tests passed
 
 ### Session 13 - Guard Profile Access & Photo Lightbox (January 29, 2026) ⭐⭐ P1
 - ✅ **Guard Profile Access (COMPLETE)**:
