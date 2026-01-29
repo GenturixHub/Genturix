@@ -506,12 +506,13 @@ const DashboardPage = () => {
                   className="w-full justify-between h-12 border-[#1E293B] hover:bg-muted"
                   onClick={() => navigate('/payments')}
                 >
-                <span className="flex items-center gap-3">
-                  <CreditCard className="w-4 h-4 text-cyan-400" />
-                  Pagos
-                </span>
-                <ChevronRight className="w-4 h-4" />
-              </Button>
+                  <span className="flex items-center gap-3">
+                    <CreditCard className="w-4 h-4 text-cyan-400" />
+                    Pagos
+                  </span>
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              )}
             </CardContent>
           </Card>
         </div>
