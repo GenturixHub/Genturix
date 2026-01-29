@@ -765,6 +765,67 @@ async def update_profile(profile_data: ProfileUpdate, current_user = Depends(get
         role_data=updated_user.get("role_data")
     )
 
+@api_router.get("/profile/directory/condominium")
+async def get_condominium_directory(current_user = Depends(get_current_user)):
+    """
+    Get all users in the same condominium (Profile Directory).
+    SuperAdmin can see all users across condominiums.
+    Returns users grouped by role for the directory view.
+    """
+    is_super_admin = "SuperAdmin" in current_user.get("roles", [])
+    condo_id = current_user.get("condominium_id")
+    
+    # SuperAdmin can see all users if no specific condo
+    if is_super_admin and not condo_id:
+        # Return empty - SuperAdmin should specify a condo to view directory
+        return {"users": [], "grouped_by_role": {}, "condominium_name": None}
+    
+    if not condo_id and not is_super_admin:
+        raise HTTPException(status_code=400, detail="Usuario no asignado a ningún condominio")
+    
+    # Get condominium name
+    condo = await db.condominiums.find_one({"id": condo_id}, {"_id": 0, "name": 1})
+    condo_name = condo.get("name") if condo else "Desconocido"
+    
+    # Get all active users in the condominium
+    users_cursor = db.users.find(
+        {"condominium_id": condo_id, "is_active": True},
+        {"_id": 0, "id": 1, "full_name": 1, "email": 1, "roles": 1, "profile_photo": 1, "phone": 1, "public_description": 1, "role_data": 1}
+    )
+    users = await users_cursor.to_list(length=500)
+    
+    # Group users by primary role
+    grouped = {}
+    role_order = ["Administrador", "Supervisor", "HR", "Guarda", "Residente", "Estudiante"]
+    
+    for role in role_order:
+        grouped[role] = []
+    
+    for user in users:
+        primary_role = user.get("roles", ["Otro"])[0]
+        if primary_role not in grouped:
+            grouped[primary_role] = []
+        grouped[primary_role].append({
+            "id": user["id"],
+            "full_name": user["full_name"],
+            "email": user.get("email"),
+            "roles": user.get("roles", []),
+            "profile_photo": user.get("profile_photo"),
+            "phone": user.get("phone"),
+            "public_description": user.get("public_description"),
+            "role_data": user.get("role_data")
+        })
+    
+    # Remove empty role groups
+    grouped = {k: v for k, v in grouped.items() if v}
+    
+    return {
+        "users": users,
+        "grouped_by_role": grouped,
+        "condominium_name": condo_name,
+        "total_count": len(users)
+    }
+
 # ==================== SECURITY MODULE ====================
 @api_router.post("/security/panic")
 async def trigger_panic(event: PanicEventCreate, request: Request, current_user = Depends(get_current_user)):
