@@ -264,6 +264,10 @@ class ApiService {
     this.patch(`/super-admin/condominiums/${condoId}/status?status=${status}`);
   getSuperAdminAudit = (module = 'super_admin', limit = 100) => 
     this.get(`/super-admin/audit?module=${module}&limit=${limit}`);
+  
+  // Super Admin - Permanent Deletion (requires password)
+  permanentlyDeleteCondominium = (condoId, password) =>
+    this.delete(`/super-admin/condominiums/${condoId}`, { password });
 }
 
 export const api = new ApiService();
