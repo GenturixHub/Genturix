@@ -1246,9 +1246,14 @@ async def get_guard_my_shift(current_user = Depends(require_role("Guarda", "Admi
     Get guard's current and upcoming shift information.
     Used for the "Mi Turno" tab in Guard UI.
     Includes can_clock_in flag and message for UI validation.
+    
+    A shift is CURRENT if: start_time <= now <= end_time AND status in [scheduled, in_progress]
+    A shift is UPCOMING if: start_time > now AND status = scheduled
+    Early clock-in allowed: 15 minutes before shift start
     """
     guard = await db.guards.find_one({"user_id": current_user["id"]})
     if not guard:
+        logger.warning(f"[my-shift] No guard record found for user_id={current_user['id']}")
         return {
             "has_guard_record": False,
             "current_shift": None,
@@ -1258,9 +1263,12 @@ async def get_guard_my_shift(current_user = Depends(require_role("Guarda", "Admi
         }
     
     condo_id = current_user.get("condominium_id")
+    guard_condo_id = guard.get("condominium_id")
     now = datetime.now(timezone.utc)
     now_iso = now.isoformat()
     today = now.date().isoformat()
+    
+    logger.info(f"[my-shift] Checking shifts for guard_id={guard['id']}, user_condo={condo_id}, guard_condo={guard_condo_id}, now={now_iso}")
     
     # Check current clock status
     today_logs = await db.hr_clock_logs.find({
@@ -1272,23 +1280,59 @@ async def get_guard_my_shift(current_user = Depends(require_role("Guarda", "Admi
     if today_logs:
         is_clocked_in = today_logs[0]["type"] == "IN"
     
+    # Use guard's condominium_id if user's is not set (for consistency)
+    effective_condo_id = condo_id or guard_condo_id
+    
     # Find current active shift (now is between start and end time)
-    current_shift = await db.shifts.find_one({
+    # Status must be scheduled (not started) or in_progress (started but not ended)
+    current_shift_query = {
         "guard_id": guard["id"],
-        "condominium_id": condo_id,
         "status": {"$in": ["scheduled", "in_progress"]},
         "start_time": {"$lte": now_iso},
         "end_time": {"$gte": now_iso}
-    }, {"_id": 0})
+    }
+    # Only filter by condo if we have one
+    if effective_condo_id:
+        current_shift_query["condominium_id"] = effective_condo_id
+    
+    current_shift = await db.shifts.find_one(current_shift_query, {"_id": 0})
+    
+    if not current_shift:
+        # Log why no shift was found - check all shifts for this guard
+        all_guard_shifts = await db.shifts.find({
+            "guard_id": guard["id"]
+        }, {"_id": 0}).to_list(20)
+        
+        if all_guard_shifts:
+            logger.info(f"[my-shift] Guard has {len(all_guard_shifts)} total shifts. Checking why none match...")
+            for s in all_guard_shifts[:5]:  # Log first 5
+                match_reasons = []
+                if s.get("status") not in ["scheduled", "in_progress"]:
+                    match_reasons.append(f"status={s.get('status')} (need scheduled/in_progress)")
+                if s.get("start_time", "") > now_iso:
+                    match_reasons.append(f"start_time={s.get('start_time')} > now")
+                if s.get("end_time", "") < now_iso:
+                    match_reasons.append(f"end_time={s.get('end_time')} < now")
+                if effective_condo_id and s.get("condominium_id") != effective_condo_id:
+                    match_reasons.append(f"condo mismatch: shift={s.get('condominium_id')} != user={effective_condo_id}")
+                logger.info(f"[my-shift] Shift {s.get('id')[:8]}... rejected: {', '.join(match_reasons) or 'unknown'}")
+        else:
+            logger.info(f"[my-shift] Guard has NO shifts assigned at all")
     
     # Find next upcoming shift (start_time > now)
-    next_shift = await db.shifts.find_one({
+    next_shift_query = {
         "guard_id": guard["id"],
-        "condominium_id": condo_id,
         "status": "scheduled",
         "start_time": {"$gt": now_iso}
-    }, {"_id": 0},
-    sort=[("start_time", 1)])
+    }
+    if effective_condo_id:
+        next_shift_query["condominium_id"] = effective_condo_id
+    
+    next_shift = await db.shifts.find_one(
+        next_shift_query, 
+        {"_id": 0},
+        sort=[("start_time", 1)]
+    )
     
     # Determine if guard can clock in
     can_clock_in = False
@@ -1300,6 +1344,7 @@ async def get_guard_my_shift(current_user = Depends(require_role("Guarda", "Admi
     elif current_shift:
         can_clock_in = True
         clock_in_message = None
+        logger.info(f"[my-shift] Guard CAN clock in - current shift found: {current_shift.get('id')}")
     elif next_shift:
         # Check if within 15 minute early window
         shift_start = datetime.fromisoformat(next_shift["start_time"].replace('Z', '+00:00'))
@@ -1307,15 +1352,18 @@ async def get_guard_my_shift(current_user = Depends(require_role("Guarda", "Admi
         if minutes_until <= 15:
             can_clock_in = True
             clock_in_message = f"Tu turno comienza en {minutes_until} minutos"
+            logger.info(f"[my-shift] Guard CAN clock in - within 15 min early window")
         else:
             can_clock_in = False
             if minutes_until > 60:
                 clock_in_message = f"Tu turno comienza en {minutes_until // 60}h {minutes_until % 60}min. Puedes fichar 15 min antes."
             else:
                 clock_in_message = f"Tu turno comienza en {minutes_until} minutos. Puedes fichar 15 min antes."
+            logger.info(f"[my-shift] Guard CANNOT clock in - next shift in {minutes_until} min")
     else:
         can_clock_in = False
         clock_in_message = "No tienes un turno asignado para hoy"
+        logger.info(f"[my-shift] Guard CANNOT clock in - no shifts found")
     
     return {
         "has_guard_record": True,
