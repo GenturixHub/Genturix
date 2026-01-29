@@ -1239,33 +1239,157 @@ async def get_guard_logbook(current_user = Depends(require_role("Administrador",
     return logbook_entries
 
 
+# ==================== GUARD MY SHIFT ====================
+@api_router.get("/guard/my-shift")
+async def get_guard_my_shift(current_user = Depends(require_role("Guarda", "Administrador", "Supervisor"))):
+    """
+    Get guard's current and upcoming shift information.
+    Used for the "Mi Turno" tab in Guard UI.
+    """
+    guard = await db.guards.find_one({"user_id": current_user["id"]})
+    if not guard:
+        return {
+            "has_guard_record": False,
+            "current_shift": None,
+            "next_shift": None,
+            "message": "No tienes registro como empleado"
+        }
+    
+    condo_id = current_user.get("condominium_id")
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
+    
+    # Find current active shift (now is between start and end time)
+    current_shift = await db.shifts.find_one({
+        "guard_id": guard["id"],
+        "condominium_id": condo_id,
+        "status": {"$in": ["scheduled", "in_progress"]},
+        "start_time": {"$lte": now_iso},
+        "end_time": {"$gte": now_iso}
+    }, {"_id": 0})
+    
+    # Find next upcoming shift (start_time > now)
+    next_shift = await db.shifts.find_one({
+        "guard_id": guard["id"],
+        "condominium_id": condo_id,
+        "status": "scheduled",
+        "start_time": {"$gt": now_iso}
+    }, {"_id": 0, "id": 1, "start_time": 1, "end_time": 1, "location": 1, "status": 1},
+    sort=[("start_time", 1)])
+    
+    return {
+        "has_guard_record": True,
+        "guard_id": guard["id"],
+        "guard_name": guard["user_name"],
+        "current_shift": current_shift,
+        "next_shift": next_shift
+    }
+
+@api_router.get("/guard/my-absences")
+async def get_guard_my_absences(current_user = Depends(require_role("Guarda"))):
+    """
+    Get guard's own absence requests (read-only).
+    Guards can only see their own absences.
+    """
+    guard = await db.guards.find_one({"user_id": current_user["id"]})
+    if not guard:
+        return []
+    
+    condo_id = current_user.get("condominium_id")
+    
+    absences = await db.hr_absences.find({
+        "employee_id": guard["id"],
+        "condominium_id": condo_id
+    }, {"_id": 0}).sort("created_at", -1).to_list(50)
+    
+    return absences
+
+
 # ==================== GUARD HISTORY ====================
 @api_router.get("/guard/history")
 async def get_guard_history(
     history_type: Optional[str] = None,
     current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
 ):
-    """Get guard action history - alerts resolved + visits completed"""
-    query = {}
+    """
+    Get comprehensive guard action history.
+    Includes: alerts resolved, visits completed, clock events, completed shifts.
+    Single source of truth for Guard UI History tab.
+    """
+    condo_id = current_user.get("condominium_id")
+    guard = None
+    guard_id = None
     
-    # Multi-tenant filtering
-    if "SuperAdmin" not in current_user.get("roles", []):
-        condo_id = current_user.get("condominium_id")
-        if condo_id:
-            query["condominium_id"] = condo_id
-    
-    # Guards see only their own history, Admin/Supervisor see all in condo
-    if "Guarda" in current_user.get("roles", []) and "Administrador" not in current_user.get("roles", []):
+    # Get guard record if user is a guard
+    if "Guarda" in current_user.get("roles", []):
         guard = await db.guards.find_one({"user_id": current_user["id"]})
         if guard:
-            query["guard_id"] = guard["id"]
+            guard_id = guard["id"]
+    
+    # Build base query with multi-tenant filtering
+    base_query = {}
+    if "SuperAdmin" not in current_user.get("roles", []) and condo_id:
+        base_query["condominium_id"] = condo_id
+    
+    # Guards see only their own history
+    if guard_id and "Administrador" not in current_user.get("roles", []):
+        base_query["guard_id"] = guard_id
     
     # Filter by type if specified
-    if history_type in ["alert_resolved", "visit_completed"]:
-        query["type"] = history_type
+    valid_types = ["alert_resolved", "visit_completed", "clock_in", "clock_out", "shift_completed"]
+    if history_type and history_type in valid_types:
+        base_query["type"] = history_type
     
-    history = await db.guard_history.find(query, {"_id": 0}).sort("timestamp", -1).to_list(100)
-    return history
+    # Get guard_history entries
+    history_entries = await db.guard_history.find(base_query, {"_id": 0}).sort("timestamp", -1).to_list(100)
+    
+    # Also get clock logs and convert to history format
+    clock_query = {}
+    if condo_id:
+        clock_query["condominium_id"] = condo_id
+    if guard_id and "Administrador" not in current_user.get("roles", []):
+        clock_query["employee_id"] = guard_id
+    
+    clock_logs = await db.hr_clock_logs.find(clock_query, {"_id": 0}).sort("timestamp", -1).to_list(50)
+    
+    # Convert clock logs to history format
+    for log in clock_logs:
+        history_entries.append({
+            "id": log.get("id"),
+            "type": f"clock_{log['type'].lower()}",
+            "guard_id": log.get("employee_id"),
+            "guard_name": log.get("employee_name"),
+            "condominium_id": log.get("condominium_id"),
+            "timestamp": log.get("timestamp"),
+            "date": log.get("date")
+        })
+    
+    # Get completed shifts
+    shift_query = {"status": "completed"}
+    if condo_id:
+        shift_query["condominium_id"] = condo_id
+    if guard_id and "Administrador" not in current_user.get("roles", []):
+        shift_query["guard_id"] = guard_id
+    
+    completed_shifts = await db.shifts.find(shift_query, {"_id": 0}).sort("end_time", -1).to_list(20)
+    
+    for shift in completed_shifts:
+        history_entries.append({
+            "id": shift.get("id"),
+            "type": "shift_completed",
+            "guard_id": shift.get("guard_id"),
+            "guard_name": shift.get("guard_name"),
+            "condominium_id": shift.get("condominium_id"),
+            "timestamp": shift.get("end_time"),
+            "shift_start": shift.get("start_time"),
+            "shift_end": shift.get("end_time"),
+            "location": shift.get("location")
+        })
+    
+    # Sort all entries by timestamp
+    history_entries.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+    
+    return history_entries[:100]
 
 
 
