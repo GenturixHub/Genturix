@@ -299,6 +299,22 @@ class ApiService {
   
   // Profile Directory - All users in same condominium
   getCondominiumDirectory = () => this.get('/profile/directory/condominium');
+
+  // ==================== RESERVATIONS ====================
+  // Areas
+  getAreas = () => this.get('/reservations/areas');
+  createArea = (data) => this.post('/reservations/areas', data);
+  updateArea = (areaId, data) => this.patch(`/reservations/areas/${areaId}`, data);
+  deleteArea = (areaId) => this.delete(`/reservations/areas/${areaId}`);
+  
+  // Reservations
+  getReservations = (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return this.get(`/reservations${queryString ? `?${queryString}` : ''}`);
+  };
+  getTodayReservations = () => this.get('/reservations/today');
+  createReservation = (data) => this.post('/reservations', data);
+  updateReservationStatus = (reservationId, data) => this.patch(`/reservations/${reservationId}`, data);
 }
 
 export const api = new ApiService();
