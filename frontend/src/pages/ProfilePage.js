@@ -1,10 +1,12 @@
 /**
- * GENTURIX - User Profile Module
- * Basic profile for all roles with role-specific public info
+ * GENTURIX - Unified User Profile Module
+ * Supports viewing own profile (editable) and viewing other users' profiles (read-only)
+ * Multi-tenant: Users can only view profiles within their condominium
  */
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -12,6 +14,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
+import { Textarea } from '../components/ui/textarea';
 import api from '../services/api';
 import { 
   User,
@@ -27,7 +30,9 @@ import {
   Save,
   Loader2,
   CheckCircle,
-  XCircle
+  XCircle,
+  ArrowLeft,
+  FileText
 } from 'lucide-react';
 
 // Role configuration for display
@@ -38,10 +43,14 @@ const ROLE_CONFIG = {
   'HR': { icon: Briefcase, color: 'bg-orange-500/10 text-orange-400', label: 'Recursos Humanos' },
   'Supervisor': { icon: UserCheck, color: 'bg-purple-500/10 text-purple-400', label: 'Supervisor' },
   'Estudiante': { icon: GraduationCap, color: 'bg-cyan-500/10 text-cyan-400', label: 'Estudiante' },
+  'SuperAdmin': { icon: Shield, color: 'bg-red-500/10 text-red-400', label: 'Super Admin' },
 };
 
 const ProfilePage = () => {
   const { user, refreshUser } = useAuth();
+  const { userId } = useParams(); // If userId is present, we're viewing someone else's profile
+  const navigate = useNavigate();
+  
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -51,30 +60,56 @@ const ProfilePage = () => {
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
-    profile_photo: ''
+    profile_photo: '',
+    public_description: ''
   });
+
+  // Determine if viewing own profile or another user's profile
+  const isOwnProfile = !userId || userId === user?.id;
+  const pageTitle = isOwnProfile ? 'Mi Perfil' : 'Perfil de Usuario';
 
   // Fetch profile data
   useEffect(() => {
     const fetchProfile = async () => {
       setIsLoading(true);
+      setError(null);
+      
       try {
-        const data = await api.get('/profile');
+        let data;
+        
+        if (isOwnProfile) {
+          // Fetch own profile (full data)
+          data = await api.get('/profile');
+          setFormData({
+            full_name: data.full_name || '',
+            phone: data.phone || '',
+            profile_photo: data.profile_photo || '',
+            public_description: data.public_description || ''
+          });
+        } else {
+          // Fetch public profile (limited data)
+          data = await api.getPublicProfile(userId);
+        }
+        
         setProfile(data);
-        setFormData({
-          full_name: data.full_name || '',
-          phone: data.phone || '',
-          profile_photo: data.profile_photo || ''
-        });
       } catch (err) {
         console.error('Error fetching profile:', err);
-        // Use local user data as fallback
-        if (user) {
+        if (err.status === 403) {
+          setError('No tienes permiso para ver este perfil');
+        } else if (err.status === 404) {
+          setError('Usuario no encontrado');
+        } else {
+          setError(err.message || 'Error al cargar perfil');
+        }
+        
+        // Use local user data as fallback only for own profile
+        if (isOwnProfile && user) {
           setProfile(user);
           setFormData({
             full_name: user.full_name || '',
             phone: user.phone || '',
-            profile_photo: user.profile_photo || ''
+            profile_photo: user.profile_photo || '',
+            public_description: user.public_description || ''
           });
         }
       } finally {
@@ -82,8 +117,10 @@ const ProfilePage = () => {
       }
     };
 
-    fetchProfile();
-  }, [user]);
+    if (user) {
+      fetchProfile();
+    }
+  }, [user, userId, isOwnProfile]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -111,6 +148,12 @@ const ProfilePage = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file size (max 2MB for base64)
+    if (file.size > 2 * 1024 * 1024) {
+      setError('La imagen no puede ser mayor a 2MB');
+      return;
+    }
+
     // Convert to base64 for simple storage
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -120,6 +163,9 @@ const ProfilePage = () => {
   };
 
   const getRoleSpecificInfo = () => {
+    // Only show role-specific info for own profile (where we have full data)
+    if (!isOwnProfile) return null;
+    
     const roleData = profile?.role_data || {};
     const roles = profile?.roles || [];
     const primaryRole = roles[0];
@@ -260,9 +306,35 @@ const ProfilePage = () => {
 
   if (isLoading) {
     return (
-      <DashboardLayout title="Mi Perfil">
+      <DashboardLayout title={pageTitle}>
         <div className="flex items-center justify-center h-64">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Error state for viewing other profiles
+  if (!isOwnProfile && error) {
+    return (
+      <DashboardLayout title={pageTitle}>
+        <div className="max-w-4xl mx-auto space-y-6">
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2"
+            data-testid="back-btn"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Volver
+          </Button>
+          <Card className="bg-[#0F111A] border-[#1E293B]">
+            <CardContent className="p-8 text-center">
+              <XCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Error</h3>
+              <p className="text-muted-foreground">{error}</p>
+            </CardContent>
+          </Card>
         </div>
       </DashboardLayout>
     );
@@ -273,8 +345,21 @@ const ProfilePage = () => {
   const RoleIcon = roleConfig.icon;
 
   return (
-    <DashboardLayout title="Mi Perfil">
+    <DashboardLayout title={pageTitle}>
       <div className="max-w-4xl mx-auto space-y-6">
+        {/* Back button for viewing other profiles */}
+        {!isOwnProfile && (
+          <Button 
+            variant="ghost" 
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2"
+            data-testid="back-btn"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Volver
+          </Button>
+        )}
+
         {/* Success/Error Messages */}
         {success && (
           <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 flex items-center gap-2">
@@ -282,7 +367,7 @@ const ProfilePage = () => {
             {success}
           </div>
         )}
-        {error && (
+        {error && isOwnProfile && (
           <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-2">
             <XCircle className="w-4 h-4" />
             {error}
@@ -296,12 +381,12 @@ const ProfilePage = () => {
               {/* Avatar */}
               <div className="relative">
                 <Avatar className="w-24 h-24 border-4 border-[#1E293B]">
-                  <AvatarImage src={formData.profile_photo || profile?.profile_photo} />
+                  <AvatarImage src={editMode ? formData.profile_photo : profile?.profile_photo} />
                   <AvatarFallback className="bg-primary/20 text-primary text-2xl">
                     {profile?.full_name?.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                {editMode && (
+                {editMode && isOwnProfile && (
                   <label className="absolute bottom-0 right-0 p-2 bg-primary rounded-full cursor-pointer hover:bg-primary/80 transition-colors">
                     <Camera className="w-4 h-4 text-white" />
                     <input
@@ -309,6 +394,7 @@ const ProfilePage = () => {
                       accept="image/*"
                       className="hidden"
                       onChange={handlePhotoUpload}
+                      data-testid="photo-upload-input"
                     />
                   </label>
                 )}
@@ -316,49 +402,58 @@ const ProfilePage = () => {
 
               {/* User Info */}
               <div className="flex-1 text-center md:text-left">
-                {editMode ? (
+                {editMode && isOwnProfile ? (
                   <Input
                     value={formData.full_name}
                     onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
                     className="bg-[#0A0A0F] border-[#1E293B] text-xl font-bold mb-2"
                     placeholder="Nombre completo"
+                    data-testid="name-input"
                   />
                 ) : (
-                  <h2 className="text-2xl font-bold">{profile?.full_name}</h2>
+                  <h2 className="text-2xl font-bold" data-testid="profile-name">{profile?.full_name}</h2>
                 )}
-                <p className="text-muted-foreground">{profile?.email}</p>
-                <div className="flex items-center justify-center md:justify-start gap-2 mt-2">
-                  <Badge className={roleConfig.color}>
-                    <RoleIcon className="w-3 h-3 mr-1" />
-                    {roleConfig.label}
-                  </Badge>
+                {isOwnProfile && <p className="text-muted-foreground">{profile?.email}</p>}
+                <div className="flex items-center justify-center md:justify-start gap-2 mt-2 flex-wrap">
+                  {profile?.roles?.map((role, index) => {
+                    const config = ROLE_CONFIG[role] || { icon: User, color: 'bg-gray-500/10 text-gray-400', label: role };
+                    const Icon = config.icon;
+                    return (
+                      <Badge key={index} className={config.color}>
+                        <Icon className="w-3 h-3 mr-1" />
+                        {config.label}
+                      </Badge>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Edit Button */}
-              <div className="flex gap-2">
-                {editMode ? (
-                  <>
-                    <Button variant="outline" onClick={() => setEditMode(false)}>
-                      Cancelar
+              {/* Edit Button (only for own profile) */}
+              {isOwnProfile && (
+                <div className="flex gap-2">
+                  {editMode ? (
+                    <>
+                      <Button variant="outline" onClick={() => setEditMode(false)} data-testid="cancel-btn">
+                        Cancelar
+                      </Button>
+                      <Button onClick={handleSave} disabled={isSaving} data-testid="save-btn">
+                        {isSaving ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Save className="w-4 h-4 mr-2" />
+                            Guardar
+                          </>
+                        )}
+                      </Button>
+                    </>
+                  ) : (
+                    <Button onClick={() => setEditMode(true)} data-testid="edit-profile-btn">
+                      Editar Perfil
                     </Button>
-                    <Button onClick={handleSave} disabled={isSaving}>
-                      {isSaving ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Save className="w-4 h-4 mr-2" />
-                          Guardar
-                        </>
-                      )}
-                    </Button>
-                  </>
-                ) : (
-                  <Button onClick={() => setEditMode(true)} data-testid="edit-profile-btn">
-                    Editar Perfil
-                  </Button>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -370,28 +465,31 @@ const ProfilePage = () => {
               <CardTitle className="text-base">Información de Contacto</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2 text-muted-foreground">
-                  <Mail className="w-4 h-4" />
-                  Email
-                </Label>
-                <Input
-                  value={profile?.email}
-                  disabled
-                  className="bg-[#0A0A0F] border-[#1E293B]"
-                />
-              </div>
+              {isOwnProfile && (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2 text-muted-foreground">
+                    <Mail className="w-4 h-4" />
+                    Email
+                  </Label>
+                  <Input
+                    value={profile?.email}
+                    disabled
+                    className="bg-[#0A0A0F] border-[#1E293B]"
+                  />
+                </div>
+              )}
               <div className="space-y-2">
                 <Label className="flex items-center gap-2 text-muted-foreground">
                   <Phone className="w-4 h-4" />
                   Teléfono
                 </Label>
-                {editMode ? (
+                {editMode && isOwnProfile ? (
                   <Input
                     value={formData.phone}
                     onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                     className="bg-[#0A0A0F] border-[#1E293B]"
                     placeholder="+52 555 123 4567"
+                    data-testid="phone-input"
                   />
                 ) : (
                   <Input
@@ -417,23 +515,57 @@ const ProfilePage = () => {
                 <span className="text-muted-foreground">Condominio</span>
                 <span className="font-medium">{profile?.condominium_name || 'No asignado'}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Estado</span>
-                <Badge className={profile?.is_active !== false ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}>
-                  {profile?.is_active !== false ? 'Activo' : 'Inactivo'}
-                </Badge>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Miembro desde</span>
-                <span className="text-sm">
-                  {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('es-MX', { year: 'numeric', month: 'long' }) : 'N/A'}
-                </span>
-              </div>
+              {isOwnProfile && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Estado</span>
+                    <Badge className={profile?.is_active !== false ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}>
+                      {profile?.is_active !== false ? 'Activo' : 'Inactivo'}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Miembro desde</span>
+                    <span className="text-sm">
+                      {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('es-MX', { year: 'numeric', month: 'long' }) : 'N/A'}
+                    </span>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
 
-        {/* Role-specific Information */}
+        {/* Public Description */}
+        <Card className="bg-[#0F111A] border-[#1E293B]">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              {isOwnProfile ? 'Descripción Pública' : 'Acerca de'}
+            </CardTitle>
+            {isOwnProfile && !editMode && (
+              <CardDescription>
+                Esta descripción será visible para otros usuarios de tu condominio
+              </CardDescription>
+            )}
+          </CardHeader>
+          <CardContent>
+            {editMode && isOwnProfile ? (
+              <Textarea
+                value={formData.public_description}
+                onChange={(e) => setFormData(prev => ({ ...prev, public_description: e.target.value }))}
+                className="bg-[#0A0A0F] border-[#1E293B] min-h-[100px]"
+                placeholder="Escribe una breve descripción sobre ti..."
+                data-testid="description-input"
+              />
+            ) : (
+              <p className="text-muted-foreground">
+                {profile?.public_description || 'Sin descripción'}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Role-specific Information (only for own profile) */}
         {getRoleSpecificInfo()}
       </div>
     </DashboardLayout>
