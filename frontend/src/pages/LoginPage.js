@@ -112,8 +112,12 @@ const LoginPage = () => {
         <div className="w-full max-w-md mx-auto space-y-6 md:space-y-8">
           {/* Logo */}
           <div className="flex flex-col items-center text-center">
-            <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center mb-4 shadow-lg shadow-primary/30">
-              <Shield className="w-8 h-8 md:w-10 md:h-10 text-white" />
+            <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center mb-4 shadow-lg shadow-primary/30 overflow-hidden">
+              <img 
+                src="/genturix-logo.png" 
+                alt="Genturix Logo" 
+                className="w-12 h-12 md:w-16 md:h-16 object-contain"
+              />
             </div>
             <h1 className="text-3xl md:text-4xl font-bold font-['Outfit'] text-white">GENTURIX</h1>
             <p className="text-sm text-muted-foreground mt-1">Plataforma de Seguridad y Emergencias</p>
