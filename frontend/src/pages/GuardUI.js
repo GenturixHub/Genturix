@@ -1613,7 +1613,7 @@ const GuardUI = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-        <TabsList className="flex-shrink-0 grid grid-cols-5 bg-[#0A0A0F] border-b border-[#1E293B] rounded-none h-14 p-0">
+        <TabsList className="flex-shrink-0 grid grid-cols-6 bg-[#0A0A0F] border-b border-[#1E293B] rounded-none h-14 p-0">
           <TabsTrigger 
             value="alerts" 
             className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-red-500 flex flex-col gap-0.5"
@@ -1646,6 +1646,15 @@ const GuardUI = () => {
           >
             <Briefcase className="w-5 h-5" />
             <span className="text-[10px]">Mi Turno</span>
+          </TabsTrigger>
+          
+          <TabsTrigger 
+            value="absences" 
+            className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-purple-500 flex flex-col gap-0.5"
+            data-testid="tab-absences"
+          >
+            <CalendarOff className="w-5 h-5" />
+            <span className="text-[10px]">Ausencias</span>
           </TabsTrigger>
           
           <TabsTrigger 
