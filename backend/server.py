@@ -1751,7 +1751,18 @@ async def clock_in_out(
     request: Request,
     current_user = Depends(require_role("Guarda", "Administrador", "Supervisor"))
 ):
-    """Register clock in or clock out"""
+    """
+    Register clock in or clock out.
+    
+    Clock IN rules:
+    - Guard must have an active shift (current time within shift window)
+    - OR be within 15 minutes before shift start (early clock in allowed)
+    - Cannot clock in if already clocked in
+    
+    Clock OUT rules:
+    - Must have clocked in first
+    - Will auto-complete shift if clocking out after shift end time
+    """
     if clock_req.type not in ["IN", "OUT"]:
         raise HTTPException(status_code=400, detail="Tipo debe ser 'IN' o 'OUT'")
     
@@ -1763,7 +1774,10 @@ async def clock_in_out(
     if not guard.get("is_active", True):
         raise HTTPException(status_code=400, detail="Tu cuenta de empleado no está activa")
     
-    today = datetime.now(timezone.utc).date().isoformat()
+    condo_id = current_user.get("condominium_id")
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
+    today = now.date().isoformat()
     
     # Get today's clock logs for this employee
     today_logs = await db.hr_clock_logs.find({
@@ -1771,12 +1785,64 @@ async def clock_in_out(
         "date": today
     }).sort("timestamp", -1).to_list(100)
     
+    # Variables for shift linking
+    linked_shift_id = None
+    shift_info = None
+    
     if clock_req.type == "IN":
         # Check if already clocked in without clocking out
         if today_logs:
             last_log = today_logs[0]
             if last_log["type"] == "IN":
                 raise HTTPException(status_code=400, detail="Ya tienes una entrada registrada. Debes registrar salida primero.")
+        
+        # Find active or upcoming shift for validation
+        # Allow clock in if: within shift time OR up to 15 minutes before shift start
+        early_window = (now - timedelta(minutes=15)).isoformat()
+        
+        active_shift = await db.shifts.find_one({
+            "guard_id": guard["id"],
+            "condominium_id": condo_id,
+            "status": {"$in": ["scheduled", "in_progress"]},
+            "$or": [
+                # Currently within shift window
+                {"start_time": {"$lte": now_iso}, "end_time": {"$gte": now_iso}},
+                # OR shift starts within next 15 minutes
+                {"start_time": {"$gte": early_window, "$lte": now_iso}}
+            ]
+        }, {"_id": 0})
+        
+        if not active_shift:
+            # Check if there's any upcoming shift today
+            today_end = f"{today}T23:59:59+00:00"
+            upcoming_shift = await db.shifts.find_one({
+                "guard_id": guard["id"],
+                "condominium_id": condo_id,
+                "status": "scheduled",
+                "start_time": {"$gte": now_iso, "$lte": today_end}
+            }, {"_id": 0})
+            
+            if upcoming_shift:
+                shift_start = datetime.fromisoformat(upcoming_shift["start_time"].replace('Z', '+00:00'))
+                minutes_until = int((shift_start - now).total_seconds() / 60)
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Tu turno comienza en {minutes_until} minutos. Puedes fichar entrada 15 minutos antes."
+                )
+            else:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="No tienes un turno asignado para hoy. Contacta a tu supervisor."
+                )
+        
+        linked_shift_id = active_shift["id"]
+        shift_info = active_shift
+        
+        # Update shift status to in_progress
+        await db.shifts.update_one(
+            {"id": linked_shift_id},
+            {"$set": {"status": "in_progress", "clock_in_time": now_iso}}
+        )
     
     elif clock_req.type == "OUT":
         # Check if there's a clock in first
@@ -1786,16 +1852,23 @@ async def clock_in_out(
         last_log = today_logs[0]
         if last_log["type"] == "OUT":
             raise HTTPException(status_code=400, detail="Ya registraste salida. Debes registrar entrada primero.")
+        
+        # Get linked shift from clock in
+        linked_shift_id = last_log.get("shift_id")
+        
+        if linked_shift_id:
+            shift_info = await db.shifts.find_one({"id": linked_shift_id}, {"_id": 0})
     
     clock_doc = {
         "id": str(uuid.uuid4()),
         "employee_id": guard["id"],
         "employee_name": guard["user_name"],
         "type": clock_req.type,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": now_iso,
         "date": today,
-        "condominium_id": current_user.get("condominium_id"),
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "shift_id": linked_shift_id,
+        "condominium_id": condo_id,
+        "created_at": now_iso
     }
     
     await db.hr_clock_logs.insert_one(clock_doc)
@@ -1809,7 +1882,7 @@ async def clock_in_out(
         last_in = next((log for log in today_logs if log["type"] == "IN"), None)
         if last_in:
             in_time = datetime.fromisoformat(last_in["timestamp"].replace('Z', '+00:00'))
-            out_time = datetime.fromisoformat(clock_doc["timestamp"].replace('Z', '+00:00'))
+            out_time = now
             hours_worked = round((out_time - in_time).total_seconds() / 3600, 2)
             
             # Update guard's total hours
@@ -1817,12 +1890,29 @@ async def clock_in_out(
                 {"id": guard["id"]},
                 {"$inc": {"total_hours": hours_worked}}
             )
+            
+            # Complete the shift if clocking out
+            if linked_shift_id:
+                await db.shifts.update_one(
+                    {"id": linked_shift_id},
+                    {"$set": {
+                        "status": "completed",
+                        "clock_out_time": now_iso,
+                        "hours_worked": hours_worked,
+                        "completed_at": now_iso
+                    }}
+                )
     
     await log_audit_event(
         AuditEventType.CLOCK_IN if clock_req.type == "IN" else AuditEventType.CLOCK_OUT,
         current_user["id"],
         "hr",
-        {"employee_id": guard["id"], "type": clock_req.type, "hours_worked": hours_worked},
+        {
+            "employee_id": guard["id"], 
+            "type": clock_req.type, 
+            "hours_worked": hours_worked,
+            "shift_id": linked_shift_id
+        },
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
     )
@@ -1830,6 +1920,7 @@ async def clock_in_out(
     return {
         **clock_doc,
         "hours_worked": hours_worked,
+        "shift_info": shift_info,
         "message": f"{'Entrada' if clock_req.type == 'IN' else 'Salida'} registrada exitosamente"
     }
 
