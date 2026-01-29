@@ -451,6 +451,16 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin }) 
           onSuccess={() => { setShowCreateAdminDialog(false); setAdminTargetCondo(null); onRefresh(); }}
         />
       )}
+
+      {/* Delete Condo Dialog - Super Admin Only */}
+      {deleteTargetCondo && (
+        <DeleteCondoDialog
+          condo={deleteTargetCondo}
+          open={showDeleteDialog}
+          onClose={() => { setShowDeleteDialog(false); setDeleteTargetCondo(null); }}
+          onSuccess={() => { setShowDeleteDialog(false); setDeleteTargetCondo(null); onRefresh(); }}
+        />
+      )}
     </div>
   );
 };
