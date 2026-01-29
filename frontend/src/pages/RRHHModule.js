@@ -131,6 +131,22 @@ const RRHH_SUBMODULES = {
     description: 'Evaluaciones, feedback, historial',
     roles: ['Administrador', 'Supervisor', 'HR'],
   },
+  personas: {
+    id: 'personas',
+    label: 'Directorio de Personas',
+    shortLabel: 'Personas',
+    icon: Users,
+    description: 'Ver usuarios del condominio',
+    roles: ['Administrador', 'Supervisor', 'Guarda', 'HR'],
+  },
+  mi_perfil: {
+    id: 'mi_perfil',
+    label: 'Mi Perfil',
+    shortLabel: 'Perfil',
+    icon: User,
+    description: 'Ver y editar mi información',
+    roles: ['Administrador', 'Supervisor', 'Guarda', 'HR'],
+  },
 };
 
 // ============================================
