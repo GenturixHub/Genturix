@@ -930,8 +930,8 @@ const UserManagementPage = () => {
               </div>
             ) : (
               <>
-                {/* Desktop Table View */}
-                <div className="hide-on-mobile">
+                {/* Desktop Table View - hidden on mobile (≤1023px) */}
+                <div className="hidden max-[1023px]:hidden min-[1024px]:block">
                   <ScrollArea className="h-[500px]">
                     <Table>
                       <TableHeader>
