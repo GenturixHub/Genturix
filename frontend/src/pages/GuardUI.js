@@ -936,28 +936,94 @@ const HistoryTab = () => {
     return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   }
 
-  // Separate alerts and visits from guard history
+  // Categorize history by type
   const alertHistory = guardHistory.filter(h => h.type === 'alert_resolved');
   const visitHistory = guardHistory.filter(h => h.type === 'visit_completed');
+  const clockHistory = guardHistory.filter(h => h.type === 'clock_in' || h.type === 'clock_out');
+  const shiftHistory = guardHistory.filter(h => h.type === 'shift_completed');
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Filter */}
-      <div className="p-3 border-b border-[#1E293B] flex items-center gap-3">
-        <History className="w-5 h-5 text-muted-foreground" />
-        <Select value={filter} onValueChange={setFilter}>
-          <SelectTrigger className="w-40 bg-[#0A0A0F] border-[#1E293B]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="bg-[#0F111A] border-[#1E293B]">
-            <SelectItem value="today">Hoy</SelectItem>
-            <SelectItem value="week">Últimos 7 días</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+    <ScrollArea className="h-full">
+      <div className="p-3 space-y-4">
+        {/* Filter */}
+        <div className="flex items-center gap-3 pb-3 border-b border-[#1E293B]">
+          <History className="w-5 h-5 text-muted-foreground" />
+          <Select value={filter} onValueChange={setFilter}>
+            <SelectTrigger className="w-40 bg-[#0A0A0F] border-[#1E293B]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-[#0F111A] border-[#1E293B]">
+              <SelectItem value="today">Hoy</SelectItem>
+              <SelectItem value="week">Últimos 7 días</SelectItem>
+            </SelectContent>
+          </Select>
+          <span className="text-xs text-muted-foreground ml-auto">
+            {guardHistory.length} eventos
+          </span>
+        </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-auto p-3 space-y-4">
+        {/* Clock Events */}
+        {clockHistory.length > 0 && (
+          <div>
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Fichajes ({clockHistory.length})
+            </h3>
+            <div className="space-y-2">
+              {clockHistory.map((event) => (
+                <div key={event.id} className="p-3 rounded-lg bg-[#0A0A0F] border border-[#1E293B] flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                    event.type === 'clock_in' ? 'bg-green-500/20' : 'bg-orange-500/20'
+                  }`}>
+                    {event.type === 'clock_in' ? (
+                      <PlayCircle className="w-4 h-4 text-green-400" />
+                    ) : (
+                      <StopCircle className="w-4 h-4 text-orange-400" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">
+                      {event.type === 'clock_in' ? 'Entrada' : 'Salida'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{event.date}</p>
+                  </div>
+                  <div className="text-right text-xs text-muted-foreground">
+                    <p>{formatTime(event.timestamp)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Completed Shifts */}
+        {shiftHistory.length > 0 && (
+          <div>
+            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+              <Briefcase className="w-4 h-4" />
+              Turnos Completados ({shiftHistory.length})
+            </h3>
+            <div className="space-y-2">
+              {shiftHistory.map((shift) => (
+                <div key={shift.id} className="p-3 rounded-lg bg-[#0A0A0F] border border-[#1E293B] flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                    <CheckCircle className="w-4 h-4 text-blue-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{shift.location || 'Turno'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatTime(shift.shift_start)} - {formatTime(shift.shift_end)}
+                    </p>
+                  </div>
+                  <div className="text-right text-xs text-muted-foreground">
+                    <p>{new Date(shift.timestamp).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Alerts History */}
         <div>
           <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
@@ -978,8 +1044,8 @@ const HistoryTab = () => {
                       <p className="text-xs text-muted-foreground">{alert.location}</p>
                     </div>
                     <div className="text-right text-xs text-muted-foreground">
-                      <p>{formatTime(alert.resolved_at)}</p>
-                      <p>{new Date(alert.resolved_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</p>
+                      <p>{formatTime(alert.resolved_at || alert.timestamp)}</p>
+                      <p>{new Date(alert.resolved_at || alert.timestamp).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</p>
                     </div>
                   </div>
                 );
@@ -1018,8 +1084,15 @@ const HistoryTab = () => {
             <p className="text-sm text-muted-foreground text-center py-4">Sin visitas en este período</p>
           )}
         </div>
+
+        {guardHistory.length === 0 && (
+          <div className="text-center py-12">
+            <History className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+            <p className="text-muted-foreground">No hay actividad registrada</p>
+          </div>
+        )}
       </div>
-    </div>
+    </ScrollArea>
   );
 };
 
