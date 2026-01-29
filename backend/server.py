@@ -172,6 +172,9 @@ class AccessLogCreate(BaseModel):
     location: str
     notes: Optional[str] = None
 
+class PanicResolveRequest(BaseModel):
+    notes: Optional[str] = None
+
 # HR Module Models
 class GuardCreate(BaseModel):
     user_id: str
