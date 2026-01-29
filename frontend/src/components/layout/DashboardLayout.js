@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useIsMobile } from './BottomNav';
+import { useAuth } from '../../contexts/AuthContext';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { 
@@ -9,12 +10,60 @@ import {
   Briefcase, 
   Calendar, 
   User,
-  Menu
+  Menu,
+  CalendarOff,
+  Clock
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
 
-// Generic Admin/Dashboard Mobile Navigation
+// HR-specific Mobile Navigation
+const HRMobileNav = ({ activeRoute }) => {
+  const navigate = useNavigate();
+  
+  const items = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/rrhh' },
+    { id: 'shifts', label: 'Turnos', icon: Clock, href: '/rrhh?tab=turnos' },
+    { id: 'absences', label: 'Ausencias', icon: CalendarOff, href: '/rrhh?tab=ausencias' },
+    { id: 'people', label: 'Personas', icon: Users, href: '/rrhh?tab=directory' },
+    { id: 'profile', label: 'Perfil', icon: User, href: '/rrhh?tab=profile' },
+  ];
+
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0F]/95 backdrop-blur-lg border-t border-[#1E293B] safe-area-bottom" data-testid="hr-mobile-nav">
+      <div className="flex items-center justify-around px-2 py-1">
+        {items.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeRoute === item.href || 
+            (item.id === 'dashboard' && activeRoute === '/rrhh');
+          
+          return (
+            <button
+              key={item.id}
+              onClick={() => navigate(item.href)}
+              data-testid={`hr-nav-${item.id}`}
+              className={cn(
+                'flex flex-col items-center justify-center gap-1 py-2 px-3 min-w-[60px]',
+                'transition-all duration-200 active:scale-95',
+                isActive ? 'text-primary' : 'text-muted-foreground hover:text-white'
+              )}
+            >
+              <div className={cn(
+                'w-10 h-10 rounded-xl flex items-center justify-center',
+                isActive ? 'bg-primary/20' : 'bg-transparent'
+              )}>
+                <Icon className={cn('w-5 h-5', isActive ? 'text-primary' : '')} />
+              </div>
+              <span className="text-[10px] font-medium">{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </nav>
+  );
+};
+
+// Admin-specific Mobile Navigation
 const AdminMobileNav = ({ activeRoute }) => {
   const navigate = useNavigate();
   
@@ -27,7 +76,7 @@ const AdminMobileNav = ({ activeRoute }) => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0F]/95 backdrop-blur-lg border-t border-[#1E293B] safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0F]/95 backdrop-blur-lg border-t border-[#1E293B] safe-area-bottom" data-testid="admin-mobile-nav">
       <div className="flex items-center justify-around px-2 py-1">
         {items.map((item) => {
           const Icon = item.icon;
@@ -38,6 +87,7 @@ const AdminMobileNav = ({ activeRoute }) => {
             <button
               key={item.id}
               onClick={() => navigate(item.href)}
+              data-testid={`admin-nav-${item.id}`}
               className={cn(
                 'flex flex-col items-center justify-center gap-1 py-2 px-3 min-w-[60px]',
                 'transition-all duration-200 active:scale-95',
