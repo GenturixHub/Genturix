@@ -388,16 +388,28 @@ const ProfilePage = () => {
         <Card className="bg-[#0F111A] border-[#1E293B]">
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row items-center gap-6">
-              {/* Avatar */}
-              <div className="relative">
-                <Avatar className="w-24 h-24 border-4 border-[#1E293B]">
-                  <AvatarImage src={editMode ? formData.profile_photo : profile?.profile_photo} />
-                  <AvatarFallback className="bg-primary/20 text-primary text-2xl">
-                    {profile?.full_name?.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+              {/* Avatar - Clickable to expand */}
+              <div className="relative group">
+                <div 
+                  className={`relative ${currentPhoto ? 'cursor-pointer' : ''}`}
+                  onClick={() => currentPhoto && setPhotoModalOpen(true)}
+                  data-testid="profile-avatar-container"
+                >
+                  <Avatar className="w-24 h-24 border-4 border-[#1E293B] transition-transform group-hover:scale-105">
+                    <AvatarImage src={currentPhoto} />
+                    <AvatarFallback className="bg-primary/20 text-primary text-2xl">
+                      {profile?.full_name?.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  {/* Zoom indicator on hover (only if photo exists) */}
+                  {currentPhoto && !editMode && (
+                    <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <ZoomIn className="w-6 h-6 text-white" />
+                    </div>
+                  )}
+                </div>
                 {editMode && isOwnProfile && (
-                  <label className="absolute bottom-0 right-0 p-2 bg-primary rounded-full cursor-pointer hover:bg-primary/80 transition-colors">
+                  <label className="absolute bottom-0 right-0 p-2 bg-primary rounded-full cursor-pointer hover:bg-primary/80 transition-colors z-10">
                     <Camera className="w-4 h-4 text-white" />
                     <input
                       type="file"
