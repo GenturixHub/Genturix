@@ -52,7 +52,9 @@ import {
   Calendar,
   Clock,
   X,
-  Trash2
+  Trash2,
+  History,
+  Bell
 } from 'lucide-react';
 
 // ============================================
