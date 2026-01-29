@@ -1597,6 +1597,7 @@ const ContentTab = () => {
 const SuperAdminDashboard = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState(null);
   const [condos, setCondos] = useState([]);
@@ -1652,7 +1653,7 @@ const SuperAdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#05050A]">
+    <div className={`min-h-screen bg-[#05050A] ${isMobile ? 'pb-20' : ''}`}>
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-[#1E293B] bg-[#0A0A0F]/95 backdrop-blur">
         <div className="container mx-auto px-4">
