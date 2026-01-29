@@ -2134,6 +2134,9 @@ async def create_absence_request(
     if existing:
         raise HTTPException(status_code=400, detail="Ya tienes una solicitud para esas fechas")
     
+    # Determine source based on role
+    is_guard_request = "Guarda" in current_user.get("roles", []) and "Administrador" not in current_user.get("roles", [])
+    
     absence_doc = {
         "id": str(uuid.uuid4()),
         "employee_id": guard["id"],
@@ -2144,6 +2147,7 @@ async def create_absence_request(
         "end_date": absence.end_date,
         "notes": absence.notes,
         "status": "pending",
+        "source": "guard" if is_guard_request else "admin",
         "condominium_id": current_user.get("condominium_id"),
         "created_by": current_user["id"],
         "created_at": datetime.now(timezone.utc).isoformat()
@@ -2158,7 +2162,14 @@ async def create_absence_request(
         AuditEventType.ABSENCE_REQUESTED,
         current_user["id"],
         "hr",
-        {"absence_id": absence_doc["id"], "type": absence.type, "dates": f"{absence.start_date} - {absence.end_date}"},
+        {
+            "absence_id": absence_doc["id"], 
+            "type": absence.type, 
+            "dates": f"{absence.start_date} - {absence.end_date}",
+            "source": absence_doc["source"],
+            "guard_id": guard["id"],
+            "condominium_id": absence_doc["condominium_id"]
+        },
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
     )
