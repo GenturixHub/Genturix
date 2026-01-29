@@ -156,12 +156,12 @@ const RRHH_SUBMODULES = {
 const EmployeeCard = ({ employee, onEdit }) => (
   <div className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B] hover:border-[#2D3B4F] transition-colors">
     <div className="flex items-start gap-4">
-      <div className={`
-        w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold
-        ${employee.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}
-      `}>
-        {employee.user_name?.charAt(0).toUpperCase() || 'E'}
-      </div>
+      <Avatar className={`w-12 h-12 border-2 ${employee.is_active ? 'border-green-500/50' : 'border-red-500/50'}`}>
+        <AvatarImage src={employee.profile_photo} />
+        <AvatarFallback className={`${employee.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'} text-lg font-bold`}>
+          {employee.user_name?.charAt(0).toUpperCase() || 'E'}
+        </AvatarFallback>
+      </Avatar>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <h3 className="font-semibold text-white truncate">{employee.user_name}</h3>
