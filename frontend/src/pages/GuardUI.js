@@ -507,8 +507,8 @@ const AlertCard = ({ alert, onClick, isResolving, resolved }) => {
             <span className="truncate">{alert.location || 'Ubicación no especificada'}</span>
           </div>
           
-          {alert.notes && (
-            <p className="text-xs text-yellow-400 mt-1 truncate">📝 {alert.notes}</p>
+          {(alert.notes || alert.description) && (
+            <p className="text-xs text-yellow-400 mt-1 truncate">📝 {alert.notes || alert.description}</p>
           )}
         </div>
         
