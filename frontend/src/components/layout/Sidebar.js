@@ -13,10 +13,12 @@ import {
   ChevronLeft,
   Building2,
   Briefcase,
-  Users
+  Users,
+  Calendar
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import GenturixLogo from '../GenturixLogo';
 
 /**
@@ -27,6 +29,7 @@ import GenturixLogo from '../GenturixLogo';
  * - RRHH es el módulo central que contiene Turnos como submódulo
  * - Gestión de Usuarios para Administradores
  * - Módulos se filtran según configuración del condominio
+ * - Avatar del usuario sincronizado con profile_photo
  */
 
 const Sidebar = ({ collapsed, onToggle }) => {
