@@ -656,7 +656,250 @@ const ManualEntryTab = () => {
 };
 
 // ============================================
-// TAB 4: HISTORY (Read-only)
+// TAB 4: MY SHIFT (HR Integration)
+// ============================================
+const MyShiftTab = ({ clockStatus, onClockInOut, isClocking }) => {
+  const [shiftData, setShiftData] = useState(null);
+  const [absences, setAbsences] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [shiftInfo, absenceData] = await Promise.all([
+          api.getGuardMyShift(),
+          api.getGuardMyAbsences()
+        ]);
+        setShiftData(shiftInfo);
+        setAbsences(absenceData);
+      } catch (err) {
+        console.error('Error fetching shift data:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const formatShiftTime = (isoString) => {
+    if (!isoString) return '--:--';
+    const date = new Date(isoString);
+    return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatShiftDate = (isoString) => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    return date.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+  };
+
+  const getStatusBadge = (status) => {
+    const configs = {
+      scheduled: { label: 'Programado', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+      in_progress: { label: 'En Curso', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
+      completed: { label: 'Completado', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30' },
+      pending: { label: 'Pendiente', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
+      approved: { label: 'Aprobada', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
+      rejected: { label: 'Rechazada', color: 'bg-red-500/20 text-red-400 border-red-500/30' }
+    };
+    return configs[status] || { label: status, color: 'bg-gray-500/20 text-gray-400' };
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 text-center">
+        <p className="text-red-400">{error}</p>
+      </div>
+    );
+  }
+
+  const { current_shift, next_shift, has_guard_record } = shiftData || {};
+  const isClockedIn = clockStatus?.is_clocked_in || false;
+
+  return (
+    <ScrollArea className="h-full">
+      <div className="p-4 space-y-4">
+        {/* Clock In/Out Section */}
+        <Card className="bg-[#0F111A] border-[#1E293B]">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold flex items-center gap-2">
+                <Clock className="w-5 h-5 text-primary" />
+                Control de Asistencia
+              </h3>
+              {clockStatus?.last_time && (
+                <span className="text-xs text-muted-foreground">
+                  Último: {formatShiftTime(clockStatus.last_time)}
+                </span>
+              )}
+            </div>
+
+            <Button
+              onClick={onClockInOut}
+              disabled={isClocking || !has_guard_record}
+              className={`w-full h-16 text-lg font-bold gap-3 ${
+                isClockedIn 
+                  ? 'bg-orange-600 hover:bg-orange-700' 
+                  : 'bg-green-600 hover:bg-green-700'
+              }`}
+              data-testid="clock-btn"
+            >
+              {isClocking ? (
+                <Loader2 className="w-6 h-6 animate-spin" />
+              ) : isClockedIn ? (
+                <>
+                  <StopCircle className="w-6 h-6" />
+                  REGISTRAR SALIDA
+                </>
+              ) : (
+                <>
+                  <PlayCircle className="w-6 h-6" />
+                  REGISTRAR ENTRADA
+                </>
+              )}
+            </Button>
+
+            {!has_guard_record && (
+              <p className="text-xs text-yellow-400 mt-2 text-center">
+                No tienes registro como empleado. Contacta a tu supervisor.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Current Shift */}
+        <Card className="bg-[#0F111A] border-[#1E293B]">
+          <CardContent className="p-4">
+            <h3 className="font-bold flex items-center gap-2 mb-4">
+              <Briefcase className="w-5 h-5 text-primary" />
+              Turno Actual
+            </h3>
+
+            {current_shift ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Estado</span>
+                  <Badge className={getStatusBadge(current_shift.status).color}>
+                    {getStatusBadge(current_shift.status).label}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Fecha</span>
+                  <span className="text-sm font-medium">{formatShiftDate(current_shift.start_time)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Horario</span>
+                  <span className="text-sm font-medium">
+                    {formatShiftTime(current_shift.start_time)} - {formatShiftTime(current_shift.end_time)}
+                  </span>
+                </div>
+                {current_shift.location && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Ubicación</span>
+                    <span className="text-sm font-medium">{current_shift.location}</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <CalendarX className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No hay turno activo</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Next Shift */}
+        <Card className="bg-[#0F111A] border-[#1E293B]">
+          <CardContent className="p-4">
+            <h3 className="font-bold flex items-center gap-2 mb-4">
+              <CalendarClock className="w-5 h-5 text-blue-400" />
+              Próximo Turno
+            </h3>
+
+            {next_shift ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Fecha</span>
+                  <span className="text-sm font-medium">{formatShiftDate(next_shift.start_time)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Horario</span>
+                  <span className="text-sm font-medium">
+                    {formatShiftTime(next_shift.start_time)} - {formatShiftTime(next_shift.end_time)}
+                  </span>
+                </div>
+                {next_shift.location && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Ubicación</span>
+                    <span className="text-sm font-medium">{next_shift.location}</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground">No hay turnos programados</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Absences */}
+        <Card className="bg-[#0F111A] border-[#1E293B]">
+          <CardContent className="p-4">
+            <h3 className="font-bold flex items-center gap-2 mb-4">
+              <Calendar className="w-5 h-5 text-yellow-400" />
+              Mis Ausencias
+            </h3>
+
+            {absences.length > 0 ? (
+              <div className="space-y-2">
+                {absences.slice(0, 5).map((absence) => (
+                  <div 
+                    key={absence.id} 
+                    className="p-3 rounded-lg bg-[#0A0A0F] border border-[#1E293B]"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-medium">{absence.absence_type}</span>
+                      <Badge className={getStatusBadge(absence.status).color}>
+                        {getStatusBadge(absence.status).label}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{absence.start_date} - {absence.end_date}</span>
+                      {absence.reason && (
+                        <span className="truncate max-w-[120px]">{absence.reason}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground">No tienes solicitudes de ausencia</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </ScrollArea>
+  );
+};
+
+// ============================================
+// TAB 5: HISTORY (Read-only)
 // ============================================
 const HistoryTab = () => {
   const [filter, setFilter] = useState('today');
