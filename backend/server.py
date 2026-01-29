@@ -1841,7 +1841,7 @@ async def clock_in_out(
         
         # Find active or upcoming shift for validation
         # Allow clock in if: within shift time OR up to 15 minutes before shift start
-        early_window = (now - timedelta(minutes=15)).isoformat()
+        early_window_future = (now + timedelta(minutes=15)).isoformat()
         
         active_shift = await db.shifts.find_one({
             "guard_id": guard["id"],
@@ -1850,8 +1850,8 @@ async def clock_in_out(
             "$or": [
                 # Currently within shift window
                 {"start_time": {"$lte": now_iso}, "end_time": {"$gte": now_iso}},
-                # OR shift starts within next 15 minutes
-                {"start_time": {"$gte": early_window, "$lte": now_iso}}
+                # OR shift starts within next 15 minutes (early clock-in allowed)
+                {"start_time": {"$gt": now_iso, "$lte": early_window_future}}
             ]
         }, {"_id": 0})
         
