@@ -1,119 +1,134 @@
-import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { 
-  LayoutDashboard, 
-  AlertTriangle, 
-  GraduationCap,
-  CreditCard,
-  LogOut,
-  Home,
-  Settings,
-  Briefcase
-} from 'lucide-react';
-
 /**
- * GENTURIX - Bottom Navigation (Mobile)
+ * GENTURIX - Mobile Bottom Navigation
  * 
- * ESTRUCTURA ACTUALIZADA:
- * - Turnos YA NO aparece como item separado
- * - RRHH es el módulo central (incluye turnos)
+ * Navegación fija inferior para dispositivos móviles (≤1023px)
+ * Desktop NO se ve afectado - este componente solo se renderiza en mobile
+ * 
+ * Uso: Importar y usar con las props de navegación específicas por rol
  */
 
-export const useIsMobile = () => {
-  const [isMobile, setIsMobile] = React.useState(window.innerWidth < 768);
+import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { cn } from '../../lib/utils';
+
+// Hook para detectar si estamos en mobile
+export const useIsMobile = (breakpoint = 1023) => {
+  const [isMobile, setIsMobile] = React.useState(
+    typeof window !== 'undefined' ? window.innerWidth <= breakpoint : false
+  );
 
   React.useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= breakpoint);
+    };
+
+    // Check on mount
+    checkMobile();
+
+    // Listen for resize
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [breakpoint]);
 
   return isMobile;
 };
 
-const BottomNav = () => {
-  const navigate = useNavigate();
-  const { user, logout } = useAuth();
-  const activeRole = sessionStorage.getItem('activeRole') || user?.roles?.[0];
+// Componente de ítem de navegación
+const NavItem = ({ item, isActive, onClick, isCenter }) => {
+  const Icon = item.icon;
+  
+  return (
+    <button
+      onClick={onClick}
+      data-testid={`mobile-nav-${item.id}`}
+      className={cn(
+        'flex flex-col items-center justify-center gap-1 transition-all duration-200',
+        'min-w-[64px] py-2 px-1',
+        'active:scale-95',
+        isCenter ? 'relative -mt-4' : '',
+        isActive 
+          ? 'text-primary' 
+          : 'text-muted-foreground hover:text-white'
+      )}
+    >
+      {isCenter ? (
+        // Botón central destacado (ej: Pánico)
+        <div className={cn(
+          'w-14 h-14 rounded-full flex items-center justify-center',
+          'shadow-lg transition-all duration-200',
+          item.bgColor || 'bg-red-600',
+          item.glowColor || 'shadow-red-500/50',
+          isActive && 'ring-2 ring-white/30 scale-105'
+        )}>
+          <Icon className="w-7 h-7 text-white" strokeWidth={2.5} />
+        </div>
+      ) : (
+        <div className={cn(
+          'w-12 h-12 rounded-xl flex items-center justify-center',
+          'transition-all duration-200',
+          isActive 
+            ? 'bg-primary/20' 
+            : 'bg-transparent'
+        )}>
+          <Icon className={cn(
+            'w-6 h-6 transition-all',
+            isActive ? 'text-primary' : 'text-muted-foreground'
+          )} />
+        </div>
+      )}
+      <span className={cn(
+        'text-[10px] font-medium leading-none',
+        isCenter && 'mt-1',
+        isActive ? 'text-primary' : 'text-muted-foreground'
+      )}>
+        {item.label}
+      </span>
+    </button>
+  );
+};
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
-  };
+/**
+ * MobileBottomNav - Navegación inferior para móviles
+ * 
+ * @param {Array} items - Array de items de navegación
+ * @param {string} activeTab - Tab actualmente activo
+ * @param {function} onTabChange - Callback cuando cambia el tab
+ * @param {number} centerIndex - Índice del botón central destacado (opcional)
+ */
+const MobileBottomNav = ({ 
+  items, 
+  activeTab, 
+  onTabChange,
+  centerIndex = -1 // -1 = sin botón central
+}) => {
+  const isMobile = useIsMobile();
 
-  const getNavItems = () => {
-    // Resident - Emergency focused
-    if (activeRole === 'Residente') {
-      return [
-        { icon: Home, label: 'Inicio', href: '/resident' },
-        { icon: CreditCard, label: 'Pagos', href: '/payments' },
-        { icon: Settings, label: 'Perfil', href: '/profile' },
-      ];
-    }
-    
-    // Guard - RRHH includes their shifts
-    if (activeRole === 'Guarda') {
-      return [
-        { icon: AlertTriangle, label: 'Alertas', href: '/guard' },
-        { icon: Briefcase, label: 'RRHH', href: '/rrhh' },
-        { icon: GraduationCap, label: 'Cursos', href: '/student' },
-      ];
-    }
-    
-    // Student - Learning focused
-    if (activeRole === 'Estudiante') {
-      return [
-        { icon: GraduationCap, label: 'Cursos', href: '/student' },
-        { icon: CreditCard, label: 'Pagos', href: '/payments' },
-        { icon: Settings, label: 'Perfil', href: '/profile' },
-      ];
-    }
-
-    // Admin/Supervisor - RRHH centralizado
-    return [
-      { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-      { icon: AlertTriangle, label: 'Seguridad', href: '/security' },
-      { icon: Briefcase, label: 'RRHH', href: '/rrhh' },
-    ];
-  };
-
-  const navItems = getNavItems();
+  // No renderizar en desktop
+  if (!isMobile) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0F111A] border-t border-[#1E293B] safe-area-bottom">
-      <div className="flex items-center justify-around h-16 px-2">
-        {navItems.map((item) => {
-          const IconComponent = item.icon;
-          return (
-            <NavLink
-              key={item.href}
-              to={item.href}
-              className={({ isActive }) =>
-                `flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-                  isActive 
-                    ? 'text-primary' 
-                    : 'text-muted-foreground hover:text-foreground'
-                }`
-              }
-              data-testid={`nav-mobile-${item.label.toLowerCase()}`}
-            >
-              <IconComponent className="w-5 h-5 mb-1" />
-              <span className="text-[10px] font-medium">{item.label}</span>
-            </NavLink>
-          );
-        })}
-        <button
-          onClick={handleLogout}
-          className="flex flex-col items-center justify-center flex-1 h-full text-muted-foreground hover:text-red-400 transition-colors"
-          data-testid="nav-mobile-logout"
-        >
-          <LogOut className="w-5 h-5 mb-1" />
-          <span className="text-[10px] font-medium">Salir</span>
-        </button>
+    <nav 
+      className={cn(
+        'fixed bottom-0 left-0 right-0 z-50',
+        'bg-[#0A0A0F]/95 backdrop-blur-lg',
+        'border-t border-[#1E293B]',
+        'safe-area-bottom'
+      )}
+      data-testid="mobile-bottom-nav"
+    >
+      <div className="flex items-end justify-around px-2 pb-1 pt-1">
+        {items.map((item, index) => (
+          <NavItem
+            key={item.id}
+            item={item}
+            isActive={activeTab === item.id}
+            onClick={() => onTabChange(item.id)}
+            isCenter={index === centerIndex}
+          />
+        ))}
       </div>
     </nav>
   );
 };
 
-export default BottomNav;
+export default MobileBottomNav;
