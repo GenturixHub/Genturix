@@ -259,6 +259,23 @@ class TestClockInOut:
         Test: Clock out should complete the shift (status=completed)
         Expected: Shift status changes to 'completed'
         """
+        # Check if guard can clock in
+        my_shift = self.session.get(
+            f"{BASE_URL}/api/guard/my-shift",
+            headers={"Authorization": f"Bearer {self.guard_token}"}
+        ).json()
+        
+        # If no current shift and can't clock in, try to create one
+        if not my_shift.get("current_shift") and not my_shift.get("can_clock_in"):
+            shift_response = self._create_shift_for_guard(GUARD_ID_MAIN, start_offset_minutes=5)
+            if shift_response.status_code != 201:
+                my_shift = self.session.get(
+                    f"{BASE_URL}/api/guard/my-shift",
+                    headers={"Authorization": f"Bearer {self.guard_token}"}
+                ).json()
+                if not my_shift.get("current_shift") and not my_shift.get("can_clock_in"):
+                    pytest.skip(f"Cannot create shift for testing")
+        
         # First clock in
         clock_in_response = self.session.post(
             f"{BASE_URL}/api/hr/clock",
@@ -298,17 +315,15 @@ class TestClockInOut:
         if shift_id:
             # Get shift details from admin
             shifts_response = self.session.get(
-                f"{BASE_URL}/api/hr/shifts",
+                f"{BASE_URL}/api/hr/shifts/{shift_id}",
                 headers={"Authorization": f"Bearer {self.admin_token}"}
             )
             
             if shifts_response.status_code == 200:
-                shifts = shifts_response.json()
-                completed_shift = next((s for s in shifts if s["id"] == shift_id), None)
-                if completed_shift:
-                    assert completed_shift["status"] == "completed", \
-                        f"Shift status should be 'completed', got '{completed_shift['status']}'"
-                    print(f"✓ Shift {shift_id} status is 'completed'")
+                completed_shift = shifts_response.json()
+                assert completed_shift["status"] == "completed", \
+                    f"Shift status should be 'completed', got '{completed_shift['status']}'"
+                print(f"✓ Shift {shift_id} status is 'completed'")
         
         print(f"✓ Clock OUT completed successfully, hours_worked: {data['hours_worked']}")
 
