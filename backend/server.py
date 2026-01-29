@@ -353,6 +353,60 @@ class VisitorExit(BaseModel):
     visitor_id: str
     notes: Optional[str] = None
 
+# ==================== RESERVATIONS MODELS ====================
+class AreaTypeEnum(str, Enum):
+    POOL = "pool"
+    GYM = "gym"
+    TENNIS = "tennis"
+    BBQ = "bbq"
+    SALON = "salon"
+    CINEMA = "cinema"
+    PLAYGROUND = "playground"
+    OTHER = "other"
+
+class ReservationStatusEnum(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
+    COMPLETED = "completed"
+
+class AreaCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    area_type: AreaTypeEnum
+    capacity: int = Field(..., gt=0)
+    description: Optional[str] = None
+    rules: Optional[str] = None
+    available_from: str = "06:00"  # Time string HH:MM
+    available_until: str = "22:00"
+    requires_approval: bool = False
+    max_hours_per_reservation: int = 2
+    is_active: bool = True
+
+class AreaUpdate(BaseModel):
+    name: Optional[str] = None
+    area_type: Optional[AreaTypeEnum] = None
+    capacity: Optional[int] = None
+    description: Optional[str] = None
+    rules: Optional[str] = None
+    available_from: Optional[str] = None
+    available_until: Optional[str] = None
+    requires_approval: Optional[bool] = None
+    max_hours_per_reservation: Optional[int] = None
+    is_active: Optional[bool] = None
+
+class ReservationCreate(BaseModel):
+    area_id: str
+    date: str  # YYYY-MM-DD
+    start_time: str  # HH:MM
+    end_time: str  # HH:MM
+    purpose: Optional[str] = None
+    guests_count: int = 1
+
+class ReservationUpdate(BaseModel):
+    status: ReservationStatusEnum
+    admin_notes: Optional[str] = None
+
 # ==================== MULTI-TENANT MODELS ====================
 # Configuración de módulos habilitados por condominio
 class ModuleConfig(BaseModel):
