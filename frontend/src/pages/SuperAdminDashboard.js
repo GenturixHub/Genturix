@@ -47,6 +47,8 @@ import {
   TableRow,
 } from '../components/ui/table';
 import api from '../services/api';
+import { useIsMobile } from '../components/layout/BottomNav';
+import { MobileCard, MobileCardList } from '../components/MobileComponents';
 import { 
   Shield, 
   Building2,
@@ -85,8 +87,54 @@ import {
   UserPlus,
   Copy,
   AlertOctagon,
-  ShieldAlert
+  ShieldAlert,
+  LayoutDashboard,
+  User
 } from 'lucide-react';
+import { cn } from '../lib/utils';
+
+// Super Admin Mobile Navigation
+const SuperAdminMobileNav = ({ activeTab, onTabChange }) => {
+  const items = [
+    { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'condos', label: 'Condos', icon: Building2 },
+    { id: 'modules', label: 'Módulos', icon: Settings },
+    { id: 'users', label: 'Usuarios', icon: Users },
+    { id: 'profile', label: 'Perfil', icon: User },
+  ];
+
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0F]/95 backdrop-blur-lg border-t border-[#1E293B] safe-area-bottom" data-testid="superadmin-mobile-nav">
+      <div className="flex items-center justify-around px-2 py-1">
+        {items.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id;
+          
+          return (
+            <button
+              key={item.id}
+              onClick={() => onTabChange(item.id)}
+              data-testid={`superadmin-nav-${item.id}`}
+              className={cn(
+                'flex flex-col items-center justify-center gap-1 py-2 px-3 min-w-[60px]',
+                'transition-all duration-200 active:scale-95',
+                isActive ? 'text-yellow-400' : 'text-muted-foreground hover:text-white'
+              )}
+            >
+              <div className={cn(
+                'w-10 h-10 rounded-xl flex items-center justify-center',
+                isActive ? 'bg-yellow-500/20' : 'bg-transparent'
+              )}>
+                <Icon className={cn('w-5 h-5', isActive ? 'text-yellow-400' : '')} />
+              </div>
+              <span className="text-[10px] font-medium">{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </nav>
+  );
+};
 
 // ============================================
 // MODULE CONFIGURATION
