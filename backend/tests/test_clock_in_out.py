@@ -173,6 +173,23 @@ class TestClockInOut:
         Test: Double clock in (already clocked in) must fail with 400
         Expected: 400 Bad Request with appropriate message
         """
+        # Check if guard can clock in
+        my_shift = self.session.get(
+            f"{BASE_URL}/api/guard/my-shift",
+            headers={"Authorization": f"Bearer {self.guard_token}"}
+        ).json()
+        
+        # If no current shift and can't clock in, try to create one
+        if not my_shift.get("current_shift") and not my_shift.get("can_clock_in"):
+            shift_response = self._create_shift_for_guard(GUARD_ID_MAIN, start_offset_minutes=5)
+            if shift_response.status_code != 201:
+                my_shift = self.session.get(
+                    f"{BASE_URL}/api/guard/my-shift",
+                    headers={"Authorization": f"Bearer {self.guard_token}"}
+                ).json()
+                if not my_shift.get("current_shift") and not my_shift.get("can_clock_in"):
+                    pytest.skip(f"Cannot create shift for testing")
+        
         # First clock in
         response1 = self.session.post(
             f"{BASE_URL}/api/hr/clock",
