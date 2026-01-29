@@ -389,12 +389,12 @@ class CondominiumResponse(BaseModel):
     id: str
     name: str
     address: str
-    contact_email: str
-    contact_phone: str
-    max_users: int
-    current_users: int
-    modules: Dict[str, Any]
-    is_active: bool
+    contact_email: Optional[str] = None
+    contact_phone: Optional[str] = None
+    max_users: int = 100
+    current_users: int = 0
+    modules: Dict[str, Any] = {}
+    is_active: bool = True
     created_at: str
     price_per_user: float = 1.0  # $1 USD per user per month
     status: str = "active"  # active, demo, suspended
