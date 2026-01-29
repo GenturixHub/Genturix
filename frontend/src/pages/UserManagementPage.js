@@ -1009,7 +1009,7 @@ const UserManagementPage = () => {
                 </div>
 
                 {/* Mobile Card View */}
-                <div className="show-on-mobile" style={{ display: 'none' }}>
+                <div className="hidden sm:hidden max-[1023px]:block">
                   <MobileCardList>
                     {filteredUsers.map((u) => {
                       const role = u.roles?.[0] || 'Sin rol';
