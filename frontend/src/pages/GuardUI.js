@@ -1326,7 +1326,7 @@ const GuardUI = () => {
             className={`h-8 px-3 text-xs font-bold ${isClockedIn ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
             onClick={handleClockInOut}
             disabled={isClocking}
-            data-testid="clock-btn"
+            data-testid="clock-btn-header"
           >
             {isClocking ? (
               <Loader2 className="w-4 h-4 animate-spin" />
