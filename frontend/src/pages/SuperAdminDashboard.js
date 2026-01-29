@@ -1724,6 +1724,14 @@ const SuperAdminDashboard = () => {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      {isMobile && (
+        <SuperAdminMobileNav 
+          activeTab={activeTab} 
+          onTabChange={setActiveTab} 
+        />
+      )}
     </div>
   );
 };
