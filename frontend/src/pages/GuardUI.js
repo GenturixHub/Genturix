@@ -58,8 +58,14 @@ import {
   Home,
   FileText,
   ChevronRight,
-  ExternalLink
+  ExternalLink,
+  Briefcase,
+  CalendarClock,
+  CalendarX,
+  PlayCircle,
+  StopCircle
 } from 'lucide-react';
+import { ScrollArea } from '../components/ui/scroll-area';
 
 // ============================================
 // CONFIGURATION
