@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 29, 2026 (Session 10 - Panic Alert Modal + HR Modules)
+## Last Updated: January 29, 2026 (Session 11 - Guard Absence Requests)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,26 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: 100% PRODUCTION READY ✅
+
+### Session 11 - Guard Absence Requests (January 29, 2026) ⭐⭐ P1
+- ✅ **Guard UI - New "Ausencias" Tab (COMPLETE)**:
+  - New 6th tab visible for Guards with CalendarOff icon
+  - Shows list of guard's own absences with status badges (Aprobada/Pendiente/Rechazada)
+  - "Solicitar" button opens request form dialog
+- ✅ **Absence Request Form**:
+  - Fields: Type (dropdown), Start Date, End Date, Reason (required), Notes (optional)
+  - Client-side validation: end_date >= start_date, reason required
+  - Success/error toast notifications
+  - Submit disabled while sending
+- ✅ **Backend Integration**:
+  - `source: "guard"` field added to track origin of absence request
+  - Audit logging includes: guard_id, condominium_id, type, dates, source
+  - Guards can only view their own absences via `/api/guard/my-absences`
+- ✅ **HR Workflow Enhanced**:
+  - HR role added to approve/reject endpoints
+  - Buttons visible for Admin, Supervisor, and HR roles
+  - Complete flow: Guard creates → HR sees → HR approves/rejects → Guard sees updated status
+- 📋 Test report: `/app/test_reports/iteration_18.json` - 100% pass rate (17 backend + all UI tests)
 
 ### Session 10 - Panic Alert Interaction + HR Modules (January 29, 2026) ⭐⭐⭐ P0
 - ✅ **Panic Alert Interactive Modal (COMPLETE)**:
