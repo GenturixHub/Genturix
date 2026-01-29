@@ -674,10 +674,21 @@ const VisitorsTab = ({ user }) => {
 // ============================================
 // MAIN RESIDENT UI COMPONENT
 // ============================================
+
+// Mobile Bottom Nav Configuration for Resident
+const RESIDENT_MOBILE_NAV = [
+  { id: 'emergency', label: 'Pánico', icon: AlertTriangle, bgColor: 'bg-red-600', glowColor: 'shadow-red-500/50' },
+  { id: 'visitors', label: 'Visitas', icon: UserPlus },
+  { id: 'history', label: 'Alertas', icon: History },
+  { id: 'directory', label: 'Personas', icon: Users },
+  { id: 'profile', label: 'Perfil', icon: User },
+];
+
 const ResidentUI = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, logout } = useAuth();
+  const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('emergency');
   
   // Location state
