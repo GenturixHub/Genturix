@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 29, 2026 (Session 9 - Guard Clock-In Fix)
+## Last Updated: January 29, 2026 (Session 9 - Guard Clock-In Fix VERIFIED)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -11,19 +11,20 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 
 ### Session 9 - Critical Guard Clock-In/Out Fix (January 29, 2026) ⭐⭐⭐ P0
 - ✅ **Guard Clock-In Not Working (CRITICAL)**:
-  - Root cause: Shift overlap validation was including `completed` shifts, blocking creation of new shifts
-  - Fix: Changed validation to only consider `scheduled` and `in_progress` shifts (line 1593-1596)
-  - Added detailed logging to `/api/guard/my-shift` for debugging shift detection
-  - Verified end-to-end flow: Admin creates shift → Guard sees shift → Guard clocks in → Shift status updates → Guard clocks out
+  - Root cause 1: Shift overlap validation was including `completed` shifts, blocking creation of new shifts
+  - Root cause 2: SuperAdmin creating shifts set `condominium_id=null` because it was taken from the user, not the guard
+  - Fix 1: Changed overlap validation to only consider `scheduled` and `in_progress` shifts
+  - Fix 2: Shift creation now uses guard's `condominium_id` as fallback when user doesn't have one
+  - Added detailed logging to `/api/guard/my-shift` for debugging
+  - Verified end-to-end flow with real user "juas" (j@j.com)
 - ✅ **Backend Improvements**:
-  - `GET /api/guard/my-shift`: Now logs why shifts are rejected (condo mismatch, status, time window)
-  - `POST /api/hr/shifts`: Overlap validation excludes `completed` shifts, allowing new shifts over old ones
-  - `POST /api/hr/clock`: Clock IN updates shift to `in_progress`, Clock OUT marks as `completed`
+  - `POST /api/hr/shifts`: Now allows SuperAdmin role, uses guard's condo_id as fallback
+  - `GET /api/guard/my-shift`: Now logs why shifts are rejected
+  - `POST /api/hr/clock`: Shift validation working correctly
 - ✅ **Frontend Stability**:
-  - Verified `GuardUI.js` error handling works (no crashes on API errors)
-  - Clock button correctly enabled/disabled based on shift availability
-  - Error messages displayed via toast, not crashes
-- 📋 Test report: `/app/test_reports/iteration_16.json` - 100% pass rate (11 backend + all frontend tests)
+  - GuardUI.js error handling verified (no crashes)
+  - Clock button enabled/disabled correctly based on shift availability
+- 📋 Test reports: `/app/test_reports/iteration_16.json` - 100% pass rate
 
 ### Session 8 - Critical Multi-Tenant & Dynamic Form Fixes (January 28, 2026) ⭐⭐⭐ P0
 - ✅ **Multi-Tenant Dashboard Isolation (CRITICAL)**:
