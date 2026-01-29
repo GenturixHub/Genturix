@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 29, 2026 (Session 14 - Guard Navigation + Module Visibility + Profile Directory)
+## Last Updated: January 29, 2026 (Session 15 - Resident Personas + Profile Sync + Guard Navigation Fix)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,35 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: 100% PRODUCTION READY ✅
+
+### Session 15 - Resident Personas + Profile Sync + Guard Navigation Fix (January 29, 2026) ⭐⭐⭐ CRITICAL FIX
+**3 UX/Sync Issues Resolved:**
+
+- ✅ **PROBLEMA 1: Residentes NO pueden ver perfiles - FIXED**:
+  - ResidentUI now has **5 tabs**: Emergencia, Mis Alertas, Visitas, **Personas**, **Perfil**
+  - "Personas" tab uses ProfileDirectory component
+  - Shows all condo users grouped by role: Admin, Supervisor, Guardias, Residentes
+  - Search by name, email, phone
+  - Photo lightbox on click
+  - Navigate to user profile on card click
+
+- ✅ **PROBLEMA 2: Fotos de perfil NO se sincronizan - FIXED**:
+  - Added `refreshUser()` function to AuthContext
+  - ProfileDirectory has `userPhotoKey` dependency in useEffect
+  - Automatic refetch when user photo changes
+  - Header immediately reflects profile updates
+
+- ✅ **PROBLEMA 3: Guard queda atrapado en Perfil - FIXED**:
+  - GuardUI has **8 tabs**: Alertas, Visitas, Mi Turno, Ausencias, Registro, Historial, Personas, Perfil
+  - All tabs remain visible when viewing Perfil
+  - Guard can navigate freely between ALL tabs
+  - No Admin layout, no external redirects
+
+- ✅ **Backend Fix:**
+  - CondominiumResponse model fields made optional (contact_email, contact_phone, etc.)
+  - CreateUserByAdmin model accepts condominium_id for SuperAdmin user creation
+
+- 📋 Test report: `/app/test_reports/iteration_22.json` - 100% pass rate
 
 ### Session 14 - Guard Navigation + Module Visibility + Profile Directory (January 29, 2026) ⭐⭐⭐ CRITICAL FIX
 **3 Issues Resolved:**
