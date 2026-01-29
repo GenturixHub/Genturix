@@ -1240,7 +1240,326 @@ const MyShiftTab = ({ clockStatus, onClockInOut, isClocking, onClockSuccess }) =
 };
 
 // ============================================
-// TAB 5: HISTORY (Read-only)
+// TAB 5: ABSENCES (Request & View)
+// ============================================
+const AbsencesTab = () => {
+  const [absences, setAbsences] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    type: 'vacaciones',
+    start_date: '',
+    end_date: '',
+    reason: '',
+    notes: ''
+  });
+  const [formError, setFormError] = useState(null);
+
+  const fetchAbsences = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await api.getGuardMyAbsences();
+      setAbsences(data);
+    } catch (error) {
+      console.error('Error fetching absences:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAbsences();
+  }, [fetchAbsences]);
+
+  const validateForm = () => {
+    if (!formData.start_date) {
+      setFormError('La fecha de inicio es requerida');
+      return false;
+    }
+    if (!formData.end_date) {
+      setFormError('La fecha de fin es requerida');
+      return false;
+    }
+    if (new Date(formData.end_date) < new Date(formData.start_date)) {
+      setFormError('La fecha de fin debe ser igual o posterior a la fecha de inicio');
+      return false;
+    }
+    if (!formData.reason.trim()) {
+      setFormError('El motivo es requerido');
+      return false;
+    }
+    setFormError(null);
+    return true;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+    
+    setIsSubmitting(true);
+    try {
+      await api.createAbsence({
+        type: formData.type,
+        start_date: formData.start_date,
+        end_date: formData.end_date,
+        reason: formData.reason,
+        notes: formData.notes || ''
+      });
+      
+      toast.success('Solicitud de ausencia enviada correctamente');
+      setShowCreateDialog(false);
+      setFormData({
+        type: 'vacaciones',
+        start_date: '',
+        end_date: '',
+        reason: '',
+        notes: ''
+      });
+      fetchAbsences();
+    } catch (error) {
+      toast.error(error.message || 'Error al enviar solicitud');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const typeLabels = {
+    vacaciones: { label: 'Vacaciones', icon: '🏖️', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+    permiso_medico: { label: 'Permiso Médico', icon: '🏥', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
+    personal: { label: 'Personal', icon: '👤', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
+    otro: { label: 'Otro', icon: '📋', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30' }
+  };
+
+  const statusLabels = {
+    pending: { label: 'Pendiente', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
+    approved: { label: 'Aprobada', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
+    rejected: { label: 'Rechazada', color: 'bg-red-500/20 text-red-400 border-red-500/30' }
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Header */}
+      <div className="p-3 bg-[#0A0A0F] border-b border-[#1E293B]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CalendarOff className="w-5 h-5 text-purple-400" />
+            <span className="font-semibold text-white">Mis Ausencias</span>
+          </div>
+          <Button 
+            size="sm" 
+            className="bg-purple-600 hover:bg-purple-700"
+            onClick={() => setShowCreateDialog(true)}
+            data-testid="new-absence-request-btn"
+          >
+            <CalendarPlus className="w-4 h-4 mr-1" />
+            Solicitar
+          </Button>
+        </div>
+      </div>
+
+      {/* Absences List */}
+      <ScrollArea className="flex-1 p-3">
+        {absences.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
+            <CalendarOff className="w-16 h-16 mb-4 opacity-20" />
+            <p className="text-lg font-medium">Sin solicitudes</p>
+            <p className="text-sm text-center">No tienes solicitudes de ausencia registradas</p>
+            <Button 
+              className="mt-4 bg-purple-600 hover:bg-purple-700"
+              onClick={() => setShowCreateDialog(true)}
+            >
+              <CalendarPlus className="w-4 h-4 mr-2" />
+              Nueva Solicitud
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {absences.map((absence) => {
+              const typeConfig = typeLabels[absence.type] || typeLabels.otro;
+              const statusConfig = statusLabels[absence.status] || statusLabels.pending;
+              
+              return (
+                <div 
+                  key={absence.id} 
+                  className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B]"
+                  data-testid={`absence-${absence.id}`}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{typeConfig.icon}</span>
+                      <Badge variant="outline" className={typeConfig.color}>
+                        {typeConfig.label}
+                      </Badge>
+                    </div>
+                    <Badge variant="outline" className={statusConfig.color}>
+                      {statusConfig.label}
+                    </Badge>
+                  </div>
+                  
+                  <p className="text-white font-medium mb-2">{absence.reason}</p>
+                  
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      <span>{formatDate(absence.start_date)}</span>
+                    </div>
+                    <span>→</span>
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      <span>{formatDate(absence.end_date)}</span>
+                    </div>
+                  </div>
+                  
+                  {absence.notes && (
+                    <p className="text-xs text-muted-foreground mt-2 pt-2 border-t border-[#1E293B]">
+                      📝 {absence.notes}
+                    </p>
+                  )}
+                  
+                  {absence.status === 'rejected' && absence.admin_notes && (
+                    <div className="mt-2 p-2 rounded-lg bg-red-500/10 border border-red-500/20">
+                      <p className="text-xs text-red-400">
+                        <strong>Motivo de rechazo:</strong> {absence.admin_notes}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </ScrollArea>
+
+      {/* Create Absence Request Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="bg-[#0A0A0F] border-[#1E293B] max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarPlus className="w-5 h-5 text-purple-400" />
+              Nueva Solicitud de Ausencia
+            </DialogTitle>
+            <DialogDescription>
+              Completa el formulario para solicitar una ausencia
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {formError && (
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+                {formError}
+              </div>
+            )}
+
+            {/* Absence Type */}
+            <div>
+              <Label className="text-sm text-muted-foreground">Tipo de Ausencia *</Label>
+              <Select 
+                value={formData.type} 
+                onValueChange={(v) => setFormData({...formData, type: v})}
+              >
+                <SelectTrigger className="bg-[#0F111A] border-[#1E293B] mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0F111A] border-[#1E293B]">
+                  <SelectItem value="vacaciones">🏖️ Vacaciones</SelectItem>
+                  <SelectItem value="permiso_medico">🏥 Permiso Médico</SelectItem>
+                  <SelectItem value="personal">👤 Personal</SelectItem>
+                  <SelectItem value="otro">📋 Otro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Date Range */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-sm text-muted-foreground">Fecha Inicio *</Label>
+                <Input
+                  type="date"
+                  value={formData.start_date}
+                  onChange={(e) => setFormData({...formData, start_date: e.target.value})}
+                  className="bg-[#0F111A] border-[#1E293B] mt-1"
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+              <div>
+                <Label className="text-sm text-muted-foreground">Fecha Fin *</Label>
+                <Input
+                  type="date"
+                  value={formData.end_date}
+                  onChange={(e) => setFormData({...formData, end_date: e.target.value})}
+                  className="bg-[#0F111A] border-[#1E293B] mt-1"
+                  min={formData.start_date || new Date().toISOString().split('T')[0]}
+                />
+              </div>
+            </div>
+
+            {/* Reason */}
+            <div>
+              <Label className="text-sm text-muted-foreground">Motivo *</Label>
+              <Input
+                value={formData.reason}
+                onChange={(e) => setFormData({...formData, reason: e.target.value})}
+                placeholder="Ej: Cita médica, vacaciones familiares..."
+                className="bg-[#0F111A] border-[#1E293B] mt-1"
+              />
+            </div>
+
+            {/* Additional Notes */}
+            <div>
+              <Label className="text-sm text-muted-foreground">Notas adicionales (opcional)</Label>
+              <Textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                placeholder="Información adicional..."
+                className="bg-[#0F111A] border-[#1E293B] mt-1 min-h-[80px]"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowCreateDialog(false)}
+              disabled={isSubmitting}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              className="bg-purple-600 hover:bg-purple-700"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              data-testid="submit-absence-btn"
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <CalendarPlus className="w-4 h-4 mr-2" />
+              )}
+              Enviar Solicitud
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+// ============================================
+// TAB 6: HISTORY (Read-only)
 // ============================================
 const HistoryTab = () => {
   const [filter, setFilter] = useState('today');
