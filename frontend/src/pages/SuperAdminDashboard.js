@@ -1688,24 +1688,27 @@ const SuperAdminDashboard = () => {
       {/* Content */}
       <main className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-[#0F111A] border border-[#1E293B] p-1 mb-6">
-            <TabsTrigger value="overview" className="gap-2 data-[state=active]:bg-primary/20">
-              <BarChart3 className="w-4 h-4" />
-              <span className="hidden sm:inline">Resumen</span>
-            </TabsTrigger>
-            <TabsTrigger value="condominiums" className="gap-2 data-[state=active]:bg-primary/20">
-              <Building2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Condominios</span>
-            </TabsTrigger>
-            <TabsTrigger value="users" className="gap-2 data-[state=active]:bg-primary/20">
-              <Users className="w-4 h-4" />
-              <span className="hidden sm:inline">Usuarios</span>
-            </TabsTrigger>
-            <TabsTrigger value="content" className="gap-2 data-[state=active]:bg-primary/20">
-              <BookOpen className="w-4 h-4" />
-              <span className="hidden sm:inline">Contenido</span>
-            </TabsTrigger>
-          </TabsList>
+          {/* Desktop Tabs - hidden on mobile */}
+          {!isMobile && (
+            <TabsList className="bg-[#0F111A] border border-[#1E293B] p-1 mb-6">
+              <TabsTrigger value="overview" className="gap-2 data-[state=active]:bg-primary/20">
+                <BarChart3 className="w-4 h-4" />
+                <span className="hidden sm:inline">Resumen</span>
+              </TabsTrigger>
+              <TabsTrigger value="condominiums" className="gap-2 data-[state=active]:bg-primary/20">
+                <Building2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Condominios</span>
+              </TabsTrigger>
+              <TabsTrigger value="users" className="gap-2 data-[state=active]:bg-primary/20">
+                <Users className="w-4 h-4" />
+                <span className="hidden sm:inline">Usuarios</span>
+              </TabsTrigger>
+              <TabsTrigger value="content" className="gap-2 data-[state=active]:bg-primary/20">
+                <BookOpen className="w-4 h-4" />
+                <span className="hidden sm:inline">Contenido</span>
+              </TabsTrigger>
+            </TabsList>
+          )}
 
           <TabsContent value="overview">
             <OverviewTab stats={stats} isLoading={isLoading} onRefresh={fetchData} onNavigateTab={setActiveTab} />
