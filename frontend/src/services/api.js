@@ -293,6 +293,9 @@ class ApiService {
   // Super Admin - Permanent Deletion (requires password)
   permanentlyDeleteCondominium = (condoId, password) =>
     this.delete(`/super-admin/condominiums/${condoId}`, { password });
+
+  // Profile - Public View
+  getPublicProfile = (userId) => this.get(`/profile/${userId}`);
 }
 
 export const api = new ApiService();
