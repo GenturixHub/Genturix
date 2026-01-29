@@ -852,7 +852,7 @@ async def get_panic_events(current_user = Depends(require_role("Administrador", 
     return events
 
 @api_router.put("/security/panic/{event_id}/resolve")
-async def resolve_panic(event_id: str, request: Request, current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
+async def resolve_panic(event_id: str, resolve_data: PanicResolveRequest, request: Request, current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
     """Resolve a panic event and save to guard_history"""
     # Verify event exists and belongs to user's condominium
     event = await db.panic_events.find_one({"id": event_id})
@@ -864,6 +864,7 @@ async def resolve_panic(event_id: str, request: Request, current_user = Depends(
             raise HTTPException(status_code=403, detail="No tienes permiso para resolver esta alerta")
     
     resolved_at = datetime.now(timezone.utc).isoformat()
+    resolution_notes = resolve_data.notes if resolve_data.notes else None
     
     await db.panic_events.update_one(
         {"id": event_id},
@@ -871,7 +872,8 @@ async def resolve_panic(event_id: str, request: Request, current_user = Depends(
             "status": "resolved", 
             "resolved_at": resolved_at, 
             "resolved_by": current_user["id"],
-            "resolved_by_name": current_user.get("full_name", "Unknown")
+            "resolved_by_name": current_user.get("full_name", "Unknown"),
+            "resolution_notes": resolution_notes
         }}
     )
     
@@ -894,6 +896,7 @@ async def resolve_panic(event_id: str, request: Request, current_user = Depends(
         "location": event.get("location"),
         "original_created_at": event.get("created_at"),
         "resolved_at": resolved_at,
+        "resolution_notes": resolution_notes,
         "timestamp": resolved_at
     }
     await db.guard_history.insert_one(history_entry)
@@ -907,7 +910,8 @@ async def resolve_panic(event_id: str, request: Request, current_user = Depends(
             "event_id": event_id,
             "panic_type": event.get("panic_type"),
             "resident_name": event.get("user_name"),
-            "location": event.get("location")
+            "location": event.get("location"),
+            "resolution_notes": resolution_notes
         },
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
