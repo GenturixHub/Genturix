@@ -271,8 +271,10 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
-        <Toaster position="top-right" />
+        <ModulesProvider>
+          <AppRoutes />
+          <Toaster position="top-right" />
+        </ModulesProvider>
       </AuthProvider>
     </BrowserRouter>
   );
