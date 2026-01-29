@@ -862,7 +862,7 @@ async def resolve_panic(event_id: str, request: Request, current_user = Depends(
     
     resolved_at = datetime.now(timezone.utc).isoformat()
     
-    result = await db.panic_events.update_one(
+    await db.panic_events.update_one(
         {"id": event_id},
         {"$set": {
             "status": "resolved", 
