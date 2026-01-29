@@ -315,6 +315,7 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { user, hasRole } = useAuth();
+  const { isModuleEnabled } = useModules();
   const isMobile = useIsMobile();
   const [stats, setStats] = useState(null);
   const [activities, setActivities] = useState([]);
