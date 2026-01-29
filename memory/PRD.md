@@ -1,13 +1,33 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 29, 2026 (Session 9 - Guard Clock-In Fix VERIFIED)
+## Last Updated: January 29, 2026 (Session 10 - Panic Alert Modal + HR Modules)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
 
 ---
 
-## PLATFORM STATUS: 100% PRODUCTION READY - GUARD CLOCK-IN WORKING ✅
+## PLATFORM STATUS: 100% PRODUCTION READY ✅
+
+### Session 10 - Panic Alert Interaction + HR Modules (January 29, 2026) ⭐⭐⭐ P0
+- ✅ **Panic Alert Interactive Modal (COMPLETE)**:
+  - Click on alert card opens detailed modal (no page navigation)
+  - **Resident Information**: Full name, apartment/house
+  - **Alert Details**: Panic type, date/time, status (active/resolved), resolver name
+  - **Resident Notes**: Yellow highlighted box with emergency description (IMPORTANT)
+  - **Map Integration**: Embedded OpenStreetMap with marker at GPS coordinates
+  - **Actions**: "Abrir en Google Maps" button, "IR A UBICACIÓN" navigation
+  - **Resolution**: Textarea for guard notes, "MARCAR COMO ATENDIDA" button
+  - Resolution notes saved to both `panic_events` and `guard_history` collections
+- ✅ **HR Control Horario (COMPLETE)**:
+  - HR role can now access `/api/hr/clock/status` and `/api/hr/clock/history`
+  - Clock history scoped by `condominium_id` for proper multi-tenancy
+  - Shows real clock-in/out records with employee name, type, timestamp
+- ✅ **HR Absences Module (COMPLETE)**:
+  - Create new absence requests (Guards can request, HR/Admin can view)
+  - Approve/Reject actions for Admin/Supervisor
+  - Status badges: Pending, Approved, Rejected
+- 📋 Test report: `/app/test_reports/iteration_17.json` - 100% pass rate (22 tests)
 
 ### Session 9 - Critical Guard Clock-In/Out Fix (January 29, 2026) ⭐⭐⭐ P0
 - ✅ **Guard Clock-In Not Working (CRITICAL)**:
