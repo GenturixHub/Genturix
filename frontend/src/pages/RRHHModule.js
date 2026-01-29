@@ -1561,6 +1561,14 @@ const RRHHModule = () => {
             <TabsContent value="evaluacion">
               <EvaluacionSubmodule employees={employees} />
             </TabsContent>
+
+            <TabsContent value="personas">
+              <ProfileDirectory embedded={false} maxHeight="calc(100vh - 300px)" />
+            </TabsContent>
+
+            <TabsContent value="mi_perfil">
+              <EmbeddedProfile />
+            </TabsContent>
           </div>
         </Tabs>
 
