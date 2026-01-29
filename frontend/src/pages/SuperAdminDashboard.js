@@ -1580,6 +1580,9 @@ const SuperAdminDashboard = () => {
 
   // Check if user has SuperAdmin role
   const isSuperAdmin = user?.roles?.includes('SuperAdmin') || user?.roles?.includes('Administrador');
+  
+  // Only true SuperAdmin can delete condos (not regular Administrador)
+  const canDeleteCondos = user?.roles?.includes('SuperAdmin');
 
   if (!isSuperAdmin) {
     return (
