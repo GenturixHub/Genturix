@@ -239,6 +239,10 @@ class HireCandidate(BaseModel):
     hourly_rate: float
     password: str = Field(..., min_length=8)
 
+# Condominium Deletion Model (Super Admin only)
+class CondominiumDeleteRequest(BaseModel):
+    password: str = Field(..., min_length=1, description="Super Admin password for verification")
+
 # User Management Models (for Admin/HR creating users)
 class CreateUserByAdmin(BaseModel):
     email: EmailStr
