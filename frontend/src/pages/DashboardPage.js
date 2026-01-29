@@ -444,59 +444,68 @@ const DashboardPage = () => {
                     </span>
                     <ChevronRight className="w-4 h-4" />
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-between h-12 border-[#1E293B] hover:bg-muted"
-                    onClick={() => navigate('/security')}
-                  >
-                    <span className="flex items-center gap-3">
-                      <Shield className="w-4 h-4 text-primary" />
-                      Seguridad
-                    </span>
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-between h-12 border-[#1E293B] hover:bg-muted"
-                    onClick={() => navigate('/hr')}
-                  >
-                    <span className="flex items-center gap-3">
-                      <Users className="w-4 h-4 text-blue-400" />
-                      Recursos Humanos
-                    </span>
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-between h-12 border-[#1E293B] hover:bg-muted"
-                    onClick={() => navigate('/audit')}
-                  >
-                    <span className="flex items-center gap-3">
-                      <Activity className="w-4 h-4 text-yellow-400" />
-                      Auditoría
-                    </span>
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
+                  {isModuleEnabled('security') && (
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between h-12 border-[#1E293B] hover:bg-muted"
+                      onClick={() => navigate('/security')}
+                    >
+                      <span className="flex items-center gap-3">
+                        <Shield className="w-4 h-4 text-primary" />
+                        Seguridad
+                      </span>
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  )}
+                  {isModuleEnabled('hr') && (
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between h-12 border-[#1E293B] hover:bg-muted"
+                      onClick={() => navigate('/hr')}
+                    >
+                      <span className="flex items-center gap-3">
+                        <Users className="w-4 h-4 text-blue-400" />
+                        Recursos Humanos
+                      </span>
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  )}
+                  {isModuleEnabled('audit') && (
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between h-12 border-[#1E293B] hover:bg-muted"
+                      onClick={() => navigate('/audit')}
+                    >
+                      <span className="flex items-center gap-3">
+                        <Activity className="w-4 h-4 text-yellow-400" />
+                        Auditoría
+                      </span>
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  )}
                 </>
               )}
               
-              <Button
-                variant="outline"
-                className="w-full justify-between h-12 border-[#1E293B] hover:bg-muted"
-                onClick={() => navigate('/school')}
-              >
-                <span className="flex items-center gap-3">
-                  <GraduationCap className="w-4 h-4 text-green-400" />
-                  Genturix School
-                </span>
-                <ChevronRight className="w-4 h-4" />
-              </Button>
+              {isModuleEnabled('school') && (
+                <Button
+                  variant="outline"
+                  className="w-full justify-between h-12 border-[#1E293B] hover:bg-muted"
+                  onClick={() => navigate('/school')}
+                >
+                  <span className="flex items-center gap-3">
+                    <GraduationCap className="w-4 h-4 text-green-400" />
+                    Genturix School
+                  </span>
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              )}
               
-              <Button
-                variant="outline"
-                className="w-full justify-between h-12 border-[#1E293B] hover:bg-muted"
-                onClick={() => navigate('/payments')}
-              >
+              {isModuleEnabled('payments') && (
+                <Button
+                  variant="outline"
+                  className="w-full justify-between h-12 border-[#1E293B] hover:bg-muted"
+                  onClick={() => navigate('/payments')}
+                >
                 <span className="flex items-center gap-3">
                   <CreditCard className="w-4 h-4 text-cyan-400" />
                   Pagos
