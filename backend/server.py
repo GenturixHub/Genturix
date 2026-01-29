@@ -1245,6 +1245,7 @@ async def get_guard_my_shift(current_user = Depends(require_role("Guarda", "Admi
     """
     Get guard's current and upcoming shift information.
     Used for the "Mi Turno" tab in Guard UI.
+    Includes can_clock_in flag and message for UI validation.
     """
     guard = await db.guards.find_one({"user_id": current_user["id"]})
     if not guard:
@@ -1252,12 +1253,24 @@ async def get_guard_my_shift(current_user = Depends(require_role("Guarda", "Admi
             "has_guard_record": False,
             "current_shift": None,
             "next_shift": None,
-            "message": "No tienes registro como empleado"
+            "can_clock_in": False,
+            "clock_in_message": "No tienes registro como empleado"
         }
     
     condo_id = current_user.get("condominium_id")
     now = datetime.now(timezone.utc)
     now_iso = now.isoformat()
+    today = now.date().isoformat()
+    
+    # Check current clock status
+    today_logs = await db.hr_clock_logs.find({
+        "employee_id": guard["id"],
+        "date": today
+    }).sort("timestamp", -1).to_list(10)
+    
+    is_clocked_in = False
+    if today_logs:
+        is_clocked_in = today_logs[0]["type"] == "IN"
     
     # Find current active shift (now is between start and end time)
     current_shift = await db.shifts.find_one({
@@ -1274,15 +1287,45 @@ async def get_guard_my_shift(current_user = Depends(require_role("Guarda", "Admi
         "condominium_id": condo_id,
         "status": "scheduled",
         "start_time": {"$gt": now_iso}
-    }, {"_id": 0, "id": 1, "start_time": 1, "end_time": 1, "location": 1, "status": 1},
+    }, {"_id": 0},
     sort=[("start_time", 1)])
+    
+    # Determine if guard can clock in
+    can_clock_in = False
+    clock_in_message = None
+    
+    if is_clocked_in:
+        can_clock_in = False  # Already clocked in
+        clock_in_message = "Ya tienes entrada registrada"
+    elif current_shift:
+        can_clock_in = True
+        clock_in_message = None
+    elif next_shift:
+        # Check if within 15 minute early window
+        shift_start = datetime.fromisoformat(next_shift["start_time"].replace('Z', '+00:00'))
+        minutes_until = int((shift_start - now).total_seconds() / 60)
+        if minutes_until <= 15:
+            can_clock_in = True
+            clock_in_message = f"Tu turno comienza en {minutes_until} minutos"
+        else:
+            can_clock_in = False
+            if minutes_until > 60:
+                clock_in_message = f"Tu turno comienza en {minutes_until // 60}h {minutes_until % 60}min. Puedes fichar 15 min antes."
+            else:
+                clock_in_message = f"Tu turno comienza en {minutes_until} minutos. Puedes fichar 15 min antes."
+    else:
+        can_clock_in = False
+        clock_in_message = "No tienes un turno asignado para hoy"
     
     return {
         "has_guard_record": True,
         "guard_id": guard["id"],
         "guard_name": guard["user_name"],
         "current_shift": current_shift,
-        "next_shift": next_shift
+        "next_shift": next_shift,
+        "is_clocked_in": is_clocked_in,
+        "can_clock_in": can_clock_in,
+        "clock_in_message": clock_in_message
     }
 
 @api_router.get("/guard/my-absences")
