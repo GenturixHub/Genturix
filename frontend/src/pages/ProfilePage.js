@@ -15,6 +15,10 @@ import { Label } from '../components/ui/label';
 import { Badge } from '../components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Textarea } from '../components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+} from '../components/ui/dialog';
 import api from '../services/api';
 import { 
   User,
@@ -32,7 +36,9 @@ import {
   CheckCircle,
   XCircle,
   ArrowLeft,
-  FileText
+  FileText,
+  X,
+  ZoomIn
 } from 'lucide-react';
 
 // Role configuration for display
