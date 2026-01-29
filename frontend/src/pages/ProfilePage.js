@@ -589,6 +589,55 @@ const ProfilePage = () => {
 
         {/* Role-specific Information (only for own profile) */}
         {getRoleSpecificInfo()}
+
+        {/* Photo Lightbox Modal */}
+        <Dialog open={photoModalOpen} onOpenChange={setPhotoModalOpen}>
+          <DialogContent className="max-w-3xl bg-black/95 border-[#1E293B] p-0 overflow-hidden">
+            <div className="relative flex items-center justify-center min-h-[400px] max-h-[80vh]">
+              {/* Close button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 z-10 bg-black/50 hover:bg-black/70 rounded-full"
+                onClick={() => setPhotoModalOpen(false)}
+                data-testid="photo-modal-close-btn"
+              >
+                <X className="w-5 h-5 text-white" />
+              </Button>
+              
+              {/* Profile photo full size */}
+              {currentPhoto ? (
+                <img 
+                  src={currentPhoto} 
+                  alt={profile?.full_name || 'Foto de perfil'}
+                  className="max-w-full max-h-[80vh] object-contain"
+                  data-testid="photo-modal-image"
+                />
+              ) : (
+                <div className="w-64 h-64 bg-primary/20 rounded-full flex items-center justify-center">
+                  <span className="text-6xl text-primary font-bold">
+                    {profile?.full_name?.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
+              
+              {/* User info overlay at bottom */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                <h3 className="text-white text-xl font-semibold">{profile?.full_name}</h3>
+                <div className="flex items-center gap-2 mt-1">
+                  {profile?.roles?.map((role, index) => {
+                    const config = ROLE_CONFIG[role] || { color: 'bg-gray-500/10 text-gray-400', label: role };
+                    return (
+                      <Badge key={index} className={config.color}>
+                        {config.label}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
