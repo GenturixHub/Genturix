@@ -252,7 +252,7 @@ const OverviewTab = ({ stats, isLoading, onRefresh, onNavigateTab }) => {
 // ============================================
 // CONDOMINIUMS TAB
 // ============================================
-const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate }) => {
+const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin }) => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -260,6 +260,8 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showCreateAdminDialog, setShowCreateAdminDialog] = useState(false);
   const [adminTargetCondo, setAdminTargetCondo] = useState(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteTargetCondo, setDeleteTargetCondo] = useState(null);
 
   const filteredCondos = condos.filter(c => {
     const matchesSearch = c.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -283,6 +285,11 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate }) => {
   const handleCreateAdmin = (condo) => {
     setAdminTargetCondo(condo);
     setShowCreateAdminDialog(true);
+  };
+
+  const handleDeleteCondo = (condo) => {
+    setDeleteTargetCondo(condo);
+    setShowDeleteDialog(true);
   };
 
   return (
