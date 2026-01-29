@@ -150,11 +150,39 @@ const openMaps = (lat, lng) => {
 };
 
 // ============================================
-// TAB 1: ALERTS
+// ============================================
+// TAB 1: ALERTS (with Interactive Modal)
 // ============================================
 const AlertsTab = ({ alerts, onResolve, resolvingId, onRefresh, isRefreshing }) => {
+  const [selectedAlert, setSelectedAlert] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [resolutionNotes, setResolutionNotes] = useState('');
+  const [isResolving, setIsResolving] = useState(false);
+
   const activeAlerts = alerts.filter(a => a.status === 'active');
   const recentResolved = alerts.filter(a => a.status === 'resolved').slice(0, 5);
+
+  const handleOpenAlert = (alert) => {
+    setSelectedAlert(alert);
+    setResolutionNotes('');
+    setShowModal(true);
+  };
+
+  const handleResolve = async () => {
+    if (!selectedAlert) return;
+    setIsResolving(true);
+    try {
+      await onResolve(selectedAlert.id, resolutionNotes);
+      toast.success('Alerta resuelta correctamente');
+      setShowModal(false);
+      setSelectedAlert(null);
+      setResolutionNotes('');
+    } catch (err) {
+      toast.error(err.message || 'Error al resolver alerta');
+    } finally {
+      setIsResolving(false);
+    }
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -190,7 +218,7 @@ const AlertsTab = ({ alerts, onResolve, resolvingId, onRefresh, isRefreshing }) 
                 <AlertCard 
                   key={alert.id} 
                   alert={alert} 
-                  onResolve={onResolve}
+                  onClick={() => handleOpenAlert(alert)}
                   isResolving={resolvingId === alert.id}
                 />
               ))}
@@ -203,7 +231,7 @@ const AlertsTab = ({ alerts, onResolve, resolvingId, onRefresh, isRefreshing }) 
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Atendidas recientemente</h3>
             <div className="grid gap-2 sm:grid-cols-2">
               {recentResolved.map((alert) => (
-                <AlertCard key={alert.id} alert={alert} resolved />
+                <AlertCard key={alert.id} alert={alert} onClick={() => handleOpenAlert(alert)} resolved />
               ))}
             </div>
           </div>
@@ -217,19 +245,247 @@ const AlertsTab = ({ alerts, onResolve, resolvingId, onRefresh, isRefreshing }) 
           </div>
         )}
       </div>
+
+      {/* Panic Alert Detail Modal */}
+      <PanicAlertModal 
+        alert={selectedAlert}
+        open={showModal}
+        onClose={() => { setShowModal(false); setSelectedAlert(null); }}
+        onResolve={handleResolve}
+        resolutionNotes={resolutionNotes}
+        setResolutionNotes={setResolutionNotes}
+        isResolving={isResolving}
+      />
     </div>
   );
 };
 
-const AlertCard = ({ alert, onResolve, isResolving, resolved }) => {
+// ============================================
+// PANIC ALERT DETAIL MODAL
+// ============================================
+const PanicAlertModal = ({ alert, open, onClose, onResolve, resolutionNotes, setResolutionNotes, isResolving }) => {
+  if (!alert) return null;
+
+  const config = PANIC_CONFIG[alert.panic_type] || PANIC_CONFIG.emergencia_general;
+  const IconComponent = config.icon;
+  const hasLocation = alert.latitude && alert.longitude;
+  const isResolved = alert.status === 'resolved';
+
+  const formatDateTime = (timestamp) => {
+    if (!timestamp) return 'No disponible';
+    const date = new Date(timestamp);
+    return date.toLocaleString('es-ES', {
+      weekday: 'short',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="bg-[#0A0A0F] border-[#1E293B] max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl ${config.bg} flex items-center justify-center`}>
+              <IconComponent className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <span className={`text-lg ${config.text}`}>{config.label}</span>
+              <Badge 
+                variant="outline" 
+                className={isResolved 
+                  ? 'ml-2 border-green-500/30 text-green-400' 
+                  : 'ml-2 border-red-500/30 text-red-400 animate-pulse'
+                }
+              >
+                {isResolved ? 'RESUELTA' : 'ACTIVA'}
+              </Badge>
+            </div>
+          </DialogTitle>
+          <DialogDescription>
+            Detalles completos de la alerta de emergencia
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          {/* Resident Information */}
+          <div className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B]">
+            <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">
+              <User className="w-4 h-4 inline mr-2" />
+              Información del Residente
+            </h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs text-muted-foreground">Nombre Completo</Label>
+                <p className="text-white font-semibold">{alert.user_name || 'No disponible'}</p>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Apartamento / Casa</Label>
+                <p className="text-white font-semibold">{alert.location || alert.apartment || 'No especificado'}</p>
+              </div>
+              {alert.phone && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Teléfono</Label>
+                  <a href={`tel:${alert.phone}`} className="text-blue-400 hover:underline flex items-center gap-1">
+                    <Phone className="w-3 h-3" />
+                    {alert.phone}
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Alert Details */}
+          <div className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B]">
+            <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">
+              <AlertTriangle className="w-4 h-4 inline mr-2" />
+              Detalles de la Alerta
+            </h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs text-muted-foreground">Tipo de Emergencia</Label>
+                <Badge className={`${config.bg} text-white`}>{alert.panic_type_label || config.label}</Badge>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Fecha y Hora</Label>
+                <p className="text-white text-sm">{formatDateTime(alert.created_at)}</p>
+              </div>
+              {isResolved && alert.resolved_at && (
+                <>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Resuelta</Label>
+                    <p className="text-green-400 text-sm">{formatDateTime(alert.resolved_at)}</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Atendida por</Label>
+                    <p className="text-white text-sm">{alert.resolved_by_name || 'No registrado'}</p>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Resident Notes - IMPORTANT */}
+          {alert.notes && (
+            <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
+              <h4 className="text-sm font-bold text-yellow-400 uppercase tracking-wider mb-2">
+                <FileText className="w-4 h-4 inline mr-2" />
+                Notas del Residente
+              </h4>
+              <p className="text-white whitespace-pre-wrap">{alert.notes}</p>
+            </div>
+          )}
+
+          {/* Map Section */}
+          {hasLocation && (
+            <div className="rounded-xl overflow-hidden border border-[#1E293B]">
+              <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider p-3 bg-[#0F111A]">
+                <MapPin className="w-4 h-4 inline mr-2" />
+                Ubicación en Mapa
+              </h4>
+              
+              {/* Embedded Map using OpenStreetMap */}
+              <div className="relative">
+                <iframe
+                  title="Ubicación de la alerta"
+                  width="100%"
+                  height="200"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${alert.longitude - 0.002},${alert.latitude - 0.002},${alert.longitude + 0.002},${alert.latitude + 0.002}&layer=mapnik&marker=${alert.latitude},${alert.longitude}`}
+                />
+              </div>
+              
+              {/* Map Actions */}
+              <div className="p-3 bg-[#0F111A] flex flex-wrap gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                  onClick={() => openMaps(alert.latitude, alert.longitude)}
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Abrir en Google Maps
+                </Button>
+                <div className="text-xs text-muted-foreground flex items-center">
+                  <MapPin className="w-3 h-3 mr-1" />
+                  {alert.latitude.toFixed(6)}, {alert.longitude.toFixed(6)}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Resolution Section (only if not resolved) */}
+          {!isResolved && (
+            <div className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B]">
+              <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">
+                <CheckCircle className="w-4 h-4 inline mr-2" />
+                Resolución
+              </h4>
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Notas de resolución (opcional)</Label>
+                  <Textarea
+                    placeholder="Describe las acciones tomadas..."
+                    value={resolutionNotes}
+                    onChange={(e) => setResolutionNotes(e.target.value)}
+                    className="bg-[#0A0A0F] border-[#1E293B] mt-1 min-h-[80px]"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          {hasLocation && (
+            <Button 
+              variant="outline"
+              className="w-full sm:w-auto border-blue-500/30 text-blue-400"
+              onClick={() => openMaps(alert.latitude, alert.longitude)}
+            >
+              <Navigation className="w-4 h-4 mr-2" />
+              IR A UBICACIÓN
+            </Button>
+          )}
+          
+          {!isResolved && (
+            <Button 
+              className="w-full sm:w-auto bg-green-600 hover:bg-green-700 font-bold"
+              onClick={onResolve}
+              disabled={isResolving}
+            >
+              {isResolving ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <CheckCircle className="w-4 h-4 mr-2" />
+              )}
+              MARCAR COMO ATENDIDA
+            </Button>
+          )}
+          
+          <Button variant="outline" onClick={onClose}>
+            Cerrar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const AlertCard = ({ alert, onClick, isResolving, resolved }) => {
   const config = PANIC_CONFIG[alert.panic_type] || PANIC_CONFIG.emergencia_general;
   const IconComponent = config.icon;
   const hasLocation = alert.latitude && alert.longitude;
 
   return (
     <div 
-      className={`p-3 rounded-xl border-2 ${resolved ? 'bg-[#0F111A] border-[#1E293B] opacity-60' : `${config.bgLight} ${config.border}`}`}
+      className={`p-3 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.02] ${resolved ? 'bg-[#0F111A] border-[#1E293B] opacity-60' : `${config.bgLight} ${config.border}`}`}
       data-testid={`alert-${alert.id}`}
+      onClick={onClick}
     >
       <div className="flex items-start gap-3">
         {/* Icon */}
@@ -250,46 +506,28 @@ const AlertCard = ({ alert, onResolve, isResolving, resolved }) => {
             <MapPin className="w-3 h-3" />
             <span className="truncate">{alert.location || 'Ubicación no especificada'}</span>
           </div>
+          
+          {alert.notes && (
+            <p className="text-xs text-yellow-400 mt-1 truncate">📝 {alert.notes}</p>
+          )}
         </div>
+        
+        <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
       </div>
 
-      {/* Actions */}
-      <div className="flex gap-2 mt-3">
+      {/* Quick Status Indicators */}
+      <div className="flex gap-2 mt-3 justify-end">
         {hasLocation && (
-          <Button 
-            size="sm" 
-            variant="outline" 
-            className="flex-1 h-10 border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
-            onClick={() => openMaps(alert.latitude, alert.longitude)}
-          >
-            <Navigation className="w-4 h-4 mr-1" />
-            MAPA
-          </Button>
+          <Badge variant="outline" className="text-xs border-blue-500/30 text-blue-400">
+            <MapPin className="w-3 h-3 mr-1" />
+            GPS
+          </Badge>
         )}
-        
-        {!resolved && onResolve && (
-          <Button 
-            size="sm"
-            className={`flex-1 h-10 bg-green-600 hover:bg-green-700 font-bold ${!hasLocation && 'w-full'}`}
-            onClick={() => onResolve(alert.id)}
-            disabled={isResolving}
-          >
-            {isResolving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <>
-                <CheckCircle className="w-4 h-4 mr-1" />
-                ATENDIDA
-              </>
-            )}
-          </Button>
-        )}
-
         {resolved && (
-          <div className="flex-1 flex items-center justify-center h-10 rounded-md bg-green-500/10 border border-green-500/30">
-            <CheckCircle className="w-4 h-4 text-green-400 mr-1" />
-            <span className="text-xs font-medium text-green-400">ATENDIDA</span>
-          </div>
+          <Badge variant="outline" className="text-xs border-green-500/30 text-green-400">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Atendida
+          </Badge>
         )}
       </div>
     </div>
