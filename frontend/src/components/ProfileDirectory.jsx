@@ -75,7 +75,7 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
     };
 
     fetchDirectory();
-  }, []);
+  }, [userPhotoKey]); // Refetch when user's photo changes
 
   const handleViewProfile = (userId) => {
     if (onViewProfile) {
