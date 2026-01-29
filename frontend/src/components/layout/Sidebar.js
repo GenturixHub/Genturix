@@ -2,7 +2,6 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
-  Shield, 
   LayoutDashboard, 
   AlertTriangle, 
   GraduationCap,
@@ -17,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
+import GenturixLogo from '../GenturixLogo';
 
 /**
  * GENTURIX - Sidebar Navigation
