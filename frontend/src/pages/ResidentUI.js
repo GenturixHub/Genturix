@@ -34,6 +34,8 @@ import {
   DialogTitle,
 } from '../components/ui/dialog';
 import api from '../services/api';
+import ProfileDirectory from '../components/ProfileDirectory';
+import EmbeddedProfile from '../components/EmbeddedProfile';
 import { 
   Heart, 
   Eye, 
