@@ -2220,7 +2220,7 @@ async def approve_absence(
     absence_id: str,
     request: Request,
     admin_notes: Optional[str] = None,
-    current_user = Depends(require_role("Administrador", "Supervisor"))
+    current_user = Depends(require_role("Administrador", "Supervisor", "HR"))
 ):
     """Approve an absence request"""
     absence = await db.hr_absences.find_one({"id": absence_id})
