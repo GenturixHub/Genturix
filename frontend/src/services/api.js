@@ -80,8 +80,14 @@ class ApiService {
     return response.json();
   }
 
-  async delete(endpoint) {
-    await this.request(endpoint, { method: 'DELETE' });
+  async delete(endpoint, data = null) {
+    const response = await this.request(endpoint, { 
+      method: 'DELETE',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+    // If the response has content, return json, otherwise return empty
+    const text = await response.text();
+    return text ? JSON.parse(text) : {};
   }
 
   async patch(endpoint, data) {
