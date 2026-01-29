@@ -123,6 +123,7 @@ class TestProfileSystem:
 class TestDirectoryForAllRoles:
     """Test 2: Directory accessible for all roles including Resident
     CORRECT ENDPOINT: /api/profile/directory/condominium
+    Response format: {users: [], grouped_by_role: {}, total_count: int, condominium_name: str}
     """
     
     @pytest.fixture(scope='class')
@@ -140,8 +141,10 @@ class TestDirectoryForAllRoles:
         response = requests.get(f"{BASE_URL}/api/profile/directory/condominium", headers=headers)
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
-        print(f"✓ Admin can access directory: {len(data)} users")
+        assert 'users' in data
+        assert 'grouped_by_role' in data
+        assert 'total_count' in data
+        print(f"✓ Admin can access directory: {data['total_count']} users")
     
     def test_guard_can_access_directory(self, tokens):
         """Guard can access directory"""
@@ -149,8 +152,9 @@ class TestDirectoryForAllRoles:
         response = requests.get(f"{BASE_URL}/api/profile/directory/condominium", headers=headers)
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
-        print(f"✓ Guard can access directory: {len(data)} users")
+        assert 'users' in data
+        assert 'grouped_by_role' in data
+        print(f"✓ Guard can access directory: {data['total_count']} users")
     
     def test_hr_can_access_directory(self, tokens):
         """HR can access directory"""
@@ -158,8 +162,9 @@ class TestDirectoryForAllRoles:
         response = requests.get(f"{BASE_URL}/api/profile/directory/condominium", headers=headers)
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
-        print(f"✓ HR can access directory: {len(data)} users")
+        assert 'users' in data
+        assert 'grouped_by_role' in data
+        print(f"✓ HR can access directory: {data['total_count']} users")
     
     def test_resident_can_access_directory(self, tokens):
         """Resident can access directory"""
@@ -167,8 +172,9 @@ class TestDirectoryForAllRoles:
         response = requests.get(f"{BASE_URL}/api/profile/directory/condominium", headers=headers)
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list)
-        print(f"✓ Resident can access directory: {len(data)} users")
+        assert 'users' in data
+        assert 'grouped_by_role' in data
+        print(f"✓ Resident can access directory: {data['total_count']} users")
 
 
 class TestGuardNavigation:
