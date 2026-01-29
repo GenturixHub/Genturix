@@ -115,8 +115,10 @@ class ApiService {
   getActiveGuards = () => this.get('/security/active-guards');
   getSecurityStats = () => this.get('/security/dashboard-stats');
   
-  // Guard History (for Guard UI)
+  // Guard Module (for Guard UI)
   getGuardHistory = (historyType = '') => this.get(`/guard/history${historyType ? `?history_type=${historyType}` : ''}`);
+  getGuardMyShift = () => this.get('/guard/my-shift');
+  getGuardMyAbsences = () => this.get('/guard/my-absences');
 
   // Resident notifications
   getResidentNotifications = () => this.get('/resident/notifications');
