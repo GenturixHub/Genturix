@@ -798,6 +798,43 @@ async def trigger_panic(event: PanicEventCreate, request: Request, current_user 
         "notified_guards": len(active_guards)
     }
 
+@api_router.get("/resident/my-alerts")
+async def get_resident_alerts(current_user = Depends(get_current_user)):
+    """
+    Resident gets their own alert history - STRICTLY filtered by user_id AND condominium_id.
+    Shows: alert type, timestamp, status (active/resolved), resolved_by
+    """
+    condo_id = current_user.get("condominium_id")
+    user_id = current_user["id"]
+    
+    if not condo_id:
+        return []
+    
+    query = {
+        "user_id": user_id,
+        "condominium_id": condo_id,
+        "is_test": {"$ne": True}
+    }
+    
+    events = await db.panic_events.find(query, {"_id": 0}).sort("created_at", -1).to_list(50)
+    
+    # Format response for resident view
+    formatted_events = []
+    for e in events:
+        formatted_events.append({
+            "id": e.get("id"),
+            "panic_type": e.get("panic_type"),
+            "panic_type_label": e.get("panic_type_label"),
+            "location": e.get("location"),
+            "status": e.get("status"),
+            "created_at": e.get("created_at"),
+            "resolved_at": e.get("resolved_at"),
+            "resolved_by_name": e.get("resolved_by_name"),
+            "notified_guards": len(e.get("notified_guards", []))
+        })
+    
+    return formatted_events
+
 @api_router.get("/security/panic-events")
 async def get_panic_events(current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
     """Get panic events - scoped by condominium, excludes test/demo data"""
