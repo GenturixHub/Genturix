@@ -1257,7 +1257,7 @@ const GuardUI = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-        <TabsList className="flex-shrink-0 grid grid-cols-4 bg-[#0A0A0F] border-b border-[#1E293B] rounded-none h-14 p-0">
+        <TabsList className="flex-shrink-0 grid grid-cols-5 bg-[#0A0A0F] border-b border-[#1E293B] rounded-none h-14 p-0">
           <TabsTrigger 
             value="alerts" 
             className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-red-500 flex flex-col gap-0.5"
@@ -1281,6 +1281,15 @@ const GuardUI = () => {
           >
             <Users className="w-5 h-5" />
             <span className="text-[10px]">Visitas</span>
+          </TabsTrigger>
+          
+          <TabsTrigger 
+            value="myshift" 
+            className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-500 flex flex-col gap-0.5"
+            data-testid="tab-myshift"
+          >
+            <Briefcase className="w-5 h-5" />
+            <span className="text-[10px]">Mi Turno</span>
           </TabsTrigger>
           
           <TabsTrigger 
@@ -1316,6 +1325,14 @@ const GuardUI = () => {
 
           <TabsContent value="visits" className="h-full m-0 data-[state=inactive]:hidden">
             <VisitsTab />
+          </TabsContent>
+
+          <TabsContent value="myshift" className="h-full m-0 data-[state=inactive]:hidden">
+            <MyShiftTab 
+              clockStatus={clockStatus}
+              onClockInOut={handleClockInOut}
+              isClocking={isClocking}
+            />
           </TabsContent>
 
           <TabsContent value="manual" className="h-full m-0 data-[state=inactive]:hidden">
