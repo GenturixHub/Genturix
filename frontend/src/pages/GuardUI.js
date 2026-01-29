@@ -718,19 +718,19 @@ const HistoryTab = () => {
           {alertHistory.length > 0 ? (
             <div className="space-y-2">
               {alertHistory.map((alert) => {
-                const config = PANIC_CONFIG[alert.panic_type] || PANIC_CONFIG.emergencia_general;
+                const config = PANIC_CONFIG[alert.event_type] || PANIC_CONFIG.emergencia_general;
                 return (
                   <div key={alert.id} className="p-3 rounded-lg bg-[#0A0A0F] border border-[#1E293B] flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-lg ${config.bg} flex items-center justify-center`}>
                       <config.icon className="w-4 h-4 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{alert.user_name}</p>
+                      <p className="text-sm font-medium truncate">{alert.resident_name || 'Residente'}</p>
                       <p className="text-xs text-muted-foreground">{alert.location}</p>
                     </div>
                     <div className="text-right text-xs text-muted-foreground">
-                      <p>{formatTime(alert.created_at)}</p>
-                      <p>{new Date(alert.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</p>
+                      <p>{formatTime(alert.resolved_at)}</p>
+                      <p>{new Date(alert.resolved_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</p>
                     </div>
                   </div>
                 );
@@ -755,8 +755,8 @@ const HistoryTab = () => {
                     <User className="w-4 h-4 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{visit.full_name}</p>
-                    <p className="text-xs text-muted-foreground">Para: {visit.created_by_name}</p>
+                    <p className="text-sm font-medium truncate">{visit.visitor_name}</p>
+                    <p className="text-xs text-muted-foreground">Para: {visit.resident_name}</p>
                   </div>
                   <div className="text-right text-xs">
                     <p className="text-green-400">↓ {formatTime(visit.entry_at)}</p>
