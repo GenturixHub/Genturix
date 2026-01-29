@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 29, 2026 (Session 12 - Unified User Profile Module)
+## Last Updated: January 29, 2026 (Session 13 - Guard Profile Access & Photo Lightbox)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,25 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: 100% PRODUCTION READY ✅
+
+### Session 13 - Guard Profile Access & Photo Lightbox (January 29, 2026) ⭐⭐ P1
+- ✅ **Guard Profile Access (COMPLETE)**:
+  - Guard UI header now has clickable avatar (`data-testid="guard-profile-avatar"`)
+  - Added profile button (User icon) in header (`data-testid="guard-profile-btn"`)
+  - Both navigate to `/profile` page
+  - Avatar border color changes with clock status (green=clocked in, gray=not)
+- ✅ **Photo Lightbox Modal (COMPLETE)**:
+  - Clicking profile photo opens full-screen modal
+  - Zoom icon appears on avatar hover (only when photo exists)
+  - Modal shows full-size image with user info overlay (name + role badges)
+  - Close button (`data-testid="photo-modal-close-btn"`) to dismiss
+  - Works for all roles: Guard, Resident, HR, Admin, SuperAdmin
+- ✅ **Read-Only Profile View**:
+  - `/profile/:userId` shows other user's profile
+  - Title changes to "Perfil de Usuario"
+  - Back button "Volver" appears
+  - Edit button hidden
+- 📋 Test report: `/app/test_reports/iteration_20.json` - 100% pass rate (18/18 tests)
 
 ### Session 12 - Unified User Profile Module (January 29, 2026) ⭐⭐ P1
 - ✅ **Unified Profile Page (COMPLETE)**:
