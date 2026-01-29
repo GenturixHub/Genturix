@@ -929,80 +929,124 @@ const UserManagementPage = () => {
                 </Button>
               </div>
             ) : (
-              <ScrollArea className="h-[500px]">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-[#1E293B]">
-                      <TableHead>Usuario</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Rol</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead>Creado</TableHead>
-                      <TableHead className="text-right">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+              <>
+                {/* Desktop Table View */}
+                <div className="hide-on-mobile">
+                  <ScrollArea className="h-[500px]">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-[#1E293B]">
+                          <TableHead>Usuario</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Rol</TableHead>
+                          <TableHead>Estado</TableHead>
+                          <TableHead>Creado</TableHead>
+                          <TableHead className="text-right">Acciones</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredUsers.map((u) => {
+                          const role = u.roles?.[0] || 'Sin rol';
+                          const config = ROLE_CONFIG[role];
+                          const Icon = config?.icon || Users;
+                          
+                          return (
+                            <TableRow key={u.id} className="border-[#1E293B]" data-testid={`user-row-${u.id}`}>
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${config?.color || 'bg-gray-500/10'}`}>
+                                    <Icon className="w-5 h-5" />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium">{u.full_name || 'Sin nombre'}</p>
+                                    <p className="text-xs text-muted-foreground">{u.phone || 'Sin teléfono'}</p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <code className="text-sm text-primary">{u.email}</code>
+                              </TableCell>
+                              <TableCell>
+                                <Badge className={config?.color || 'bg-gray-500/10'}>
+                                  {role}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge 
+                                  className={u.is_active !== false 
+                                    ? 'bg-green-500/10 text-green-400 border-green-500/20' 
+                                    : 'bg-red-500/10 text-red-400 border-red-500/20'}
+                                >
+                                  {u.is_active !== false ? 'Activo' : 'Inactivo'}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-muted-foreground text-sm">
+                                {u.created_at ? new Date(u.created_at).toLocaleDateString('es-MX') : 'N/A'}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedUser(u);
+                                    setShowDeactivateDialog(true);
+                                  }}
+                                  data-testid={`toggle-status-${u.id}`}
+                                >
+                                  {u.is_active !== false ? (
+                                    <Lock className="w-4 h-4 text-yellow-400" />
+                                  ) : (
+                                    <Unlock className="w-4 h-4 text-green-400" />
+                                  )}
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="show-on-mobile" style={{ display: 'none' }}>
+                  <MobileCardList>
                     {filteredUsers.map((u) => {
                       const role = u.roles?.[0] || 'Sin rol';
                       const config = ROLE_CONFIG[role];
                       const Icon = config?.icon || Users;
                       
                       return (
-                        <TableRow key={u.id} className="border-[#1E293B]" data-testid={`user-row-${u.id}`}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${config?.color || 'bg-gray-500/10'}`}>
-                                <Icon className="w-5 h-5" />
-                              </div>
-                              <div>
-                                <p className="font-medium">{u.full_name || 'Sin nombre'}</p>
-                                <p className="text-xs text-muted-foreground">{u.phone || 'Sin teléfono'}</p>
-                              </div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <code className="text-sm text-primary">{u.email}</code>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={config?.color || 'bg-gray-500/10'}>
-                              {role}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge 
-                              className={u.is_active !== false 
-                                ? 'bg-green-500/10 text-green-400 border-green-500/20' 
-                                : 'bg-red-500/10 text-red-400 border-red-500/20'}
-                            >
-                              {u.is_active !== false ? 'Activo' : 'Inactivo'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground text-sm">
-                            {u.created_at ? new Date(u.created_at).toLocaleDateString('es-MX') : 'N/A'}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
+                        <MobileCard
+                          key={u.id}
+                          testId={`user-card-${u.id}`}
+                          title={u.full_name || 'Sin nombre'}
+                          subtitle={u.email}
+                          icon={Icon}
+                          status={u.is_active !== false ? 'Activo' : 'Inactivo'}
+                          statusColor={u.is_active !== false ? 'green' : 'red'}
+                          details={[
+                            { label: 'Rol', value: role },
+                            { label: 'Teléfono', value: u.phone || '-' },
+                            { label: 'Creado', value: u.created_at ? new Date(u.created_at).toLocaleDateString('es-MX') : '-' },
+                          ]}
+                          actions={[
+                            {
+                              label: u.is_active !== false ? 'Desactivar' : 'Activar',
+                              icon: u.is_active !== false ? Lock : Unlock,
+                              onClick: () => {
                                 setSelectedUser(u);
                                 setShowDeactivateDialog(true);
-                              }}
-                              data-testid={`toggle-status-${u.id}`}
-                            >
-                              {u.is_active !== false ? (
-                                <Lock className="w-4 h-4 text-yellow-400" />
-                              ) : (
-                                <Unlock className="w-4 h-4 text-green-400" />
-                              )}
-                            </Button>
-                          </TableCell>
-                        </TableRow>
+                              },
+                              variant: u.is_active !== false ? 'default' : 'default'
+                            }
+                          ]}
+                        />
                       );
                     })}
-                  </TableBody>
-                </Table>
-              </ScrollArea>
+                  </MobileCardList>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
