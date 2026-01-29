@@ -2063,10 +2063,15 @@ async def get_clock_history(
     employee_id: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
+    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda", "HR"))
 ):
-    """Get clock history with filters"""
+    """Get clock history with filters - scoped by condominium"""
+    condo_id = current_user.get("condominium_id")
     query = {}
+    
+    # Add condominium filter for non-SuperAdmin users
+    if "SuperAdmin" not in current_user.get("roles", []) and condo_id:
+        query["condominium_id"] = condo_id
     
     # Guards can only see their own history
     if "Guarda" in current_user.get("roles", []) and "Administrador" not in current_user.get("roles", []):
