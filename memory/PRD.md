@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 29, 2026 (Session 11 - Guard Absence Requests)
+## Last Updated: January 29, 2026 (Session 12 - Unified User Profile Module)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,28 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: 100% PRODUCTION READY ✅
+
+### Session 12 - Unified User Profile Module (January 29, 2026) ⭐⭐ P1
+- ✅ **Unified Profile Page (COMPLETE)**:
+  - `/profile` route shows own profile (editable)
+  - `/profile/:userId` route shows other user's profile (read-only)
+  - Editable fields: Name, Phone, Photo, Public Description
+  - New "Descripción Pública" section visible for all users
+- ✅ **Backend Endpoints**:
+  - `GET /api/profile` - Returns full profile with role_data
+  - `PATCH /api/profile` - Updates name, phone, photo, public_description
+  - `GET /api/profile/{user_id}` - Returns public profile (limited fields)
+- ✅ **Multi-Tenant Validation (CRITICAL)**:
+  - Users can ONLY view profiles within their own condominium
+  - Different condominium → 403 Forbidden
+  - SuperAdmin can view ANY profile (global access)
+- ✅ **Frontend ProfilePage.js**:
+  - Detects view/edit mode via `useParams()` userId
+  - Back button "Volver" appears for other profiles
+  - Edit button hidden when viewing other profiles
+  - Role badges displayed for all roles
+- ✅ **API Service**: `getPublicProfile(userId)` method added
+- 📋 Test report: `/app/test_reports/iteration_19.json` - 100% pass rate (14 backend + all UI tests)
 
 ### Session 11 - Guard Absence Requests (January 29, 2026) ⭐⭐ P1
 - ✅ **Guard UI - New "Ausencias" Tab (COMPLETE)**:
