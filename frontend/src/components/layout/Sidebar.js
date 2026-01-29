@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useModules } from '../../contexts/ModulesContext';
 import { 
   LayoutDashboard, 
   AlertTriangle, 
@@ -25,11 +26,13 @@ import GenturixLogo from '../GenturixLogo';
  * - Turnos YA NO es un módulo separado
  * - RRHH es el módulo central que contiene Turnos como submódulo
  * - Gestión de Usuarios para Administradores
+ * - Módulos se filtran según configuración del condominio
  */
 
 const Sidebar = ({ collapsed, onToggle }) => {
   const navigate = useNavigate();
   const { user, logout, hasAnyRole } = useAuth();
+  const { isModuleEnabled } = useModules();
   const activeRole = sessionStorage.getItem('activeRole') || user?.roles?.[0];
 
   const handleLogout = async () => {
