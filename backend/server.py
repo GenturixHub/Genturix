@@ -3970,7 +3970,7 @@ async def update_module_config(
     module_name: str,
     enabled: bool,
     settings: Optional[Dict[str, Any]] = None,
-    current_user = Depends(require_role(RoleEnum.ADMINISTRADOR))
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
 ):
     """Enable/disable a module for a condominium"""
     valid_modules = ["security", "hr", "school", "payments", "audit", "reservations", "access_control", "messaging"]
