@@ -509,7 +509,7 @@ const AusenciasSubmodule = ({ employees, onRefresh }) => {
               </p>
               
               {/* Admin actions */}
-              {absence.status === 'pending' && (hasRole('Administrador') || hasRole('Supervisor')) && (
+              {absence.status === 'pending' && (hasRole('Administrador') || hasRole('Supervisor') || hasRole('HR')) && (
                 <div className="flex gap-2 mt-3 pt-3 border-t border-[#1E293B]">
                   <Button size="sm" variant="outline" className="flex-1 text-green-400 border-green-500/30" onClick={() => handleApprove(absence.id)}>
                     <CheckCircle className="w-4 h-4 mr-1" /> Aprobar
