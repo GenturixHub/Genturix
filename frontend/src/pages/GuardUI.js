@@ -697,12 +697,20 @@ const MyShiftTab = ({ clockStatus, onClockInOut, isClocking, onClockSuccess }) =
   const handleClockAction = async () => {
     setClockError(null);
     try {
-      await onClockInOut();
-      // Refresh data after successful clock
+      const result = await onClockInOut();
+      
+      if (result && !result.success) {
+        // Display the error message from the result
+        setClockError(result.error || 'Error al registrar fichaje');
+        return;
+      }
+      
+      // Success - refresh data
       fetchShiftData();
       if (onClockSuccess) onClockSuccess();
     } catch (err) {
-      setClockError(err.message || 'Error al registrar fichaje');
+      // Fallback catch - should not happen but prevents crash
+      setClockError(err.message || 'Error inesperado al registrar fichaje');
     }
   };
 
