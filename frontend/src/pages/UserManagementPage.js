@@ -931,7 +931,7 @@ const UserManagementPage = () => {
             ) : (
               <>
                 {/* Desktop Table View - hidden on mobile (≤1023px) */}
-                <div className="hidden max-[1023px]:hidden min-[1024px]:block">
+                <div className="hidden lg:block">
                   <ScrollArea className="h-[500px]">
                     <Table>
                       <TableHeader>
@@ -1009,7 +1009,7 @@ const UserManagementPage = () => {
                 </div>
 
                 {/* Mobile Card View */}
-                <div className="hidden sm:hidden max-[1023px]:block">
+                <div className="block lg:hidden">
                   <MobileCardList>
                     {filteredUsers.map((u) => {
                       const role = u.roles?.[0] || 'Sin rol';
