@@ -248,6 +248,7 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
     full_name: '',
     role: '',
     phone: '',
+    send_credentials_email: false, // New: send credentials by email
     // Role-specific fields
     apartment_number: '',
     tower_block: '',
@@ -322,16 +323,20 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
     setError(null);
 
     try {
-      await api.createUserByAdmin(form);
+      const response = await api.createUserByAdmin(form);
       onSuccess({
         email: form.email,
-        password: form.password,
+        password: form.send_credentials_email ? '(enviada por email)' : form.password,
         full_name: form.full_name,
-        role: form.role
+        role: form.role,
+        email_sent: form.send_credentials_email,
+        email_status: response.email_status,
+        email_message: response.email_message
       });
       // Reset form
       setForm({
         email: '', password: '', full_name: '', role: '', phone: '',
+        send_credentials_email: false,
         apartment_number: '', tower_block: '', resident_type: 'owner',
         badge_number: '', main_location: 'Entrada Principal', initial_shift: '',
         department: 'Recursos Humanos', permission_level: 'HR',
