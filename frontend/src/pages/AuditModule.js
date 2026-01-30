@@ -280,7 +280,7 @@ const AuditModule = () => {
           </CardContent>
         </Card>
 
-        {/* Logs Table */}
+        {/* Logs Table/Cards */}
         <Card className="grid-card">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
@@ -294,60 +294,97 @@ const AuditModule = () => {
             </div>
             <Button variant="outline" className="border-[#1E293B]" data-testid="export-logs-btn">
               <Download className="w-4 h-4 mr-2" />
-              Exportar
+              <span className="hidden sm:inline">Exportar</span>
             </Button>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="h-[500px]">
-              {filteredLogs.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-[#1E293B]">
-                      <TableHead className="w-[180px]">Timestamp</TableHead>
-                      <TableHead>Evento</TableHead>
-                      <TableHead>Módulo</TableHead>
-                      <TableHead>Usuario</TableHead>
-                      <TableHead>IP</TableHead>
-                      <TableHead>Detalles</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredLogs.map((log) => (
-                      <TableRow key={log.id} className="border-[#1E293B]" data-testid={`audit-row-${log.id}`}>
-                        <TableCell className="font-mono text-xs text-muted-foreground">
-                          {formatTimestamp(log.timestamp)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            {getEventIcon(log.event_type)}
-                            <Badge className={getEventBadgeColor(log.event_type)}>
-                              {log.event_type.replace(/_/g, ' ')}
-                            </Badge>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{log.module}</Badge>
-                        </TableCell>
-                        <TableCell className="font-mono text-xs text-muted-foreground">
-                          {log.user_id?.slice(0, 8) || 'N/A'}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs text-muted-foreground">
-                          {log.ip_address}
-                        </TableCell>
-                        <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground">
-                          {JSON.stringify(log.details)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                  <FileText className="w-12 h-12 mb-4" />
-                  <p>No hay eventos de auditoría</p>
+            {filteredLogs.length > 0 ? (
+              <>
+                {/* Desktop Table View - hidden on mobile */}
+                <div className="hidden lg:block">
+                  <ScrollArea className="h-[500px]">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-[#1E293B]">
+                          <TableHead className="w-[180px]">Timestamp</TableHead>
+                          <TableHead>Evento</TableHead>
+                          <TableHead>Módulo</TableHead>
+                          <TableHead>Usuario</TableHead>
+                          <TableHead>IP</TableHead>
+                          <TableHead>Detalles</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredLogs.map((log) => (
+                          <TableRow key={log.id} className="border-[#1E293B]" data-testid={`audit-row-${log.id}`}>
+                            <TableCell className="font-mono text-xs text-muted-foreground">
+                              {formatTimestamp(log.timestamp)}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                {getEventIcon(log.event_type)}
+                                <Badge className={getEventBadgeColor(log.event_type)}>
+                                  {log.event_type.replace(/_/g, ' ')}
+                                </Badge>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{log.module}</Badge>
+                            </TableCell>
+                            <TableCell className="font-mono text-xs text-muted-foreground">
+                              {log.user_id?.slice(0, 8) || 'N/A'}
+                            </TableCell>
+                            <TableCell className="font-mono text-xs text-muted-foreground">
+                              {log.ip_address}
+                            </TableCell>
+                            <TableCell className="max-w-[200px] truncate text-xs text-muted-foreground">
+                              {JSON.stringify(log.details)}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
                 </div>
-              )}
-            </ScrollArea>
+
+                {/* Mobile Card View */}
+                <div className="block lg:hidden">
+                  <ScrollArea className="h-[500px]">
+                    <MobileCardList>
+                      {filteredLogs.map((log) => (
+                        <MobileCard
+                          key={log.id}
+                          testId={`audit-card-${log.id}`}
+                          title={log.event_type.replace(/_/g, ' ')}
+                          subtitle={formatTimestamp(log.timestamp)}
+                          icon={getEventIconComponent(log.event_type)}
+                          status={log.module}
+                          statusColor={getEventStatusColor(log.event_type)}
+                          details={[
+                            { label: 'Usuario', value: log.user_id?.slice(0, 8) || 'N/A' },
+                            { label: 'IP', value: log.ip_address || '-' },
+                          ]}
+                        >
+                          {log.details && Object.keys(log.details).length > 0 && (
+                            <div className="mt-3 pt-3 border-t border-[#1E293B]">
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Detalles</p>
+                              <p className="text-xs text-muted-foreground line-clamp-2">
+                                {JSON.stringify(log.details)}
+                              </p>
+                            </div>
+                          )}
+                        </MobileCard>
+                      ))}
+                    </MobileCardList>
+                  </ScrollArea>
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <FileText className="w-12 h-12 mb-4" />
+                <p>No hay eventos de auditoría</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
