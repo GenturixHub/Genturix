@@ -152,6 +152,9 @@ const CredentialsDialog = ({ open, onClose, credentials }) => {
 
   if (!credentials) return null;
 
+  const emailSent = credentials.email_sent;
+  const emailSuccess = credentials.email_status === 'success';
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-md">
@@ -161,19 +164,48 @@ const CredentialsDialog = ({ open, onClose, credentials }) => {
             Usuario Creado Exitosamente
           </DialogTitle>
           <DialogDescription>
-            Guarda estas credenciales de forma segura. La contraseña no se mostrará de nuevo.
+            {emailSent && emailSuccess 
+              ? "Las credenciales han sido enviadas al email del usuario."
+              : "Guarda estas credenciales de forma segura. La contraseña no se mostrará de nuevo."
+            }
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Warning Banner */}
-          <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-start gap-2">
-            <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-yellow-400">
-              <strong>Importante:</strong> Esta es la única vez que verás la contraseña. 
-              Cópiala ahora y entrégala al usuario de forma segura.
+          {/* Email Status Banner */}
+          {emailSent && (
+            <div className={`p-3 rounded-lg flex items-start gap-2 ${
+              emailSuccess 
+                ? 'bg-green-500/10 border border-green-500/20' 
+                : 'bg-yellow-500/10 border border-yellow-500/20'
+            }`}>
+              <Mail className={`w-5 h-5 flex-shrink-0 mt-0.5 ${emailSuccess ? 'text-green-400' : 'text-yellow-400'}`} />
+              <div className={`text-sm ${emailSuccess ? 'text-green-400' : 'text-yellow-400'}`}>
+                {emailSuccess ? (
+                  <>
+                    <strong>Email enviado exitosamente.</strong><br/>
+                    El usuario recibirá una contraseña temporal y deberá cambiarla en su primer inicio de sesión.
+                  </>
+                ) : (
+                  <>
+                    <strong>No se pudo enviar el email.</strong><br/>
+                    {credentials.email_message || 'El usuario fue creado pero deberás entregarle las credenciales manualmente.'}
+                  </>
+                )}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Warning Banner - only show if NOT sent by email */}
+          {!emailSent && (
+            <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-start gap-2">
+              <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-yellow-400">
+                <strong>Importante:</strong> Esta es la única vez que verás la contraseña. 
+                Cópiala ahora y entrégala al usuario de forma segura.
+              </div>
+            </div>
+          )}
 
           {/* User Info */}
           <div className="p-4 rounded-lg bg-[#0A0A0F] border border-[#1E293B] space-y-3">
@@ -185,22 +217,32 @@ const CredentialsDialog = ({ open, onClose, credentials }) => {
               <Label className="text-xs text-muted-foreground">Email</Label>
               <p className="font-mono text-primary">{credentials.email}</p>
             </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Contraseña</Label>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 p-2 rounded bg-[#1E293B] font-mono text-green-400">
-                  {showPassword ? credentials.password : '••••••••••••'}
-                </code>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </Button>
+            {!emailSent && (
+              <div>
+                <Label className="text-xs text-muted-foreground">Contraseña</Label>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 p-2 rounded bg-[#1E293B] font-mono text-green-400">
+                    {showPassword ? credentials.password : '••••••••••••'}
+                  </code>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
+            {emailSent && emailSuccess && (
+              <div>
+                <Label className="text-xs text-muted-foreground">Contraseña</Label>
+                <p className="text-sm text-muted-foreground italic">
+                  (Enviada por email - el usuario deberá cambiarla)
+                </p>
+              </div>
+            )}
             <div>
               <Label className="text-xs text-muted-foreground">Rol</Label>
               <Badge className={ROLE_CONFIG[credentials.role]?.color || 'bg-gray-500/10'}>
@@ -209,29 +251,31 @@ const CredentialsDialog = ({ open, onClose, credentials }) => {
             </div>
           </div>
 
-          {/* Copy Button */}
-          <Button
-            className="w-full"
-            onClick={copyToClipboard}
-            data-testid="copy-credentials-btn"
-          >
-            {copied ? (
-              <>
-                <CheckCircle className="w-4 h-4 mr-2" />
-                ¡Copiado!
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4 mr-2" />
-                Copiar Credenciales
-              </>
-            )}
-          </Button>
+          {/* Copy Button - only show if NOT sent by email or email failed */}
+          {(!emailSent || !emailSuccess) && (
+            <Button
+              className="w-full"
+              onClick={copyToClipboard}
+              data-testid="copy-credentials-btn"
+            >
+              {copied ? (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  ¡Copiado!
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copiar Credenciales
+                </>
+              )}
+            </Button>
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} data-testid="close-credentials-btn">
-            He guardado las credenciales
+            {emailSent && emailSuccess ? 'Cerrar' : 'He guardado las credenciales'}
           </Button>
         </DialogFooter>
       </DialogContent>
