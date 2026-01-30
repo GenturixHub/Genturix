@@ -3133,6 +3133,50 @@ async def get_employee_evaluation_summary(
         "evaluations": evaluations[:10]  # Last 10 evaluations
     }
 
+@api_router.get("/hr/evaluable-employees")
+async def get_evaluable_employees(
+    current_user = Depends(require_role("Administrador", "HR", "Supervisor"))
+):
+    """Get all employees that can be evaluated (guards + users with employee roles)"""
+    condominium_id = current_user.get("condominium_id")
+    
+    # Get guards from guards collection
+    guards = await db.guards.find(
+        {"condominium_id": condominium_id, "is_active": {"$ne": False}},
+        {"_id": 0}
+    ).to_list(100)
+    
+    # Get existing guard user IDs to avoid duplicates
+    guard_user_ids = {g.get("user_id") for g in guards if g.get("user_id")}
+    
+    # Get users with employee roles that don't have guard records
+    users = await db.users.find(
+        {
+            "condominium_id": condominium_id,
+            "roles": {"$in": ["Guarda", "Supervisor", "HR"]},
+            "is_active": {"$ne": False},
+            "id": {"$nin": list(guard_user_ids)}
+        },
+        {"_id": 0, "id": 1, "full_name": 1, "email": 1, "roles": 1}
+    ).to_list(100)
+    
+    # Convert users to employee format
+    user_employees = [
+        {
+            "id": u["id"],
+            "user_id": u["id"],
+            "user_name": u.get("full_name", u.get("email", "Unknown")),
+            "position": u.get("roles", ["Empleado"])[0] if u.get("roles") else "Empleado",
+            "condominium_id": condominium_id,
+            "is_active": True
+        }
+        for u in users
+    ]
+    
+    # Combine and return
+    all_employees = guards + user_employees
+    return all_employees
+
 # ==================== ADMIN USER MANAGEMENT ====================
 
 @api_router.post("/admin/users")
