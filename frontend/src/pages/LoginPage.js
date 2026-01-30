@@ -241,14 +241,15 @@ const LoginPage = () => {
         setTempPassword(password);
         setShowPasswordChange(true);
         setIsLoading(false);
+        // Do NOT navigate - the dialog will handle navigation after password change
         return;
       }
 
       // Normal login - redirect based on role
+      setIsLoading(false);
       navigateBasedOnRole(result.user);
     } catch (err) {
       setError(err.message || 'Email o contraseña incorrectos');
-    } finally {
       setIsLoading(false);
     }
   };
