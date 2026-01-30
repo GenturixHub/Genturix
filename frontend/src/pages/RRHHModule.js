@@ -1881,7 +1881,7 @@ const EvaluacionSubmodule = ({ employees: propEmployees, canCreate = true }) => 
         open={showCreateDialog}
         onClose={() => { setShowCreateDialog(false); setSelectedEmployee(null); }}
         employees={employees}
-        onSuccess={fetchEvaluations}
+        onSuccess={fetchData}
       />
       
       <EmployeeHistoryDialog
