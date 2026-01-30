@@ -321,6 +321,24 @@ const EmbeddedProfile = ({ userId = null }) => {
           </CardContent>
         </Card>
 
+        {/* Push Notifications - Only for security roles */}
+        {isOwnProfile && profile?.roles?.some(role => ['Guarda', 'Guardia', 'Administrador', 'Supervisor', 'SuperAdmin'].includes(role)) && (
+          <Card className="bg-[#0F111A] border-[#1E293B]">
+            <CardHeader className="p-3 pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Shield className="w-4 h-4" />
+                Notificaciones de Alerta
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Recibe alertas de pánico en tiempo real
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+              <PushNotificationToggle />
+            </CardContent>
+          </Card>
+        )}
+
         {/* Photo Modal */}
         <Dialog open={photoModalOpen} onOpenChange={setPhotoModalOpen}>
           <DialogContent className="max-w-2xl bg-black/95 border-[#1E293B] p-0 overflow-hidden">
