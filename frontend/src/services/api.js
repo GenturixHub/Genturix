@@ -212,6 +212,14 @@ class ApiService {
   deactivateEmployee = (guardId) => this.put(`/hr/employees/${guardId}/deactivate`);
   activateEmployee = (guardId) => this.put(`/hr/employees/${guardId}/activate`);
   
+  // HR - Performance Evaluations
+  createEvaluation = (data) => this.post('/hr/evaluations', data);
+  getEvaluations = (employeeId = '') => {
+    return this.get(`/hr/evaluations${employeeId ? `?employee_id=${employeeId}` : ''}`);
+  };
+  getEvaluation = (id) => this.get(`/hr/evaluations/${id}`);
+  getEmployeeEvaluationSummary = (employeeId) => this.get(`/hr/evaluations/employee/${employeeId}/summary`);
+  
   // Admin - User Management
   createUserByAdmin = (data) => this.post('/admin/users', data);
   getUsersByAdmin = (role = '') => {
