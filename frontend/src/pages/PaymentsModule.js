@@ -341,44 +341,74 @@ const PaymentsModule = () => {
           </CardHeader>
           <CardContent>
             {history.length > 0 ? (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-[#1E293B]">
-                      <TableHead>Fecha</TableHead>
-                      <TableHead>Usuarios</TableHead>
-                      <TableHead>Monto</TableHead>
-                      <TableHead>Estado</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {history.map((transaction) => (
-                      <TableRow key={transaction.id} className="border-[#1E293B]" data-testid={`transaction-${transaction.id}`}>
-                        <TableCell className="text-muted-foreground">
-                          {formatDate(transaction.created_at)}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Users className="w-4 h-4 text-muted-foreground" />
-                            {transaction.user_count || 1} usuario{(transaction.user_count || 1) > 1 ? 's' : ''}
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-mono">{formatCurrency(transaction.amount)}</TableCell>
-                        <TableCell>
-                          <Badge className={
-                            transaction.payment_status === 'completed' ? 'badge-success' :
-                            transaction.payment_status === 'pending' ? 'badge-warning' :
-                            'badge-error'
-                          }>
-                            {transaction.payment_status === 'completed' ? 'Completado' :
-                             transaction.payment_status === 'pending' ? 'Pendiente' : 'Fallido'}
-                          </Badge>
-                        </TableCell>
+              <>
+                {/* Desktop Table View - hidden on mobile */}
+                <div className="hidden lg:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-[#1E293B]">
+                        <TableHead>Fecha</TableHead>
+                        <TableHead>Usuarios</TableHead>
+                        <TableHead>Monto</TableHead>
+                        <TableHead>Estado</TableHead>
                       </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {history.map((transaction) => (
+                        <TableRow key={transaction.id} className="border-[#1E293B]" data-testid={`transaction-${transaction.id}`}>
+                          <TableCell className="text-muted-foreground">
+                            {formatDate(transaction.created_at)}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Users className="w-4 h-4 text-muted-foreground" />
+                              {transaction.user_count || 1} usuario{(transaction.user_count || 1) > 1 ? 's' : ''}
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-mono">{formatCurrency(transaction.amount)}</TableCell>
+                          <TableCell>
+                            <Badge className={
+                              transaction.payment_status === 'completed' ? 'badge-success' :
+                              transaction.payment_status === 'pending' ? 'badge-warning' :
+                              'badge-error'
+                            }>
+                              {transaction.payment_status === 'completed' ? 'Completado' :
+                               transaction.payment_status === 'pending' ? 'Pendiente' : 'Fallido'}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="block lg:hidden">
+                  <MobileCardList>
+                    {history.map((transaction) => (
+                      <MobileCard
+                        key={transaction.id}
+                        testId={`transaction-card-${transaction.id}`}
+                        title={formatCurrency(transaction.amount)}
+                        subtitle={formatDate(transaction.created_at)}
+                        icon={Receipt}
+                        status={
+                          transaction.payment_status === 'completed' ? 'Completado' :
+                          transaction.payment_status === 'pending' ? 'Pendiente' : 'Fallido'
+                        }
+                        statusColor={
+                          transaction.payment_status === 'completed' ? 'green' :
+                          transaction.payment_status === 'pending' ? 'yellow' : 'red'
+                        }
+                        details={[
+                          { label: 'Usuarios', value: `${transaction.user_count || 1} usuario${(transaction.user_count || 1) > 1 ? 's' : ''}` },
+                          { label: 'Monto', value: formatCurrency(transaction.amount) },
+                        ]}
+                      />
                     ))}
-                  </TableBody>
-                </Table>
-              </div>
+                  </MobileCardList>
+                </div>
+              </>
             ) : (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <DollarSign className="w-12 h-12 mb-4" />
