@@ -366,14 +366,14 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin }) 
             </SelectContent>
           </Select>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
+        <Button onClick={() => setShowCreateDialog(true)} className="gap-2 w-full sm:w-auto">
           <Plus className="w-4 h-4" />
           Nuevo Condominio
         </Button>
       </div>
 
-      {/* Table */}
-      <Card className="bg-[#0F111A] border-[#1E293B]">
+      {/* Desktop Table View - hidden on mobile */}
+      <Card className="bg-[#0F111A] border-[#1E293B] hidden lg:block">
         <ScrollArea className="h-[500px]">
           <Table>
             <TableHeader>
@@ -472,6 +472,49 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin }) 
           </Table>
         </ScrollArea>
       </Card>
+
+      {/* Mobile Card View */}
+      <div className="block lg:hidden space-y-3">
+        {filteredCondos.map((condo) => {
+          const statusConfig = STATUS_CONFIG[condo.status] || STATUS_CONFIG.active;
+          const userCount = condo.current_users || 0;
+          const mrr = userCount * (condo.price_per_user || 1) * (1 - (condo.discount_percent || 0) / 100);
+
+          return (
+            <MobileCard
+              key={condo.id}
+              testId={`condo-card-${condo.id}`}
+              title={condo.name}
+              subtitle={condo.contact_email}
+              icon={Building2}
+              status={statusConfig.label}
+              statusColor={condo.status === 'active' ? 'green' : condo.status === 'demo' ? 'blue' : 'red'}
+              details={[
+                { label: 'Usuarios', value: `${userCount} / ${condo.max_users || 100}` },
+                { label: 'MRR', value: `$${mrr.toFixed(2)}${condo.discount_percent > 0 ? ` (-${condo.discount_percent}%)` : ''}` },
+              ]}
+              actions={[
+                {
+                  label: 'Crear Admin',
+                  icon: UserPlus,
+                  onClick: () => handleCreateAdmin(condo),
+                },
+                {
+                  label: 'Configurar',
+                  icon: Settings,
+                  onClick: () => setSelectedCondo(condo),
+                },
+                ...(isSuperAdmin ? [{
+                  label: 'Eliminar',
+                  icon: Trash2,
+                  onClick: () => handleDeleteCondo(condo),
+                  variant: 'destructive'
+                }] : [])
+              ]}
+            />
+          );
+        })}
+      </div>
 
       {/* Create Dialog */}
       <CreateCondoDialog 
