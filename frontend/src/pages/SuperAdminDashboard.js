@@ -97,8 +97,8 @@ import { cn } from '../lib/utils';
 const SuperAdminMobileNav = ({ activeTab, onTabChange }) => {
   const items = [
     { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'condos', label: 'Condos', icon: Building2 },
-    { id: 'modules', label: 'Módulos', icon: Settings },
+    { id: 'condominiums', label: 'Condos', icon: Building2 },
+    { id: 'content', label: 'Contenido', icon: BookOpen },
     { id: 'users', label: 'Usuarios', icon: Users },
     { id: 'profile', label: 'Perfil', icon: User },
   ];
