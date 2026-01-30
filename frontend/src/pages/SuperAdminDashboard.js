@@ -853,7 +853,7 @@ const EditCondoDialog = ({ condo, open, onClose, onSuccess }) => {
               <div className="text-center py-8 text-muted-foreground">
                 <Archive className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>Este condominio no está en modo demo</p>
-                <p className="text-xs mt-2">Cambia el estado a "Demo" desde la lista</p>
+                <p className="text-xs mt-2">Cambia el estado a &quot;Demo&quot; desde la lista</p>
               </div>
             )}
           </TabsContent>
