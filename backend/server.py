@@ -2911,6 +2911,196 @@ async def activate_employee(
     
     return {"message": f"Empleado {guard['user_name']} reactivado"}
 
+# ==================== HR PERFORMANCE EVALUATIONS ====================
+
+@api_router.post("/hr/evaluations")
+async def create_evaluation(
+    evaluation: EvaluationCreate,
+    request: Request,
+    current_user = Depends(require_role("Administrador", "HR", "Supervisor"))
+):
+    """Create a new performance evaluation for an employee"""
+    # Get the employee being evaluated
+    employee = await db.guards.find_one({"id": evaluation.employee_id})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Empleado no encontrado")
+    
+    # Verify same condominium (multi-tenant isolation)
+    if employee.get("condominium_id") != current_user.get("condominium_id"):
+        raise HTTPException(status_code=403, detail="No puedes evaluar empleados de otro condominio")
+    
+    # Cannot evaluate yourself
+    evaluator_guard = await db.guards.find_one({"user_id": current_user["id"]})
+    if evaluator_guard and evaluator_guard["id"] == evaluation.employee_id:
+        raise HTTPException(status_code=400, detail="No puedes evaluarte a ti mismo")
+    
+    # Calculate average score
+    categories = evaluation.categories
+    avg_score = round((categories.discipline + categories.punctuality + 
+                       categories.performance + categories.communication) / 4, 2)
+    
+    evaluation_doc = {
+        "id": str(uuid.uuid4()),
+        "employee_id": evaluation.employee_id,
+        "employee_name": employee["user_name"],
+        "evaluator_id": current_user["id"],
+        "evaluator_name": current_user.get("full_name", "Unknown"),
+        "categories": {
+            "discipline": categories.discipline,
+            "punctuality": categories.punctuality,
+            "performance": categories.performance,
+            "communication": categories.communication
+        },
+        "score": avg_score,
+        "comments": evaluation.comments,
+        "condominium_id": current_user.get("condominium_id"),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.hr_evaluations.insert_one(evaluation_doc)
+    evaluation_doc.pop("_id", None)
+    
+    await log_audit_event(
+        AuditEventType.EVALUATION_CREATED,
+        current_user["id"],
+        "hr",
+        {
+            "evaluation_id": evaluation_doc["id"],
+            "employee_id": evaluation.employee_id,
+            "employee_name": employee["user_name"],
+            "score": avg_score,
+            "condominium_id": evaluation_doc["condominium_id"]
+        },
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return evaluation_doc
+
+@api_router.get("/hr/evaluations")
+async def get_evaluations(
+    employee_id: Optional[str] = None,
+    request: Request = None,
+    current_user = Depends(get_current_user)
+):
+    """Get evaluations - HR/Admin sees all in condominium, employees see only their own"""
+    user_roles = current_user.get("roles", [])
+    condominium_id = current_user.get("condominium_id")
+    
+    # Build query based on role
+    query = {"condominium_id": condominium_id}
+    
+    # Check if user is HR, Admin, Supervisor or SuperAdmin
+    is_hr_or_admin = any(role in user_roles for role in ["Administrador", "HR", "Supervisor", "SuperAdmin"])
+    
+    if is_hr_or_admin:
+        # HR/Admin can filter by employee or see all
+        if employee_id:
+            query["employee_id"] = employee_id
+    else:
+        # Regular employees (Guard) can only see their own evaluations
+        guard = await db.guards.find_one({"user_id": current_user["id"]})
+        if guard:
+            query["employee_id"] = guard["id"]
+        else:
+            # No guard record = no evaluations
+            return []
+    
+    evaluations = await db.hr_evaluations.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return evaluations
+
+@api_router.get("/hr/evaluations/{evaluation_id}")
+async def get_evaluation(
+    evaluation_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Get a specific evaluation by ID"""
+    evaluation = await db.hr_evaluations.find_one({"id": evaluation_id}, {"_id": 0})
+    if not evaluation:
+        raise HTTPException(status_code=404, detail="Evaluación no encontrada")
+    
+    # Check condominium access
+    if evaluation.get("condominium_id") != current_user.get("condominium_id"):
+        raise HTTPException(status_code=403, detail="No tienes acceso a esta evaluación")
+    
+    user_roles = current_user.get("roles", [])
+    is_hr_or_admin = any(role in user_roles for role in ["Administrador", "HR", "Supervisor", "SuperAdmin"])
+    
+    # If not HR/Admin, check if it's their own evaluation
+    if not is_hr_or_admin:
+        guard = await db.guards.find_one({"user_id": current_user["id"]})
+        if not guard or evaluation["employee_id"] != guard["id"]:
+            raise HTTPException(status_code=403, detail="Solo puedes ver tus propias evaluaciones")
+    
+    return evaluation
+
+@api_router.get("/hr/evaluations/employee/{employee_id}/summary")
+async def get_employee_evaluation_summary(
+    employee_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Get evaluation summary for an employee (average scores, count, etc.)"""
+    user_roles = current_user.get("roles", [])
+    condominium_id = current_user.get("condominium_id")
+    
+    # Verify employee exists and belongs to same condominium
+    employee = await db.guards.find_one({"id": employee_id})
+    if not employee:
+        raise HTTPException(status_code=404, detail="Empleado no encontrado")
+    
+    if employee.get("condominium_id") != condominium_id:
+        raise HTTPException(status_code=403, detail="No tienes acceso a este empleado")
+    
+    # Check permissions - HR/Admin can see all, employees only their own
+    is_hr_or_admin = any(role in user_roles for role in ["Administrador", "HR", "Supervisor", "SuperAdmin"])
+    if not is_hr_or_admin:
+        guard = await db.guards.find_one({"user_id": current_user["id"]})
+        if not guard or guard["id"] != employee_id:
+            raise HTTPException(status_code=403, detail="Solo puedes ver tus propias evaluaciones")
+    
+    # Get all evaluations for this employee
+    evaluations = await db.hr_evaluations.find(
+        {"employee_id": employee_id, "condominium_id": condominium_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    if not evaluations:
+        return {
+            "employee_id": employee_id,
+            "employee_name": employee["user_name"],
+            "total_evaluations": 0,
+            "average_score": 0,
+            "category_averages": {
+                "discipline": 0,
+                "punctuality": 0,
+                "performance": 0,
+                "communication": 0
+            },
+            "last_evaluation": None,
+            "evaluations": []
+        }
+    
+    # Calculate averages
+    total = len(evaluations)
+    avg_score = round(sum(e["score"] for e in evaluations) / total, 2)
+    
+    category_averages = {
+        "discipline": round(sum(e["categories"]["discipline"] for e in evaluations) / total, 2),
+        "punctuality": round(sum(e["categories"]["punctuality"] for e in evaluations) / total, 2),
+        "performance": round(sum(e["categories"]["performance"] for e in evaluations) / total, 2),
+        "communication": round(sum(e["categories"]["communication"] for e in evaluations) / total, 2)
+    }
+    
+    return {
+        "employee_id": employee_id,
+        "employee_name": employee["user_name"],
+        "total_evaluations": total,
+        "average_score": avg_score,
+        "category_averages": category_averages,
+        "last_evaluation": evaluations[0]["created_at"] if evaluations else None,
+        "evaluations": evaluations[:10]  # Last 10 evaluations
+    }
+
 # ==================== ADMIN USER MANAGEMENT ====================
 
 @api_router.post("/admin/users")
