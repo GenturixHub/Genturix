@@ -140,15 +140,22 @@ class UserResponse(BaseModel):
     is_active: bool
     created_at: str
     condominium_id: Optional[str] = None  # Multi-tenant support
+    password_reset_required: bool = False  # True if user needs to change password
 
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
     user: UserResponse
+    password_reset_required: bool = False  # Flag for frontend to show password change dialog
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
+
+# Password Change Model
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=8)
 
 # Profile Models
 class ProfileResponse(BaseModel):
