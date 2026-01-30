@@ -495,14 +495,18 @@ const PanicAlertModal = ({ alert, open, onClose, onResolve, resolutionNotes, set
   );
 };
 
-const AlertCard = ({ alert, onClick, isResolving, resolved }) => {
+const AlertCard = ({ alert, onClick, isResolving, resolved, isHighlighted }) => {
   const config = PANIC_CONFIG[alert.panic_type] || PANIC_CONFIG.emergencia_general;
   const IconComponent = config.icon;
   const hasLocation = alert.latitude && alert.longitude;
 
   return (
     <div 
-      className={`p-3 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.02] ${resolved ? 'bg-[#0F111A] border-[#1E293B] opacity-60' : `${config.bgLight} ${config.border}`}`}
+      className={`p-3 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.02] ${
+        isHighlighted 
+          ? 'ring-4 ring-yellow-400 ring-opacity-75 animate-pulse' 
+          : ''
+      } ${resolved ? 'bg-[#0F111A] border-[#1E293B] opacity-60' : `${config.bgLight} ${config.border}`}`}
       data-testid={`alert-${alert.id}`}
       onClick={onClick}
     >
