@@ -101,6 +101,9 @@ class AuditEventType(str, Enum):
     EMPLOYEE_CREATED = "employee_created"
     EMPLOYEE_DEACTIVATED = "employee_deactivated"
     EMPLOYEE_ACTIVATED = "employee_activated"
+    # Performance evaluation events
+    EVALUATION_CREATED = "evaluation_created"
+    EVALUATION_UPDATED = "evaluation_updated"
     # Condominium management events
     CONDOMINIUM_DELETED = "condominium_deleted"
 
