@@ -1339,7 +1339,18 @@ async def trigger_panic(event: PanicEventCreate, request: Request, current_user 
         "emergencia_general": "🚨 Emergencia General"
     }
     
+    # Map internal panic type to display type for notifications
+    panic_type_display_map = {
+        "emergencia_medica": "medical",
+        "actividad_sospechosa": "suspicious",
+        "emergencia_general": "general"
+    }
+    
     condo_id = current_user.get("condominium_id")
+    
+    # Get apartment number from role_data if available
+    role_data = current_user.get("role_data", {})
+    apartment = role_data.get("apartment_number", "N/A")
     
     panic_event = {
         "id": str(uuid.uuid4()),
@@ -1353,6 +1364,7 @@ async def trigger_panic(event: PanicEventCreate, request: Request, current_user 
         "latitude": event.latitude,
         "longitude": event.longitude,
         "description": event.description,
+        "apartment": apartment,
         "status": "active",
         "is_test": False,  # Mark as real data
         "notified_guards": [],
@@ -1394,6 +1406,15 @@ async def trigger_panic(event: PanicEventCreate, request: Request, current_user 
         {"$set": {"notified_guards": panic_event["notified_guards"]}}
     )
     
+    # Send PUSH NOTIFICATIONS to all subscribed guards in this condominium
+    push_result = await notify_guards_of_panic(condo_id, {
+        "event_id": panic_event["id"],
+        "panic_type": panic_type_display_map.get(event.panic_type.value, "general"),
+        "resident_name": current_user["full_name"],
+        "apartment": apartment,
+        "timestamp": panic_event["created_at"]
+    })
+    
     # Log to audit
     await log_audit_event(
         AuditEventType.PANIC_BUTTON,
@@ -1405,7 +1426,8 @@ async def trigger_panic(event: PanicEventCreate, request: Request, current_user 
             "latitude": event.latitude,
             "longitude": event.longitude,
             "description": event.description,
-            "notified_guards_count": len(active_guards)
+            "notified_guards_count": len(active_guards),
+            "push_notifications": push_result
         },
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
@@ -1415,7 +1437,8 @@ async def trigger_panic(event: PanicEventCreate, request: Request, current_user 
         "message": "Alerta enviada exitosamente",
         "event_id": panic_event["id"],
         "panic_type": event.panic_type.value,
-        "notified_guards": len(active_guards)
+        "notified_guards": len(active_guards),
+        "push_notifications": push_result
     }
 
 @api_router.get("/resident/my-alerts")
