@@ -299,6 +299,7 @@ class CreateUserByAdmin(BaseModel):
     role: str  # Single role: Residente, Guarda, HR, Supervisor, Estudiante
     phone: Optional[str] = None
     condominium_id: Optional[str] = None  # Required when SuperAdmin creates user
+    send_credentials_email: bool = False  # If true, send credentials via email
     # Role-specific fields (all optional, validated per role)
     # Residente
     apartment_number: Optional[str] = None
