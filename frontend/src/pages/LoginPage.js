@@ -180,7 +180,7 @@ const PasswordChangeDialog = ({ open, onClose, onSuccess, tempPassword }) => {
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, user, passwordResetRequired, isAuthenticated } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -191,6 +191,15 @@ const LoginPage = () => {
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [tempPassword, setTempPassword] = useState('');
+
+  // Handle case when user is already authenticated but needs password reset
+  // This happens on page reload or direct access to /login
+  useEffect(() => {
+    if (isAuthenticated && passwordResetRequired && user) {
+      setLoggedInUser(user);
+      setShowPasswordChange(true);
+    }
+  }, [isAuthenticated, passwordResetRequired, user]);
   const navigateBasedOnRole = useCallback((user) => {
     const roles = user.roles || [];
     if (roles.length === 1) {
