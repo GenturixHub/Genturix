@@ -3062,20 +3062,33 @@ async def get_employee_evaluation_summary(
     user_roles = current_user.get("roles", [])
     condominium_id = current_user.get("condominium_id")
     
-    # Verify employee exists and belongs to same condominium
+    # Verify employee exists - check guards first, then users
     employee = await db.guards.find_one({"id": employee_id})
-    if not employee:
-        raise HTTPException(status_code=404, detail="Empleado no encontrado")
+    employee_name = None
     
-    if employee.get("condominium_id") != condominium_id:
-        raise HTTPException(status_code=403, detail="No tienes acceso a este empleado")
+    if employee:
+        if employee.get("condominium_id") != condominium_id:
+            raise HTTPException(status_code=403, detail="No tienes acceso a este empleado")
+        employee_name = employee["user_name"]
+    else:
+        # Try users collection
+        employee = await db.users.find_one({
+            "id": employee_id,
+            "condominium_id": condominium_id,
+            "roles": {"$in": ["Guarda", "Supervisor", "HR"]}
+        })
+        if not employee:
+            raise HTTPException(status_code=404, detail="Empleado no encontrado")
+        employee_name = employee.get("full_name", "Unknown")
     
     # Check permissions - HR/Admin can see all, employees only their own
     is_hr_or_admin = any(role in user_roles for role in ["Administrador", "HR", "Supervisor", "SuperAdmin"])
     if not is_hr_or_admin:
-        guard = await db.guards.find_one({"user_id": current_user["id"]})
-        if not guard or guard["id"] != employee_id:
-            raise HTTPException(status_code=403, detail="Solo puedes ver tus propias evaluaciones")
+        # Check if this is the current user's evaluation
+        if employee_id != current_user["id"]:
+            guard = await db.guards.find_one({"user_id": current_user["id"]})
+            if not guard or guard["id"] != employee_id:
+                raise HTTPException(status_code=403, detail="Solo puedes ver tus propias evaluaciones")
     
     # Get all evaluations for this employee
     evaluations = await db.hr_evaluations.find(
@@ -3086,7 +3099,7 @@ async def get_employee_evaluation_summary(
     if not evaluations:
         return {
             "employee_id": employee_id,
-            "employee_name": employee["user_name"],
+            "employee_name": employee_name,
             "total_evaluations": 0,
             "average_score": 0,
             "category_averages": {
