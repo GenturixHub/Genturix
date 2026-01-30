@@ -790,7 +790,7 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ## BACKLOG
 
 ### P1 - High Priority
-- [ ] Push notifications for panic alerts
+- [x] ~~Push notifications for panic alerts~~ (COMPLETED - Session 24)
 - [x] ~~Performance evaluations in RRHH~~ (COMPLETED - Session 22)
 - [x] ~~Email credentials for new users~~ (COMPLETED - Session 23)
 
@@ -805,6 +805,7 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 - [ ] Native app (React Native)
 - [ ] Public API with rate limiting
 - [ ] HR periodic performance reports
+- [ ] Custom notification sounds (Phase 2)
 
 ---
 
