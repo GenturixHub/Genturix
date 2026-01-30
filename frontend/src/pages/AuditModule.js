@@ -126,6 +126,33 @@ const AuditModule = () => {
     return 'badge-warning';
   };
 
+  // Helper function to get icon component for MobileCard
+  const getEventIconComponent = (eventType) => {
+    switch (eventType) {
+      case 'login_success':
+      case 'access_granted':
+      case 'access_entry':
+        return LogIn;
+      case 'login_failure':
+      case 'panic_button':
+        return AlertTriangle;
+      case 'logout':
+      case 'access_denied':
+      case 'access_exit':
+        return LogOut;
+      default:
+        return Activity;
+    }
+  };
+
+  // Helper function to get status color for MobileCard
+  const getEventStatusColor = (eventType) => {
+    if (eventType.includes('success') || eventType.includes('granted') || eventType.includes('completed')) return 'green';
+    if (eventType.includes('failure') || eventType.includes('denied') || eventType.includes('panic')) return 'red';
+    if (eventType.includes('created') || eventType.includes('enrolled')) return 'blue';
+    return 'yellow';
+  };
+
   const filteredLogs = logs.filter(log => {
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
