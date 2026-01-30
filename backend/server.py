@@ -904,6 +904,48 @@ async def get_me(current_user = Depends(get_current_user)):
         condominium_id=current_user.get("condominium_id")
     )
 
+@api_router.post("/auth/change-password")
+async def change_password(
+    password_data: PasswordChangeRequest,
+    request: Request,
+    current_user = Depends(get_current_user)
+):
+    """Change user password - especially for first login after credential email"""
+    # Verify current password
+    user = await db.users.find_one({"id": current_user["id"]})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    if not verify_password(password_data.current_password, user.get("hashed_password", "")):
+        raise HTTPException(status_code=400, detail="Contraseña actual incorrecta")
+    
+    # Check new password is different from current
+    if password_data.current_password == password_data.new_password:
+        raise HTTPException(status_code=400, detail="La nueva contraseña debe ser diferente a la actual")
+    
+    # Update password and clear reset flag
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {
+            "$set": {
+                "hashed_password": hash_password(password_data.new_password),
+                "password_reset_required": False,
+                "password_changed_at": datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    
+    await log_audit_event(
+        AuditEventType.PASSWORD_CHANGED,
+        current_user["id"],
+        "auth",
+        {"forced_reset": user.get("password_reset_required", False)},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {"message": "Contraseña actualizada exitosamente"}
+
 # ==================== PROFILE MODULE ====================
 @api_router.get("/profile", response_model=ProfileResponse)
 async def get_profile(current_user = Depends(get_current_user)):
