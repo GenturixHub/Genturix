@@ -191,7 +191,13 @@ const LoginPage = () => {
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [tempPassword, setTempPassword] = useState('');
-  const [shouldNavigate, setShouldNavigate] = useState(false);
+  // Track login state for password reset flow
+  const [loginState, setLoginState] = useState({
+    isLoggedIn: false,
+    user: null,
+    needsPasswordReset: false,
+    tempPassword: ''
+  });
 
   const navigateBasedOnRole = useCallback((user) => {
     const roles = user.roles || [];
@@ -222,24 +228,26 @@ const LoginPage = () => {
     }
   }, [navigate]);
 
-  // Effect to handle navigation after login success
+  // Handle navigation based on login state
   useEffect(() => {
-    // Only navigate if shouldNavigate is true AND password change dialog is NOT showing
-    if (shouldNavigate && loggedInUser && !showPasswordChange) {
-      // Small delay to ensure state is fully updated
-      const timer = setTimeout(() => {
-        navigateBasedOnRole(loggedInUser);
-      }, 100);
-      return () => clearTimeout(timer);
+    if (loginState.isLoggedIn && loginState.user) {
+      if (loginState.needsPasswordReset) {
+        // Show password change dialog - do not navigate
+        setShowPasswordChange(true);
+        setTempPassword(loginState.tempPassword);
+        setLoggedInUser(loginState.user);
+      } else {
+        // Normal login - navigate to dashboard
+        navigateBasedOnRole(loginState.user);
+      }
     }
-  }, [shouldNavigate, loggedInUser, showPasswordChange, navigateBasedOnRole]);
+  }, [loginState, navigateBasedOnRole]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-    setShouldNavigate(false);
-    setShowPasswordChange(false);
+    setLoginState({ isLoggedIn: false, user: null, needsPasswordReset: false, tempPassword: '' });
 
     try {
       const result = await login(email, password);
@@ -250,20 +258,15 @@ const LoginPage = () => {
         localStorage.removeItem('rememberedEmail');
       }
 
-      setLoggedInUser(result.user);
+      // Set login state - this will trigger useEffect for navigation
+      setLoginState({
+        isLoggedIn: true,
+        user: result.user,
+        needsPasswordReset: result.passwordResetRequired || false,
+        tempPassword: password
+      });
 
-      // Check if password reset is required - MUST be handled before navigation
-      if (result.passwordResetRequired) {
-        setTempPassword(password);
-        setIsLoading(false);
-        // Set showPasswordChange AFTER isLoading is false to trigger re-render
-        setTimeout(() => setShowPasswordChange(true), 50);
-        return;
-      }
-
-      // Normal login - schedule navigation
       setIsLoading(false);
-      setShouldNavigate(true);
     } catch (err) {
       setError(err.message || 'Email o contraseña incorrectos');
       setIsLoading(false);
@@ -272,8 +275,10 @@ const LoginPage = () => {
 
   const handlePasswordChangeSuccess = () => {
     setShowPasswordChange(false);
-    // Schedule navigation after password change
-    setShouldNavigate(true);
+    // Navigate after password change
+    if (loggedInUser) {
+      navigateBasedOnRole(loggedInUser);
+    }
   };
 
   const handleSeedDemo = async () => {
