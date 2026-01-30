@@ -3482,11 +3482,25 @@ async def create_user_by_admin(
     if not condominium_id:
         raise HTTPException(status_code=400, detail="Se requiere condominium_id para crear usuarios")
     
+    # Get condominium name for email
+    condo = await db.condominiums.find_one({"id": condominium_id}, {"_id": 0, "name": 1})
+    condo_name = condo.get("name", "GENTURIX") if condo else "GENTURIX"
+    
+    # Determine if we should send credentials email and generate temp password
+    send_email = user_data.send_credentials_email
+    password_to_use = user_data.password
+    password_reset_required = False
+    
+    if send_email:
+        # Generate a temporary password if sending email
+        password_to_use = generate_temporary_password()
+        password_reset_required = True
+    
     user_id = str(uuid.uuid4())
     user_doc = {
         "id": user_id,
         "email": user_data.email,
-        "hashed_password": hash_password(user_data.password),
+        "hashed_password": hash_password(password_to_use),
         "full_name": user_data.full_name,
         "roles": [user_data.role],
         "condominium_id": condominium_id,
@@ -3495,7 +3509,9 @@ async def create_user_by_admin(
         "is_locked": False,
         "created_by": current_user["id"],
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "role_data": role_data  # Store role-specific data
+        "role_data": role_data,  # Store role-specific data
+        "password_reset_required": password_reset_required,
+        "credentials_email_sent": False
     }
     
     await db.users.insert_one(user_doc)
@@ -3508,22 +3524,86 @@ async def create_user_by_admin(
             "user_id": user_id, 
             "email": user_data.email, 
             "role": user_data.role,
-            "role_data": role_data
+            "role_data": role_data,
+            "send_credentials_email": send_email
         },
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
     )
     
-    return {
+    # Send credentials email if requested
+    email_result = None
+    if send_email:
+        # Get the login URL from the request origin
+        origin = request.headers.get("origin", "https://genturix.com")
+        login_url = f"{origin}/login"
+        
+        email_result = await send_credentials_email(
+            recipient_email=user_data.email,
+            user_name=user_data.full_name,
+            role=user_data.role,
+            condominium_name=condo_name,
+            temporary_password=password_to_use,
+            login_url=login_url
+        )
+        
+        # Update user document with email status
+        email_sent = email_result.get("status") == "success"
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {"credentials_email_sent": email_sent}}
+        )
+        
+        # Log email dispatch
+        if email_sent:
+            await log_audit_event(
+                AuditEventType.CREDENTIALS_EMAIL_SENT,
+                current_user["id"],
+                "admin",
+                {
+                    "user_id": user_id,
+                    "recipient_email": user_data.email,
+                    "role": user_data.role,
+                    "condominium_id": condominium_id
+                },
+                request.client.host if request.client else "unknown",
+                request.headers.get("user-agent", "unknown")
+            )
+        else:
+            await log_audit_event(
+                AuditEventType.CREDENTIALS_EMAIL_FAILED,
+                current_user["id"],
+                "admin",
+                {
+                    "user_id": user_id,
+                    "recipient_email": user_data.email,
+                    "error": email_result.get("error", "Unknown error")
+                },
+                request.client.host if request.client else "unknown",
+                request.headers.get("user-agent", "unknown")
+            )
+    
+    response = {
         "message": f"Usuario {user_data.full_name} creado exitosamente",
         "user_id": user_id,
         "role": user_data.role,
         "role_data": role_data,
         "credentials": {
             "email": user_data.email,
-            "password": "********"
+            "password": "********"  # Never expose password in response
         }
     }
+    
+    if send_email:
+        response["email_status"] = email_result.get("status", "unknown")
+        if email_result.get("status") == "success":
+            response["email_message"] = f"Credenciales enviadas a {user_data.email}"
+        elif email_result.get("status") == "skipped":
+            response["email_message"] = "Servicio de email no configurado - credenciales no enviadas"
+        else:
+            response["email_message"] = f"Error al enviar email: {email_result.get('error', 'Unknown')}"
+    
+    return response
 
 @api_router.get("/admin/users")
 async def get_users_by_admin(
