@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 30, 2026 (Session 23 - Email Credentials Feature Complete)
+## Last Updated: January 30, 2026 (Session 24 - Push Notifications Complete)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,45 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ FULLY MOBILE-OPTIMIZED & PRODUCTION READY
+
+### Session 24 - PUSH NOTIFICATIONS FOR PANIC ALERTS (January 30, 2026) ⭐⭐⭐⭐⭐ 
+**100% Tests Passed (13/13 Backend + Frontend Complete)**
+
+#### KEY ACCOMPLISHMENTS
+1. **Backend Implementation (COMPLETE)**
+   - ✅ VAPID keys generated and stored in environment variables
+   - ✅ GET /api/push/vapid-public-key - Returns public key for client subscription
+   - ✅ POST /api/push/subscribe - Allows guards to subscribe to push notifications
+   - ✅ DELETE /api/push/unsubscribe - Removes push subscription
+   - ✅ GET /api/push/status - Returns subscription status
+   - ✅ pywebpush integration for sending Web Push notifications
+   - ✅ notify_guards_of_panic() helper sends notifications to all guards in condominium
+   - ✅ Multi-tenant filtering - Only guards from same condominium receive alerts
+   - ✅ Role validation - Only Guardia, Guarda, Administrador, SuperAdmin, Supervisor can subscribe
+   - ✅ Automatic cleanup of expired/invalid subscriptions (410 Gone handling)
+
+2. **Frontend Implementation (COMPLETE)**
+   - ✅ Service Worker with push event handler and notification actions
+   - ✅ usePushNotifications hook for subscription management
+   - ✅ PushNotificationBanner - Contextual permission request in GuardUI
+   - ✅ PushNotificationToggle - Settings toggle in Profile tab
+   - ✅ Notification click opens /guard?alert={event_id}
+   - ✅ GuardUI handles alert parameter and highlights the alert
+   - ✅ Service worker message listener for PANIC_ALERT_CLICK
+   - ✅ LocalStorage persistence for dismissed banner state
+
+3. **Panic Alert Integration**
+   - ✅ POST /api/security/panic now includes push_notifications in response
+   - ✅ Notification payload includes: panic type, resident name, apartment, timestamp
+   - ✅ Urgent vibration pattern for mobile devices
+   - ✅ requireInteraction: true - Notification stays until user dismisses
+
+4. **UX Decisions**
+   - ✅ Permission request via explicit banner (not on login)
+   - ✅ Native system sound (no custom MP3 - more reliable across platforms)
+   - ✅ Banner only shown when: permission != 'denied' && not subscribed && not dismissed
+
+5. **Test Report**: `/app/test_reports/iteration_31.json` - 100% pass rate
 
 ### Session 23 - EMAIL CREDENTIALS FEATURE (January 30, 2026) ⭐⭐⭐⭐⭐ 
 **100% Tests Passed (9/9 Backend + Frontend Complete) - P0 Bug Fixed**
