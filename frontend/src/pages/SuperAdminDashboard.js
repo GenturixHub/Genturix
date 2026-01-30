@@ -95,13 +95,23 @@ import { cn } from '../lib/utils';
 
 // Super Admin Mobile Navigation
 const SuperAdminMobileNav = ({ activeTab, onTabChange }) => {
+  const navigate = useNavigate();
+  
   const items = [
     { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'condominiums', label: 'Condos', icon: Building2 },
     { id: 'content', label: 'Contenido', icon: BookOpen },
     { id: 'users', label: 'Usuarios', icon: Users },
-    { id: 'profile', label: 'Perfil', icon: User },
+    { id: 'profile', label: 'Perfil', icon: User, href: '/profile' },
   ];
+
+  const handleNavClick = (item) => {
+    if (item.href) {
+      navigate(item.href);
+    } else {
+      onTabChange(item.id);
+    }
+  };
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0F]/95 backdrop-blur-lg border-t border-[#1E293B] safe-area-bottom" data-testid="superadmin-mobile-nav">
@@ -113,7 +123,7 @@ const SuperAdminMobileNav = ({ activeTab, onTabChange }) => {
           return (
             <button
               key={item.id}
-              onClick={() => onTabChange(item.id)}
+              onClick={() => handleNavClick(item)}
               data-testid={`superadmin-nav-${item.id}`}
               className={cn(
                 'flex flex-col items-center justify-center gap-1 py-2 px-3 min-w-[60px]',
