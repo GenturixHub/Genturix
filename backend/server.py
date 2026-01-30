@@ -2920,19 +2920,38 @@ async def create_evaluation(
     current_user = Depends(require_role("Administrador", "HR", "Supervisor"))
 ):
     """Create a new performance evaluation for an employee"""
-    # Get the employee being evaluated
+    condominium_id = current_user.get("condominium_id")
+    
+    # First try to find in guards collection
     employee = await db.guards.find_one({"id": evaluation.employee_id})
-    if not employee:
-        raise HTTPException(status_code=404, detail="Empleado no encontrado")
+    employee_name = None
     
-    # Verify same condominium (multi-tenant isolation)
-    if employee.get("condominium_id") != current_user.get("condominium_id"):
-        raise HTTPException(status_code=403, detail="No puedes evaluar empleados de otro condominio")
-    
-    # Cannot evaluate yourself
-    evaluator_guard = await db.guards.find_one({"user_id": current_user["id"]})
-    if evaluator_guard and evaluator_guard["id"] == evaluation.employee_id:
-        raise HTTPException(status_code=400, detail="No puedes evaluarte a ti mismo")
+    if employee:
+        # Verify same condominium (multi-tenant isolation)
+        if employee.get("condominium_id") != condominium_id:
+            raise HTTPException(status_code=403, detail="No puedes evaluar empleados de otro condominio")
+        employee_name = employee["user_name"]
+        
+        # Cannot evaluate yourself
+        evaluator_guard = await db.guards.find_one({"user_id": current_user["id"]})
+        if evaluator_guard and evaluator_guard["id"] == evaluation.employee_id:
+            raise HTTPException(status_code=400, detail="No puedes evaluarte a ti mismo")
+    else:
+        # Try to find in users collection (for users with employee roles but no guard record)
+        employee = await db.users.find_one({
+            "id": evaluation.employee_id,
+            "condominium_id": condominium_id,
+            "roles": {"$in": ["Guarda", "Supervisor", "HR"]}
+        })
+        
+        if not employee:
+            raise HTTPException(status_code=404, detail="Empleado no encontrado")
+        
+        employee_name = employee.get("full_name", "Unknown")
+        
+        # Cannot evaluate yourself
+        if employee["id"] == current_user["id"]:
+            raise HTTPException(status_code=400, detail="No puedes evaluarte a ti mismo")
     
     # Calculate average score
     categories = evaluation.categories
@@ -2942,7 +2961,7 @@ async def create_evaluation(
     evaluation_doc = {
         "id": str(uuid.uuid4()),
         "employee_id": evaluation.employee_id,
-        "employee_name": employee["user_name"],
+        "employee_name": employee_name,
         "evaluator_id": current_user["id"],
         "evaluator_name": current_user.get("full_name", "Unknown"),
         "categories": {
@@ -2953,7 +2972,7 @@ async def create_evaluation(
         },
         "score": avg_score,
         "comments": evaluation.comments,
-        "condominium_id": current_user.get("condominium_id"),
+        "condominium_id": condominium_id,
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     
@@ -2967,9 +2986,9 @@ async def create_evaluation(
         {
             "evaluation_id": evaluation_doc["id"],
             "employee_id": evaluation.employee_id,
-            "employee_name": employee["user_name"],
+            "employee_name": employee_name,
             "score": avg_score,
-            "condominium_id": evaluation_doc["condominium_id"]
+            "condominium_id": condominium_id
         },
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
