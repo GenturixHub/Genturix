@@ -9,17 +9,20 @@ export const AuthProvider = ({ children }) => {
   const [accessToken, setAccessToken] = useState(null);
   const [refreshToken, setRefreshToken] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [passwordResetRequired, setPasswordResetRequired] = useState(false);
 
   useEffect(() => {
     const storedAccessToken = sessionStorage.getItem('accessToken');
     const storedRefreshToken = sessionStorage.getItem('refreshToken');
     const storedUser = sessionStorage.getItem('user');
+    const storedPasswordReset = sessionStorage.getItem('passwordResetRequired');
 
     if (storedAccessToken && storedUser) {
       setAccessToken(storedAccessToken);
       setRefreshToken(storedRefreshToken);
       try {
         setUser(JSON.parse(storedUser));
+        setPasswordResetRequired(storedPasswordReset === 'true');
       } catch (e) {
         console.error('Error parsing stored user:', e);
       }
@@ -53,12 +56,48 @@ export const AuthProvider = ({ children }) => {
     sessionStorage.setItem('accessToken', data.access_token);
     sessionStorage.setItem('refreshToken', data.refresh_token);
     sessionStorage.setItem('user', JSON.stringify(data.user));
+    sessionStorage.setItem('passwordResetRequired', data.password_reset_required ? 'true' : 'false');
 
     setAccessToken(data.access_token);
     setRefreshToken(data.refresh_token);
     setUser(data.user);
+    setPasswordResetRequired(data.password_reset_required || false);
 
-    return data.user;
+    return { user: data.user, passwordResetRequired: data.password_reset_required };
+  };
+
+  const changePassword = async (currentPassword, newPassword) => {
+    if (!accessToken) throw new Error('Not authenticated');
+    
+    const response = await fetch(`${API_URL}/api/auth/change-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        current_password: currentPassword,
+        new_password: newPassword,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Password change failed');
+    }
+
+    // Clear password reset flag
+    setPasswordResetRequired(false);
+    sessionStorage.setItem('passwordResetRequired', 'false');
+    
+    // Update user object
+    if (user) {
+      const updatedUser = { ...user, password_reset_required: false };
+      setUser(updatedUser);
+      sessionStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+
+    return await response.json();
   };
 
   const register = async (email, password, fullName, roles = ['Residente']) => {
@@ -99,10 +138,12 @@ export const AuthProvider = ({ children }) => {
       sessionStorage.removeItem('accessToken');
       sessionStorage.removeItem('refreshToken');
       sessionStorage.removeItem('user');
+      sessionStorage.removeItem('passwordResetRequired');
       
       setUser(null);
       setAccessToken(null);
       setRefreshToken(null);
+      setPasswordResetRequired(false);
     }
   }, [accessToken]);
 
