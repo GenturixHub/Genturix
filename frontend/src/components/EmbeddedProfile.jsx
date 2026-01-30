@@ -20,6 +20,7 @@ import {
   DialogContent,
 } from './ui/dialog';
 import api from '../services/api';
+import { PushNotificationToggle } from './PushNotificationBanner';
 import { 
   User,
   Mail,
