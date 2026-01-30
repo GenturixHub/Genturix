@@ -1705,9 +1705,10 @@ const EmployeeHistoryDialog = ({ open, onClose, employee, evaluations, onViewDet
 };
 
 // Main Evaluation Submodule
-const EvaluacionSubmodule = ({ employees, canCreate = true }) => {
+const EvaluacionSubmodule = ({ employees: propEmployees, canCreate = true }) => {
   const isMobile = useIsMobile();
   const [evaluations, setEvaluations] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -1716,20 +1717,26 @@ const EvaluacionSubmodule = ({ employees, canCreate = true }) => {
   const [selectedEvaluation, setSelectedEvaluation] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   
-  const fetchEvaluations = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
-      const data = await api.getEvaluations();
-      setEvaluations(data);
+      const [evaluationsData, employeesData] = await Promise.all([
+        api.getEvaluations(),
+        api.getEvaluableEmployees().catch(() => propEmployees || [])
+      ]);
+      setEvaluations(evaluationsData);
+      // Use evaluable employees if available, fallback to prop employees
+      setEmployees(employeesData.length > 0 ? employeesData : propEmployees);
     } catch (error) {
       console.error('Error fetching evaluations:', error);
+      setEmployees(propEmployees || []);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [propEmployees]);
   
   useEffect(() => {
-    fetchEvaluations();
-  }, [fetchEvaluations]);
+    fetchData();
+  }, [fetchData]);
   
   const handleViewHistory = (employee) => {
     setSelectedEmployee(employee);
