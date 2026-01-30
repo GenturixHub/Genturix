@@ -1463,7 +1463,7 @@ const UsersTab = ({ condos }) => {
           />
         </div>
         <Select value={condoFilter} onValueChange={setCondoFilter}>
-          <SelectTrigger className="w-48 bg-[#0A0A0F] border-[#1E293B]">
+          <SelectTrigger className="w-full sm:w-48 bg-[#0A0A0F] border-[#1E293B]">
             <SelectValue placeholder="Condominio" />
           </SelectTrigger>
           <SelectContent className="bg-[#0F111A] border-[#1E293B]">
@@ -1474,7 +1474,7 @@ const UsersTab = ({ condos }) => {
           </SelectContent>
         </Select>
         <Select value={roleFilter} onValueChange={setRoleFilter}>
-          <SelectTrigger className="w-36 bg-[#0A0A0F] border-[#1E293B]">
+          <SelectTrigger className="w-full sm:w-36 bg-[#0A0A0F] border-[#1E293B]">
             <SelectValue placeholder="Rol" />
           </SelectTrigger>
           <SelectContent className="bg-[#0F111A] border-[#1E293B]">
@@ -1490,14 +1490,14 @@ const UsersTab = ({ condos }) => {
       </div>
 
       {/* Stats */}
-      <div className="flex gap-4 text-sm">
+      <div className="flex flex-wrap gap-4 text-sm">
         <span className="text-muted-foreground">Total: <strong className="text-white">{filteredUsers.length}</strong></span>
         <span className="text-muted-foreground">Activos: <strong className="text-green-400">{filteredUsers.filter(u => u.is_active).length}</strong></span>
         <span className="text-muted-foreground">Bloqueados: <strong className="text-red-400">{filteredUsers.filter(u => !u.is_active).length}</strong></span>
       </div>
 
-      {/* Table */}
-      <Card className="bg-[#0F111A] border-[#1E293B]">
+      {/* Desktop Table View - hidden on mobile */}
+      <Card className="bg-[#0F111A] border-[#1E293B] hidden lg:block">
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -1572,6 +1572,41 @@ const UsersTab = ({ condos }) => {
           </ScrollArea>
         )}
       </Card>
+
+      {/* Mobile Card View */}
+      <div className="block lg:hidden">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <MobileCardList>
+            {filteredUsers.map((user) => (
+              <MobileCard
+                key={user.id}
+                testId={`user-card-global-${user.id}`}
+                title={user.full_name || 'Sin nombre'}
+                subtitle={user.email}
+                icon={User}
+                status={user.is_active ? 'Activo' : 'Bloqueado'}
+                statusColor={user.is_active ? 'green' : 'red'}
+                details={[
+                  { label: 'Condominio', value: user.condominium_name || 'Sin asignar' },
+                  { label: 'Rol', value: user.roles?.join(', ') || 'Sin rol' },
+                ]}
+                actions={user.roles?.includes('SuperAdmin') ? [] : [
+                  {
+                    label: user.is_active ? 'Bloquear' : 'Desbloquear',
+                    icon: user.is_active ? Lock : Unlock,
+                    onClick: () => handleLockToggle(user.id, user.is_active),
+                    variant: user.is_active ? 'destructive' : 'default'
+                  }
+                ]}
+              />
+            ))}
+          </MobileCardList>
+        )}
+      </div>
     </div>
   );
 };
