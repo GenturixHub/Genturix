@@ -1,24 +1,24 @@
-// GENTURIX Service Worker for PWA
-const CACHE_NAME = 'genturix-v1';
-const STATIC_ASSETS = [
+// GENTURIX Service Worker for PWA + Push Notifications
+const CACHE_NAME = 'genturix-v2';
+const OFFLINE_URL = '/offline.html';
+
+// Assets to cache
+const urlsToCache = [
   '/',
-  '/index.html',
+  '/static/js/bundle.js',
   '/manifest.json',
-  '/static/js/main.js',
-  '/static/css/main.css'
+  '/logo192.png',
+  '/favicon.ico',
+  OFFLINE_URL
 ];
 
-// Install event - cache static assets
+// Install event - cache basic assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('GENTURIX: Caching static assets');
-      return cache.addAll(STATIC_ASSETS).catch((error) => {
-        console.log('GENTURIX: Cache addAll error (non-critical):', error);
-      });
-    })
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(urlsToCache))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
 // Activate event - clean old caches
@@ -26,29 +26,27 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
+        cacheNames.filter((cacheName) => {
+          return cacheName !== CACHE_NAME;
+        }).map((cacheName) => {
+          return caches.delete(cacheName);
+        })
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 // Fetch event - network first, fallback to cache
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') return;
-  
-  // Skip API calls - always go to network
-  if (event.request.url.includes('/api/')) {
+  // Skip non-GET requests and API calls
+  if (event.request.method !== 'GET' || event.request.url.includes('/api/')) {
     return;
   }
 
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Clone response for caching
+        // Clone the response and cache it
         const responseClone = response.clone();
         caches.open(CACHE_NAME).then((cache) => {
           cache.put(event.request, responseClone);
@@ -57,58 +55,128 @@ self.addEventListener('fetch', (event) => {
       })
       .catch(() => {
         // Fallback to cache
-        return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          // Return offline page for navigation requests
-          if (event.request.mode === 'navigate') {
-            return caches.match('/');
-          }
-          return new Response('Offline', { status: 503 });
-        });
+        return caches.match(event.request)
+          .then((response) => {
+            if (response) {
+              return response;
+            }
+            // If not in cache, return offline page for navigation requests
+            if (event.request.mode === 'navigate') {
+              return caches.match(OFFLINE_URL);
+            }
+            return new Response('', { status: 404 });
+          });
       })
   );
 });
 
-// Push notification event (for future use)
-self.addEventListener('push', (event) => {
-  if (!event.data) return;
+// ==================== PUSH NOTIFICATION HANDLING ====================
 
-  const data = event.data.json();
+// Handle push notification received
+self.addEventListener('push', (event) => {
+  console.log('[SW] Push notification received');
+  
+  let data = {
+    title: 'GENTURIX - Nueva Notificación',
+    body: 'Tienes una nueva notificación',
+    icon: '/logo192.png',
+    badge: '/logo192.png',
+    tag: 'default',
+    requireInteraction: true,
+    data: {}
+  };
+
+  try {
+    if (event.data) {
+      const payload = event.data.json();
+      data = {
+        title: payload.title || data.title,
+        body: payload.body || data.body,
+        icon: payload.icon || data.icon,
+        badge: payload.badge || data.badge,
+        tag: payload.tag || data.tag,
+        requireInteraction: payload.requireInteraction !== undefined ? payload.requireInteraction : true,
+        data: payload.data || {}
+      };
+    }
+  } catch (e) {
+    console.error('[SW] Error parsing push data:', e);
+  }
+
+  // Configure notification options
   const options = {
-    body: data.body || 'Nueva notificación de GENTURIX',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/badge-72x72.png',
-    vibrate: [200, 100, 200],
-    tag: data.tag || 'genturix-notification',
-    data: {
-      url: data.url || '/'
-    },
-    actions: data.actions || []
+    body: data.body,
+    icon: data.icon,
+    badge: data.badge,
+    tag: data.tag,
+    requireInteraction: data.requireInteraction,
+    vibrate: [200, 100, 200, 100, 200], // Urgent vibration pattern
+    data: data.data,
+    actions: data.data.type === 'panic_alert' ? [
+      { action: 'open', title: 'Ver Alerta' },
+      { action: 'dismiss', title: 'Cerrar' }
+    ] : []
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'GENTURIX', options)
+    self.registration.showNotification(data.title, options)
   );
 });
 
-// Notification click event
+// Handle notification click
 self.addEventListener('notificationclick', (event) => {
+  console.log('[SW] Notification clicked:', event.action);
+  
   event.notification.close();
   
-  const url = event.notification.data?.url || '/';
+  // Handle dismiss action
+  if (event.action === 'dismiss') {
+    return;
+  }
   
+  // Determine URL to open
+  let urlToOpen = '/';
+  const notificationData = event.notification.data || {};
+  
+  if (notificationData.url) {
+    urlToOpen = notificationData.url;
+  } else if (notificationData.type === 'panic_alert') {
+    urlToOpen = `/guard?alert=${notificationData.event_id}`;
+  }
+  
+  // Open or focus the app
   event.waitUntil(
-    clients.matchAll({ type: 'window' }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url === url && 'focus' in client) {
-          return client.focus();
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        // Try to find an existing window to focus
+        for (const client of clientList) {
+          if (client.url.includes(self.registration.scope) && 'focus' in client) {
+            // Navigate existing window to the alert
+            client.postMessage({
+              type: 'PANIC_ALERT_CLICK',
+              data: notificationData
+            });
+            return client.focus();
+          }
         }
-      }
-      if (clients.openWindow) {
-        return clients.openWindow(url);
-      }
-    })
+        // No existing window, open a new one
+        if (clients.openWindow) {
+          return clients.openWindow(urlToOpen);
+        }
+      })
   );
+});
+
+// Handle notification close
+self.addEventListener('notificationclose', (event) => {
+  console.log('[SW] Notification closed');
+});
+
+// Handle messages from the main app
+self.addEventListener('message', (event) => {
+  console.log('[SW] Message received:', event.data);
+  
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
