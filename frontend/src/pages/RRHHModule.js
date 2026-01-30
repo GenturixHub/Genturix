@@ -1347,48 +1347,552 @@ const OnboardingSubmodule = ({ employees }) => (
 );
 
 // ============================================
-// SUBMÓDULO: EVALUACIÓN DE DESEMPEÑO (COMING SOON)
+// SUBMÓDULO: EVALUACIÓN DE DESEMPEÑO
 // ============================================
-const EvaluacionSubmodule = ({ employees }) => (
-  <div className="space-y-4">
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <h3 className="text-lg font-semibold">Evaluaciones de Desempeño</h3>
-        <ComingSoonBadge />
-      </div>
-      <Button size="sm" disabled className="opacity-50 cursor-not-allowed">
-        <Plus className="w-4 h-4 mr-2" />
-        Nueva Evaluación
-      </Button>
-    </div>
 
-    {/* Coming Soon Notice */}
-    <div className="p-4 rounded-lg bg-yellow-500/5 border border-yellow-500/20">
-      <p className="text-sm text-yellow-400/80">
-        ⭐ Este módulo está en desarrollo. Próximamente podrás crear evaluaciones, dar feedback y consultar historial de desempeño.
-      </p>
-    </div>
-
-    <div className="grid gap-3 opacity-60">
-      {employees.slice(0, 4).map(emp => (
-        <div key={emp.id} className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B]">
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-semibold text-white">{emp.user_name}</span>
-            <div className="flex items-center gap-1">
-              {[1,2,3,4,5].map(star => (
-                <Star key={star} className={`w-4 h-4 ${star <= 4 ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'}`} />
-              ))}
-            </div>
-          </div>
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>Última evaluación: --</span>
-            <Button variant="ghost" size="sm" className="h-6 text-xs" disabled>Ver historial</Button>
-          </div>
-        </div>
+// Star Rating Component
+const StarRating = ({ value, onChange, readonly = false, size = 'md' }) => {
+  const sizes = { sm: 'w-4 h-4', md: 'w-5 h-5', lg: 'w-6 h-6' };
+  const iconSize = sizes[size] || sizes.md;
+  
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map(star => (
+        <button
+          key={star}
+          type="button"
+          disabled={readonly}
+          onClick={() => !readonly && onChange?.(star)}
+          className={`transition-all duration-150 ${readonly ? 'cursor-default' : 'cursor-pointer hover:scale-110'}`}
+        >
+          <Star 
+            className={`${iconSize} ${star <= value ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'}`}
+          />
+        </button>
       ))}
     </div>
-  </div>
-);
+  );
+};
+
+// Create Evaluation Dialog
+const CreateEvaluationDialog = ({ open, onClose, employees, onSuccess }) => {
+  const [selectedEmployee, setSelectedEmployee] = useState('');
+  const [categories, setCategories] = useState({
+    discipline: 3,
+    punctuality: 3,
+    performance: 3,
+    communication: 3
+  });
+  const [comments, setComments] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const categoryLabels = {
+    discipline: 'Disciplina',
+    punctuality: 'Puntualidad',
+    performance: 'Desempeño',
+    communication: 'Comunicación'
+  };
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedEmployee) return;
+    
+    setIsSubmitting(true);
+    try {
+      await api.createEvaluation({
+        employee_id: selectedEmployee,
+        categories,
+        comments: comments.trim() || null
+      });
+      onSuccess?.();
+      onClose();
+      // Reset form
+      setSelectedEmployee('');
+      setCategories({ discipline: 3, punctuality: 3, performance: 3, communication: 3 });
+      setComments('');
+    } catch (error) {
+      console.error('Error creating evaluation:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const avgScore = Object.values(categories).reduce((a, b) => a + b, 0) / 4;
+  
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-primary" />
+            Nueva Evaluación de Desempeño
+          </DialogTitle>
+          <DialogDescription>
+            Evalúa el desempeño de un empleado en diferentes categorías
+          </DialogDescription>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label>Empleado a evaluar</Label>
+            <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+              <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B] mt-1">
+                <SelectValue placeholder="Selecciona un empleado" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#0F111A] border-[#1E293B]">
+                {employees.map(emp => (
+                  <SelectItem key={emp.id} value={emp.id}>
+                    {emp.user_name} - {emp.position || 'Guarda'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-3">
+            <Label>Calificaciones por Categoría</Label>
+            {Object.entries(categoryLabels).map(([key, label]) => (
+              <div key={key} className="flex items-center justify-between p-3 rounded-lg bg-[#0A0A0F] border border-[#1E293B]">
+                <span className="text-sm text-muted-foreground">{label}</span>
+                <StarRating 
+                  value={categories[key]} 
+                  onChange={(val) => setCategories(prev => ({ ...prev, [key]: val }))}
+                />
+              </div>
+            ))}
+          </div>
+          
+          <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10 border border-primary/20">
+            <span className="text-sm font-medium">Promedio General</span>
+            <div className="flex items-center gap-2">
+              <StarRating value={Math.round(avgScore)} readonly size="sm" />
+              <span className="text-lg font-bold text-primary">{avgScore.toFixed(1)}</span>
+            </div>
+          </div>
+          
+          <div>
+            <Label>Comentarios (opcional)</Label>
+            <textarea
+              value={comments}
+              onChange={(e) => setComments(e.target.value)}
+              placeholder="Observaciones sobre el desempeño del empleado..."
+              className="w-full mt-1 p-3 rounded-lg bg-[#0A0A0F] border border-[#1E293B] text-white text-sm min-h-[80px] resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+          
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={!selectedEmployee || isSubmitting}>
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Guardar Evaluación
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Evaluation Detail Dialog
+const EvaluationDetailDialog = ({ open, onClose, evaluation }) => {
+  if (!evaluation) return null;
+  
+  const categoryLabels = {
+    discipline: 'Disciplina',
+    punctuality: 'Puntualidad',
+    performance: 'Desempeño',
+    communication: 'Comunicación'
+  };
+  
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-md">
+        <DialogHeader>
+          <DialogTitle>Detalle de Evaluación</DialogTitle>
+          <DialogDescription>
+            Evaluación de {evaluation.employee_name}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10 border border-primary/20">
+            <div>
+              <p className="text-sm text-muted-foreground">Puntuación General</p>
+              <p className="text-2xl font-bold text-white">{evaluation.score?.toFixed(1) || 'N/A'}</p>
+            </div>
+            <StarRating value={Math.round(evaluation.score || 0)} readonly size="lg" />
+          </div>
+          
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">Categorías</p>
+            {evaluation.categories && Object.entries(evaluation.categories).map(([key, value]) => (
+              <div key={key} className="flex items-center justify-between p-2 rounded-lg bg-[#0A0A0F]">
+                <span className="text-sm">{categoryLabels[key] || key}</span>
+                <StarRating value={value} readonly size="sm" />
+              </div>
+            ))}
+          </div>
+          
+          {evaluation.comments && (
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Comentarios</p>
+              <p className="text-sm p-3 rounded-lg bg-[#0A0A0F] border border-[#1E293B]">
+                {evaluation.comments}
+              </p>
+            </div>
+          )}
+          
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p className="text-muted-foreground">Evaluador</p>
+              <p className="font-medium">{evaluation.evaluator_name}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Fecha</p>
+              <p className="font-medium">
+                {evaluation.created_at ? new Date(evaluation.created_at).toLocaleDateString('es-MX') : 'N/A'}
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <DialogFooter>
+          <Button onClick={onClose}>Cerrar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Employee Evaluation Card (Mobile)
+const EmployeeEvaluationCard = ({ employee, evaluations, onViewHistory, onNewEvaluation, canCreate }) => {
+  const lastEvaluation = evaluations.find(e => e.employee_id === employee.id);
+  const employeeEvaluations = evaluations.filter(e => e.employee_id === employee.id);
+  const avgScore = employeeEvaluations.length > 0 
+    ? employeeEvaluations.reduce((acc, e) => acc + (e.score || 0), 0) / employeeEvaluations.length 
+    : 0;
+  
+  return (
+    <div className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B]" data-testid={`eval-card-${employee.id}`}>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+            <User className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <p className="font-semibold text-white">{employee.user_name}</p>
+            <p className="text-xs text-muted-foreground">{employee.position || 'Guarda'}</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <StarRating value={Math.round(avgScore)} readonly size="sm" />
+          <p className="text-xs text-muted-foreground mt-1">
+            {employeeEvaluations.length} evaluación{employeeEvaluations.length !== 1 ? 'es' : ''}
+          </p>
+        </div>
+      </div>
+      
+      <div className="flex items-center justify-between pt-3 border-t border-[#1E293B]">
+        <span className="text-xs text-muted-foreground">
+          Última: {lastEvaluation?.created_at 
+            ? new Date(lastEvaluation.created_at).toLocaleDateString('es-MX') 
+            : 'Sin evaluaciones'}
+        </span>
+        <div className="flex gap-2">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-8 text-xs"
+            onClick={() => onViewHistory(employee)}
+          >
+            Ver historial
+          </Button>
+          {canCreate && (
+            <Button 
+              size="sm" 
+              className="h-8 text-xs"
+              onClick={() => onNewEvaluation(employee)}
+            >
+              <Plus className="w-3 h-3 mr-1" />
+              Evaluar
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Employee History Dialog
+const EmployeeHistoryDialog = ({ open, onClose, employee, evaluations, onViewDetail }) => {
+  if (!employee) return null;
+  
+  const employeeEvals = evaluations.filter(e => e.employee_id === employee.id);
+  const avgScore = employeeEvals.length > 0 
+    ? employeeEvals.reduce((acc, e) => acc + (e.score || 0), 0) / employeeEvals.length 
+    : 0;
+  
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Historial de Evaluaciones</DialogTitle>
+          <DialogDescription>
+            Evaluaciones de {employee.user_name}
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-3 rounded-lg bg-primary/10 border border-primary/20">
+            <div>
+              <p className="text-sm text-muted-foreground">Promedio General</p>
+              <p className="text-2xl font-bold text-white">{avgScore.toFixed(1)}</p>
+            </div>
+            <div className="text-right">
+              <StarRating value={Math.round(avgScore)} readonly />
+              <p className="text-xs text-muted-foreground mt-1">{employeeEvals.length} evaluaciones</p>
+            </div>
+          </div>
+          
+          <ScrollArea className="h-[300px]">
+            {employeeEvals.length > 0 ? (
+              <div className="space-y-2">
+                {employeeEvals.map(evaluation => (
+                  <div 
+                    key={evaluation.id} 
+                    className="p-3 rounded-lg bg-[#0A0A0F] border border-[#1E293B] cursor-pointer hover:border-primary/50 transition-colors"
+                    onClick={() => onViewDetail(evaluation)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">
+                          {new Date(evaluation.created_at).toLocaleDateString('es-MX', { 
+                            year: 'numeric', month: 'long', day: 'numeric' 
+                          })}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Por: {evaluation.evaluator_name}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <StarRating value={Math.round(evaluation.score || 0)} readonly size="sm" />
+                        <span className="text-lg font-bold text-primary">{evaluation.score?.toFixed(1)}</span>
+                      </div>
+                    </div>
+                    {evaluation.comments && (
+                      <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
+                        "{evaluation.comments}"
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                <Star className="w-12 h-12 mb-3 opacity-30" />
+                <p>No hay evaluaciones registradas</p>
+              </div>
+            )}
+          </ScrollArea>
+        </div>
+        
+        <DialogFooter>
+          <Button onClick={onClose}>Cerrar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Main Evaluation Submodule
+const EvaluacionSubmodule = ({ employees, canCreate = true }) => {
+  const isMobile = useIsMobile();
+  const [evaluations, setEvaluations] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [selectedEvaluation, setSelectedEvaluation] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  
+  const fetchEvaluations = useCallback(async () => {
+    try {
+      const data = await api.getEvaluations();
+      setEvaluations(data);
+    } catch (error) {
+      console.error('Error fetching evaluations:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+  
+  useEffect(() => {
+    fetchEvaluations();
+  }, [fetchEvaluations]);
+  
+  const handleViewHistory = (employee) => {
+    setSelectedEmployee(employee);
+    setShowHistoryDialog(true);
+  };
+  
+  const handleNewEvaluation = (employee) => {
+    if (employee) {
+      setSelectedEmployee(employee);
+    }
+    setShowCreateDialog(true);
+  };
+  
+  const handleViewDetail = (evaluation) => {
+    setSelectedEvaluation(evaluation);
+    setShowDetailDialog(true);
+  };
+  
+  const filteredEmployees = employees.filter(emp => 
+    emp.user_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    emp.position?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  
+  // Stats
+  const totalEvaluations = evaluations.length;
+  const avgOverall = totalEvaluations > 0 
+    ? evaluations.reduce((acc, e) => acc + (e.score || 0), 0) / totalEvaluations 
+    : 0;
+  const evaluatedEmployees = new Set(evaluations.map(e => e.employee_id)).size;
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row gap-3 justify-between">
+        <h3 className="text-lg font-semibold">Evaluaciones de Desempeño</h3>
+        {canCreate && (
+          <Button size="sm" onClick={() => setShowCreateDialog(true)} className="w-full sm:w-auto">
+            <Plus className="w-4 h-4 mr-2" />
+            Nueva Evaluación
+          </Button>
+        )}
+      </div>
+      
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card className="bg-[#0F111A] border-[#1E293B]">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                <FileText className="w-5 h-5 text-blue-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{totalEvaluations}</p>
+                <p className="text-xs text-muted-foreground">Evaluaciones</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-[#0F111A] border-[#1E293B]">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center">
+                <Star className="w-5 h-5 text-yellow-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{avgOverall.toFixed(1)}</p>
+                <p className="text-xs text-muted-foreground">Promedio</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-[#0F111A] border-[#1E293B]">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                <UserCheck className="w-5 h-5 text-green-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{evaluatedEmployees}</p>
+                <p className="text-xs text-muted-foreground">Evaluados</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-[#0F111A] border-[#1E293B]">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                <Users className="w-5 h-5 text-purple-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{employees.length}</p>
+                <p className="text-xs text-muted-foreground">Empleados</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar empleado..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-10 bg-[#0A0A0F] border-[#1E293B]"
+        />
+      </div>
+      
+      {/* Employee List - Cards on mobile, Grid on desktop */}
+      <div className={isMobile ? "space-y-3" : "grid gap-3 md:grid-cols-2 lg:grid-cols-3"}>
+        {filteredEmployees.length > 0 ? (
+          filteredEmployees.map(emp => (
+            <EmployeeEvaluationCard
+              key={emp.id}
+              employee={emp}
+              evaluations={evaluations}
+              onViewHistory={handleViewHistory}
+              onNewEvaluation={handleNewEvaluation}
+              canCreate={canCreate}
+            />
+          ))
+        ) : (
+          <div className="col-span-full flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <Users className="w-12 h-12 mb-3 opacity-30" />
+            <p>No se encontraron empleados</p>
+          </div>
+        )}
+      </div>
+      
+      {/* Dialogs */}
+      <CreateEvaluationDialog
+        open={showCreateDialog}
+        onClose={() => { setShowCreateDialog(false); setSelectedEmployee(null); }}
+        employees={employees}
+        onSuccess={fetchEvaluations}
+      />
+      
+      <EmployeeHistoryDialog
+        open={showHistoryDialog}
+        onClose={() => { setShowHistoryDialog(false); setSelectedEmployee(null); }}
+        employee={selectedEmployee}
+        evaluations={evaluations}
+        onViewDetail={handleViewDetail}
+      />
+      
+      <EvaluationDetailDialog
+        open={showDetailDialog}
+        onClose={() => { setShowDetailDialog(false); setSelectedEvaluation(null); }}
+        evaluation={selectedEvaluation}
+      />
+    </div>
+  );
+};
 
 // ============================================
 // MAIN RRHH MODULE
