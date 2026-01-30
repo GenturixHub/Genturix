@@ -706,10 +706,29 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
           {/* Role-specific fields */}
           {form.role && renderRoleFields()}
 
-          {/* Info Banner */}
-          <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-sm">
-            <strong>Nota:</strong> El usuario podrá iniciar sesión inmediatamente con estas credenciales.
-            Asegúrate de comunicarlas de forma segura.
+          {/* Email Credentials Checkbox */}
+          <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.send_credentials_email}
+                onChange={(e) => setForm({ ...form, send_credentials_email: e.target.checked })}
+                className="mt-1 rounded border-[#1E293B] bg-[#0A0A0F] text-primary focus:ring-primary"
+                data-testid="send-email-checkbox"
+              />
+              <div className="flex-1">
+                <span className="flex items-center gap-2 text-sm font-medium text-white">
+                  <Mail className="w-4 h-4 text-primary" />
+                  Enviar credenciales por email
+                </span>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {form.send_credentials_email 
+                    ? "Se enviará un email con la contraseña temporal. El usuario deberá cambiarla en su primer inicio de sesión."
+                    : "El usuario podrá iniciar sesión con la contraseña especificada arriba. Asegúrate de comunicarla de forma segura."
+                  }
+                </p>
+              </div>
+            </label>
           </div>
 
           <DialogFooter className="gap-2">
