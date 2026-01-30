@@ -222,10 +222,15 @@ const LoginPage = () => {
     }
   }, [navigate]);
 
-  // Effect to handle navigation after password change dialog closes
+  // Effect to handle navigation after login success
   useEffect(() => {
+    // Only navigate if shouldNavigate is true AND password change dialog is NOT showing
     if (shouldNavigate && loggedInUser && !showPasswordChange) {
-      navigateBasedOnRole(loggedInUser);
+      // Small delay to ensure state is fully updated
+      const timer = setTimeout(() => {
+        navigateBasedOnRole(loggedInUser);
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [shouldNavigate, loggedInUser, showPasswordChange, navigateBasedOnRole]);
 
@@ -234,6 +239,7 @@ const LoginPage = () => {
     setIsLoading(true);
     setError(null);
     setShouldNavigate(false);
+    setShowPasswordChange(false);
 
     try {
       const result = await login(email, password);
@@ -246,12 +252,12 @@ const LoginPage = () => {
 
       setLoggedInUser(result.user);
 
-      // Check if password reset is required
+      // Check if password reset is required - MUST be handled before navigation
       if (result.passwordResetRequired) {
         setTempPassword(password);
-        setShowPasswordChange(true);
         setIsLoading(false);
-        // Do NOT navigate - the dialog will handle navigation after password change
+        // Set showPasswordChange AFTER isLoading is false to trigger re-render
+        setTimeout(() => setShowPasswordChange(true), 50);
         return;
       }
 
