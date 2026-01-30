@@ -1681,7 +1681,7 @@ const EmployeeHistoryDialog = ({ open, onClose, employee, evaluations, onViewDet
                     </div>
                     {evaluation.comments && (
                       <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
-                        "{evaluation.comments}"
+                        &quot;{evaluation.comments}&quot;
                       </p>
                     )}
                   </div>
