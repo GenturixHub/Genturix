@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 30, 2026 (Session 21 - Mobile UX/UI Hardening Complete)
+## Last Updated: January 30, 2026 (Session 22 - HR Performance Evaluation Complete)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,39 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ FULLY MOBILE-OPTIMIZED & PRODUCTION READY
+
+### Session 22 - HR PERFORMANCE EVALUATION MODULE (January 30, 2026) ⭐⭐⭐⭐⭐ 
+**100% Tests Passed (14/14 Backend + Frontend Complete)**
+
+#### KEY ACCOMPLISHMENTS
+1. **Backend Implementation (COMPLETE)**
+   - ✅ POST /api/hr/evaluations - Create evaluation with categories
+   - ✅ GET /api/hr/evaluations - List evaluations (filtered by condominium)
+   - ✅ GET /api/hr/evaluations/{id} - Get specific evaluation
+   - ✅ GET /api/hr/evaluable-employees - Get employees that can be evaluated
+   - ✅ GET /api/hr/evaluations/employee/{id}/summary - Employee evaluation summary
+   - ✅ Categories: discipline, punctuality, performance, communication (1-5 scale)
+   - ✅ Multi-tenant isolation via condominium_id
+   - ✅ Audit logging (evaluation_created events)
+
+2. **Frontend Implementation (COMPLETE)**
+   - ✅ EvaluacionSubmodule replaces "Coming Soon" placeholder
+   - ✅ Stats cards: Evaluaciones, Promedio, Evaluados, Empleados
+   - ✅ Employee cards with star ratings and evaluation count
+   - ✅ StarRating component (reusable, readonly mode)
+   - ✅ CreateEvaluationDialog with employee dropdown and 4 category ratings
+   - ✅ EmployeeHistoryDialog showing evaluation timeline
+   - ✅ EvaluationDetailDialog with full details
+   - ✅ Mobile responsive layout (cards stacked, button full-width)
+
+3. **Permissions**
+   - ✅ HR/Supervisor/Admin: Create and view all evaluations
+   - ✅ Employees (Guard): View own evaluations only
+   - ✅ Cannot evaluate yourself
+   - ✅ SuperAdmin: Read-only global view
+
+4. **Bug Fixed**
+   - `hasAnyRole()` was receiving array instead of spread arguments
 
 ### Session 21 - MOBILE UX/UI HARDENING PHASE (January 30, 2026) ⭐⭐⭐⭐⭐ 
 **All tests passed 100% (14/14) - Desktop 100% Unchanged**
