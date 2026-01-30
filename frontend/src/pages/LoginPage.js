@@ -191,14 +191,6 @@ const LoginPage = () => {
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [tempPassword, setTempPassword] = useState('');
-  // Track login state for password reset flow
-  const [loginState, setLoginState] = useState({
-    isLoggedIn: false,
-    user: null,
-    needsPasswordReset: false,
-    tempPassword: ''
-  });
-
   const navigateBasedOnRole = useCallback((user) => {
     const roles = user.roles || [];
     if (roles.length === 1) {
@@ -228,26 +220,11 @@ const LoginPage = () => {
     }
   }, [navigate]);
 
-  // Handle navigation based on login state
-  useEffect(() => {
-    if (loginState.isLoggedIn && loginState.user) {
-      if (loginState.needsPasswordReset) {
-        // Show password change dialog - do not navigate
-        setShowPasswordChange(true);
-        setTempPassword(loginState.tempPassword);
-        setLoggedInUser(loginState.user);
-      } else {
-        // Normal login - navigate to dashboard
-        navigateBasedOnRole(loginState.user);
-      }
-    }
-  }, [loginState, navigateBasedOnRole]);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-    setLoginState({ isLoggedIn: false, user: null, needsPasswordReset: false, tempPassword: '' });
+    setShowPasswordChange(false);
 
     try {
       const result = await login(email, password);
@@ -258,15 +235,19 @@ const LoginPage = () => {
         localStorage.removeItem('rememberedEmail');
       }
 
-      // Set login state - this will trigger useEffect for navigation
-      setLoginState({
-        isLoggedIn: true,
-        user: result.user,
-        needsPasswordReset: result.passwordResetRequired || false,
-        tempPassword: password
-      });
+      // Check if password reset is required FIRST
+      if (result.passwordResetRequired) {
+        setLoggedInUser(result.user);
+        setTempPassword(password);
+        setIsLoading(false);
+        setShowPasswordChange(true);
+        // Return early - DO NOT navigate
+        return;
+      }
 
+      // Normal login - navigate to dashboard
       setIsLoading(false);
+      navigateBasedOnRole(result.user);
     } catch (err) {
       setError(err.message || 'Email o contraseña incorrectos');
       setIsLoading(false);
