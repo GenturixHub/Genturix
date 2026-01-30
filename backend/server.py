@@ -3125,7 +3125,7 @@ async def get_employee_evaluation_summary(
     
     return {
         "employee_id": employee_id,
-        "employee_name": employee["user_name"],
+        "employee_name": employee_name,
         "total_evaluations": total,
         "average_score": avg_score,
         "category_averages": category_averages,
