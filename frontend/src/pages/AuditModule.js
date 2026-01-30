@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../components/layout/DashboardLayout';
+import { useIsMobile } from '../components/layout/BottomNav';
+import { MobileCard, MobileCardList } from '../components/MobileComponents';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -32,7 +34,8 @@ import {
   LogIn,
   LogOut,
   Loader2,
-  Download
+  Download,
+  Globe
 } from 'lucide-react';
 
 const AuditModule = () => {
