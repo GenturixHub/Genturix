@@ -220,12 +220,20 @@ const LoginPage = () => {
     } else {
       navigate('/dashboard');
     }
-  };
+  }, [navigate]);
+
+  // Effect to handle navigation after password change dialog closes
+  useEffect(() => {
+    if (shouldNavigate && loggedInUser && !showPasswordChange) {
+      navigateBasedOnRole(loggedInUser);
+    }
+  }, [shouldNavigate, loggedInUser, showPasswordChange, navigateBasedOnRole]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+    setShouldNavigate(false);
 
     try {
       const result = await login(email, password);
@@ -236,9 +244,10 @@ const LoginPage = () => {
         localStorage.removeItem('rememberedEmail');
       }
 
+      setLoggedInUser(result.user);
+
       // Check if password reset is required
       if (result.passwordResetRequired) {
-        setLoggedInUser(result.user);
         setTempPassword(password);
         setShowPasswordChange(true);
         setIsLoading(false);
@@ -246,9 +255,9 @@ const LoginPage = () => {
         return;
       }
 
-      // Normal login - redirect based on role
+      // Normal login - schedule navigation
       setIsLoading(false);
-      navigateBasedOnRole(result.user);
+      setShouldNavigate(true);
     } catch (err) {
       setError(err.message || 'Email o contraseña incorrectos');
       setIsLoading(false);
@@ -257,12 +266,8 @@ const LoginPage = () => {
 
   const handlePasswordChangeSuccess = () => {
     setShowPasswordChange(false);
-    // Navigate after successful password change
-    if (loggedInUser) {
-      navigateBasedOnRole(loggedInUser);
-    } else {
-      navigate('/admin/dashboard');
-    }
+    // Schedule navigation after password change
+    setShouldNavigate(true);
   };
 
   const handleSeedDemo = async () => {
