@@ -117,6 +117,7 @@ class AuditEventType(str, Enum):
     # Credential email events
     CREDENTIALS_EMAIL_SENT = "credentials_email_sent"
     CREDENTIALS_EMAIL_FAILED = "credentials_email_failed"
+    PASSWORD_CHANGED = "password_changed"
     # Condominium management events
     CONDOMINIUM_DELETED = "condominium_deleted"
 
