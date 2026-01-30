@@ -2031,6 +2031,13 @@ const GuardUI = () => {
         </div>
       )}
 
+      {/* Push Notification Permission Banner */}
+      {showPushBanner && (
+        <div className="px-3 pt-3">
+          <PushNotificationBanner onClose={() => setShowPushBanner(false)} />
+        </div>
+      )}
+
       {/* Tabs - Hidden on mobile, visible on desktop */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
         {/* Desktop Tabs - hidden on mobile */}
