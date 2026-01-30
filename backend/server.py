@@ -505,6 +505,29 @@ class CondominiumResponse(BaseModel):
     discount_percent: float = 0.0
     plan: str = "basic"
 
+# Push Notification Models
+class PushSubscriptionKeys(BaseModel):
+    p256dh: str
+    auth: str
+
+class PushSubscriptionData(BaseModel):
+    endpoint: str
+    keys: PushSubscriptionKeys
+    expirationTime: Optional[str] = None
+
+class PushSubscriptionRequest(BaseModel):
+    subscription: PushSubscriptionData
+
+class PushNotificationPayload(BaseModel):
+    title: str
+    body: str
+    icon: Optional[str] = "/logo192.png"
+    badge: Optional[str] = "/logo192.png"
+    tag: Optional[str] = None
+    data: Optional[Dict[str, Any]] = None
+    requireInteraction: bool = True
+    urgency: str = "high"
+
 # ==================== HELPER FUNCTIONS ====================
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
