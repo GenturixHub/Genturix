@@ -219,6 +219,7 @@ class ApiService {
   };
   getEvaluation = (id) => this.get(`/hr/evaluations/${id}`);
   getEmployeeEvaluationSummary = (employeeId) => this.get(`/hr/evaluations/employee/${employeeId}/summary`);
+  getEvaluableEmployees = () => this.get('/hr/evaluable-employees');
   
   // Admin - User Management
   createUserByAdmin = (data) => this.post('/admin/users', data);
