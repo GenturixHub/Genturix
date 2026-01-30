@@ -1777,6 +1777,7 @@ const GUARD_MOBILE_NAV = [
 
 const GuardUI = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, logout } = useAuth();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('alerts');
@@ -1784,6 +1785,7 @@ const GuardUI = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [resolvingId, setResolvingId] = useState(null);
+  const [showPushBanner, setShowPushBanner] = useState(true);
   
   // Clock In/Out state
   const [clockStatus, setClockStatus] = useState(null);
@@ -1791,6 +1793,41 @@ const GuardUI = () => {
   
   // Mobile panic modal state
   const [showPanicModal, setShowPanicModal] = useState(false);
+  
+  // Highlighted alert from push notification
+  const [highlightedAlertId, setHighlightedAlertId] = useState(null);
+
+  // Handle alert parameter from push notification click
+  useEffect(() => {
+    const alertId = searchParams.get('alert');
+    if (alertId) {
+      setActiveTab('alerts');
+      setHighlightedAlertId(alertId);
+      // Clear highlight after animation
+      setTimeout(() => setHighlightedAlertId(null), 5000);
+      // Clean URL
+      navigate('/guard', { replace: true });
+    }
+  }, [searchParams, navigate]);
+
+  // Listen for messages from service worker (push notification clicks)
+  useEffect(() => {
+    const handleServiceWorkerMessage = (event) => {
+      if (event.data?.type === 'PANIC_ALERT_CLICK') {
+        const data = event.data.data;
+        setActiveTab('alerts');
+        if (data.event_id) {
+          setHighlightedAlertId(data.event_id);
+          setTimeout(() => setHighlightedAlertId(null), 5000);
+        }
+      }
+    };
+
+    navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
+    return () => {
+      navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
+    };
+  }, []);
 
   // Handle mobile nav tab changes
   const handleMobileTabChange = (tabId) => {
