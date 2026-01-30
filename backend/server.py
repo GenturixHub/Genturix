@@ -235,6 +235,22 @@ class AbsenceAction(BaseModel):
     action: str  # approve, reject
     admin_notes: Optional[str] = None
 
+# Performance Evaluation Models
+class EvaluationCategory(BaseModel):
+    discipline: int = Field(..., ge=1, le=5)
+    punctuality: int = Field(..., ge=1, le=5)
+    performance: int = Field(..., ge=1, le=5)
+    communication: int = Field(..., ge=1, le=5)
+
+class EvaluationCreate(BaseModel):
+    employee_id: str
+    categories: EvaluationCategory
+    comments: Optional[str] = None
+
+class EvaluationUpdate(BaseModel):
+    categories: Optional[EvaluationCategory] = None
+    comments: Optional[str] = None
+
 # Recruitment Models
 class CandidateCreate(BaseModel):
     full_name: str
