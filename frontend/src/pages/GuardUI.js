@@ -2148,6 +2148,7 @@ const GuardUI = () => {
               resolvingId={resolvingId}
               onRefresh={handleRefresh}
               isRefreshing={isRefreshing}
+              highlightedAlertId={highlightedAlertId}
             />
           </TabsContent>
 
