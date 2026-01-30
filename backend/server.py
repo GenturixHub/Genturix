@@ -497,6 +497,154 @@ def hash_password(password: str) -> str:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
+def generate_temporary_password(length: int = 12) -> str:
+    """Generate a secure temporary password"""
+    alphabet = string.ascii_letters + string.digits + "!@#$%"
+    # Ensure at least one of each: uppercase, lowercase, digit, special
+    password = [
+        secrets.choice(string.ascii_uppercase),
+        secrets.choice(string.ascii_lowercase),
+        secrets.choice(string.digits),
+        secrets.choice("!@#$%")
+    ]
+    # Fill the rest with random characters
+    password.extend(secrets.choice(alphabet) for _ in range(length - 4))
+    # Shuffle to avoid predictable pattern
+    secrets.SystemRandom().shuffle(password)
+    return ''.join(password)
+
+async def send_credentials_email(
+    recipient_email: str,
+    user_name: str,
+    role: str,
+    condominium_name: str,
+    temporary_password: str,
+    login_url: str
+) -> dict:
+    """Send credentials email to new user using Resend"""
+    if not RESEND_API_KEY or RESEND_API_KEY == 're_placeholder_key':
+        logger.warning("Email not sent - RESEND_API_KEY not configured")
+        return {"status": "skipped", "reason": "Email service not configured"}
+    
+    # Role name in Spanish
+    role_names = {
+        "Residente": "Residente",
+        "Guarda": "Guardia de Seguridad",
+        "HR": "Recursos Humanos",
+        "Supervisor": "Supervisor",
+        "Estudiante": "Estudiante",
+        "Administrador": "Administrador"
+    }
+    role_display = role_names.get(role, role)
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0A0A0F; color: #ffffff; margin: 0; padding: 0;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #0F111A; border-radius: 12px; overflow: hidden;">
+            <tr>
+                <td style="padding: 40px 30px; background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);">
+                    <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #ffffff;">GENTURIX</h1>
+                    <p style="margin: 8px 0 0 0; font-size: 14px; color: rgba(255,255,255,0.8);">Plataforma de Seguridad Empresarial</p>
+                </td>
+            </tr>
+            <tr>
+                <td style="padding: 40px 30px;">
+                    <h2 style="margin: 0 0 20px 0; font-size: 22px; color: #ffffff;">¡Bienvenido/a, {user_name}!</h2>
+                    <p style="margin: 0 0 20px 0; font-size: 16px; color: #9CA3AF; line-height: 1.6;">
+                        Se ha creado tu cuenta en la plataforma GENTURIX. A continuación encontrarás tus credenciales de acceso:
+                    </p>
+                    
+                    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #1E293B; border-radius: 8px; margin: 20px 0;">
+                        <tr>
+                            <td style="padding: 20px;">
+                                <table width="100%" cellpadding="0" cellspacing="0">
+                                    <tr>
+                                        <td style="padding: 8px 0; border-bottom: 1px solid #374151;">
+                                            <span style="color: #9CA3AF; font-size: 13px;">Rol</span><br>
+                                            <span style="color: #ffffff; font-size: 16px; font-weight: 600;">{role_display}</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px 0; border-bottom: 1px solid #374151;">
+                                            <span style="color: #9CA3AF; font-size: 13px;">Condominio</span><br>
+                                            <span style="color: #ffffff; font-size: 16px; font-weight: 600;">{condominium_name}</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px 0; border-bottom: 1px solid #374151;">
+                                            <span style="color: #9CA3AF; font-size: 13px;">Email / Usuario</span><br>
+                                            <span style="color: #6366F1; font-size: 16px; font-weight: 600;">{recipient_email}</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px 0;">
+                                            <span style="color: #9CA3AF; font-size: 13px;">Contraseña Temporal</span><br>
+                                            <span style="color: #10B981; font-size: 18px; font-weight: 700; font-family: monospace; letter-spacing: 1px;">{temporary_password}</span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
+                    
+                    <div style="background-color: #FEF3C7; border-radius: 8px; padding: 16px; margin: 20px 0;">
+                        <p style="margin: 0; color: #92400E; font-size: 14px;">
+                            ⚠️ <strong>Importante:</strong> Por seguridad, deberás cambiar tu contraseña en el primer inicio de sesión.
+                        </p>
+                    </div>
+                    
+                    <a href="{login_url}" style="display: inline-block; padding: 14px 28px; background-color: #6366F1; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 8px; margin: 20px 0;">
+                        Iniciar Sesión
+                    </a>
+                    
+                    <p style="margin: 20px 0 0 0; font-size: 14px; color: #6B7280;">
+                        Si el botón no funciona, copia y pega esta URL en tu navegador:<br>
+                        <a href="{login_url}" style="color: #6366F1;">{login_url}</a>
+                    </p>
+                </td>
+            </tr>
+            <tr>
+                <td style="padding: 20px 30px; background-color: #0A0A0F; border-top: 1px solid #1E293B;">
+                    <p style="margin: 0; font-size: 12px; color: #6B7280; text-align: center;">
+                        Este es un correo automático de GENTURIX. Por favor no responder.<br>
+                        © 2026 GENTURIX - Todos los derechos reservados.
+                    </p>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+    
+    params = {
+        "from": SENDER_EMAIL,
+        "to": [recipient_email],
+        "subject": f"Tus Credenciales de Acceso a GENTURIX - {condominium_name}",
+        "html": html_content
+    }
+    
+    try:
+        # Run sync SDK in thread to keep FastAPI non-blocking
+        email_response = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Credentials email sent to {recipient_email}")
+        return {
+            "status": "success",
+            "email_id": email_response.get("id") if isinstance(email_response, dict) else str(email_response),
+            "recipient": recipient_email
+        }
+    except Exception as e:
+        logger.error(f"Failed to send credentials email to {recipient_email}: {str(e)}")
+        return {
+            "status": "failed",
+            "error": str(e),
+            "recipient": recipient_email
+        }
+
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
