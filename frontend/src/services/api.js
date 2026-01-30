@@ -324,6 +324,12 @@ class ApiService {
   getTodayReservations = () => this.get('/reservations/today');
   createReservation = (data) => this.post('/reservations', data);
   updateReservationStatus = (reservationId, data) => this.patch(`/reservations/${reservationId}`, data);
+
+  // ==================== PUSH NOTIFICATIONS ====================
+  getVapidPublicKey = () => this.get('/push/vapid-public-key');
+  subscribeToPush = (subscription) => this.post('/push/subscribe', { subscription });
+  unsubscribeFromPush = (subscription) => this.delete('/push/unsubscribe', { subscription });
+  getPushStatus = () => this.get('/push/status');
 }
 
 export const api = new ApiService();
