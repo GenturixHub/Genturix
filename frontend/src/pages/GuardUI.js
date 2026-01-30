@@ -161,7 +161,7 @@ const openMaps = (lat, lng) => {
 // ============================================
 // TAB 1: ALERTS (with Interactive Modal)
 // ============================================
-const AlertsTab = ({ alerts, onResolve, resolvingId, onRefresh, isRefreshing }) => {
+const AlertsTab = ({ alerts, onResolve, resolvingId, onRefresh, isRefreshing, highlightedAlertId }) => {
   const [selectedAlert, setSelectedAlert] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [resolutionNotes, setResolutionNotes] = useState('');
@@ -169,6 +169,16 @@ const AlertsTab = ({ alerts, onResolve, resolvingId, onRefresh, isRefreshing }) 
 
   const activeAlerts = alerts.filter(a => a.status === 'active');
   const recentResolved = alerts.filter(a => a.status === 'resolved').slice(0, 5);
+
+  // Auto-open highlighted alert from push notification
+  useEffect(() => {
+    if (highlightedAlertId) {
+      const alertToOpen = alerts.find(a => a.id === highlightedAlertId);
+      if (alertToOpen && alertToOpen.status === 'active') {
+        handleOpenAlert(alertToOpen);
+      }
+    }
+  }, [highlightedAlertId, alerts]);
 
   const handleOpenAlert = (alert) => {
     setSelectedAlert(alert);
@@ -228,6 +238,7 @@ const AlertsTab = ({ alerts, onResolve, resolvingId, onRefresh, isRefreshing }) 
                   alert={alert} 
                   onClick={() => handleOpenAlert(alert)}
                   isResolving={resolvingId === alert.id}
+                  isHighlighted={alert.id === highlightedAlertId}
                 />
               ))}
             </div>
