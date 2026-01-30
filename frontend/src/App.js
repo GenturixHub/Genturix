@@ -120,7 +120,7 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 
 // Public Route Component
 const PublicRoute = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, passwordResetRequired } = useAuth();
 
   if (isLoading) {
     return (
@@ -128,6 +128,12 @@ const PublicRoute = ({ children }) => {
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
+  }
+
+  // CRITICAL: If password reset is required, keep user on login page
+  // This allows the PasswordChangeDialog to appear
+  if (isAuthenticated && passwordResetRequired) {
+    return children;
   }
 
   if (isAuthenticated) {
