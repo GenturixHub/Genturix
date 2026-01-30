@@ -1066,6 +1066,99 @@ async def change_password(
     
     return {"message": "Contraseña actualizada exitosamente"}
 
+# ==================== PUSH NOTIFICATION ROUTES ====================
+@api_router.get("/push/vapid-public-key")
+async def get_vapid_public_key():
+    """Get the VAPID public key for push subscription"""
+    if not VAPID_PUBLIC_KEY:
+        raise HTTPException(status_code=503, detail="Push notifications not configured")
+    return {"vapid_public_key": VAPID_PUBLIC_KEY}
+
+@api_router.post("/push/subscribe")
+async def subscribe_to_push(
+    request: PushSubscriptionRequest,
+    current_user = Depends(get_current_user)
+):
+    """Subscribe to push notifications"""
+    user_roles = current_user.get("roles", [])
+    
+    # Only guards can subscribe to push notifications
+    if "Guardia" not in user_roles and "Administrador" not in user_roles and "SuperAdmin" not in user_roles:
+        raise HTTPException(status_code=403, detail="Solo guardias pueden suscribirse a notificaciones push")
+    
+    subscription = request.subscription
+    
+    # Check if subscription already exists
+    existing = await db.push_subscriptions.find_one({
+        "endpoint": subscription.endpoint,
+        "user_id": current_user["id"]
+    })
+    
+    if existing:
+        # Update existing subscription
+        await db.push_subscriptions.update_one(
+            {"_id": existing["_id"]},
+            {"$set": {
+                "p256dh": subscription.keys.p256dh,
+                "auth": subscription.keys.auth,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "is_active": True
+            }}
+        )
+        return {"message": "Suscripción actualizada", "status": "updated"}
+    
+    # Create new subscription
+    sub_doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user["id"],
+        "condominium_id": current_user.get("condominium_id"),
+        "endpoint": subscription.endpoint,
+        "p256dh": subscription.keys.p256dh,
+        "auth": subscription.keys.auth,
+        "expiration_time": subscription.expirationTime,
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.push_subscriptions.insert_one(sub_doc)
+    
+    logger.info(f"New push subscription for user {current_user['id']}")
+    return {"message": "Suscripción exitosa", "status": "created"}
+
+@api_router.delete("/push/unsubscribe")
+async def unsubscribe_from_push(
+    request: PushSubscriptionRequest,
+    current_user = Depends(get_current_user)
+):
+    """Unsubscribe from push notifications"""
+    subscription = request.subscription
+    
+    result = await db.push_subscriptions.delete_one({
+        "endpoint": subscription.endpoint,
+        "user_id": current_user["id"]
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Suscripción no encontrada")
+    
+    logger.info(f"Push subscription removed for user {current_user['id']}")
+    return {"message": "Suscripción eliminada"}
+
+@api_router.get("/push/status")
+async def get_push_status(current_user = Depends(get_current_user)):
+    """Get current user's push notification subscription status"""
+    subscriptions = await db.push_subscriptions.find({
+        "user_id": current_user["id"],
+        "is_active": True
+    }, {"_id": 0, "endpoint": 1, "created_at": 1}).to_list(None)
+    
+    return {
+        "is_subscribed": len(subscriptions) > 0,
+        "subscription_count": len(subscriptions),
+        "subscriptions": subscriptions
+    }
+
 # ==================== PROFILE MODULE ====================
 @api_router.get("/profile", response_model=ProfileResponse)
 async def get_profile(current_user = Depends(get_current_user)):
