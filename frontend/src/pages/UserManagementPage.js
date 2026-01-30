@@ -70,7 +70,8 @@ import {
   MoreVertical,
   Lock,
   Unlock,
-  RefreshCw
+  RefreshCw,
+  Mail
 } from 'lucide-react';
 
 // ============================================
