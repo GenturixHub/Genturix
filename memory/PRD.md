@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 30, 2026 (Session 22 - HR Performance Evaluation Complete)
+## Last Updated: January 30, 2026 (Session 23 - Email Credentials Feature Complete)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,41 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ FULLY MOBILE-OPTIMIZED & PRODUCTION READY
+
+### Session 23 - EMAIL CREDENTIALS FEATURE (January 30, 2026) ⭐⭐⭐⭐⭐ 
+**100% Tests Passed (9/9 Backend + Frontend Complete) - P0 Bug Fixed**
+
+#### KEY ACCOMPLISHMENTS
+1. **Backend Implementation (COMPLETE)**
+   - ✅ POST /api/admin/users with `send_credentials_email=true` generates temporary password
+   - ✅ User created with `password_reset_required=true` flag
+   - ✅ POST /api/auth/login returns `password_reset_required` in response
+   - ✅ POST /api/auth/change-password allows user to set new password
+   - ✅ Password change clears the `password_reset_required` flag
+   - ✅ Resend email integration (using placeholder key - emails skipped but flow works)
+   - ✅ Audit logging for user creation and password change events
+
+2. **Frontend Implementation (COMPLETE)**
+   - ✅ "Enviar credenciales por email" checkbox in Create User modal
+   - ✅ CredentialsDialog shows email status (yellow warning when not sent)
+   - ✅ PasswordChangeDialog appears for users with `password_reset_required=true`
+   - ✅ Dialog is non-dismissible (mandatory password change)
+   - ✅ Real-time password validation (8+ chars, uppercase, lowercase, number)
+   - ✅ User redirected to correct dashboard after password change
+
+3. **P0 Bug Fix (CRITICAL)**
+   - **Issue**: PasswordChangeDialog was not appearing on login
+   - **Root Cause**: PublicRoute in App.js redirected authenticated users before dialog could render
+   - **Fix**: Modified PublicRoute to check `passwordResetRequired` flag and allow user to stay on /login
+   - **Additional Fix**: Added useEffect in LoginPage.js to show dialog for already-authenticated users
+
+4. **Security Features**
+   - ✅ Temporary password never shown in API response (masked as "********")
+   - ✅ Current password required to change password
+   - ✅ New password must be different from current
+   - ✅ Password validation rules enforced (client + server)
+
+5. **Test Report**: `/app/test_reports/iteration_30.json` - 100% pass rate
 
 ### Session 22 - HR PERFORMANCE EVALUATION MODULE (January 30, 2026) ⭐⭐⭐⭐⭐ 
 **100% Tests Passed (14/14 Backend + Frontend Complete)**
