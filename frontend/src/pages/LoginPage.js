@@ -191,8 +191,9 @@ const LoginPage = () => {
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [tempPassword, setTempPassword] = useState('');
+  const [shouldNavigate, setShouldNavigate] = useState(false);
 
-  const navigateBasedOnRole = (user) => {
+  const navigateBasedOnRole = useCallback((user) => {
     const roles = user.roles || [];
     if (roles.length === 1) {
       switch (roles[0]) {
