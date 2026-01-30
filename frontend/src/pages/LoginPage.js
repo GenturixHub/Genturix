@@ -435,6 +435,14 @@ const LoginPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Password Change Modal */}
+      <PasswordChangeDialog
+        open={showPasswordChange}
+        onClose={() => {}}
+        onSuccess={handlePasswordChangeSuccess}
+        tempPassword={tempPassword}
+      />
     </div>
   );
 };
