@@ -7,9 +7,176 @@ import { Label } from '../components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Checkbox } from '../components/ui/checkbox';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
+import { Eye, EyeOff, Loader2, AlertTriangle, Shield, CheckCircle } from 'lucide-react';
 import GenturixLogo from '../components/GenturixLogo';
 import api from '../services/api';
+
+// Password Change Dialog Component
+const PasswordChangeDialog = ({ open, onClose, onSuccess, tempPassword }) => {
+  const { changePassword } = useAuth();
+  const [currentPassword, setCurrentPassword] = useState(tempPassword || '');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPasswords, setShowPasswords] = useState(false);
+  const [error, setError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const validatePassword = (pwd) => {
+    if (pwd.length < 8) return 'La contraseña debe tener al menos 8 caracteres';
+    if (!/[A-Z]/.test(pwd)) return 'Debe incluir al menos una mayúscula';
+    if (!/[a-z]/.test(pwd)) return 'Debe incluir al menos una minúscula';
+    if (!/[0-9]/.test(pwd)) return 'Debe incluir al menos un número';
+    return null;
+  };
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    
+    // Validate new password
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+      setError(passwordError);
+      return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+      setError('Las contraseñas no coinciden');
+      return;
+    }
+    
+    if (currentPassword === newPassword) {
+      setError('La nueva contraseña debe ser diferente a la temporal');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    try {
+      await changePassword(currentPassword, newPassword);
+      onSuccess();
+    } catch (err) {
+      setError(err.message || 'Error al cambiar la contraseña');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  return (
+    <Dialog open={open} onOpenChange={() => {}}>
+      <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-md" onInteractOutside={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Shield className="w-5 h-5 text-primary" />
+            Cambio de Contraseña Requerido
+          </DialogTitle>
+          <DialogDescription>
+            Por seguridad, debes establecer una nueva contraseña antes de continuar.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <Alert variant="destructive" className="bg-red-500/10 border-red-500/20">
+              <AlertTriangle className="w-4 h-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
+          <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+            <p className="text-xs text-yellow-400 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              Tu contraseña temporal expirará después de este cambio. Guarda tu nueva contraseña en un lugar seguro.
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="currentPassword">Contraseña Temporal</Label>
+            <Input
+              id="currentPassword"
+              type={showPasswords ? 'text' : 'password'}
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Contraseña recibida por email"
+              required
+              className="bg-[#0A0A0F] border-[#1E293B]"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="newPassword">Nueva Contraseña</Label>
+            <Input
+              id="newPassword"
+              type={showPasswords ? 'text' : 'password'}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Mínimo 8 caracteres"
+              required
+              className="bg-[#0A0A0F] border-[#1E293B]"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirmar Nueva Contraseña</Label>
+            <Input
+              id="confirmPassword"
+              type={showPasswords ? 'text' : 'password'}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Repite la nueva contraseña"
+              required
+              className="bg-[#0A0A0F] border-[#1E293B]"
+            />
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="showPwd"
+              checked={showPasswords}
+              onCheckedChange={setShowPasswords}
+            />
+            <Label htmlFor="showPwd" className="text-sm text-muted-foreground cursor-pointer">
+              Mostrar contraseñas
+            </Label>
+          </div>
+          
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p>La contraseña debe tener:</p>
+            <ul className="list-disc list-inside pl-2">
+              <li className={newPassword.length >= 8 ? 'text-green-400' : ''}>Al menos 8 caracteres</li>
+              <li className={/[A-Z]/.test(newPassword) ? 'text-green-400' : ''}>Una letra mayúscula</li>
+              <li className={/[a-z]/.test(newPassword) ? 'text-green-400' : ''}>Una letra minúscula</li>
+              <li className={/[0-9]/.test(newPassword) ? 'text-green-400' : ''}>Un número</li>
+            </ul>
+          </div>
+          
+          <DialogFooter>
+            <Button type="submit" disabled={isSubmitting} className="w-full">
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Cambiando...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Establecer Nueva Contraseña
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -21,6 +188,38 @@ const LoginPage = () => {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [loggedInUser, setLoggedInUser] = useState(null);
+  const [tempPassword, setTempPassword] = useState('');
+
+  const navigateBasedOnRole = (user) => {
+    const roles = user.roles || [];
+    if (roles.length === 1) {
+      switch (roles[0]) {
+        case 'Residente':
+          navigate('/resident');
+          return;
+        case 'Guarda':
+          navigate('/guard');
+          return;
+        case 'Estudiante':
+          navigate('/student');
+          return;
+        case 'HR':
+          navigate('/rrhh');
+          return;
+        case 'Supervisor':
+          navigate('/rrhh');
+          return;
+        default:
+          navigate('/admin/dashboard');
+      }
+    } else if (roles.length > 1) {
+      navigate('/select-panel');
+    } else {
+      navigate('/dashboard');
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,7 +227,7 @@ const LoginPage = () => {
     setError(null);
 
     try {
-      const user = await login(email, password);
+      const result = await login(email, password);
       
       if (rememberMe) {
         localStorage.setItem('rememberedEmail', email);
@@ -36,37 +235,31 @@ const LoginPage = () => {
         localStorage.removeItem('rememberedEmail');
       }
 
-      // Role-based redirect
-      const roles = user.roles || [];
-      if (roles.length === 1) {
-        switch (roles[0]) {
-          case 'Residente':
-            navigate('/resident');
-            return;
-          case 'Guarda':
-            navigate('/guard');
-            return;
-          case 'Estudiante':
-            navigate('/student');
-            return;
-          case 'HR':
-            navigate('/rrhh');
-            return;
-          case 'Supervisor':
-            navigate('/rrhh');
-            return;
-          default:
-            navigate('/admin/dashboard');
-        }
-      } else if (roles.length > 1) {
-        navigate('/select-panel');
-      } else {
-        navigate('/dashboard');
+      // Check if password reset is required
+      if (result.passwordResetRequired) {
+        setLoggedInUser(result.user);
+        setTempPassword(password);
+        setShowPasswordChange(true);
+        setIsLoading(false);
+        return;
       }
+
+      // Normal login - redirect based on role
+      navigateBasedOnRole(result.user);
     } catch (err) {
       setError(err.message || 'Email o contraseña incorrectos');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handlePasswordChangeSuccess = () => {
+    setShowPasswordChange(false);
+    // Navigate after successful password change
+    if (loggedInUser) {
+      navigateBasedOnRole(loggedInUser);
+    } else {
+      navigate('/admin/dashboard');
     }
   };
 
