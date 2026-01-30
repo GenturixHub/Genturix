@@ -2064,7 +2064,10 @@ const RRHHModule = () => {
             </TabsContent>
 
             <TabsContent value="evaluacion">
-              <EvaluacionSubmodule employees={employees} />
+              <EvaluacionSubmodule 
+                employees={employees} 
+                canCreate={hasAnyRole(['Administrador', 'Supervisor', 'HR'])}
+              />
             </TabsContent>
 
             <TabsContent value="personas">
