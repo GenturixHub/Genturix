@@ -816,6 +816,9 @@ async def login(credentials: UserLogin, request: Request):
     if not user.get("is_active"):
         raise HTTPException(status_code=403, detail="User account is inactive")
     
+    # Check if password reset is required
+    password_reset_required = user.get("password_reset_required", False)
+    
     # Include condominium_id in token for tenant-aware requests
     token_data = {
         "sub": user["id"], 
@@ -830,7 +833,7 @@ async def login(credentials: UserLogin, request: Request):
         AuditEventType.LOGIN_SUCCESS,
         user["id"],
         "auth",
-        {"email": user["email"]},
+        {"email": user["email"], "password_reset_required": password_reset_required},
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
     )
@@ -845,8 +848,10 @@ async def login(credentials: UserLogin, request: Request):
             roles=user["roles"],
             is_active=user["is_active"],
             created_at=user["created_at"],
-            condominium_id=user.get("condominium_id")
-        )
+            condominium_id=user.get("condominium_id"),
+            password_reset_required=password_reset_required
+        ),
+        password_reset_required=password_reset_required
     )
 
 @api_router.post("/auth/refresh")
