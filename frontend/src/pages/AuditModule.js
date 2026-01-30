@@ -39,6 +39,7 @@ import {
 } from 'lucide-react';
 
 const AuditModule = () => {
+  const isMobile = useIsMobile();
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
