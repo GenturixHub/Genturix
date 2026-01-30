@@ -770,6 +770,95 @@ async def log_audit_event(
     }
     await db.audit_logs.insert_one(audit_log)
 
+# ==================== PUSH NOTIFICATION HELPERS ====================
+async def send_push_notification(subscription_info: dict, payload: dict) -> bool:
+    """Send a push notification to a single subscriber"""
+    if not VAPID_PUBLIC_KEY or not VAPID_PRIVATE_KEY:
+        logger.warning("VAPID keys not configured, skipping push notification")
+        return False
+    
+    try:
+        webpush(
+            subscription_info=subscription_info,
+            data=json.dumps(payload),
+            vapid_private_key=VAPID_PRIVATE_KEY,
+            vapid_claims={"sub": f"mailto:{VAPID_CLAIMS_EMAIL}"}
+        )
+        return True
+    except WebPushException as e:
+        logger.error(f"Push notification failed: {e}")
+        # If subscription is expired or invalid, remove it
+        if e.response and e.response.status_code in [404, 410]:
+            await db.push_subscriptions.delete_one({"endpoint": subscription_info.get("endpoint")})
+            logger.info(f"Removed expired subscription: {subscription_info.get('endpoint')[:50]}...")
+        return False
+    except Exception as e:
+        logger.error(f"Unexpected push error: {e}")
+        return False
+
+async def notify_guards_of_panic(condominium_id: str, panic_data: dict):
+    """Send push notifications to all guards in the condominium about a panic alert"""
+    if not condominium_id:
+        return {"sent": 0, "failed": 0, "total": 0}
+    
+    # Get all push subscriptions for guards in this condominium
+    subscriptions = await db.push_subscriptions.find({
+        "condominium_id": condominium_id,
+        "is_active": True
+    }).to_list(None)
+    
+    if not subscriptions:
+        logger.info(f"No push subscriptions found for condominium {condominium_id}")
+        return {"sent": 0, "failed": 0, "total": 0}
+    
+    # Format panic type for display
+    panic_type_display = {
+        "medical": "🚑 Emergencia Médica",
+        "suspicious": "👁️ Actividad Sospechosa", 
+        "general": "🚨 Alerta General"
+    }.get(panic_data.get("panic_type", "general"), "🚨 Alerta")
+    
+    # Build notification payload
+    payload = {
+        "title": f"¡ALERTA DE PÁNICO! - {panic_type_display}",
+        "body": f"{panic_data.get('resident_name', 'Residente')} - {panic_data.get('apartment', 'N/A')}",
+        "icon": "/logo192.png",
+        "badge": "/logo192.png",
+        "tag": f"panic-{panic_data.get('event_id', 'unknown')}",
+        "requireInteraction": True,
+        "urgency": "high",
+        "data": {
+            "type": "panic_alert",
+            "event_id": panic_data.get("event_id"),
+            "panic_type": panic_data.get("panic_type"),
+            "resident_name": panic_data.get("resident_name"),
+            "apartment": panic_data.get("apartment"),
+            "timestamp": panic_data.get("timestamp"),
+            "url": f"/guard?alert={panic_data.get('event_id')}"
+        }
+    }
+    
+    sent = 0
+    failed = 0
+    
+    for sub in subscriptions:
+        subscription_info = {
+            "endpoint": sub.get("endpoint"),
+            "keys": {
+                "p256dh": sub.get("p256dh"),
+                "auth": sub.get("auth")
+            }
+        }
+        
+        success = await send_push_notification(subscription_info, payload)
+        if success:
+            sent += 1
+        else:
+            failed += 1
+    
+    logger.info(f"Panic notifications - Sent: {sent}, Failed: {failed}, Total: {len(subscriptions)}")
+    return {"sent": sent, "failed": failed, "total": len(subscriptions)}
+
 # ==================== AUTH ROUTES ====================
 @api_router.post("/auth/register", response_model=UserResponse)
 async def register(user_data: UserCreate, request: Request):
