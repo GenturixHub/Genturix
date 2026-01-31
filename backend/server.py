@@ -6501,6 +6501,41 @@ async def onboarding_create_condominium(
             detail=f"Error durante el onboarding. Todos los cambios han sido revertidos. Error: {str(e)}"
         )
 
+
+# Validation endpoints for onboarding
+class OnboardingValidation(BaseModel):
+    field: str  # "email" or "name"
+    value: str
+
+@api_router.post("/super-admin/onboarding/validate")
+async def validate_onboarding_field(
+    data: OnboardingValidation,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
+):
+    """Validate a single field before submitting the entire wizard"""
+    if data.field == "email":
+        existing = await db.users.find_one({"email": data.value})
+        if existing:
+            return {
+                "valid": False,
+                "field": "email",
+                "message": f"El email '{data.value}' ya está registrado en el sistema"
+            }
+        return {"valid": True, "field": "email", "message": "Email disponible"}
+    
+    elif data.field == "name":
+        existing = await db.condominiums.find_one({"name": data.value})
+        if existing:
+            return {
+                "valid": False,
+                "field": "name",
+                "message": f"Ya existe un condominio con el nombre '{data.value}'"
+            }
+        return {"valid": True, "field": "name", "message": "Nombre disponible"}
+    
+    return {"valid": True, "message": "Campo válido"}
+
+
 @api_router.get("/super-admin/onboarding/timezones")
 async def get_available_timezones(current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))):
     """Get list of available timezones for onboarding"""
