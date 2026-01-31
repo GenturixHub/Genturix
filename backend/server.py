@@ -5340,6 +5340,215 @@ async def create_condominium_admin(
         }
     }
 
+# ==================== ONBOARDING WIZARD ====================
+class OnboardingCondominiumInfo(BaseModel):
+    name: str = Field(..., min_length=2, max_length=100)
+    address: str = Field(..., min_length=5, max_length=200)
+    country: str = Field(default="Mexico")
+    timezone: str = Field(default="America/Mexico_City")
+
+class OnboardingAdminInfo(BaseModel):
+    full_name: str = Field(..., min_length=2, max_length=100)
+    email: EmailStr
+
+class OnboardingModules(BaseModel):
+    security: bool = True  # Always true, cannot be disabled
+    hr: bool = False
+    reservations: bool = False
+    school: bool = False
+    payments: bool = False
+    cctv: bool = False  # Coming soon
+
+class OnboardingArea(BaseModel):
+    name: str = Field(..., min_length=2, max_length=50)
+    capacity: int = Field(..., ge=1, le=1000)
+    requires_approval: bool = False
+    available_days: List[str] = Field(default=["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"])
+    open_time: str = Field(default="08:00")
+    close_time: str = Field(default="22:00")
+
+class OnboardingWizardRequest(BaseModel):
+    condominium: OnboardingCondominiumInfo
+    admin: OnboardingAdminInfo
+    modules: OnboardingModules
+    areas: List[OnboardingArea] = []
+
+@api_router.post("/super-admin/onboarding/create-condominium")
+async def onboarding_create_condominium(
+    wizard_data: OnboardingWizardRequest,
+    request: Request,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
+):
+    """
+    Atomically create a new condominium with admin, modules, and areas.
+    This is the main endpoint for the onboarding wizard.
+    Returns admin credentials ONCE - they are not stored or retrievable later.
+    """
+    # Validate email is not in use
+    existing_user = await db.users.find_one({"email": wizard_data.admin.email})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="El email del administrador ya está registrado")
+    
+    # Validate condominium name is not in use
+    existing_condo = await db.condominiums.find_one({"name": wizard_data.condominium.name})
+    if existing_condo:
+        raise HTTPException(status_code=400, detail="Ya existe un condominio con ese nombre")
+    
+    # Generate IDs
+    condo_id = str(uuid.uuid4())
+    admin_user_id = str(uuid.uuid4())
+    
+    # Generate secure temporary password for admin
+    admin_password = generate_temporary_password(12)
+    
+    # Prepare module config - ensure security is always enabled
+    modules_config = {
+        "security": True,  # Always true
+        "visitors": True,  # Always included with security
+        "hr": wizard_data.modules.hr,
+        "reservations": wizard_data.modules.reservations,
+        "school": wizard_data.modules.school,
+        "payments": wizard_data.modules.payments,
+        "cctv": False  # Coming soon - always false for now
+    }
+    
+    try:
+        # === STEP 1: Create Condominium ===
+        condo_doc = {
+            "id": condo_id,
+            "name": wizard_data.condominium.name,
+            "address": wizard_data.condominium.address,
+            "country": wizard_data.condominium.country,
+            "timezone": wizard_data.condominium.timezone,
+            "contact_email": wizard_data.admin.email,
+            "max_users": 100,
+            "current_users": 1,  # Admin user
+            "modules": modules_config,
+            "status": "active",
+            "is_demo": False,
+            "is_active": True,
+            "price_per_user": 1.0,
+            "discount_percent": 0,
+            "free_modules": [],
+            "plan": "basic",
+            "admin_id": admin_user_id,
+            "admin_email": wizard_data.admin.email,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "onboarding_completed": True,
+            "onboarding_completed_by": current_user["id"],
+            "onboarding_completed_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.condominiums.insert_one(condo_doc)
+        
+        # === STEP 2: Create Admin User ===
+        admin_doc = {
+            "id": admin_user_id,
+            "email": wizard_data.admin.email,
+            "hashed_password": hash_password(admin_password),
+            "full_name": wizard_data.admin.full_name,
+            "roles": [RoleEnum.ADMINISTRADOR.value],
+            "condominium_id": condo_id,
+            "is_active": True,
+            "is_locked": False,
+            "password_reset_required": True,  # Force password change on first login
+            "created_by": current_user["id"],
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.users.insert_one(admin_doc)
+        
+        # === STEP 3: Create Areas (if reservations enabled and areas provided) ===
+        created_areas = []
+        if wizard_data.modules.reservations and wizard_data.areas:
+            for area in wizard_data.areas:
+                area_id = str(uuid.uuid4())
+                area_doc = {
+                    "id": area_id,
+                    "condominium_id": condo_id,
+                    "name": area.name,
+                    "capacity": area.capacity,
+                    "requires_approval": area.requires_approval,
+                    "available_days": area.available_days,
+                    "open_time": area.open_time,
+                    "close_time": area.close_time,
+                    "is_active": True,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+                await db.reservation_areas.insert_one(area_doc)
+                created_areas.append({"id": area_id, "name": area.name})
+        
+        # === STEP 4: Log Audit Event ===
+        await log_audit_event(
+            AuditEventType.CONDO_CREATED,
+            current_user["id"],
+            "super_admin",
+            {
+                "action": "onboarding_completed",
+                "condominium_id": condo_id,
+                "condominium_name": wizard_data.condominium.name,
+                "admin_user_id": admin_user_id,
+                "admin_email": wizard_data.admin.email,
+                "modules_enabled": [k for k, v in modules_config.items() if v],
+                "areas_created": len(created_areas)
+            },
+            request.client.host if request.client else "unknown",
+            request.headers.get("user-agent", "unknown")
+        )
+        
+        logger.info(f"Onboarding completed: {wizard_data.condominium.name} by {current_user['email']}")
+        
+        return {
+            "success": True,
+            "message": f"Condominio '{wizard_data.condominium.name}' creado exitosamente",
+            "condominium": {
+                "id": condo_id,
+                "name": wizard_data.condominium.name,
+                "address": wizard_data.condominium.address,
+                "timezone": wizard_data.condominium.timezone
+            },
+            "admin_credentials": {
+                "email": wizard_data.admin.email,
+                "password": admin_password,  # SHOWN ONCE - NOT STORED
+                "warning": "Guarda estas credenciales ahora. No se mostrarán de nuevo."
+            },
+            "modules_enabled": [k for k, v in modules_config.items() if v],
+            "areas_created": created_areas
+        }
+        
+    except Exception as e:
+        # === ROLLBACK on any error ===
+        logger.error(f"Onboarding failed, rolling back: {str(e)}")
+        
+        # Delete any created documents
+        await db.condominiums.delete_one({"id": condo_id})
+        await db.users.delete_one({"id": admin_user_id})
+        await db.reservation_areas.delete_many({"condominium_id": condo_id})
+        
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error durante el onboarding. Todos los cambios han sido revertidos. Error: {str(e)}"
+        )
+
+@api_router.get("/super-admin/onboarding/timezones")
+async def get_available_timezones(current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))):
+    """Get list of available timezones for onboarding"""
+    return {
+        "timezones": [
+            {"value": "America/Mexico_City", "label": "México (Ciudad de México)", "offset": "UTC-6"},
+            {"value": "America/Bogota", "label": "Colombia (Bogotá)", "offset": "UTC-5"},
+            {"value": "America/Lima", "label": "Perú (Lima)", "offset": "UTC-5"},
+            {"value": "America/Buenos_Aires", "label": "Argentina (Buenos Aires)", "offset": "UTC-3"},
+            {"value": "America/Santiago", "label": "Chile (Santiago)", "offset": "UTC-4"},
+            {"value": "America/Caracas", "label": "Venezuela (Caracas)", "offset": "UTC-4"},
+            {"value": "America/Sao_Paulo", "label": "Brasil (São Paulo)", "offset": "UTC-3"},
+            {"value": "Europe/Madrid", "label": "España (Madrid)", "offset": "UTC+1"},
+            {"value": "UTC", "label": "UTC", "offset": "UTC+0"}
+        ]
+    }
+
 # ==================== DEMO DATA SEEDING ====================
 @api_router.post("/seed-demo-data")
 async def seed_demo_data():
