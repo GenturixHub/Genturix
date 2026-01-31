@@ -1028,7 +1028,11 @@ const EditCondoDialog = ({ condo, open, onClose, onSuccess }) => {
 
           <TabsContent value="modules" className="space-y-3 mt-4">
             {MODULES.map((mod) => {
-              const isEnabled = modules[mod.id]?.enabled !== false;
+              // Handle both legacy boolean format and new object format
+              const moduleValue = modules[mod.id];
+              const isEnabled = typeof moduleValue === 'boolean' 
+                ? moduleValue 
+                : moduleValue?.enabled !== false;
               const ModIcon = mod.icon;
               const isToggling = togglingModule === mod.id;
               
