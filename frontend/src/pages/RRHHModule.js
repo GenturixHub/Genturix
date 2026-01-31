@@ -803,8 +803,10 @@ const ControlHorarioSubmodule = ({ employees, currentUser, hasRole }) => {
 // ============================================
 // SUBMÓDULO: PLANIFICACIÓN DE TURNOS
 // ============================================
-const TurnosSubmodule = ({ employees, shifts, onCreateShift, isLoading, onEditEmployee }) => {
+const TurnosSubmodule = ({ employees, shifts, onCreateShift, onDeleteShift, isLoading, onEditEmployee }) => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [shiftToDelete, setShiftToDelete] = useState(null);
   const [newShift, setNewShift] = useState({
     guard_id: '',
     start_time: '',
@@ -824,6 +826,19 @@ const TurnosSubmodule = ({ employees, shifts, onCreateShift, isLoading, onEditEm
     await onCreateShift(newShift);
     setCreateDialogOpen(false);
     setNewShift({ guard_id: '', start_time: '', end_time: '', location: '', notes: '' });
+  };
+
+  const handleDeleteClick = (shift) => {
+    setShiftToDelete(shift);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (shiftToDelete && onDeleteShift) {
+      await onDeleteShift(shiftToDelete.id);
+    }
+    setDeleteDialogOpen(false);
+    setShiftToDelete(null);
   };
 
   return (
