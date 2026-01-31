@@ -1005,14 +1005,16 @@ async def register(user_data: UserCreate, request: Request):
 
 @api_router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin, request: Request):
-    user = await db.users.find_one({"email": credentials.email})
+    # CRITICAL: Normalize email to lowercase (industry standard)
+    normalized_email = credentials.email.lower().strip()
+    user = await db.users.find_one({"email": normalized_email})
     
     if not user or not verify_password(credentials.password, user.get("hashed_password", "")):
         await log_audit_event(
             AuditEventType.LOGIN_FAILURE,
             None,
             "auth",
-            {"email": credentials.email, "reason": "invalid_credentials"},
+            {"email": normalized_email, "reason": "invalid_credentials"},
             request.client.host if request.client else "unknown",
             request.headers.get("user-agent", "unknown")
         )
