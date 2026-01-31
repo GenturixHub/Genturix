@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 31, 2026 (Session 35 - P0 HR Shift Creation Final Verification)
+## Last Updated: January 31, 2026 (Session 36 - P0 Shift Deletion + User Creation Fixes)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -9,27 +9,44 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY - ALL P0 BLOCKERS FIXED
 
-### Session 35 - P0 HR SHIFT CREATION FINAL VERIFICATION (January 31, 2026) ⭐⭐⭐⭐⭐
+### Session 36 - P0 BUG FIXES: Shift Deletion + User Creation (January 31, 2026) ⭐⭐⭐⭐⭐
 
-#### 🔴 P0 BLOCKER FIXED: HR Shift Creation
-**Problem:** Backend was crashing with `KeyError: 'user_name'` when creating shifts because some guard documents only had `name` field instead of `user_name`.
+#### 🔴 P0 BUG #1 FIXED: Shift Deletion Not Working
+**Problem:** The "Eliminar Turno" button existed but deleting a shift did not update the UI visually.
 
-**Solution Applied (by previous agent + verified):**
-1. Refactored ~8 backend endpoints to handle inconsistent data schemas (`name` vs `user_name`)
-2. Added helper function `getEmployeeName(emp)` in RRHHModule.js that handles: `emp?.user_name || emp?.name || emp?.full_name || 'Sin nombre'`
-3. Fixed 3 additional bugs found by testing agent:
-   - `PUT /api/hr/employees/{id}/activate` - KeyError: 'user_id'
-   - `PUT /api/hr/employees/{id}/deactivate` - KeyError: 'user_id'/'user_name'
-   - `RRHHModule.js` - Missing `toast` import from 'sonner'
+**Root Cause:**
+1. DELETE endpoint only allowed "Administrador" role, not HR/Supervisor
+2. Frontend was showing all shifts including cancelled ones
+
+**Solution Applied:**
+1. Updated DELETE /hr/shifts/{id} to allow roles: Administrador, HR, Supervisor, SuperAdmin
+2. Frontend now filters shifts: `shiftsData.filter(s => s.status !== 'cancelled')`
+3. Toast notification shows after successful deletion
+
+#### 🔴 P0 BUG #2 FIXED: User Creation Broken (Role Configuration Missing)
+**Problem:** The role selector showed options but no role-specific fields appeared. Form returned 400 error.
+
+**Root Cause:**
+1. Frontend didn't show required fields per role (apartment_number for Residente, badge_number for Guarda)
+2. Backend validated required fields but frontend didn't collect them
+
+**Solution Applied:**
+1. Added `handleRoleChange` to reset role-specific fields when role changes
+2. Added conditional field rendering:
+   - **Residente**: apartment_number (required), tower_block, resident_type
+   - **Guarda**: badge_number (required)
+   - **HR**: department
+   - **Supervisor**: supervised_area
+3. Frontend validates required fields before submit
+4. Backend errors now show in dialog (not generic "Error del servidor")
+5. New guards created with `is_active: true` by default
 
 **Verification Results:**
-- ✅ Backend API: 100% tests passed (4/4)
-- ✅ Frontend UI: 100% tests passed (5/5)
-- ✅ Desktop: Create shift dialog works, employee dropdown shows active guards
-- ✅ Mobile: Full-screen dialog, dropdown opens correctly (z-index: 100)
-- ✅ E2E: Shift created successfully with guard name populated
+- ✅ Backend: 100% (9/9 tests passed)
+- ✅ Frontend: 100% (all UI tests passed)
+- ✅ Mobile: Dropdowns and forms work without freezing
 
-**Test Report:** `/app/test_reports/iteration_41.json`
+**Test Report:** `/app/test_reports/iteration_42.json`
 
 ---
 
