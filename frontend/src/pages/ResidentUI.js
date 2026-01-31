@@ -258,12 +258,19 @@ const SuccessScreen = ({ alert, onDismiss }) => {
 // EMERGENCY TAB (Panic Buttons)
 // ============================================
 const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, sendingType }) => (
-  <div className="flex-1 flex flex-col p-4 gap-4">
-    <div className="flex justify-center py-2">
+  <div className="flex-1 flex flex-col p-4 gap-3 overflow-y-auto">
+    {/* GPS Status - Compact on mobile */}
+    <div className="flex justify-center pt-1 pb-2 sticky top-0 bg-[#05050A]/95 backdrop-blur-sm z-10">
       <GPSStatus location={location} isLoading={locationLoading} error={locationError} />
     </div>
-    <p className="text-center text-sm text-muted-foreground">Presiona el botón de emergencia</p>
-    <div className="flex-1 flex flex-col justify-center gap-4 max-w-lg mx-auto w-full">
+    
+    {/* Instruction text - Smaller on mobile */}
+    <p className="text-center text-xs sm:text-sm text-muted-foreground">
+      Presiona el botón de emergencia
+    </p>
+    
+    {/* Emergency Buttons - Optimized for mobile visibility */}
+    <div className="flex flex-col gap-3 max-w-lg mx-auto w-full pb-4">
       {Object.values(EMERGENCY_TYPES)
         .sort((a, b) => a.priority - b.priority)
         .map((config) => (
