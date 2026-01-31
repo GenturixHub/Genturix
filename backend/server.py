@@ -4738,10 +4738,11 @@ async def get_areas(current_user = Depends(get_current_user)):
 async def create_area(
     area_data: AreaCreate,
     request: Request,
-    current_user = Depends(require_role("Administrador"))
+    current_user = Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN))
 ):
-    """Create a new area for reservations (Admin only)"""
-    condo_id = current_user.get("condominium_id")
+    """Create a new area for reservations (Admin or SuperAdmin)"""
+    # SuperAdmin can pass condominium_id, Admin uses their own
+    condo_id = area_data.condominium_id if hasattr(area_data, 'condominium_id') and area_data.condominium_id else current_user.get("condominium_id")
     if not condo_id:
         raise HTTPException(status_code=400, detail="Usuario no asignado a condominio")
     
