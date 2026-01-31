@@ -133,7 +133,8 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
     password: '',
     full_name: '',
     role: '',
-    phone: ''
+    phone: '',
+    badge_number: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -153,6 +154,12 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
       setError('Por favor complete todos los campos obligatorios');
       return;
     }
+    
+    // Validation for Guard role
+    if (form.role === 'Guarda' && !form.badge_number) {
+      setError('El número de placa es requerido para usuarios con rol Guarda');
+      return;
+    }
 
     setIsSubmitting(true);
     setError(null);
@@ -161,12 +168,13 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
       const result = await api.createUserByAdmin(form);
       setSuccess(`Usuario ${form.full_name} creado exitosamente`);
       setTimeout(() => {
-        setForm({ email: '', password: '', full_name: '', role: '', phone: '' });
+        setForm({ email: '', password: '', full_name: '', role: '', phone: '', badge_number: '' });
         setSuccess(null);
         onSuccess?.();
         onClose();
       }, 2000);
     } catch (err) {
+      // Show the specific backend error message
       setError(err.message || 'Error al crear usuario');
     } finally {
       setIsSubmitting(false);
