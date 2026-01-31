@@ -556,7 +556,7 @@ const OverviewTab = ({ stats, isLoading, onRefresh, onNavigateTab, navigate }) =
       </Card>
 
       {/* System Configuration */}
-      <SystemConfigSection />
+      <SystemConfigSection onRefreshStats={onRefresh} />
 
       {/* Platform Info */}
       <div className="text-center text-xs text-muted-foreground">
