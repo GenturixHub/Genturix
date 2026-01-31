@@ -16,6 +16,7 @@ import ResidentUI from './pages/ResidentUI';
 import GuardUI from './pages/GuardUI';
 import StudentUI from './pages/StudentUI';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
+import OnboardingWizard from './pages/OnboardingWizard';
 import UserManagementPage from './pages/UserManagementPage';
 import ProfilePage from './pages/ProfilePage';
 import './App.css';
