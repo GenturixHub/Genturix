@@ -182,6 +182,20 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
   return (
     <ScrollArea className="h-full">
       <div className="p-4 space-y-4 max-w-2xl mx-auto">
+        {/* Back Button - Always visible when onBack is provided */}
+        {onBack && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleBack}
+            className="mb-2 -ml-2 text-muted-foreground hover:text-white"
+            data-testid="profile-back-btn"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Volver al Panel
+          </Button>
+        )}
+
         {/* Messages */}
         {success && (
           <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 flex items-center gap-2 text-sm">
