@@ -6397,7 +6397,7 @@ async def onboarding_create_condominium(
             "address": wizard_data.condominium.address,
             "country": wizard_data.condominium.country,
             "timezone": wizard_data.condominium.timezone,
-            "contact_email": wizard_data.admin.email,
+            "contact_email": normalized_admin_email,
             "max_users": 100,
             "current_users": 1,  # Admin user
             "modules": modules_config,
@@ -6409,7 +6409,7 @@ async def onboarding_create_condominium(
             "free_modules": [],
             "plan": "basic",
             "admin_id": admin_user_id,
-            "admin_email": wizard_data.admin.email,
+            "admin_email": normalized_admin_email,
             "created_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat(),
             "onboarding_completed": True,
