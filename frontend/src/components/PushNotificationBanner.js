@@ -13,7 +13,6 @@ export function PushNotificationBanner({ onClose }) {
     subscribe
   } = usePushNotifications();
 
-  const [dismissed, setDismissed] = useState(false);
   // Initialize dismissed state from localStorage
   const [dismissed, setDismissed] = useState(() => {
     return localStorage.getItem('push_banner_dismissed') === 'true';
