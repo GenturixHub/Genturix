@@ -266,7 +266,7 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
 
           <div className="space-y-2">
             <Label htmlFor="role">Rol *</Label>
-            <Select value={form.role} onValueChange={(value) => setForm({ ...form, role: value })}>
+            <Select value={form.role} onValueChange={(value) => setForm({ ...form, role: value, badge_number: '' })}>
               <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B]" data-testid="create-user-role">
                 <SelectValue placeholder="Selecciona un rol" />
               </SelectTrigger>
@@ -282,6 +282,25 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Badge Number field - only for Guarda role */}
+          {form.role === 'Guarda' && (
+            <div className="space-y-2">
+              <Label htmlFor="badge_number">Número de Placa *</Label>
+              <Input
+                id="badge_number"
+                value={form.badge_number}
+                onChange={(e) => setForm({ ...form, badge_number: e.target.value })}
+                placeholder="Ej: G-001"
+                className="bg-[#0A0A0F] border-[#1E293B]"
+                required
+                data-testid="create-user-badge"
+              />
+              <p className="text-xs text-muted-foreground">
+                Identificador único del guardia para registros y reportes
+              </p>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="phone">Teléfono (opcional)</Label>
