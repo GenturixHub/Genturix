@@ -310,7 +310,7 @@ const OverviewTab = ({ stats, isLoading, onRefresh, onNavigateTab, navigate }) =
 // ============================================
 // CONDOMINIUMS TAB
 // ============================================
-const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin }) => {
+const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin, navigate }) => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
