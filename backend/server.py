@@ -3767,11 +3767,11 @@ async def get_payroll(current_user = Depends(require_role("Administrador", "HR")
     for guard in guards:
         payroll.append({
             "guard_id": guard["id"],
-            "guard_name": guard["user_name"],
-            "badge_number": guard["badge_number"],
-            "hourly_rate": guard["hourly_rate"],
+            "guard_name": guard.get("user_name") or guard.get("name") or "Sin nombre",
+            "badge_number": guard.get("badge_number", "N/A"),
+            "hourly_rate": guard.get("hourly_rate", 0),
             "total_hours": guard.get("total_hours", 0),
-            "total_pay": guard.get("total_hours", 0) * guard["hourly_rate"]
+            "total_pay": guard.get("total_hours", 0) * guard.get("hourly_rate", 0)
         })
     return payroll
 
