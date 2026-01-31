@@ -836,20 +836,20 @@ const ResidentUI = () => {
               Emergencia
             </TabsTrigger>
             <TabsTrigger 
+              value="authorizations" 
+              className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none flex flex-col items-center gap-0.5 text-[10px]"
+              data-testid="tab-authorizations"
+            >
+              <Shield className="w-4 h-4 text-primary" />
+              Visitas
+            </TabsTrigger>
+            <TabsTrigger 
               value="history" 
               className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-yellow-500 rounded-none flex flex-col items-center gap-0.5 text-[10px]"
               data-testid="tab-history"
             >
               <History className="w-4 h-4 text-yellow-400" />
               Mis Alertas
-            </TabsTrigger>
-            <TabsTrigger 
-              value="visitors" 
-              className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none flex flex-col items-center gap-0.5 text-[10px]"
-              data-testid="tab-visitors"
-            >
-              <UserPlus className="w-4 h-4" />
-              Visitas
             </TabsTrigger>
             <TabsTrigger 
               value="directory" 
@@ -880,15 +880,13 @@ const ResidentUI = () => {
           />
         </TabsContent>
 
+        <TabsContent value="authorizations" className="flex-1 mt-0">
+          <VisitorAuthorizationsResident />
+        </TabsContent>
+
         <TabsContent value="history" className="flex-1 mt-0">
           <ScrollArea className={isMobile ? "h-[calc(100vh-160px)]" : "h-[calc(100vh-180px)]"}>
             <AlertHistoryTab />
-          </ScrollArea>
-        </TabsContent>
-
-        <TabsContent value="visitors" className="flex-1 mt-0">
-          <ScrollArea className={isMobile ? "h-[calc(100vh-160px)]" : "h-[calc(100vh-180px)]"}>
-            <VisitorsTab user={user} />
           </ScrollArea>
         </TabsContent>
         
