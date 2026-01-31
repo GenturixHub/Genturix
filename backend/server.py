@@ -6665,6 +6665,21 @@ async def root():
 async def health_check():
     return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
 
+@api_router.get("/config/dev-mode")
+async def get_dev_mode_status():
+    """
+    Returns whether the server is in development mode.
+    Used by frontend to adjust behavior (e.g., show passwords after user creation).
+    """
+    return {
+        "dev_mode": DEV_MODE,
+        "features": {
+            "skip_password_reset": DEV_MODE,
+            "show_generated_passwords": DEV_MODE,
+            "skip_email_validation": DEV_MODE
+        }
+    }
+
 # Include the router in the main app
 app.include_router(api_router)
 
