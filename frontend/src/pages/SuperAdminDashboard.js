@@ -169,9 +169,101 @@ const STATUS_CONFIG = {
 };
 
 // ============================================
+// SYSTEM RESET BUTTON (Danger Zone)
+// ============================================
+const SystemResetButton = ({ onSuccess }) => {
+  const [isResetting, setIsResetting] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+
+  const handleReset = async () => {
+    if (confirmText !== 'BORRAR TODO') {
+      toast.error('Debes escribir "BORRAR TODO" para confirmar');
+      return;
+    }
+
+    setIsResetting(true);
+    try {
+      const result = await api.resetAllData();
+      toast.success(result.message);
+      setShowConfirm(false);
+      setConfirmText('');
+      if (onSuccess) onSuccess();
+    } catch (error) {
+      toast.error(`Error: ${error.message || 'No se pudo limpiar el sistema'}`);
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  return (
+    <>
+      <Button
+        variant="outline"
+        className="w-full border-red-500/50 text-red-400 hover:bg-red-500/10 hover:border-red-500"
+        onClick={() => setShowConfirm(true)}
+        data-testid="reset-all-btn"
+      >
+        <Trash2 className="w-4 h-4 mr-2" />
+        Limpiar Sistema Completo
+      </Button>
+
+      <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <AlertDialogContent className="bg-[#0F111A] border-[#1E293B]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-400">
+              <AlertTriangle className="w-5 h-5" />
+              ⚠️ ACCIÓN IRREVERSIBLE
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>Esta acción eliminará <strong>TODOS</strong> los datos del sistema:</p>
+              <ul className="list-disc pl-6 space-y-1 text-sm">
+                <li>Todos los condominios</li>
+                <li>Todos los usuarios (excepto tu cuenta SuperAdmin)</li>
+                <li>Todos los guardias y turnos</li>
+                <li>Todas las reservaciones y áreas</li>
+                <li>Todas las autorizaciones de visitantes</li>
+                <li>Todos los registros de acceso y auditoría</li>
+              </ul>
+              <p className="text-red-400 font-semibold mt-4">
+                Para confirmar, escribe "BORRAR TODO" en el campo de abajo:
+              </p>
+              <Input
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                placeholder="Escribe BORRAR TODO"
+                className="bg-[#0A0A0F] border-red-500/50 text-center font-mono"
+              />
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-[#1E293B] border-[#2D3B4F]">
+              Cancelar
+            </AlertDialogCancel>
+            <Button
+              variant="destructive"
+              onClick={handleReset}
+              disabled={isResetting || confirmText !== 'BORRAR TODO'}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isResetting ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <Trash2 className="w-4 h-4 mr-2" />
+              )}
+              Borrar Todo
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+};
+
+// ============================================
 // SYSTEM CONFIG SECTION (Email Toggle)
 // ============================================
-const SystemConfigSection = () => {
+const SystemConfigSection = ({ onRefreshStats }) => {
   const [emailConfig, setEmailConfig] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isToggling, setIsToggling] = useState(false);
