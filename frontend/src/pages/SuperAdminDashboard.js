@@ -963,9 +963,10 @@ const EditCondoDialog = ({ condo, open, onClose, onSuccess }) => {
       const response = await api.updateCondoModule(condo.id, moduleId, enabled);
       console.log(`[module-toggle] API Response:`, response);
       
+      // Update local state - always use object format now
       setModules(prev => ({
         ...prev,
-        [moduleId]: { ...prev[moduleId], enabled }
+        [moduleId]: { enabled }
       }));
       const moduleName = MODULES.find(m => m.id === moduleId)?.name || moduleId;
       toast.success(`Módulo "${moduleName}" ${enabled ? 'activado' : 'desactivado'}`);
