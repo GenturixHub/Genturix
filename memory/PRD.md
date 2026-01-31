@@ -826,12 +826,12 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 - [x] ~~Push notifications for panic alerts~~ (COMPLETED - Session 24)
 - [x] ~~Performance evaluations in RRHH~~ (COMPLETED - Session 22)
 - [x] ~~Email credentials for new users~~ (COMPLETED - Session 23)
+- [x] ~~Onboarding wizard for new condominiums~~ (COMPLETED - Session 25)
 
 ### P2 - Medium Priority
 - [ ] Dashboard statistics per condominium
 - [x] ~~Reservations module~~ (COMPLETED - Session 16)
 - [ ] CCTV integration
-- [ ] Onboarding wizard for new condominiums
 
 ### P3 - Low Priority
 - [ ] Fix PostHog console error (cosmetic, recurring)
