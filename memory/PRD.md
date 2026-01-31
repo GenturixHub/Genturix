@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 31, 2026 (Session 26 - Reservations Module Complete)
+## Last Updated: January 31, 2026 (Session 27 - Advanced Visitor Authorization System Complete)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,64 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ FULLY MOBILE-OPTIMIZED & PRODUCTION READY
+
+### Session 27 - ADVANCED VISITOR AUTHORIZATION SYSTEM (January 31, 2026) ⭐⭐⭐⭐⭐ 
+**100% Tests Passed (25/25 Backend + Frontend Complete)**
+
+#### KEY ACCOMPLISHMENTS
+1. **Authorization Types (Resident)**
+   - ✅ TEMPORARY: Single date or date range (Yellow badge)
+   - ✅ PERMANENT: Always allowed, e.g., family (Green badge)
+   - ✅ RECURRING: Specific days of week (Blue badge)
+   - ✅ EXTENDED: Date range + time windows (Purple badge)
+   - ✅ MANUAL: Guard entry without authorization (Gray badge)
+   - ✅ Fields: visitor_name, identification_number, vehicle_plate, valid_from, valid_to, allowed_days, allowed_hours, notes
+
+2. **Resident Endpoints**
+   - ✅ POST /api/authorizations - Create authorization
+   - ✅ GET /api/authorizations/my - Get own authorizations
+   - ✅ PATCH /api/authorizations/{id} - Update authorization
+   - ✅ DELETE /api/authorizations/{id} - Soft delete (deactivate)
+   - ✅ Auto-assign color_code based on authorization type
+
+3. **Guard Fast Check-in/Check-out**
+   - ✅ GET /api/guard/authorizations?search= - Search by name/ID/plate
+   - ✅ POST /api/guard/checkin - Register visitor entry
+   - ✅ POST /api/guard/checkout/{entry_id} - Register visitor exit
+   - ✅ GET /api/guard/visitors-inside - List visitors currently inside
+   - ✅ Authorization validation (date/day/time checks)
+   - ✅ Entry timestamp and duration tracking
+
+4. **Resident Notifications**
+   - ✅ Notification on visitor arrival (check-in)
+   - ✅ Notification on visitor exit (check-out)
+   - ✅ GET /api/resident/visitor-notifications - Get notifications
+   - ✅ PUT /api/resident/visitor-notifications/{id}/read - Mark as read
+   - ✅ Unread count badge in UI
+
+5. **Audit & History**
+   - ✅ GET /api/authorizations/history - Full entry/exit log
+   - ✅ GET /api/authorizations/stats - Authorization statistics
+   - ✅ Filter by authorization, resident, visitor, date range
+
+6. **Frontend - Resident UI**
+   - ✅ New "Autorizaciones" tab in ResidentUI
+   - ✅ VisitorAuthorizationsResident component
+   - ✅ Color-coded authorization cards
+   - ✅ Create/Edit form with type-specific fields
+   - ✅ Notifications panel with bell icon
+   - ✅ Active/Inactive sections
+
+7. **Frontend - Guard UI**
+   - ✅ New "Check-In" tab in GuardUI
+   - ✅ VisitorCheckInGuard component
+   - ✅ High-contrast search interface
+   - ✅ One-tap REGISTRAR ENTRADA button
+   - ✅ Visitors inside list with SALIDA button
+   - ✅ Manual entry without authorization option
+   - ✅ Entry time and duration display
+
+8. **Test Report**: `/app/test_reports/iteration_34.json` - 100% pass rate
 
 ### Session 26 - RESERVATIONS & COMMON AREAS MODULE (January 31, 2026) ⭐⭐⭐⭐⭐ 
 **100% Tests Passed (22/22 Backend + Frontend Complete)**
