@@ -4171,22 +4171,27 @@ async def activate_employee(
         {"$set": {"is_active": True, "reactivated_at": datetime.now(timezone.utc).isoformat()}}
     )
     
-    # Activate user account
-    await db.users.update_one(
-        {"id": guard["user_id"]},
-        {"$set": {"is_active": True}}
-    )
+    # Activate user account if user_id exists
+    user_id = guard.get("user_id")
+    if user_id:
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {"is_active": True}}
+        )
+    
+    # Get employee name safely
+    employee_name = guard.get("user_name") or guard.get("name") or guard.get("full_name") or "desconocido"
     
     await log_audit_event(
         AuditEventType.EMPLOYEE_ACTIVATED,
         current_user["id"],
         "hr",
-        {"guard_id": guard_id, "user_id": guard["user_id"], "name": guard["user_name"]},
+        {"guard_id": guard_id, "user_id": user_id, "name": employee_name},
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
     )
     
-    return {"message": f"Empleado {guard.get('user_name') or guard.get('name') or 'desconocido'} reactivado"}
+    return {"message": f"Empleado {employee_name} reactivado"}
 
 # ==================== HR PERFORMANCE EVALUATIONS ====================
 
