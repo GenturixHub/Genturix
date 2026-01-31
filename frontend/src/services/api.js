@@ -52,14 +52,21 @@ class ApiService {
     }
 
     if (!response.ok) {
+      // Clone response before reading to avoid "body already read" errors
+      const responseClone = response.clone();
+      
       // Parse error only once and create a structured error
       let errorData = { detail: 'Request failed' };
       try {
-        errorData = await response.json();
-        console.log('API Error Response:', errorData);
+        errorData = await responseClone.json();
       } catch (e) {
-        console.log('Failed to parse error JSON:', e);
-        // If JSON parsing fails, use default error
+        // If JSON parsing fails, try to get text
+        try {
+          const text = await response.text();
+          errorData = { detail: text || 'Request failed' };
+        } catch {
+          // Keep default error
+        }
       }
       
       // Create error with status code for proper handling
