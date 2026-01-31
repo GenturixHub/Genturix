@@ -4145,6 +4145,54 @@ async def create_reservation(
         "requires_approval": area.get("requires_approval", False)
     }
 
+@api_router.get("/reservations/availability/{area_id}")
+async def get_area_availability(
+    area_id: str,
+    date: str,
+    current_user = Depends(get_current_user)
+):
+    """Get availability for an area on a specific date"""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="Usuario no asignado a condominio")
+    
+    # Get the area
+    area = await db.reservation_areas.find_one({"id": area_id, "condominium_id": condo_id, "is_active": True})
+    if not area:
+        raise HTTPException(status_code=404, detail="Área no encontrada")
+    
+    # Get existing reservations for this date
+    existing = await db.reservations.find({
+        "area_id": area_id,
+        "date": date,
+        "status": {"$in": ["pending", "approved"]}
+    }, {"_id": 0, "start_time": 1, "end_time": 1, "status": 1}).to_list(50)
+    
+    # Check if day is allowed
+    try:
+        res_date = datetime.strptime(date, "%Y-%m-%d")
+        day_name = DAY_NAMES.get(res_date.weekday())
+        allowed_days = area.get("allowed_days", list(DAY_NAMES.values()))
+        is_day_allowed = day_name in allowed_days
+    except ValueError:
+        is_day_allowed = False
+    
+    # Check max reservations
+    max_per_day = area.get("max_reservations_per_day", 10)
+    reservations_count = len([r for r in existing if r.get("status") == "approved"])
+    
+    return {
+        "area_id": area_id,
+        "date": date,
+        "is_day_allowed": is_day_allowed,
+        "available_from": area.get("available_from", "06:00"),
+        "available_until": area.get("available_until", "22:00"),
+        "max_reservations_per_day": max_per_day,
+        "current_reservations": reservations_count,
+        "slots_remaining": max(0, max_per_day - reservations_count),
+        "occupied_slots": existing
+    }
+
 @api_router.patch("/reservations/{reservation_id}")
 async def update_reservation_status(
     reservation_id: str,
