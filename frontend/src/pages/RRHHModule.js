@@ -1710,7 +1710,7 @@ const EmployeeHistoryDialog = ({ open, onClose, employee, evaluations, onViewDet
         <DialogHeader>
           <DialogTitle>Historial de Evaluaciones</DialogTitle>
           <DialogDescription>
-            Evaluaciones de {employee.user_name}
+            Evaluaciones de {getEmployeeName(employee)}
           </DialogDescription>
         </DialogHeader>
         
