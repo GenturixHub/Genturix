@@ -1047,7 +1047,7 @@ const ReservationsModule = () => {
           <DialogHeader>
             <DialogTitle>¿Eliminar área?</DialogTitle>
             <DialogDescription>
-              ¿Estás seguro de eliminar "{areaToDelete?.name}"? Esta acción no se puede deshacer.
+              ¿Estás seguro de eliminar &quot;{areaToDelete?.name}&quot;? Esta acción no se puede deshacer.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
