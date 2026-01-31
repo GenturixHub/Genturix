@@ -3510,7 +3510,7 @@ async def get_clock_status(current_user = Depends(require_role("Guarda", "Admini
             "last_action": None,
             "last_time": None,
             "employee_id": guard["id"],
-            "employee_name": guard["user_name"],
+            "employee_name": guard.get("user_name") or guard.get("name") or "Sin nombre",
             "today_logs": []
         }
     
@@ -3520,7 +3520,7 @@ async def get_clock_status(current_user = Depends(require_role("Guarda", "Admini
         "last_action": last_log["type"],
         "last_time": last_log["timestamp"],
         "employee_id": guard["id"],
-        "employee_name": guard["user_name"],
+        "employee_name": guard.get("user_name") or guard.get("name") or "Sin nombre",
         "today_logs": [{"type": log["type"], "timestamp": log["timestamp"]} for log in today_logs]
     }
 
