@@ -4463,8 +4463,11 @@ async def create_user_by_admin(
     current_user = Depends(require_role("Administrador", "SuperAdmin"))
 ):
     """Admin creates a user (Resident, HR, Guard, etc.) with role-specific validation"""
+    # CRITICAL: Normalize email to lowercase
+    normalized_email = user_data.email.lower().strip()
+    
     # Check email not in use
-    existing = await db.users.find_one({"email": user_data.email})
+    existing = await db.users.find_one({"email": normalized_email})
     if existing:
         raise HTTPException(status_code=400, detail="El email ya está registrado")
     
@@ -4498,7 +4501,7 @@ async def create_user_by_admin(
         guard_id = str(uuid.uuid4())
         guard_doc = {
             "id": guard_id,
-            "email": user_data.email,
+            "email": normalized_email,
             "name": user_data.full_name,
             "badge": user_data.badge_number,
             "phone": user_data.phone,
