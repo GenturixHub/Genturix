@@ -1,24 +1,31 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 31, 2026 (Session 30 - Bugfixes)
+## Last Updated: January 31, 2026 (Session 30 - Critical Bugfixes)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
 
 ---
 
-## PLATFORM STATUS: ✅ PRODUCTION STABLE + DEV_MODE AVAILABLE
+## PLATFORM STATUS: ✅ PRODUCTION STABLE
 
-### Session 30 - BUGFIXES (January 31, 2026) ⭐⭐⭐⭐⭐
+### Session 30 - CRITICAL BUGFIXES (January 31, 2026) ⭐⭐⭐⭐⭐
 
 #### ISSUES FIXED
-1. ✅ **Condominium Creation** - Verified working E2E through onboarding wizard
+1. ✅ **Onboarding Wizard Error Handling** - Improved error messages with pre-validation
 2. ✅ **Country Selector Incomplete** - Added 25+ countries including Costa Rica and all Central America
-3. ✅ **Timezone List Incomplete** - Added 30+ timezones for all LATAM, Central America, and Europe
+3. ✅ **Timezone Auto-Selection** - Country selection now auto-populates timezone
+4. ✅ **API Error Body Parsing** - Fixed response body consumption issue with custom fetch wrapper
+
+#### NEW FEATURES
+- Pre-validation endpoint `/api/super-admin/onboarding/validate` checks name/email availability before submit
+- Auto-timezone mapping: selecting a country auto-selects the corresponding timezone
+- Improved backend logging for onboarding failures
 
 #### FILES MODIFIED
-- `/app/frontend/src/pages/OnboardingWizard.js` - Extended country list
-- `/app/backend/server.py` - Extended timezone endpoint with comprehensive list
+- `/app/frontend/src/pages/OnboardingWizard.js` - Extended country list, auto-timezone, pre-validation
+- `/app/frontend/src/services/api.js` - Custom fetch wrapper for better error handling
+- `/app/backend/server.py` - Validation endpoint, extended timezones, better logging
 
 #### COUNTRIES NOW AVAILABLE
 - **Centroamérica:** Costa Rica, Guatemala, Honduras, El Salvador, Nicaragua, Panamá
