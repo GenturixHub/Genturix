@@ -680,10 +680,10 @@ const VisitorsTab = ({ user }) => {
 // ============================================
 
 // Mobile Bottom Nav Configuration for Resident
-// Spec: PANIC (center) | Reservations | Alerts | People | Profile
+// Spec: PANIC (center) | Authorizations | Alerts | People | Profile
 const RESIDENT_MOBILE_NAV = [
   { id: 'emergency', label: 'Pánico', icon: AlertTriangle, bgColor: 'bg-red-600', glowColor: 'shadow-red-500/50' },
-  { id: 'visitors', label: 'Reservas', icon: CalendarIcon },
+  { id: 'authorizations', label: 'Visitas', icon: Shield },
   { id: 'history', label: 'Alertas', icon: History },
   { id: 'directory', label: 'Personas', icon: Users },
   { id: 'profile', label: 'Perfil', icon: User },
