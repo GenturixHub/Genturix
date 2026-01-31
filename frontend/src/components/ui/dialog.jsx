@@ -16,7 +16,7 @@ const DialogOverlay = React.forwardRef(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      "fixed inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-[60] bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
     )}
     {...props} />
@@ -29,20 +29,27 @@ const DialogContent = React.forwardRef(({ className, children, mobileFullScreen 
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        // Base styles
-        "fixed z-50 grid gap-4 border bg-background p-6 shadow-lg duration-200",
+        // Base styles - z-index above overlay and BottomNav
+        "fixed z-[70] grid gap-4 border bg-background p-6 shadow-lg duration-200",
         // Desktop styles (centered modal)
-        "sm:left-[50%] sm:top-[50%] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:w-full sm:max-w-lg sm:rounded-lg",
+        "lg:left-[50%] lg:top-[50%] lg:translate-x-[-50%] lg:translate-y-[-50%] lg:w-full lg:max-w-lg lg:rounded-lg",
         // Animation
         "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-        // Mobile fullscreen (≤640px)
-        mobileFullScreen && "max-sm:inset-0 max-sm:w-full max-sm:h-full max-sm:max-w-none max-sm:max-h-none max-sm:rounded-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:left-0 max-sm:top-0 max-sm:overflow-y-auto",
+        // Mobile fullscreen (≤1023px) - proper touch handling
+        mobileFullScreen && [
+          "max-lg:inset-0 max-lg:w-full max-lg:h-full max-lg:max-w-none max-lg:max-h-none",
+          "max-lg:rounded-none max-lg:translate-x-0 max-lg:translate-y-0 max-lg:left-0 max-lg:top-0",
+          "max-lg:overflow-y-auto max-lg:overflow-x-hidden",
+          "max-lg:pb-24" // Space for bottom nav
+        ],
         className
       )}
+      // Ensure touch events work on mobile
+      style={{ touchAction: 'auto', WebkitOverflowScrolling: 'touch' }}
       {...props}>
       {children}
       <DialogPrimitive.Close
-        className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground z-10">
+        className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground z-[80]">
         <X className="h-5 w-5" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
