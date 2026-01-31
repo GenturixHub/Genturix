@@ -863,7 +863,25 @@ const OnboardingWizard = () => {
         toast.success('Condominio creado exitosamente');
       }
     } catch (error) {
-      toast.error(error.message || 'Error al crear el condominio');
+      // Improved error handling with specific messages
+      const errorMessage = error.message || error.data?.detail || 'Error desconocido al crear el condominio';
+      
+      // Check for specific errors and provide helpful guidance
+      if (errorMessage.includes('email') && errorMessage.includes('registrado')) {
+        toast.error(`El email "${adminData.email}" ya está en uso. Por favor usa otro email.`, {
+          duration: 6000
+        });
+        setCurrentStep(2); // Go back to admin step
+      } else if (errorMessage.includes('condominio') && errorMessage.includes('nombre')) {
+        toast.error(`Ya existe un condominio llamado "${condoData.name}". Por favor elige otro nombre.`, {
+          duration: 6000
+        });
+        setCurrentStep(1); // Go back to condo info step
+      } else {
+        toast.error(errorMessage, { duration: 5000 });
+      }
+      
+      console.error('Onboarding error:', { error, condoData, adminData });
     } finally {
       setIsSubmitting(false);
     }
