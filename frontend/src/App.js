@@ -254,6 +254,13 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
 
+      {/* Super Admin Onboarding Wizard */}
+      <Route path="/super-admin/onboarding" element={
+        <ProtectedRoute allowedRoles={['SuperAdmin']}>
+          <OnboardingWizard />
+        </ProtectedRoute>
+      } />
+
       <Route path="/settings" element={
         <ProtectedRoute allowedRoles={['Administrador']}>
           <DashboardPage />
