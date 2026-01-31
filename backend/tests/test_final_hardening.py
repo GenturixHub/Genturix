@@ -81,30 +81,29 @@ class TestSuperAdminModuleToggle:
     def test_get_condominiums(self, superadmin_token):
         """SuperAdmin can get list of condominiums"""
         headers = {"Authorization": f"Bearer {superadmin_token}"}
-        response = requests.get(f"{BASE_URL}/api/superadmin/condominiums", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/condominiums", headers=headers)
         assert response.status_code == 200, f"Get condos failed: {response.text}"
         data = response.json()
         assert isinstance(data, list)
         print(f"✓ Got {len(data)} condominiums")
         return data
     
-    def test_toggle_module_reservations(self, superadmin_token):
-        """SuperAdmin can toggle reservations module"""
+    def test_toggle_module_hr(self, superadmin_token):
+        """SuperAdmin can toggle HR module"""
         headers = {"Authorization": f"Bearer {superadmin_token}"}
         
         # Get first condo
-        response = requests.get(f"{BASE_URL}/api/superadmin/condominiums", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/condominiums", headers=headers)
         condos = response.json()
         if not condos:
             pytest.skip("No condominiums found")
         
         condo_id = condos[0]["id"]
         
-        # Toggle reservations module
-        response = requests.put(
-            f"{BASE_URL}/api/superadmin/condominiums/{condo_id}/modules/reservations",
-            headers=headers,
-            json={"enabled": True}
+        # Toggle HR module using query param
+        response = requests.patch(
+            f"{BASE_URL}/api/condominiums/{condo_id}/modules/hr?enabled=true",
+            headers=headers
         )
         assert response.status_code == 200, f"Toggle module failed: {response.text}"
         data = response.json()
@@ -116,7 +115,7 @@ class TestSuperAdminModuleToggle:
         headers = {"Authorization": f"Bearer {superadmin_token}"}
         
         # Get condominiums (this is the refresh action)
-        response = requests.get(f"{BASE_URL}/api/superadmin/condominiums", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/condominiums", headers=headers)
         assert response.status_code == 200, f"Refresh failed: {response.text}"
         data = response.json()
         assert isinstance(data, list)
