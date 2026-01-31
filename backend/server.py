@@ -127,6 +127,14 @@ class AuditEventType(str, Enum):
     PASSWORD_CHANGED = "password_changed"
     # Condominium management events
     CONDOMINIUM_DELETED = "condominium_deleted"
+    # Visitor Authorization events
+    AUTHORIZATION_CREATED = "authorization_created"
+    AUTHORIZATION_UPDATED = "authorization_updated"
+    AUTHORIZATION_DEACTIVATED = "authorization_deactivated"
+    VISITOR_CHECKIN = "visitor_checkin"
+    VISITOR_CHECKOUT = "visitor_checkout"
+    VISITOR_ARRIVAL_NOTIFIED = "visitor_arrival_notified"
+    VISITOR_EXIT_NOTIFIED = "visitor_exit_notified"
 
 # ==================== MODELS ====================
 class UserCreate(BaseModel):
