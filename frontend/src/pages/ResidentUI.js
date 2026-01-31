@@ -40,6 +40,7 @@ import api from '../services/api';
 import ProfileDirectory from '../components/ProfileDirectory';
 import EmbeddedProfile from '../components/EmbeddedProfile';
 import VisitorAuthorizationsResident from '../components/VisitorAuthorizationsResident';
+import ResidentReservations from '../components/ResidentReservations';
 import MobileBottomNav, { useIsMobile } from '../components/layout/BottomNav';
 import { 
   Heart, 
