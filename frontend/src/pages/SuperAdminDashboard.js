@@ -1803,7 +1803,7 @@ const SuperAdminDashboard = () => {
           </TabsContent>
 
           <TabsContent value="condominiums">
-            <CondominiumsTab condos={condos} onRefresh={fetchData} isSuperAdmin={canDeleteCondos} />
+            <CondominiumsTab condos={condos} onRefresh={fetchData} isSuperAdmin={canDeleteCondos} navigate={navigate} />
           </TabsContent>
 
           <TabsContent value="users">
