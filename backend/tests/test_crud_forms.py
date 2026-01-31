@@ -215,7 +215,7 @@ class TestAreasCRUD:
             "allowed_days": ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"]
         }
         
-        response = requests.post(f"{BASE_URL}/api/areas", json=area_data, headers=headers)
+        response = requests.post(f"{BASE_URL}/api/reservations/areas", json=area_data, headers=headers)
         assert response.status_code in [200, 201], f"Area creation failed: {response.text}"
         data = response.json()
         assert data.get("name") == area_data["name"], "Area name mismatch"
@@ -225,7 +225,7 @@ class TestAreasCRUD:
     def test_get_areas(self, admin_token):
         """Get list of areas"""
         headers = {"Authorization": f"Bearer {admin_token}"}
-        response = requests.get(f"{BASE_URL}/api/areas", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/reservations/areas", headers=headers)
         assert response.status_code == 200, f"Failed to get areas: {response.text}"
         areas = response.json()
         assert isinstance(areas, list), "Areas should be a list"
@@ -251,7 +251,7 @@ class TestAreasCRUD:
                 "capacity": 25,
                 "description": "Updated description"
             }
-            response = requests.put(f"{BASE_URL}/api/areas/{area_id}", json=update_data, headers=headers)
+            response = requests.patch(f"{BASE_URL}/api/reservations/areas/{area_id}", json=update_data, headers=headers)
             if response.status_code == 200:
                 data = response.json()
                 print(f"✓ Area updated: {update_data['name']}")
@@ -271,13 +271,13 @@ class TestAreasCRUD:
             "area_type": "other",
             "capacity": 10
         }
-        response = requests.post(f"{BASE_URL}/api/areas", json=area_data, headers=headers)
+        response = requests.post(f"{BASE_URL}/api/reservations/areas", json=area_data, headers=headers)
         if response.status_code in [200, 201]:
             area = response.json()
             area_id = area.get("id") or area.get("_id")
             
             # Delete the area
-            response = requests.delete(f"{BASE_URL}/api/areas/{area_id}", headers=headers)
+            response = requests.delete(f"{BASE_URL}/api/reservations/areas/{area_id}", headers=headers)
             assert response.status_code in [200, 204], f"Area deletion failed: {response.text}"
             print(f"✓ Area deleted: {area_data['name']}")
         else:
@@ -305,7 +305,7 @@ class TestReservationsCRUD:
         admin_headers = {"Authorization": f"Bearer {admin_token}"}
         
         # Get available areas
-        response = requests.get(f"{BASE_URL}/api/areas", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/reservations/areas", headers=headers)
         if response.status_code != 200:
             print(f"⚠ Could not get areas: {response.status_code}")
             return
@@ -399,7 +399,7 @@ class TestVisitorAuthorizationsCRUD:
             "notes": "Test single visit authorization"
         }
         
-        response = requests.post(f"{BASE_URL}/api/visitor-authorizations", json=auth_data, headers=headers)
+        response = requests.post(f"{BASE_URL}/api/authorizations", json=auth_data, headers=headers)
         if response.status_code in [200, 201]:
             data = response.json()
             print(f"✓ Single visit authorization created: {auth_data['visitor_name']}")
@@ -425,7 +425,7 @@ class TestVisitorAuthorizationsCRUD:
             "notes": "Test recurring authorization"
         }
         
-        response = requests.post(f"{BASE_URL}/api/visitor-authorizations", json=auth_data, headers=headers)
+        response = requests.post(f"{BASE_URL}/api/authorizations", json=auth_data, headers=headers)
         if response.status_code in [200, 201]:
             print(f"✓ Recurring authorization created: {auth_data['visitor_name']}")
         else:
@@ -448,7 +448,7 @@ class TestVisitorAuthorizationsCRUD:
             "notes": "Test temporary authorization"
         }
         
-        response = requests.post(f"{BASE_URL}/api/visitor-authorizations", json=auth_data, headers=headers)
+        response = requests.post(f"{BASE_URL}/api/authorizations", json=auth_data, headers=headers)
         if response.status_code in [200, 201]:
             print(f"✓ Temporary authorization created: {auth_data['visitor_name']}")
         else:
@@ -467,7 +467,7 @@ class TestVisitorAuthorizationsCRUD:
             "notes": "Test permanent authorization"
         }
         
-        response = requests.post(f"{BASE_URL}/api/visitor-authorizations", json=auth_data, headers=headers)
+        response = requests.post(f"{BASE_URL}/api/authorizations", json=auth_data, headers=headers)
         if response.status_code in [200, 201]:
             print(f"✓ Permanent authorization created: {auth_data['visitor_name']}")
         else:
@@ -477,7 +477,7 @@ class TestVisitorAuthorizationsCRUD:
         """Resident gets their authorizations"""
         headers = {"Authorization": f"Bearer {resident_token}"}
         
-        response = requests.get(f"{BASE_URL}/api/visitor-authorizations/my", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/authorizations/my", headers=headers)
         assert response.status_code == 200, f"Failed to get authorizations: {response.text}"
         auths = response.json()
         print(f"✓ Retrieved {len(auths)} authorizations")
@@ -500,7 +500,7 @@ class TestVisitorAuthorizationsCRUD:
             update_data = {
                 "notes": "Updated notes for testing"
             }
-            response = requests.put(f"{BASE_URL}/api/visitor-authorizations/{auth_id}", json=update_data, headers=headers)
+            response = requests.patch(f"{BASE_URL}/api/authorizations/{auth_id}", json=update_data, headers=headers)
             if response.status_code == 200:
                 print(f"✓ Authorization {auth_id} updated")
             else:
@@ -522,7 +522,7 @@ class TestVisitorAuthorizationsCRUD:
         
         if test_auth:
             auth_id = test_auth.get("id") or test_auth.get("_id")
-            response = requests.delete(f"{BASE_URL}/api/visitor-authorizations/{auth_id}", headers=headers)
+            response = requests.delete(f"{BASE_URL}/api/authorizations/{auth_id}", headers=headers)
             if response.status_code in [200, 204]:
                 print(f"✓ Authorization {auth_id} deactivated")
             else:
@@ -535,7 +535,7 @@ class TestVisitorAuthorizationsCRUD:
         headers = {"Authorization": f"Bearer {guard_token}"}
         
         # Get authorizations for guard
-        response = requests.get(f"{BASE_URL}/api/visitor-authorizations/guard", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/guard/authorizations", headers=headers)
         if response.status_code == 200:
             auths = response.json()
             print(f"✓ Guard can see {len(auths)} authorizations")
@@ -547,7 +547,7 @@ class TestVisitorAuthorizationsCRUD:
                     "authorization_id": auth.get("id") or auth.get("_id"),
                     "entry_method": "manual"
                 }
-                response = requests.post(f"{BASE_URL}/api/visitor-authorizations/checkin", json=checkin_data, headers=headers)
+                response = requests.post(f"{BASE_URL}/api/guard/checkin", json=checkin_data, headers=headers)
                 if response.status_code == 200:
                     print("✓ Check-in successful")
                 else:
@@ -560,7 +560,7 @@ class TestVisitorAuthorizationsCRUD:
         headers = {"Authorization": f"Bearer {guard_token}"}
         
         # Get visitors inside
-        response = requests.get(f"{BASE_URL}/api/visitors/inside", headers=headers)
+        response = requests.get(f"{BASE_URL}/api/guard/visitors-inside", headers=headers)
         if response.status_code == 200:
             visitors = response.json()
             print(f"✓ {len(visitors)} visitors currently inside")
@@ -570,7 +570,7 @@ class TestVisitorAuthorizationsCRUD:
                 checkout_data = {
                     "visit_id": visitor.get("id") or visitor.get("_id")
                 }
-                response = requests.post(f"{BASE_URL}/api/visitor-authorizations/checkout", json=checkout_data, headers=headers)
+                response = requests.post(f"{BASE_URL}/api/guard/checkout", json=checkout_data, headers=headers)
                 if response.status_code == 200:
                     print("✓ Check-out successful")
                 else:
