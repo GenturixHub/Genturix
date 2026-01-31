@@ -77,7 +77,8 @@ import {
   ClipboardList,
   TrendingUp,
   XCircle,
-  User
+  User,
+  Trash2
 } from 'lucide-react';
 
 // ============================================
