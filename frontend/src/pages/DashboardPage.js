@@ -134,7 +134,13 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
     full_name: '',
     role: '',
     phone: '',
-    badge_number: ''
+    // Role-specific fields
+    badge_number: '',        // Guarda
+    apartment_number: '',    // Residente
+    tower_block: '',         // Residente
+    resident_type: 'owner',  // Residente
+    department: '',          // HR
+    supervised_area: ''      // Supervisor
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -148,6 +154,21 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
     { value: 'Estudiante', label: 'Estudiante', description: 'Acceso a Genturix School' }
   ];
 
+  // Reset role-specific fields when role changes
+  const handleRoleChange = (newRole) => {
+    setForm({ 
+      ...form, 
+      role: newRole, 
+      badge_number: '',
+      apartment_number: '',
+      tower_block: '',
+      resident_type: 'owner',
+      department: '',
+      supervised_area: ''
+    });
+    setError(null);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.email || !form.password || !form.full_name || !form.role) {
@@ -160,15 +181,47 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
       setError('El número de placa es requerido para usuarios con rol Guarda');
       return;
     }
+    
+    // Validation for Resident role
+    if (form.role === 'Residente' && !form.apartment_number) {
+      setError('El número de apartamento/casa es requerido para usuarios con rol Residente');
+      return;
+    }
 
     setIsSubmitting(true);
     setError(null);
 
     try {
-      const result = await api.createUserByAdmin(form);
+      // Build payload with role-specific fields
+      const payload = {
+        email: form.email,
+        password: form.password,
+        full_name: form.full_name,
+        role: form.role,
+        phone: form.phone || null
+      };
+      
+      // Add role-specific fields
+      if (form.role === 'Guarda') {
+        payload.badge_number = form.badge_number;
+      } else if (form.role === 'Residente') {
+        payload.apartment_number = form.apartment_number;
+        payload.tower_block = form.tower_block || null;
+        payload.resident_type = form.resident_type || 'owner';
+      } else if (form.role === 'HR') {
+        payload.department = form.department || 'Recursos Humanos';
+      } else if (form.role === 'Supervisor') {
+        payload.supervised_area = form.supervised_area || 'General';
+      }
+      
+      const result = await api.createUserByAdmin(payload);
       setSuccess(`Usuario ${form.full_name} creado exitosamente`);
       setTimeout(() => {
-        setForm({ email: '', password: '', full_name: '', role: '', phone: '', badge_number: '' });
+        setForm({ 
+          email: '', password: '', full_name: '', role: '', phone: '', 
+          badge_number: '', apartment_number: '', tower_block: '', resident_type: 'owner',
+          department: '', supervised_area: ''
+        });
         setSuccess(null);
         onSuccess?.();
         onClose();
