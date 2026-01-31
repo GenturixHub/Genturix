@@ -3605,7 +3605,7 @@ async def create_absence_request(
     absence_doc = {
         "id": str(uuid.uuid4()),
         "employee_id": guard["id"],
-        "employee_name": guard["user_name"],
+        "employee_name": guard.get("user_name") or guard.get("name") or "Sin nombre",
         "reason": absence.reason,
         "type": absence.type,
         "start_date": absence.start_date,
