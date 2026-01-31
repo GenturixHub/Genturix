@@ -52,25 +52,28 @@ class ApiService {
     }
 
     if (!response.ok) {
-      // Clone response before reading to avoid "body already read" errors
-      const responseClone = response.clone();
+      // Parse error response to get detailed message
+      let errorMessage = `API error: ${response.status}`;
+      let errorData = { detail: errorMessage };
       
-      // Parse error only once and create a structured error
-      let errorData = { detail: 'Request failed' };
       try {
-        errorData = await responseClone.json();
-      } catch (e) {
-        // If JSON parsing fails, try to get text
-        try {
-          const text = await response.text();
-          errorData = { detail: text || 'Request failed' };
-        } catch {
-          // Keep default error
+        // Try to read the error response body
+        const text = await response.text();
+        if (text) {
+          try {
+            errorData = JSON.parse(text);
+            errorMessage = errorData.detail || errorData.message || errorMessage;
+          } catch {
+            // If not JSON, use text as message
+            errorMessage = text;
+            errorData = { detail: text };
+          }
         }
+      } catch {
+        // Body already consumed or other error - use default message
       }
       
-      // Create error with status code for proper handling
-      const errorMessage = errorData.detail || errorData.message || `API error: ${response.status}`;
+      // Create structured error
       const error = new Error(errorMessage);
       error.status = response.status;
       error.data = errorData;
