@@ -6892,6 +6892,92 @@ async def set_email_status(
         "updated_by": current_user.get("email")
     }
 
+# ==================== SYSTEM RESET (FULL WIPE) ====================
+@api_router.post("/super-admin/reset-all-data")
+async def reset_all_data(
+    request: Request,
+    current_user = Depends(require_role("SuperAdmin"))
+):
+    """
+    ⚠️ DANGER: Complete system wipe.
+    Deletes ALL data from ALL collections EXCEPT the SuperAdmin account.
+    
+    This endpoint:
+    - Deletes all condominiums
+    - Deletes all users (except SuperAdmin)
+    - Deletes all guards, shifts, reservations, authorizations, etc.
+    - Leaves the system in a clean state
+    """
+    superadmin_email = current_user.get("email", "").lower().strip()
+    
+    # Keep track of what was deleted for the response
+    deleted_counts = {}
+    
+    # Collections to clear completely
+    collections_to_clear = [
+        "condominiums",
+        "guards", 
+        "guard_shifts",
+        "visitors",
+        "visitor_authorizations",
+        "access_logs",
+        "panic_alerts",
+        "reservations",
+        "reservation_areas",
+        "employees",
+        "announcements",
+        "audit_logs",
+        "push_subscriptions",
+        "courses",
+        "modules",
+        "student_progress"
+    ]
+    
+    for collection_name in collections_to_clear:
+        collection = db[collection_name]
+        count = await collection.count_documents({})
+        await collection.delete_many({})
+        deleted_counts[collection_name] = count
+    
+    # Delete all users EXCEPT the SuperAdmin who is making the request
+    users_deleted = await db.users.delete_many({
+        "email": {"$ne": superadmin_email}
+    })
+    deleted_counts["users"] = users_deleted.deleted_count
+    
+    # Clear system config except email_settings
+    await db.system_config.delete_many({"key": {"$ne": "email_settings"}})
+    
+    # Log this critical action
+    await log_audit_event(
+        AuditEventType.USER_DELETED if hasattr(AuditEventType, 'USER_DELETED') else AuditEventType.USER_UPDATED,
+        current_user["id"],
+        "system",
+        {
+            "action": "FULL_SYSTEM_RESET",
+            "deleted_counts": deleted_counts,
+            "initiated_by": superadmin_email,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        },
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {
+        "success": True,
+        "message": "Sistema limpiado completamente. Solo permanece la cuenta SuperAdmin.",
+        "deleted_counts": deleted_counts,
+        "preserved": {
+            "superadmin_account": superadmin_email,
+            "email_settings": True
+        },
+        "next_steps": [
+            "Crear un nuevo condominio desde el Onboarding Wizard",
+            "Configurar módulos y usuarios",
+            "Comenzar pruebas desde cero"
+        ]
+    }
+
 # Include the router in the main app
 app.include_router(api_router)
 
