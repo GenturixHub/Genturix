@@ -302,6 +302,20 @@ const SystemConfigSection = () => {
             </p>
           )}
         </div>
+
+        {/* Danger Zone - System Reset */}
+        <div className="p-4 rounded-lg border-2 border-red-500/30 bg-red-500/5">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
+              <AlertTriangle className="w-5 h-5 text-red-400" />
+            </div>
+            <div>
+              <p className="font-semibold text-red-400">Zona de Peligro</p>
+              <p className="text-xs text-muted-foreground">Acciones irreversibles</p>
+            </div>
+          </div>
+          <SystemResetButton onSuccess={onRefreshStats} />
+        </div>
       </CardContent>
     </Card>
   );
