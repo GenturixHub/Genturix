@@ -421,7 +421,7 @@ class ReservationStatusEnum(str, Enum):
 
 class AreaCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=100)
-    area_type: AreaTypeEnum
+    area_type: AreaTypeEnum = AreaTypeEnum.OTHER
     capacity: int = Field(..., gt=0)
     description: Optional[str] = None
     rules: Optional[str] = None
@@ -429,6 +429,8 @@ class AreaCreate(BaseModel):
     available_until: str = "22:00"
     requires_approval: bool = False
     max_hours_per_reservation: int = 2
+    max_reservations_per_day: int = 10
+    allowed_days: List[str] = Field(default=["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"])
     is_active: bool = True
 
 class AreaUpdate(BaseModel):
@@ -441,6 +443,8 @@ class AreaUpdate(BaseModel):
     available_until: Optional[str] = None
     requires_approval: Optional[bool] = None
     max_hours_per_reservation: Optional[int] = None
+    max_reservations_per_day: Optional[int] = None
+    allowed_days: Optional[List[str]] = None
     is_active: Optional[bool] = None
 
 class ReservationCreate(BaseModel):
