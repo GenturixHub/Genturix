@@ -4548,11 +4548,20 @@ async def create_user_by_admin(
     password_to_use = user_data.password
     password_reset_required = False
     
+    # Check if email sending is enabled (toggle)
+    email_toggle_enabled = await is_email_enabled()
+    
     if send_email:
         # Generate a temporary password if sending email
         password_to_use = generate_temporary_password()
-        # In DEV_MODE, don't require password reset for easier testing
-        password_reset_required = not DEV_MODE
+        # Require password reset ONLY if:
+        # 1. NOT in DEV_MODE AND
+        # 2. Email toggle is ENABLED (so user will actually receive the email)
+        password_reset_required = not DEV_MODE and email_toggle_enabled
+    
+    # Determine if we should show password in response
+    # Show password if: DEV_MODE is true OR email toggle is disabled
+    show_password_in_response = DEV_MODE or not email_toggle_enabled
     
     user_id = str(uuid.uuid4())
     user_doc = {
