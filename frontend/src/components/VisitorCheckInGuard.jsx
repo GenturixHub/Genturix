@@ -634,6 +634,39 @@ const VisitorCheckInGuard = () => {
             </div>
           )}
 
+          {/* Today's Active Authorizations - Always visible when not searching */}
+          {!search.trim() && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-2">
+                  <CalendarCheck className="w-4 h-4" />
+                  PRE-REGISTROS ACTIVOS HOY ({todayAuthorizations.length})
+                </h3>
+                <Button variant="ghost" size="sm" onClick={fetchData}>
+                  <RefreshCw className="w-4 h-4" />
+                </Button>
+              </div>
+              
+              {todayAuthorizations.length > 0 ? (
+                <div className="space-y-2">
+                  {todayAuthorizations.map((auth) => (
+                    <AuthorizationSearchCard 
+                      key={auth.id}
+                      auth={auth}
+                      onCheckIn={handleCheckInClick}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-muted-foreground bg-[#0F111A] rounded-xl border border-dashed border-[#1E293B]">
+                  <CalendarCheck className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">No hay pre-registros activos para hoy</p>
+                  <p className="text-xs mt-1">Los residentes pueden crear autorizaciones</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Visitors Inside */}
           <div>
             <div className="flex items-center justify-between mb-2">
