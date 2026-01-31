@@ -5746,10 +5746,17 @@ async def update_module_config(
     current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
 ):
     """Enable/disable a module for a condominium"""
-    valid_modules = ["security", "hr", "school", "payments", "audit", "reservations", "access_control", "messaging"]
+    valid_modules = ["security", "hr", "school", "payments", "audit", "reservations", "access_control", "messaging", "visits", "cctv"]
     
     if module_name not in valid_modules:
+        logger.error(f"[module-toggle] Invalid module '{module_name}' requested. Valid: {valid_modules}")
         raise HTTPException(status_code=400, detail=f"Invalid module. Valid modules: {', '.join(valid_modules)}")
+    
+    # Verify condominium exists first
+    condo = await db.condominiums.find_one({"id": condo_id}, {"_id": 0, "id": 1, "name": 1})
+    if not condo:
+        logger.error(f"[module-toggle] Condominium {condo_id} not found")
+        raise HTTPException(status_code=404, detail="Condominium not found")
     
     update_data = {
         f"modules.{module_name}.enabled": enabled,
@@ -5759,15 +5766,19 @@ async def update_module_config(
     if settings:
         update_data[f"modules.{module_name}.settings"] = settings
     
+    logger.info(f"[module-toggle] Updating module '{module_name}' to enabled={enabled} for condo '{condo.get('name')}' ({condo_id})")
+    
     result = await db.condominiums.update_one(
         {"id": condo_id},
         {"$set": update_data}
     )
     
-    if result.modified_count == 0:
+    if result.modified_count == 0 and result.matched_count == 0:
+        logger.error(f"[module-toggle] No document matched for condo_id={condo_id}")
         raise HTTPException(status_code=404, detail="Condominium not found")
     
-    return {"message": f"Module '{module_name}' {'enabled' if enabled else 'disabled'} successfully"}
+    logger.info(f"[module-toggle] SUCCESS: Module '{module_name}' {'enabled' if enabled else 'disabled'} for condo {condo_id}")
+    return {"message": f"Module '{module_name}' {'enabled' if enabled else 'disabled'} successfully", "module": module_name, "enabled": enabled}
 
 # ==================== SUPER ADMIN ENDPOINTS ====================
 
