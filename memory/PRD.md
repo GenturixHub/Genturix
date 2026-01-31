@@ -1,13 +1,67 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 31, 2026 (Session 30 - Critical Mobile Fix)
+## Last Updated: January 31, 2026 (Session 31 - P0 Core Fixes)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
 
 ---
 
-## PLATFORM STATUS: ✅ PRODUCTION STABLE - MOBILE FIXED
+## PLATFORM STATUS: ✅ PRODUCTION READY
+
+### Session 31 - P0 CORE FUNCTIONAL FIXES (January 31, 2026) ⭐⭐⭐⭐⭐
+
+#### 1. ✅ RESIDENT RESERVATIONS UI (COMPLETE)
+**New Component:** `/app/frontend/src/components/ResidentReservations.jsx`
+- View available common areas (Piscina, Salón, etc.)
+- Check real-time availability
+- Create reservations with date/time selection
+- Cancel pending reservations
+- See status: pending/approved/rejected
+- Integrated into ResidentUI as new "Reservas" tab
+
+**Files Modified:**
+- `/app/frontend/src/pages/ResidentUI.js` - Added Reservas tab
+- `/app/frontend/src/services/api.js` - Added `getReservationAvailability`, `updateReservation`
+- `/app/backend/server.py` - SuperAdmin can now create areas for any condo
+
+#### 2. ✅ ADMIN RESERVATION APPROVAL (VERIFIED)
+- Approve/Reject buttons already existed in ReservationsModule
+- Working correctly for Admin role
+
+#### 3. ⏳ GUARD VISITOR AUTHORIZATIONS (EXISTING)
+- VisitorCheckInGuard component already handles:
+  - Temporary authorizations
+  - Recurring authorizations
+  - Permanent authorizations
+  - Quick check-in/check-out
+
+#### 4. ✅ GUARD NAVIGATION FIX (VERIFIED)
+- ProfilePage.js already has back button (navigate(-1))
+- EmbeddedProfile works in tab context
+
+#### 5. ✅ PUSH NOTIFICATION SOUND (IMPLEMENTED)
+**Files Modified:**
+- `/app/frontend/public/service-worker.js` - Sends PLAY_PANIC_SOUND message
+- `/app/frontend/src/App.js` - Web Audio API panic sound generator
+  - Plays alert tone on panic notification
+  - Repeats every 2 seconds until acknowledged
+  - Auto-stops after 30 seconds
+  - `window.stopPanicSound()` available globally
+
+#### 6. ✅ MAP UX IMPROVEMENTS
+**File Modified:** `/app/frontend/src/pages/GuardUI.js`
+- Reduced map height on mobile: 150px (was 200px)
+- Stacked buttons on mobile
+- Truncated coordinates display
+- No horizontal scroll
+
+#### 7. ✅ SUPER ADMIN FIXES (VERIFIED)
+- Create Condominium: Working via onboarding wizard
+- Module Enable/Disable: API endpoint working correctly
+- Refresh button: Connected to fetchData, working
+
+---
 
 ### Session 30 - CRITICAL P0 MOBILE FIX (January 31, 2026) ⭐⭐⭐⭐⭐
 
