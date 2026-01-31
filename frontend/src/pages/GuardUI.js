@@ -2078,12 +2078,12 @@ const GuardUI = () => {
             </TabsTrigger>
             
             <TabsTrigger 
-              value="visits" 
-              className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary flex flex-col gap-0.5"
-              data-testid="tab-visits"
+              value="checkin" 
+              className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-green-500 flex flex-col gap-0.5"
+              data-testid="tab-checkin"
             >
-              <Users className="w-5 h-5" />
-              <span className="text-[10px]">Visitas</span>
+              <ScanLine className="w-5 h-5" />
+              <span className="text-[10px]">Check-In</span>
             </TabsTrigger>
             
             <TabsTrigger 
@@ -2105,12 +2105,12 @@ const GuardUI = () => {
             </TabsTrigger>
             
             <TabsTrigger 
-              value="manual" 
+              value="visits" 
               className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary flex flex-col gap-0.5"
-              data-testid="tab-manual"
+              data-testid="tab-visits"
             >
-              <UserPlus className="w-5 h-5" />
-              <span className="text-[10px]">Registro</span>
+              <Users className="w-5 h-5" />
+              <span className="text-[10px]">Visitas</span>
             </TabsTrigger>
             
             <TabsTrigger 
@@ -2155,6 +2155,10 @@ const GuardUI = () => {
             />
           </TabsContent>
 
+          <TabsContent value="checkin" className="h-full m-0 data-[state=inactive]:hidden">
+            <VisitorCheckInGuard />
+          </TabsContent>
+
           <TabsContent value="visits" className="h-full m-0 data-[state=inactive]:hidden">
             <VisitsTab />
           </TabsContent>
@@ -2169,10 +2173,6 @@ const GuardUI = () => {
 
           <TabsContent value="absences" className="h-full m-0 data-[state=inactive]:hidden">
             <AbsencesTab />
-          </TabsContent>
-
-          <TabsContent value="manual" className="h-full m-0 data-[state=inactive]:hidden">
-            <ManualEntryTab />
           </TabsContent>
 
           <TabsContent value="history" className="h-full m-0 data-[state=inactive]:hidden">
