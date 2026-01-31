@@ -957,8 +957,12 @@ const EditCondoDialog = ({ condo, open, onClose, onSuccess }) => {
 
   const handleModuleToggle = async (moduleId, enabled) => {
     setTogglingModule(moduleId);
+    console.log(`[module-toggle] Toggling module '${moduleId}' to enabled=${enabled} for condo '${condo.id}'`);
+    
     try {
-      await api.updateCondoModule(condo.id, moduleId, enabled);
+      const response = await api.updateCondoModule(condo.id, moduleId, enabled);
+      console.log(`[module-toggle] API Response:`, response);
+      
       setModules(prev => ({
         ...prev,
         [moduleId]: { ...prev[moduleId], enabled }
@@ -966,7 +970,9 @@ const EditCondoDialog = ({ condo, open, onClose, onSuccess }) => {
       const moduleName = MODULES.find(m => m.id === moduleId)?.name || moduleId;
       toast.success(`Módulo "${moduleName}" ${enabled ? 'activado' : 'desactivado'}`);
     } catch (error) {
-      toast.error(`Error al actualizar módulo: ${error.message || 'Error desconocido'}`);
+      console.error(`[module-toggle] ERROR:`, error);
+      const errorMsg = error.message || 'Error desconocido';
+      toast.error(`Error al actualizar módulo: ${errorMsg}`);
     } finally {
       setTogglingModule(null);
     }
