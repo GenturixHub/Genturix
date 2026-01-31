@@ -4206,7 +4206,7 @@ async def get_today_reservations(current_user = Depends(get_current_user)):
     
     # Enrich with area and user info
     for res in reservations:
-        area = await db.areas.find_one({"id": res.get("area_id")}, {"_id": 0, "name": 1, "area_type": 1})
+        area = await db.reservation_areas.find_one({"id": res.get("area_id")}, {"_id": 0, "name": 1, "area_type": 1})
         if area:
             res["area_name"] = area.get("name")
             res["area_type"] = area.get("area_type")
