@@ -4572,7 +4572,7 @@ async def create_user_by_admin(
     user_id = str(uuid.uuid4())
     user_doc = {
         "id": user_id,
-        "email": user_data.email,
+        "email": normalized_email,  # Use normalized email
         "hashed_password": hash_password(password_to_use),
         "full_name": user_data.full_name,
         "roles": [user_data.role],
