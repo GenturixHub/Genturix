@@ -6524,12 +6524,14 @@ async def validate_onboarding_field(
 ):
     """Validate a single field before submitting the entire wizard"""
     if data.field == "email":
-        existing = await db.users.find_one({"email": data.value})
+        # CRITICAL: Normalize email for validation
+        normalized_email = data.value.lower().strip()
+        existing = await db.users.find_one({"email": normalized_email})
         if existing:
             return {
                 "valid": False,
                 "field": "email",
-                "message": f"El email '{data.value}' ya está registrado en el sistema"
+                "message": f"El email '{normalized_email}' ya está registrado en el sistema"
             }
         return {"valid": True, "field": "email", "message": "Email disponible"}
     
