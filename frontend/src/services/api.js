@@ -8,9 +8,18 @@ const customFetch = async (url, options) => {
   if (!response.ok) {
     let errorBody = '';
     try {
-      errorBody = await response.text();
-    } catch {
-      // Body might have been consumed
+      // Clone the response before reading the body to avoid consumption issues
+      const clonedResponse = response.clone();
+      errorBody = await clonedResponse.text();
+      console.log('[DEBUG customFetch] Error body read:', errorBody);
+    } catch (e) {
+      console.log('[DEBUG customFetch] Error reading body:', e);
+      // If clone/text fails, try reading from original
+      try {
+        errorBody = await response.text();
+      } catch {
+        // Body might have been consumed
+      }
     }
     
     // Create a modified response-like object with the body data
@@ -20,7 +29,13 @@ const customFetch = async (url, options) => {
       statusText: response.statusText,
       headers: response.headers,
       _errorBody: errorBody,
-      json: async () => JSON.parse(errorBody || '{}'),
+      json: async () => {
+        try {
+          return JSON.parse(errorBody || '{}');
+        } catch {
+          return { detail: errorBody || `Error ${response.status}` };
+        }
+      },
       text: async () => errorBody
     };
   }
