@@ -367,6 +367,8 @@ class ApiService {
     return this.get(`/authorizations/history${queryString ? `?${queryString}` : ''}`);
   };
   getAuthorizationStats = () => this.get('/authorizations/stats');
+  // ==================== CONFIG ====================
+  getDevModeStatus = () => this.get('/config/dev-mode');
 }
 
 export const api = new ApiService();
