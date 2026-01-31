@@ -403,7 +403,12 @@ class AuthorizationColorEnum(str, Enum):
     BLUE = "blue"         # Recurring visitors
     YELLOW = "yellow"     # Temporary visitors
     PURPLE = "purple"     # Extended visitors
-    GRAY = "gray"         # Expired
+    GRAY = "gray"         # Expired/Inactive
+
+class AuthorizationStatusEnum(str, Enum):
+    ACTIVE = "active"
+    EXPIRED = "expired"
+    REVOKED = "revoked"
 
 # New model for advanced visitor authorizations
 class VisitorAuthorizationCreate(BaseModel):
@@ -417,7 +422,6 @@ class VisitorAuthorizationCreate(BaseModel):
     allowed_hours_from: Optional[str] = None  # HH:MM
     allowed_hours_to: Optional[str] = None    # HH:MM
     notes: Optional[str] = None
-    color_code: AuthorizationColorEnum = AuthorizationColorEnum.YELLOW
 
 class VisitorAuthorizationUpdate(BaseModel):
     visitor_name: Optional[str] = None
@@ -430,18 +434,19 @@ class VisitorAuthorizationUpdate(BaseModel):
     allowed_hours_from: Optional[str] = None
     allowed_hours_to: Optional[str] = None
     notes: Optional[str] = None
-    color_code: Optional[AuthorizationColorEnum] = None
     is_active: Optional[bool] = None
 
-class VisitorCheckIn(BaseModel):
+# Fast Check-in by Guard
+class FastCheckInRequest(BaseModel):
     authorization_id: Optional[str] = None  # If pre-authorized
     visitor_name: Optional[str] = None      # Manual entry if not authorized
     identification_number: Optional[str] = None
     vehicle_plate: Optional[str] = None
+    destination: Optional[str] = None       # Apartment/House visiting
     notes: Optional[str] = None
 
-class VisitorCheckOut(BaseModel):
-    entry_id: str
+# Check-out by Guard  
+class FastCheckOutRequest(BaseModel):
     notes: Optional[str] = None
 
 class VisitorPreRegistration(BaseModel):
