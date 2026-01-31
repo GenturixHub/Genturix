@@ -2840,7 +2840,7 @@ async def get_guard_my_shift(current_user = Depends(require_role("Guarda", "Admi
     return {
         "has_guard_record": True,
         "guard_id": guard["id"],
-        "guard_name": guard["user_name"],
+        "guard_name": guard.get("user_name") or guard.get("name") or "Sin nombre",
         "current_shift": current_shift,
         "next_shift": next_shift,
         "is_clocked_in": is_clocked_in,
