@@ -43,7 +43,8 @@ import {
   FileText,
   X,
   ZoomIn,
-  LogOut
+  LogOut,
+  ArrowLeft
 } from 'lucide-react';
 
 // Role configuration
