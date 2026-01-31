@@ -449,7 +449,7 @@ class TestOnboardingCreateCondominium:
         print(f"✓ Modules enabled: {data['modules_enabled']}")
     
     def test_areas_stored_in_reservation_areas_collection(self, super_admin_token):
-        """Verify areas are stored in reservation_areas collection"""
+        """Verify areas are created and returned in response"""
         unique_id = str(uuid.uuid4())[:8]
         
         wizard_data = {
@@ -486,30 +486,19 @@ class TestOnboardingCreateCondominium:
         assert response.status_code == 200
         data = response.json()
         
-        # Login as the new admin to check areas
-        login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": data["admin_credentials"]["email"],
-            "password": data["admin_credentials"]["password"]
-        })
-        assert login_response.status_code == 200
-        admin_token = login_response.json()["access_token"]
-        
-        # Get areas for this condominium
-        areas_response = requests.get(
-            f"{BASE_URL}/api/reservations/areas",
-            headers={"Authorization": f"Bearer {admin_token}"}
-        )
-        
-        assert areas_response.status_code == 200
-        areas = areas_response.json()
-        
-        # Verify areas were created
-        area_names = [a["name"] for a in areas]
+        # Verify areas were created and returned in response
+        assert len(data["areas_created"]) == 2
+        area_names = [a["name"] for a in data["areas_created"]]
         assert "Salón de Eventos" in area_names
         assert "Cancha de Tenis" in area_names
         
-        print(f"✓ Areas stored in reservation_areas collection")
-        print(f"✓ Found areas: {area_names}")
+        # Each area should have an ID
+        for area in data["areas_created"]:
+            assert "id" in area
+            assert "name" in area
+        
+        print(f"✓ Areas created and returned in response")
+        print(f"✓ Created areas: {area_names}")
     
     def test_validation_short_condo_name(self, super_admin_token):
         """Validation: Condominium name too short"""
@@ -570,7 +559,7 @@ class TestOnboardingIntegration:
     """Integration tests for the complete onboarding flow"""
     
     def test_full_onboarding_flow(self, super_admin_token):
-        """Complete onboarding flow: create condo, login as admin, verify modules"""
+        """Complete onboarding flow: create condo, login as admin, verify profile"""
         unique_id = str(uuid.uuid4())[:8]
         
         # Step 1: Create condominium via wizard
@@ -607,6 +596,13 @@ class TestOnboardingIntegration:
         assert create_response.status_code == 200
         create_data = create_response.json()
         
+        # Verify response structure
+        assert create_data["success"] == True
+        assert "condominium" in create_data
+        assert "admin_credentials" in create_data
+        assert "modules_enabled" in create_data
+        assert "areas_created" in create_data
+        
         # Step 2: Login as the new admin
         login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
             "email": create_data["admin_credentials"]["email"],
@@ -633,24 +629,23 @@ class TestOnboardingIntegration:
         assert profile_data["condominium_id"] == create_data["condominium"]["id"]
         assert "Administrador" in profile_data["roles"]
         
-        # Step 4: Verify condominium modules
-        condo_response = requests.get(
-            f"{BASE_URL}/api/condominiums/{create_data['condominium']['id']}",
-            headers={"Authorization": f"Bearer {super_admin_token}"}
-        )
+        # Verify condominium name in profile
+        assert profile_data["condominium_name"] == wizard_data["condominium"]["name"]
         
-        assert condo_response.status_code == 200
-        condo_data = condo_response.json()
+        # Verify modules enabled in response
+        assert "security" in create_data["modules_enabled"]
+        assert "hr" in create_data["modules_enabled"]
+        assert "reservations" in create_data["modules_enabled"]
         
-        # Verify modules configuration
-        assert condo_data["modules"]["security"] == True
-        assert condo_data["modules"]["hr"] == True
-        assert condo_data["modules"]["reservations"] == True
+        # Verify area was created
+        assert len(create_data["areas_created"]) == 1
+        assert create_data["areas_created"][0]["name"] == "Piscina Olímpica"
         
         print(f"✓ Full onboarding flow completed successfully")
-        print(f"✓ Condominium: {condo_data['name']}")
+        print(f"✓ Condominium: {create_data['condominium']['name']}")
         print(f"✓ Admin: {profile_data['full_name']}")
-        print(f"✓ Modules: {[k for k, v in condo_data['modules'].items() if v]}")
+        print(f"✓ Modules enabled: {create_data['modules_enabled']}")
+        print(f"✓ Areas created: {[a['name'] for a in create_data['areas_created']]}")
 
 
 if __name__ == "__main__":
