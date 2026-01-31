@@ -10,9 +10,10 @@
  * 
  * TABS:
  * 1. ALERTAS - Active panic alerts
- * 2. VISITAS - Pre-registered visitors
- * 3. REGISTRO - Manual entry for walk-ins
- * 4. HISTORIAL - Read-only past records
+ * 2. CHECK-IN - Advanced visitor authorization & check-in
+ * 3. VISITAS - Pre-registered visitors (legacy)
+ * 4. MI TURNO - Shift management
+ * 5. HISTORIAL - Read-only past records
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -43,6 +44,7 @@ import { Textarea } from '../components/ui/textarea';
 import { toast } from 'sonner';
 import api from '../services/api';
 import PushNotificationBanner from '../components/PushNotificationBanner';
+import VisitorCheckInGuard from '../components/VisitorCheckInGuard';
 import { 
   Shield, 
   LogOut,
@@ -77,7 +79,8 @@ import {
   CalendarX,
   PlayCircle,
   StopCircle,
-  Users as UsersIcon
+  Users as UsersIcon,
+  ScanLine
 } from 'lucide-react';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
