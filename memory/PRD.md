@@ -1,13 +1,37 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 31, 2026 (Session 34 - Mobile Freeze Bug Fix)
+## Last Updated: January 31, 2026 (Session 35 - P0 HR Shift Creation Final Verification)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
 
 ---
 
-## PLATFORM STATUS: ✅ PRODUCTION READY - MOBILE UX STABLE
+## PLATFORM STATUS: ✅ PRODUCTION READY - ALL P0 BLOCKERS FIXED
+
+### Session 35 - P0 HR SHIFT CREATION FINAL VERIFICATION (January 31, 2026) ⭐⭐⭐⭐⭐
+
+#### 🔴 P0 BLOCKER FIXED: HR Shift Creation
+**Problem:** Backend was crashing with `KeyError: 'user_name'` when creating shifts because some guard documents only had `name` field instead of `user_name`.
+
+**Solution Applied (by previous agent + verified):**
+1. Refactored ~8 backend endpoints to handle inconsistent data schemas (`name` vs `user_name`)
+2. Added helper function `getEmployeeName(emp)` in RRHHModule.js that handles: `emp?.user_name || emp?.name || emp?.full_name || 'Sin nombre'`
+3. Fixed 3 additional bugs found by testing agent:
+   - `PUT /api/hr/employees/{id}/activate` - KeyError: 'user_id'
+   - `PUT /api/hr/employees/{id}/deactivate` - KeyError: 'user_id'/'user_name'
+   - `RRHHModule.js` - Missing `toast` import from 'sonner'
+
+**Verification Results:**
+- ✅ Backend API: 100% tests passed (4/4)
+- ✅ Frontend UI: 100% tests passed (5/5)
+- ✅ Desktop: Create shift dialog works, employee dropdown shows active guards
+- ✅ Mobile: Full-screen dialog, dropdown opens correctly (z-index: 100)
+- ✅ E2E: Shift created successfully with guard name populated
+
+**Test Report:** `/app/test_reports/iteration_41.json`
+
+---
 
 ### Session 34 - CRITICAL MOBILE FREEZE BUG FIX (January 31, 2026) ⭐⭐⭐⭐⭐
 
