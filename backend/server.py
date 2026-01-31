@@ -30,6 +30,13 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
+# Development Mode Configuration
+# When DEV_MODE=true:
+# - Disable mandatory password reset on first login
+# - Don't block if email not configured
+# - Return generated password in API response for testing
+DEV_MODE = os.environ.get('DEV_MODE', 'false').lower() == 'true'
+
 # JWT Configuration
 JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'default-secret-change-in-production')
 JWT_REFRESH_SECRET_KEY = os.environ.get('JWT_REFRESH_SECRET_KEY', 'default-refresh-secret')
