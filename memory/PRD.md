@@ -1,42 +1,56 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 31, 2026 (Session 30 - Critical Bugfixes)
+## Last Updated: January 31, 2026 (Session 30 - Critical Mobile Fix)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
 
 ---
 
-## PLATFORM STATUS: ✅ PRODUCTION STABLE
+## PLATFORM STATUS: ✅ PRODUCTION STABLE - MOBILE FIXED
 
-### Session 30 - CRITICAL BUGFIXES (January 31, 2026) ⭐⭐⭐⭐⭐
+### Session 30 - CRITICAL P0 MOBILE FIX (January 31, 2026) ⭐⭐⭐⭐⭐
 
-#### ISSUES FIXED
-1. ✅ **Onboarding Wizard Error Handling** - Improved error messages with pre-validation
-2. ✅ **Country Selector Incomplete** - Added 25+ countries including Costa Rica and all Central America
-3. ✅ **Timezone Auto-Selection** - Country selection now auto-populates timezone
-4. ✅ **API Error Body Parsing** - Fixed response body consumption issue with custom fetch wrapper
+#### P0 BUG FIXED: Mobile Form Freeze
+**Root Cause:** CSS rules in `mobile.css` were globally overriding Radix Dialog positioning with `!important`, causing z-index conflicts and blocking touch events.
 
-#### NEW FEATURES
-- Pre-validation endpoint `/api/super-admin/onboarding/validate` checks name/email availability before submit
-- Auto-timezone mapping: selecting a country auto-selects the corresponding timezone
-- Improved backend logging for onboarding failures
+**Changes Made:**
+1. **`/app/frontend/src/styles/mobile.css`**:
+   - Removed aggressive global dialog overrides
+   - Fixed `overflow-x: hidden` to not affect modal children
+   - Added `touch-action: auto` and `user-select: text` for form inputs in dialogs
 
-#### FILES MODIFIED
-- `/app/frontend/src/pages/OnboardingWizard.js` - Extended country list, auto-timezone, pre-validation
-- `/app/frontend/src/services/api.js` - Custom fetch wrapper for better error handling
-- `/app/backend/server.py` - Validation endpoint, extended timezones, better logging
+2. **`/app/frontend/src/components/ui/dialog.jsx`**:
+   - Updated z-index hierarchy: Overlay z-60, Content z-70, Close button z-80
+   - Changed mobile breakpoint from `max-sm` (≤640px) to `max-lg` (≤1023px)
+   - Added `touchAction: auto` inline style for proper mobile touch handling
+   - Added padding bottom for BottomNav clearance
 
-#### COUNTRIES NOW AVAILABLE
-- **Centroamérica:** Costa Rica, Guatemala, Honduras, El Salvador, Nicaragua, Panamá
-- **Norteamérica:** México, Estados Unidos
-- **Sudamérica:** Argentina, Bolivia, Brasil, Chile, Colombia, Ecuador, Paraguay, Perú, Uruguay, Venezuela
-- **Caribe:** Puerto Rico, República Dominicana, Cuba
-- **Europa:** España, Portugal
+3. **`/app/frontend/src/components/ui/sheet.jsx`**:
+   - Updated z-index to match dialog hierarchy (z-60/z-70)
+   - Added `overflow-y: auto` to side variants
+   - Added touch action styles for mobile
+
+4. **`/app/frontend/src/components/layout/BottomNav.js`**:
+   - Clarified z-index (50) to stay below dialogs (60+)
+   - Added `pointer-events: auto` for explicit touch handling
+
+#### VERIFIED WORKING ON MOBILE:
+- ✅ Login form
+- ✅ Onboarding wizard (country/timezone selection)
+- ✅ Resident dashboard & visitor authorization modal
+- ✅ All form inputs editable
+- ✅ All buttons responsive
+- ✅ BottomNav navigation
+- ✅ Modal scroll
+- ✅ Desktop unchanged
 
 ---
 
-### Session 29 - DEV_MODE FOR CREDENTIALS TESTING (January 31, 2026) ⭐⭐⭐⭐⭐
+#### ALSO FIXED: Onboarding Wizard Errors
+- Pre-validation endpoint for name/email availability
+- Auto-timezone mapping on country selection
+- 25+ countries with Central America support
 
 #### WHAT WAS IMPLEMENTED
 A development mode flag (`DEV_MODE=true`) that changes behavior for easier testing without compromising production security.
