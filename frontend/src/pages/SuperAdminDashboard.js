@@ -260,12 +260,12 @@ const OverviewTab = ({ stats, isLoading, onRefresh, onNavigateTab }) => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Button 
               variant="outline" 
-              className="h-auto py-4 flex-col gap-2 border-[#1E293B] hover:bg-[#1E293B]"
-              onClick={() => onNavigateTab('condominiums')}
+              className="h-auto py-4 flex-col gap-2 border-primary/50 hover:bg-primary/10 bg-primary/5"
+              onClick={() => navigate('/super-admin/onboarding')}
               data-testid="quick-action-new-condo"
             >
-              <Building2 className="w-5 h-5 text-blue-400" />
-              <span className="text-xs">Nuevo Condominio</span>
+              <Plus className="w-5 h-5 text-primary" />
+              <span className="text-xs font-medium">Nuevo Condominio</span>
             </Button>
             <Button 
               variant="outline" 
