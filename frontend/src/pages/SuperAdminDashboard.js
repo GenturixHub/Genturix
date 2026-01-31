@@ -248,7 +248,7 @@ const SystemConfigSection = () => {
                 </div>
               ) : (
                 <div className="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center">
-                  <MailOff className="w-5 h-5 text-yellow-400" />
+                  <MailX className="w-5 h-5 text-yellow-400" />
                 </div>
               )}
               <div>
