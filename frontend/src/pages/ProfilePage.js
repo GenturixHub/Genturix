@@ -64,7 +64,7 @@ const ROLE_CONFIG = {
 };
 
 const ProfilePage = () => {
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
   const { userId } = useParams(); // If userId is present, we're viewing someone else's profile
   const navigate = useNavigate();
   
@@ -75,6 +75,7 @@ const ProfilePage = () => {
   const [success, setSuccess] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
