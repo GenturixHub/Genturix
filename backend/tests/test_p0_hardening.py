@@ -156,7 +156,7 @@ class TestResidentAuthorization:
                 "visitor_name": "Test Visitor API",
                 "visitor_id": "12345678",
                 "vehicle_plate": "TEST-123",
-                "authorization_type": "temporal",
+                "authorization_type": "temporary",  # API uses 'temporary' not 'temporal'
                 "valid_from": "2026-01-31",
                 "valid_until": "2026-02-01",
                 "notes": "API test authorization"
