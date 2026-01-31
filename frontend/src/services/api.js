@@ -369,6 +369,8 @@ class ApiService {
   getAuthorizationStats = () => this.get('/authorizations/stats');
   // ==================== CONFIG ====================
   getDevModeStatus = () => this.get('/config/dev-mode');
+  getEmailStatus = () => this.get('/config/email-status');
+  setEmailStatus = (enabled) => this.post('/config/email-status', { email_enabled: enabled });
 }
 
 export const api = new ApiService();
