@@ -3982,13 +3982,22 @@ async def delete_area(
     """Soft delete an area (Admin only)"""
     condo_id = current_user.get("condominium_id")
     
-    result = await db.areas.update_one(
+    result = await db.reservation_areas.update_one(
         {"id": area_id, "condominium_id": condo_id},
         {"$set": {"is_active": False, "deleted_at": datetime.now(timezone.utc).isoformat()}}
     )
     
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Área no encontrada")
+    
+    await log_audit_event(
+        AuditEventType.ACCESS_GRANTED,
+        current_user["id"],
+        "reservations",
+        {"action": "area_deleted", "area_id": area_id},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
     
     return {"message": "Área eliminada exitosamente"}
 
@@ -4023,7 +4032,7 @@ async def get_reservations(
     
     # Enrich with area and user info
     for res in reservations:
-        area = await db.areas.find_one({"id": res.get("area_id")}, {"_id": 0, "name": 1, "area_type": 1})
+        area = await db.reservation_areas.find_one({"id": res.get("area_id")}, {"_id": 0, "name": 1, "area_type": 1})
         if area:
             res["area_name"] = area.get("name")
             res["area_type"] = area.get("area_type")
@@ -4033,6 +4042,12 @@ async def get_reservations(
             res["resident_photo"] = user.get("profile_photo")
     
     return reservations
+
+# Day name mapping for validation
+DAY_NAMES = {
+    0: "Lunes", 1: "Martes", 2: "Miércoles", 3: "Jueves", 
+    4: "Viernes", 5: "Sábado", 6: "Domingo"
+}
 
 @api_router.post("/reservations")
 async def create_reservation(
@@ -4048,13 +4063,39 @@ async def create_reservation(
     await check_module_enabled(condo_id, "reservations")
     
     # Check area exists and is active
-    area = await db.areas.find_one({"id": reservation.area_id, "condominium_id": condo_id, "is_active": True})
+    area = await db.reservation_areas.find_one({"id": reservation.area_id, "condominium_id": condo_id, "is_active": True})
     if not area:
         raise HTTPException(status_code=404, detail="Área no encontrada o no disponible")
     
     # Check capacity
     if reservation.guests_count > area.get("capacity", 10):
         raise HTTPException(status_code=400, detail=f"El área solo permite {area['capacity']} personas")
+    
+    # Validate time is within area's available hours
+    area_from = area.get("available_from", "06:00")
+    area_until = area.get("available_until", "22:00")
+    if reservation.start_time < area_from or reservation.end_time > area_until:
+        raise HTTPException(status_code=400, detail=f"El horario debe estar entre {area_from} y {area_until}")
+    
+    # Validate day is allowed
+    try:
+        res_date = datetime.strptime(reservation.date, "%Y-%m-%d")
+        day_name = DAY_NAMES.get(res_date.weekday())
+        allowed_days = area.get("allowed_days", list(DAY_NAMES.values()))
+        if day_name not in allowed_days:
+            raise HTTPException(status_code=400, detail=f"Esta área no está disponible los días {day_name}")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de fecha inválido. Use YYYY-MM-DD")
+    
+    # Check max reservations per day for this area
+    max_per_day = area.get("max_reservations_per_day", 10)
+    daily_count = await db.reservations.count_documents({
+        "area_id": reservation.area_id,
+        "date": reservation.date,
+        "status": {"$in": ["pending", "approved"]}
+    })
+    if daily_count >= max_per_day:
+        raise HTTPException(status_code=400, detail=f"Se alcanzó el límite de {max_per_day} reservaciones para esta área en esta fecha")
     
     # Check for overlapping reservations
     existing = await db.reservations.find_one({
