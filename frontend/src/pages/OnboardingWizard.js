@@ -181,15 +181,35 @@ const Step1CondoInfo = ({ data, onChange, timezones }) => {
             <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B] h-12" data-testid="condo-country-select">
               <SelectValue placeholder="Seleccionar país" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-[300px]">
+              {/* Centroamérica */}
+              <SelectItem value="Costa Rica">Costa Rica</SelectItem>
+              <SelectItem value="Guatemala">Guatemala</SelectItem>
+              <SelectItem value="Honduras">Honduras</SelectItem>
+              <SelectItem value="El Salvador">El Salvador</SelectItem>
+              <SelectItem value="Nicaragua">Nicaragua</SelectItem>
+              <SelectItem value="Panama">Panamá</SelectItem>
+              {/* Norteamérica */}
               <SelectItem value="Mexico">México</SelectItem>
-              <SelectItem value="Colombia">Colombia</SelectItem>
-              <SelectItem value="Peru">Perú</SelectItem>
+              <SelectItem value="Estados Unidos">Estados Unidos</SelectItem>
+              {/* Sudamérica */}
               <SelectItem value="Argentina">Argentina</SelectItem>
-              <SelectItem value="Chile">Chile</SelectItem>
-              <SelectItem value="Venezuela">Venezuela</SelectItem>
+              <SelectItem value="Bolivia">Bolivia</SelectItem>
               <SelectItem value="Brasil">Brasil</SelectItem>
+              <SelectItem value="Chile">Chile</SelectItem>
+              <SelectItem value="Colombia">Colombia</SelectItem>
+              <SelectItem value="Ecuador">Ecuador</SelectItem>
+              <SelectItem value="Paraguay">Paraguay</SelectItem>
+              <SelectItem value="Peru">Perú</SelectItem>
+              <SelectItem value="Uruguay">Uruguay</SelectItem>
+              <SelectItem value="Venezuela">Venezuela</SelectItem>
+              {/* Caribe */}
+              <SelectItem value="Puerto Rico">Puerto Rico</SelectItem>
+              <SelectItem value="Republica Dominicana">República Dominicana</SelectItem>
+              <SelectItem value="Cuba">Cuba</SelectItem>
+              {/* Europa */}
               <SelectItem value="España">España</SelectItem>
+              <SelectItem value="Portugal">Portugal</SelectItem>
             </SelectContent>
           </Select>
         </div>
