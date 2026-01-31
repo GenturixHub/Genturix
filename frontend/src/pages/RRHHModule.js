@@ -957,7 +957,7 @@ const TurnosSubmodule = ({ employees, shifts, onCreateShift, onDeleteShift, isLo
                   </SelectTrigger>
                   <SelectContent className="bg-[#0F111A] border-[#1E293B]">
                     {employees.filter(e => e.is_active).map(emp => (
-                      <SelectItem key={emp.id} value={emp.id}>{emp.user_name}</SelectItem>
+                      <SelectItem key={emp.id} value={emp.id}>{getEmployeeName(emp)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
