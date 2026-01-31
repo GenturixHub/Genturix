@@ -4473,6 +4473,17 @@ async def create_user_by_admin(
     current_user = Depends(require_role("Administrador", "SuperAdmin"))
 ):
     """Admin creates a user (Resident, HR, Guard, etc.) with role-specific validation"""
+    # TEMPORARY DEBUG LOGGING
+    print(f"[DEBUG] Creating user - Raw data received:")
+    print(f"[DEBUG]   email: {user_data.email}")
+    print(f"[DEBUG]   full_name: {user_data.full_name}")
+    print(f"[DEBUG]   role: {user_data.role}")
+    print(f"[DEBUG]   phone: {user_data.phone}")
+    print(f"[DEBUG]   apartment_number: {user_data.apartment_number}")
+    print(f"[DEBUG]   badge_number: {user_data.badge_number}")
+    print(f"[DEBUG]   department: {user_data.department}")
+    print(f"[DEBUG]   current_user condo: {current_user.get('condominium_id')}")
+    
     # CRITICAL: Normalize email to lowercase
     normalized_email = user_data.email.lower().strip()
     
