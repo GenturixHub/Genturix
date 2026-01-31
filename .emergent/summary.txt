@@ -1,57 +1,107 @@
 <analysis>**original_problem_statement:**
-The user's overall goal is to build a comprehensive, multi-tenant security and condominium management platform named GENTURIX.
+The user is in the final pre-deployment phase of the GENTURIX platform and has identified a critical list of P0 bugs and UX inconsistencies that must be resolved before the application can go live. The user has explicitly entered a DEBUG MODE to force the agent to re-verify and fix these issues directly in the App Preview, as previous attempts seem not to have resolved them.
 
-In this session, the user requested the implementation of several key features and a major stability pass:
-1.  **Advanced Visitor Authorization System:** Implement a full-featured system for residents to create different types of visitor authorizations (temporary, permanent, recurring, etc.) and for guards to manage check-in/check-out.
-2.  **Full Platform Hardening & Mass Testing:** A pre-production task to test and fix every button, form, and flow across all user roles (Super Admin, Admin, HR, Guard, Resident) to ensure platform stability and eliminate bugs, UI freezes, and inconsistencies.
-3.  **Development Mode for Credentials:** Add a  flag in the  file to alter the user creation flow for easier testing. When enabled, it disables forced password resets and shows the generated password in the UI instead of emailing it.
-4.  **Email Sending Toggle:** Implement a global toggle in the Super Admin UI to enable or disable the sending of credential emails. This allows for testing in environments without a configured email service, without needing to change  files.
+**PRODUCT REQUIREMENTS (P0 - CRITICAL):**
+1.  **Authentication Hardening:**
+    *   Emails must be case-insensitive across the entire platform (login, user creation, profile updates). All emails should be normalized to lowercase on the backend.
+2.  **Super Admin Fixes:**
+    *   The Actualizar (Refresh) button in the dashboard must correctly reload data.
+    *   Module toggles (School, HR, Visits, Reservations) must work reliably without errors and persist their state.
+3.  **Admin Panel Fixes:**
+    *   The Reservations module must be fully functional: implement approve/reject actions, fix area creation/editing, and ensure residents can see and manage their reservations.
+    *   Profile avatars must sync consistently across the top navbar, sidebar, and profile page.
+    *   The mobile view for Admins must include a logout option.
+4.  **HR Module Fixes:**
+    *   Fix the profile avatar sync issue.
+    *   Implement the ability to delete employee shifts.
+    *   Resolve UI freezes when creating shifts on mobile.
+5.  **Guard Module Fixes:**
+    *   The profile page must not be a navigation dead-end; the Guard must be able to return to the main UI without logging out.
+    *   Implement a panel for Guards to view resident pre-registered visitors (temporary, recurrent, permanent).
+6.  **Resident Module Fixes:**
+    *   Implement the full UI for residents to create, edit, and view common area reservations.
+    *   Fix the mobile UI for panic buttons (reposition higher, improve layout).
+    *   Fix mobile form freezes when creating visits.
+    *   Fix the broken mobile profile photo upload functionality.
+7.  **Global Mobile UX:**
+    *   Fix all instances of forms freezing on mobile devices (inputs, dropdowns, submit buttons). Ensure the PWA behaves like a native application.
+8.  **Final Testing:**
+    *   After all fixes, run a massive, full-platform automated test to confirm that all buttons, forms, modules, and navigation flows are functional on both desktop and mobile.
 
 **User's preferred language**: Español
 
 **what currently exists?**
-The platform is in a highly stable, feature-complete state following a major hardening pass. The agent successfully implemented three major items in this session:
-1.  **Advanced Visitor Authorization System:** A full-stack implementation including backend models/endpoints and frontend UIs for residents and guards. This feature was tested end-to-end.
-2.  **Platform Hardening:** A comprehensive testing and fixing phase across all user roles. This resolved a security vulnerability (leaking password hashes), fixed multiple UI/linting errors, and corrected navigation dead-ends.
-3.  **Developer/Testing Experience:** Implemented both a -based  and a Super Admin-controlled UI toggle to disable email sending. These features streamline testing by making user creation and login possible without a functioning email service.
-
-The platform is now considered pre-production stable.
+The agent has implemented a series of fixes based on a list of P0 bugs. Key changes include:
+- **Email Normalization:** Backend code across login, user creation, and onboarding was updated to handle emails in a case-insensitive manner ().
+- **HR Shift Deletion:** The backend endpoint  was confirmed to exist. The frontend  was updated to include a delete button on  and the corresponding handler logic.
+- **Mobile Logout:** A logout button with a confirmation dialog was added to the  component, making it available in mobile views for roles like Admin.
+- **Mobile Panic Button UX:** The layout of panic buttons in  was adjusted to be more compact and horizontally aligned for better visibility on small screens.
+- **Initial Debugging:** The agent was forced into a DEBUG MODE by the user due to a discrepancy between the agent's test results and the App Preview's behavior. The agent has just started re-validating the P0 issues, starting with the Super Admin dashboard.
 
 **Last working item**:
--   Last item agent was working: Implementing a global toggle for Super Admins to enable/disable the sending of credential emails. This involved creating backend endpoints () to manage the state, modifying user creation logic to respect this flag, and adding a UI toggle switch in the Super Admin dashboard.
--   Status: USER VERIFICATION PENDING
--   Agent Testing Done: Y
+-   Last item agent was working: The agent entered a DEBUG MODE per the user's explicit instructions (Chat 539) to address a list of critical P0 bugs that are reportedly still present in the App Preview. The agent was in the initial phase of this process, using screenshots to investigate the Super Admin's Actualizar (Refresh) button and the module toggles to confirm if they are truly broken.
+-   Status: IN PROGRESS
+-   Agent Testing Done: N
 -   Which testing method agent to use? both
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   Issue 1: (P2) PostHog Console Error.
--   Issue 2: (P2)  Attribute Error Warning.
+-   Issue 1: (P0) Final Pre-Deployment Hardening (Multiple sub-issues).
+-   Issue 2: (P2) PostHog Console Error.
+-   Issue 3: (P2)  Attribute Error Warning.
 
 **Issues Detail**:
--   **Issue 1: PostHog Console Error**
-    -   **Attempted fixes:** None. This is a low-priority, recurring browser console error.
+-   **Issue 1: Final Pre-Deployment Hardening** (P0 - CRITICAL)
+    -   **Description:** The user has provided a comprehensive list of P0 bugs that must be fixed before production. The agent must re-verify each item in the App Preview and apply fixes. This is the highest priority task. Sub-issues include:
+        1.  Super Admin Actualizar button & module toggles are broken.
+        2.  Admin reservations module is non-functional (no approve/reject, etc.).
+        3.  Profile avatars do not sync consistently for Admin/HR.
+        4.  Admin mobile view lacks a logout option. (Agent attempted a fix, needs verification).
+        5.  Cannot delete HR shifts. (Agent attempted a fix, needs verification).
+        6.  Guard navigation has a dead-end in the profile view.
+        7.  Guard cannot view pre-registered visitors.
+        8.  Resident reservations UI is missing. (Agent attempted a fix, needs verification).
+        9.  Resident mobile panic buttons have poor UX. (Agent attempted a fix, needs verification).
+        10. Global mobile form freezes across all roles. (Agent attempted a fix, needs verification).
+    -   **Attempted fixes:** The agent has implemented code changes for several of these issues (email normalization, HR shift deletion, mobile logout, panic button UX, and global mobile freezes). However, the user's prompt indicates these fixes may not be working in the preview.
     -   **Next debug checklist:**
-        1.  Investigate the  error.
-        2.  Check PostHog integration configuration for conflicts.
-    -   **Why fix this issue and what will be achieved with the fix?** To clean up the developer console, simplifying future debugging.
+        1.  Systematically go through each P0 item listed by the user in Chat 539.
+        2.  For each item, use the screenshot tool to reproduce the bug in the App Preview.
+        3.  If the bug is confirmed, review the relevant files (, , , , , etc.).
+        4.  Apply targeted fixes using .
+        5.  Verify the fix with another screenshot.
+        6.  Once all P0 bugs are visually confirmed as fixed, run the  for a full regression test.
+    -   **Why fix this issue and what will be achieved with the fix?** This is a mandatory pre-production hardening pass. Fixing these issues will make the application stable, usable, and ready for deployment.
+    -   **Status:** IN PROGRESS
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?** both
+    -   **Blocked on other issue:** None
+
+-   **Issue 2: PostHog Console Error** (P2)
+    -   **Attempted fixes:** None.
+    -   **Next debug checklist:** Investigate the  error and check PostHog integration.
+    -   **Why fix this issue and what will be achieved with the fix?** Clean up the developer console.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** Y
     -   **Should Test frontend/backend/both after fix?** frontend
     -   **Blocked on other issue:** None
--   **Issue 2:  Attribute Error Warning**
-    -   **Attempted fixes:** None. This is a recurring, non-blocking warning in the backend logs.
-    -   **Next debug checklist:**
-        1.  Investigate the  warning.
-        2.  Check if  or  versions in  need adjustment.
-    -   **Why fix this issue and what will be achieved with the fix?** To remove log noise and prevent potential future authentication issues.
+
+-   **Issue 3:  Attribute Error Warning** (P2)
+    -   **Attempted fixes:** None.
+    -   **Next debug checklist:** Investigate the  warning and check  versions.
+    -   **Why fix this issue and what will be achieved with the fix?** Remove log noise.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** Y
     -   **Should Test frontend/backend/both after fix?** backend
     -   **Blocked on other issue:** None
 
 **In progress Task List**:
--   None.
+-   **Task 1: Final Hardening / Debug Mode Session** (P0)
+    -   **Where to resume:** The agent has started investigating the Super Admin dashboard issues as per the user's DEBUG MODE request. The next step is to continue systematically through the user's P0 bug list, starting with confirming the Actualizar button and module toggle failures via screenshots.
+    -   **What will be achieved with this?** A production-ready, stable application with all critical bugs resolved.
+    -   **Status:** IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?** both
+    -   **Blocked on something:** None
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
@@ -64,20 +114,25 @@ The platform is now considered pre-production stable.
     -   (P3) Send an email notification to the admin when a user successfully changes their initial password.
 
 **Completed work in this session**
--   **Advanced Visitor Authorization System (DONE):**
-    -   **Backend:** Implemented new Pydantic models and collection . Added new endpoints for creating, managing, and searching authorizations (), and for guard flows like check-in, check-out, and viewing visitors inside (). Fixed an API route ordering bug.
-    -   **Frontend:** Created new components  and . Integrated these into  and  as new tabs.
-    -   **Testing:** Successfully tested the complete E2E flow with .
--   **Full Platform Hardening Pass (DONE):**
-    -   **Security Fix:** Patched a critical vulnerability in the  endpoint that was exposing  in the response.
-    -   **Bug Fixes:** Fixed multiple linting errors and navigation bugs, including a critical bug in the Super Admin dashboard where  was not passed as a prop, and a rendering crash caused by an invalid icon import ( instead of ).
-    -   **Testing:** Used  extensively to verify all CRUD operations, role-based access, and mobile vs. desktop responsiveness.
--   ** for Credentials (DONE):**
-    -   **Backend:** Added  flag to . Modified user creation endpoints (, ) to check . If true,  is set to , and the temporary password is included in the API response.
-    -   **Frontend:** Updated  to handle the new API response and display the password in a dialog when  is active.
--   **Email Sending Toggle (DONE):**
-    -   **Backend:** Created an in-memory global flag  (default ). Added endpoints for Super Admins to toggle this flag () and for others to view its status. Modified email sending logic to respect this flag.
-    -   **Frontend:** Implemented a  component in  with a toggle switch for Super Admins to control email sending, with clear status indicators.
+-   **Onboarding Wizard Bugfix (DONE):**
+    -   Fixed a critical bug where specific backend validation errors (e.g., duplicate name) were not displayed in the UI, showing a generic Request failed message instead.
+    -   The agent debugged a complex  error in  and implemented a workaround by creating a new pre-submission validation endpoint () and updating the frontend wizard to use it.
+-   **Mobile Form Freeze Bugfix (DONE):**
+    -   Addressed a P0 issue causing mobile forms to freeze.
+    -   Identified the root cause as CSS conflicts (z-index, position) between , , , and global styles in .
+    -   Modified these files to resolve the layering and event-blocking issues.
+-   **Resident Reservations Module (Initial Implementation - DONE):**
+    -   Created the  component.
+    -   Integrated it as a new tab in  for both desktop and mobile views.
+    -   Added required API methods to .
+    -   Fixed an issue where SuperAdmins could not create reservation areas.
+-   **P1 UX Improvements (DONE):**
+    -   Improved the layout of mobile panic buttons in  for better visibility.
+    -   Added a Return to Dashboard button on the  for better navigation.
+-   **P0 Hardening (In Progress but work done):**
+    -   **Email Normalization:** Implemented  on backend endpoints for login, user creation, and onboarding.
+    -   **HR Shift Deletion:** Added frontend UI and logic in  to support deleting shifts.
+    -   **Mobile Admin Logout:** Added a logout button to .
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: PostHog Console Error:** A recurring, low-priority error in the browser console.
@@ -92,86 +147,77 @@ The platform is now considered pre-production stable.
 
 
 **Key Technical Concepts**
--   **Global Runtime Configuration:** Implemented a system-wide, toggleable flag () managed via API, allowing runtime changes to application behavior without redeployment or  edits.
--   **Environment-Specific Behavior:** Used an environment variable () to create a distinct development execution path that simplifies testing by altering security features like forced password resets.
--   **Systematic Hardening:** Performed a comprehensive, role-based audit and testing of the entire platform, focusing on stability, security, and usability across devices.
--   **Security Patching:** Identified and fixed a critical information disclosure vulnerability (leaking password hashes).
--   **Advanced API Design (FastAPI):** Correctly ordered API routes with path parameters (e.g., ) after static routes () to prevent route hijacking.
+-   **Client-Side Pre-Validation:** To work around a persistent  error in the generic API error handler, the agent implemented a dedicated backend endpoint () to check for duplicate data before the main form submission. This provides immediate, specific feedback to the user and avoids the problematic error path.
+-   **CSS z-index & Stacking Context:** Debugged and fixed a critical P0 mobile UI freeze caused by CSS conflicts. The issue stemmed from  and  properties on the , , and global mobile overrides, which were creating incorrect stacking contexts and blocking user input.
+-   **Case-Insensitive Authentication:** Implemented email normalization () on all relevant backend endpoints (login, user creation, onboarding) to ensure a standard, case-insensitive user experience as per industry standards.
+-   **Web Audio API for Notifications:** Added sound to push notifications by modifying the  to include  and  options and adding a listener in  to play an audio file for panic alerts.
 
 **key DB schema**
--   **visitor_authorizations (collection):** New schema implemented to support advanced visitor types.
-    -   
--   **audit_logs (collection):** New event types added.
-    -   
--   **In-Memory Config:**
-    -   : A global boolean flag.
-    -   : A dictionary storing  and  of the last toggle change.
+-   No new collections were added. Logic was added to  to check for existing  and  based on normalized emails and names during the onboarding validation step.
 
 **All files of reference**
--   : The core backend file with all new logic.
--   : Contains the new email toggle UI.
--   : Contains the frontend logic for .
--   : New resident-facing UI.
--   : New guard-facing UI.
--   : The location of the new  flag.
+-   : Core backend logic, modified for email normalization and pre-validation.
+-   : Heavily modified to handle the new pre-validation flow.
+-   : The source of a significant debugging effort around error handling.
+-   : Key file for the mobile UI freeze fix.
+-   : Key file for the mobile UI freeze fix.
+-   : Modified to include the reservations tab and improve panic button UX.
+-   : Modified to add shift deletion functionality.
 
 **Areas that need refactoring**:
--   The  file has grown very large (over 500 lines) and now contains multiple distinct components (, , , etc.). It should be broken down into smaller, more manageable component files under .
+-   ** Error Handling:** The agent struggled significantly with a  error, suggesting the current error handling logic is fragile or being interfered with by an external script. While a workaround was implemented (pre-validation), the root cause was not fixed and could cause issues elsewhere. This file needs a robust refactor.
+-   **:** This file remains large and contains logic for multiple tabs and functions. It should be broken down into smaller components.
 
 **key api endpoints**
--   : (Resident) Create a new visitor authorization.
--   : (Guard) Search for authorizations by visitor name/ID.
--   : (Guard) Register a visitor's entry.
--   : (Guard) Register a visitor's exit.
--   : Get the status of .
--   : Get the status of the email sending toggle.
--   : (Super Admin) Update the email sending toggle.
+-   : **(NEW)** A pre-validation endpoint to check for duplicate condominium names or admin emails before submitting the full onboarding form.
+-   : Used to delete an employee's shift.
+-   All authentication and user creation endpoints were modified to normalize emails to lowercase.
 
 **Critical Info for New Agent**
-1.  **Two Testing Modes Exist:** Be aware of the two distinct mechanisms for altering test behavior:
-    *   **:** An environment variable in . It's a developer-only setting that shows passwords in the UI and disables forced resets. It's static and requires a backend restart to change.
-    *   **Email Toggle:** A UI switch for Super Admins. It controls email sending at runtime and also makes passwords visible in the UI when disabled. This is intended for admins in test/staging environments.
-    *   The logic in  checks both. The presence of  or a disabled email toggle will result in a similar show password outcome.
-2.  **Platform is Stable:** The application just underwent a major hardening pass. Any new changes should be tested carefully to avoid regressions. A full regression test using the  is recommended before starting new feature work.
-3.  **Refactoring Opportunity:** The  file is becoming a monolith. Before adding more features to it, consider refactoring it into smaller, dedicated components.
+1.  **ENTER DEBUG MODE:** Your top priority is to follow the user's instructions from Chat 539. Do not assume any feature is working, even if the agent previously marked it as complete or if a test report says it passed. You must manually verify each P0 bug in the App Preview and fix what is broken.
+2.  **API Error Handling is Fragile:** Be aware that the  service has a fundamental issue with error responses where the response body is sometimes consumed before the error handler can read it. The previous agent implemented a workaround for the Onboarding Wizard but did not solve the root cause. If you see generic Request failed errors, this is the likely culprit.
+3.  **Discrepancy Between Testing and Preview:** There is a major disconnect between the  results (which passed) and the user's view of the App Preview (which is broken). Trust the user's feedback and the visual evidence from screenshots over past test reports.
+4.  **Systematic Approach Required:** Address the P0 bugs one by one. Reproduce the bug, find the code, apply a fix, and verify it visually before moving to the next. Do not attempt to fix everything at once.
 
 **documents and test reports created in this job**
--   /app/test_reports/iteration_34.json
--   /app/test_reports/iteration_35.json
--   /app/test_reports/iteration_36.json
--   /app/test_reports/iteration_37.json
--   /app/memory/PRD.md (updated significantly)
+-   /app/test_reports/iteration_38.json
+-   /app/memory/PRD.md (updated)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **USER (Chat 443):** Requested a toggle to enable/disable email sending for credentials. (COMPLETED)
-2.  **USER (Chat 366):** Requested the implementation of a  for easier credential testing. (COMPLETED)
-3.  **USER (Chat 153):** Requested a FULL PLATFORM HARDENING AND MASS TESTING pass to ensure stability. (COMPLETED)
-4.  **USER (Chat 5):** Provided detailed requirements for the Advanced Visitor Authorization System. (COMPLETED)
-5.  **AGENT (Chat 4, 3):** Sent plan to user and waited for response.
-6.  **USER (Chat 2):** Prompted agent to send plan.
-7.  The user requests are being fulfilled sequentially. There are no pending user messages with unaddressed requests.
+1.  **USER (Chat 539):** STOP. Explicitly states that the agent's reported fixes are not reflected in the App Preview. Enters DEBUG MODE and provides a definitive list of CRITICAL P0 bugs that must be fixed. (PENDING)
+2.  **AGENT (Chat 538):** Finishes, claiming the Final Pre-Deployment Hardening is complete. (Incorrect, superseded by user message 539).
+3.  **AGENT (Chat 532):** Calls the testing agent to perform a full platform test.
+4.  **AGENT (Chat 529):** Notes a problem with the Emergent badge blocking clicks and decides to use a force click.
+5.  **AGENT (Chat 527):** Confirms email normalization works and proceeds to test the logout button.
+6.  **USER (Chat 410):** Re-iterates the Final Hardening prompt, providing a very detailed list of all P0 bugs across every user role. (This is the source of truth for the current task).
+7.  **AGENT (Chat 408):** Finishes, claiming P1 UX improvements are complete. (Superseded by user message 410).
+8.  **USER (Chat 370):** Requests a new set of P1 UX and consistency improvements. (Completed).
+9.  **AGENT (Chat 369):** Finishes, claiming all P0 Core Functional Fixes are complete. (Superseded by later user messages).
+10. **USER (Chat 207):** Provides a long list of P0 core functional fixes needed for reservations, guard, admin, etc. (Mostly completed or superseded).
 
 **Project Health Check:**
--   **Broken:** None.
+-   **Broken:** A significant number of P0 features are confirmed broken or inconsistent by the user, despite agent attempts to fix them. This includes core functionality like reservations, module management, and mobile usability. The application is not production-ready.
 -   **Mocked:**
-    -   Email sending via Resend still uses a placeholder API key, but this functionality can now be globally disabled via a UI toggle, making it a non-blocker for testing.
+    -   Email sending via Resend still uses a placeholder API key.
 
 **3rd Party Integrations**
--   **Resend (Email):** Integrated for sending credentials. Requires a User API Key (currently a placeholder). The entire feature can be toggled on/off by a Super Admin.
+-   **Resend (Email):** Integrated for sending credentials. Requires a User API Key (currently a placeholder).
 -   **Stripe (Payments):** Integrated. A test key is present in the environment.
--   **Web Push (pywebpush):** Integrated for push notifications.
+-   **Web Push (pywebpush):** Integrated for push notifications. Sound was added for panic alerts.
 
 **Testing status**
--   Testing agent used after significant changes: YES. The testing agent was used multiple times for the visitor system and the hardening pass.
+-   Testing agent used after significant changes: YES. The agent ran a full test in  which reported success.
 -   Troubleshoot agent used after agent stuck in loop: NO
 -   Test files created: None
--   Known regressions: None.
+-   Known regressions: **CRITICAL REGRESSION:** The user reports that numerous features the agent believes are fixed are still broken in the App Preview. The state of the application is unstable despite passing tests.
 
 **Credentials to test flow:**
--   The  endpoint should be used to populate the database. The agent reset passwords for all demo users during the session, so default credentials like  should work.
+-   The  endpoint should be used to populate the database with fresh data.
 -   **Super Admin:**  / 
 -   **Admin:**  / 
--   **Other roles (Guard, Resident, HR, Supervisor, Student):** Use emails like , , etc., with password .
+-   **Other roles (Guard, Resident, HR):** Use emails like , , etc., with password . Emails are now case-insensitive.
 
 **What agent forgot to execute**
--   The recurring, low-priority issues ( console error,  backend warning) remain unaddressed across multiple sessions.</analysis>
+-   The agent failed to properly validate its fixes against the user-facing App Preview, leading to a major discrepancy where the agent believed tasks were complete while the user saw a broken application.
+-   The root cause of the  error in  was not resolved; a workaround was implemented instead.
+-   The two low-priority, recurring issues ( console error,  backend warning) remain unaddressed.</analysis>
