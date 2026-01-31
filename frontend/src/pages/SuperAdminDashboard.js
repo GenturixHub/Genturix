@@ -92,6 +92,7 @@ import {
   User
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { Mail, MailOff, ToggleLeft, ToggleRight } from 'lucide-react';
 
 // Super Admin Mobile Navigation
 const SuperAdminMobileNav = ({ activeTab, onTabChange }) => {
