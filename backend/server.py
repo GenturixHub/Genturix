@@ -4186,7 +4186,7 @@ async def activate_employee(
         request.headers.get("user-agent", "unknown")
     )
     
-    return {"message": f"Empleado {guard['user_name']} reactivado"}
+    return {"message": f"Empleado {guard.get('user_name') or guard.get('name') or 'desconocido'} reactivado"}
 
 # ==================== HR PERFORMANCE EVALUATIONS ====================
 
