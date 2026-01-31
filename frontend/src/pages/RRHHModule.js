@@ -1826,7 +1826,7 @@ const EvaluacionSubmodule = ({ employees: propEmployees, canCreate = true }) => 
   };
   
   const filteredEmployees = employees.filter(emp => 
-    emp.user_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    getEmployeeName(emp).toLowerCase().includes(searchTerm.toLowerCase()) ||
     emp.position?.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
