@@ -1,13 +1,59 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 31, 2026 (Session 28 - Platform Hardening Complete)
+## Last Updated: January 31, 2026 (Session 29 - DEV_MODE Implementation)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
 
 ---
 
-## PLATFORM STATUS: ✅ PRODUCTION STABLE - HARDENING COMPLETE
+## PLATFORM STATUS: ✅ PRODUCTION STABLE + DEV_MODE AVAILABLE
+
+### Session 29 - DEV_MODE FOR CREDENTIALS TESTING (January 31, 2026) ⭐⭐⭐⭐⭐
+
+#### WHAT WAS IMPLEMENTED
+A development mode flag (`DEV_MODE=true`) that changes behavior for easier testing without compromising production security.
+
+#### DEV_MODE BEHAVIOR (When `DEV_MODE=true`)
+| Feature | DEV_MODE=true | DEV_MODE=false (Production) |
+|---------|---------------|----------------------------|
+| Password Reset on First Login | ❌ Disabled | ✅ Required |
+| Show Generated Password in API | ✅ Visible | ❌ Masked (********) |
+| Show Password in UI | ✅ With DEV MODE badge | ❌ Hidden |
+| Email Delivery Blocking | ❌ No blocking | ✅ Required |
+
+#### FILES MODIFIED
+- `/app/backend/.env` - Added `DEV_MODE=true`
+- `/app/backend/server.py`:
+  - Added DEV_MODE config variable
+  - Added `/config/dev-mode` endpoint
+  - Modified user creation to skip `password_reset_required` in DEV_MODE
+  - Modified API response to include password when DEV_MODE=true
+  - Modified onboarding wizard to use DEV_MODE
+- `/app/frontend/src/services/api.js` - Added `getDevModeStatus` method
+- `/app/frontend/src/pages/UserManagementPage.js`:
+  - Updated CredentialsDialog to show DEV MODE badge
+  - Updated to display password from API response
+
+#### API ENDPOINT
+```
+GET /api/config/dev-mode
+Response: {
+  "dev_mode": true,
+  "features": {
+    "skip_password_reset": true,
+    "show_generated_passwords": true,
+    "skip_email_validation": true
+  }
+}
+```
+
+#### HOW TO USE IN PRODUCTION
+1. Set `DEV_MODE=false` in `/app/backend/.env`
+2. Restart backend service
+3. All security features will be enforced
+
+---
 
 ### Session 28 - FULL PLATFORM HARDENING (January 31, 2026) ⭐⭐⭐⭐⭐
 **Pre-Production Stability & Regression Testing Complete**
