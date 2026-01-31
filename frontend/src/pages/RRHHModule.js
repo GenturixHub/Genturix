@@ -163,12 +163,12 @@ const EmployeeCard = ({ employee, onEdit }) => (
       <Avatar className={`w-12 h-12 border-2 ${employee.is_active ? 'border-green-500/50' : 'border-red-500/50'}`}>
         <AvatarImage src={employee.profile_photo} />
         <AvatarFallback className={`${employee.is_active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'} text-lg font-bold`}>
-          {employee.user_name?.charAt(0).toUpperCase() || 'E'}
+          {employee.user_name?.charAt(0).toUpperCase() || employee.name?.charAt(0).toUpperCase() || 'E'}
         </AvatarFallback>
       </Avatar>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <h3 className="font-semibold text-white truncate">{employee.user_name}</h3>
+          <h3 className="font-semibold text-white truncate">{getEmployeeName(employee)}</h3>
           <Badge 
             variant="outline" 
             className={employee.is_active ? 'border-green-500/30 text-green-400' : 'border-red-500/30 text-red-400'}
