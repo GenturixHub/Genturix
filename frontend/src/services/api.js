@@ -1,50 +1,71 @@
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
-// Enhanced error-handling fetch that properly captures response body
-const customFetch = async (url, options) => {
-  let response;
-  let responseText = '';
+// Direct API call that bypasses any interceptors
+const apiRequest = async (url, options) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
   
   try {
-    response = await fetch(url, options);
-  } catch (networkError) {
-    throw new Error('Error de conexión. Por favor verifica tu red.');
-  }
-  
-  // For error responses, we need to capture the body immediately
-  if (!response.ok) {
-    // Try to read the response body as text
-    try {
-      responseText = await response.text();
-      console.log('[DEBUG customFetch] Error response text:', responseText);
-    } catch (e) {
-      console.log('[DEBUG customFetch] Could not read response text:', e.message);
-      responseText = '';
+    const response = await window.fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    
+    // For successful responses, return as-is
+    if (response.ok) {
+      return response;
     }
     
-    // Return a mock response object with the captured body
-    return {
-      ok: false,
-      status: response.status,
-      statusText: response.statusText,
-      headers: response.headers,
-      _errorBody: responseText,
-      // Provide methods that return the already-captured text
-      json: async () => {
-        if (responseText) {
-          try {
-            return JSON.parse(responseText);
-          } catch {
-            return { detail: responseText };
-          }
+    // For errors, read the body text directly
+    let errorText = '';
+    let errorData = {};
+    
+    try {
+      // Read the response as text first
+      errorText = await response.text();
+      console.log('[apiRequest] Error response body:', errorText);
+      
+      // Try to parse as JSON
+      if (errorText) {
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { detail: errorText };
         }
-        return { detail: `Error del servidor (${response.status})` };
-      },
-      text: async () => responseText
-    };
+      }
+    } catch (readError) {
+      console.log('[apiRequest] Could not read error body:', readError.message);
+    }
+    
+    // Create a custom error with the response data
+    const error = new Error(errorData.detail || `Error del servidor (${response.status})`);
+    error.status = response.status;
+    error.data = errorData;
+    error.response = response;
+    throw error;
+    
+  } catch (error) {
+    clearTimeout(timeoutId);
+    
+    if (error.name === 'AbortError') {
+      const timeoutError = new Error('La solicitud tardó demasiado. Intenta de nuevo.');
+      timeoutError.status = 408;
+      timeoutError.data = { detail: timeoutError.message };
+      throw timeoutError;
+    }
+    
+    // Re-throw if it's already our custom error
+    if (error.status) {
+      throw error;
+    }
+    
+    // Network error
+    const networkError = new Error('Error de conexión. Por favor verifica tu red.');
+    networkError.status = 0;
+    networkError.data = { detail: networkError.message };
+    throw networkError;
   }
-  
-  return response;
 };
 
 class ApiService {
