@@ -1996,10 +1996,13 @@ const RRHHModule = () => {
   const handleCreateShift = async (shiftData) => {
     try {
       await api.createShift(shiftData);
+      toast.success('Turno creado exitosamente');
       fetchData();
     } catch (error) {
       console.error('Error creating shift:', error);
-      alert('Error al crear turno');
+      // Show specific error message from backend
+      const errorMsg = error.message || 'Error al crear turno';
+      toast.error(errorMsg);
     }
   };
 
@@ -2007,10 +2010,11 @@ const RRHHModule = () => {
   const handleDeleteShift = async (shiftId) => {
     try {
       await api.deleteShift(shiftId);
+      toast.success('Turno eliminado');
       fetchData();
     } catch (error) {
       console.error('Error deleting shift:', error);
-      alert('Error al eliminar turno');
+      toast.error(error.message || 'Error al eliminar turno');
     }
   };
 
