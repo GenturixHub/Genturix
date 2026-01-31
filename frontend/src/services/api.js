@@ -331,6 +331,7 @@ class ApiService {
   makeCondoDemo = (condoId, maxUsers = 10) => 
     this.post(`/super-admin/condominiums/${condoId}/make-demo?max_users=${maxUsers}`);
   resetDemoData = (condoId) => this.post(`/super-admin/condominiums/${condoId}/reset-demo`);
+  resetAllData = () => this.post('/super-admin/reset-all-data');
   updateCondoPricing = (condoId, discountPercent, plan) => {
     const params = new URLSearchParams();
     params.append('discount_percent', discountPercent);
