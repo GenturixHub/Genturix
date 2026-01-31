@@ -299,6 +299,9 @@ const OverviewTab = ({ stats, isLoading, onRefresh, onNavigateTab, navigate }) =
         </CardContent>
       </Card>
 
+      {/* System Configuration */}
+      <SystemConfigSection />
+
       {/* Platform Info */}
       <div className="text-center text-xs text-muted-foreground">
         <p>GENTURIX Platform • Multi-tenant Security System</p>
