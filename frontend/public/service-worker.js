@@ -103,6 +103,9 @@ self.addEventListener('push', (event) => {
     console.error('[SW] Error parsing push data:', e);
   }
 
+  // Determine if this is a panic alert
+  const isPanicAlert = data.data.type === 'panic_alert';
+
   // Configure notification options
   const options = {
     body: data.body,
@@ -110,13 +113,30 @@ self.addEventListener('push', (event) => {
     badge: data.badge,
     tag: data.tag,
     requireInteraction: data.requireInteraction,
-    vibrate: [200, 100, 200, 100, 200], // Urgent vibration pattern
+    vibrate: isPanicAlert 
+      ? [500, 200, 500, 200, 500, 200, 500] // Longer urgent pattern for panic
+      : [200, 100, 200, 100, 200],
     data: data.data,
-    actions: data.data.type === 'panic_alert' ? [
+    // Silent property controls native sound - we want sound for panics
+    silent: false,
+    actions: isPanicAlert ? [
       { action: 'open', title: 'Ver Alerta' },
       { action: 'dismiss', title: 'Cerrar' }
     ] : []
   };
+
+  // For panic alerts, send message to all clients to play sound
+  if (isPanicAlert) {
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        clientList.forEach((client) => {
+          client.postMessage({
+            type: 'PLAY_PANIC_SOUND',
+            data: data.data
+          });
+        });
+      });
+  }
 
   event.waitUntil(
     self.registration.showNotification(data.title, options)
