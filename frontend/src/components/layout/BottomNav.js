@@ -112,9 +112,13 @@ const MobileBottomNav = ({
         'fixed bottom-0 left-0 right-0 z-50',
         'bg-[#0A0A0F]/95 backdrop-blur-lg',
         'border-t border-[#1E293B]',
-        'safe-area-bottom'
+        'safe-area-bottom',
+        // Ensure nav doesn't block content when dialog is open
+        'pointer-events-auto'
       )}
       data-testid="mobile-bottom-nav"
+      // Lower z-index than dialogs (which use z-60+)
+      style={{ zIndex: 50 }}
     >
       <div className="flex items-end justify-around px-2 pb-1 pt-1">
         {items.map((item, index) => (
