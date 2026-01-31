@@ -4543,7 +4543,8 @@ async def create_user_by_admin(
     if send_email:
         # Generate a temporary password if sending email
         password_to_use = generate_temporary_password()
-        password_reset_required = True
+        # In DEV_MODE, don't require password reset for easier testing
+        password_reset_required = not DEV_MODE
     
     user_id = str(uuid.uuid4())
     user_doc = {
