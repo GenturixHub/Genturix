@@ -341,6 +341,32 @@ class ApiService {
   subscribeToPush = (subscription) => this.post('/push/subscribe', { subscription });
   unsubscribeFromPush = (subscription) => this.delete('/push/unsubscribe', { subscription });
   getPushStatus = () => this.get('/push/status');
+
+  // ==================== ADVANCED VISITOR AUTHORIZATIONS ====================
+  // Resident endpoints
+  createAuthorization = (data) => this.post('/authorizations', data);
+  getMyAuthorizations = (status = '') => this.get(`/authorizations/my${status ? `?status=${status}` : ''}`);
+  getAuthorization = (authId) => this.get(`/authorizations/${authId}`);
+  updateAuthorization = (authId, data) => this.patch(`/authorizations/${authId}`, data);
+  deleteAuthorization = (authId) => this.delete(`/authorizations/${authId}`);
+  
+  // Resident notifications
+  getVisitorNotifications = (unreadOnly = false) => this.get(`/resident/visitor-notifications${unreadOnly ? '?unread_only=true' : ''}`);
+  markNotificationRead = (notificationId) => this.put(`/resident/visitor-notifications/${notificationId}/read`);
+  markAllNotificationsRead = () => this.put('/resident/visitor-notifications/read-all');
+  
+  // Guard endpoints
+  getAuthorizationsForGuard = (search = '') => this.get(`/guard/authorizations${search ? `?search=${encodeURIComponent(search)}` : ''}`);
+  guardCheckIn = (data) => this.post('/guard/checkin', data);
+  guardCheckOut = (entryId, notes = '') => this.post(`/guard/checkout/${entryId}`, { notes });
+  getVisitorsInside = () => this.get('/guard/visitors-inside');
+  
+  // Audit & History
+  getAuthorizationHistory = (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return this.get(`/authorizations/history${queryString ? `?${queryString}` : ''}`);
+  };
+  getAuthorizationStats = () => this.get('/authorizations/stats');
 }
 
 export const api = new ApiService();
