@@ -6341,13 +6341,16 @@ async def onboarding_create_condominium(
     """
     logger.info(f"Onboarding started by {current_user['email']} for: {wizard_data.condominium.name}")
     
+    # CRITICAL: Normalize admin email to lowercase
+    normalized_admin_email = wizard_data.admin.email.lower().strip()
+    
     # Validate email is not in use
-    existing_user = await db.users.find_one({"email": wizard_data.admin.email})
+    existing_user = await db.users.find_one({"email": normalized_admin_email})
     if existing_user:
-        logger.warning(f"Onboarding failed: email {wizard_data.admin.email} already registered")
+        logger.warning(f"Onboarding failed: email {normalized_admin_email} already registered")
         raise HTTPException(
             status_code=400, 
-            detail=f"El email del administrador '{wizard_data.admin.email}' ya está registrado en el sistema"
+            detail=f"El email del administrador '{normalized_admin_email}' ya está registrado en el sistema"
         )
     
     # Validate condominium name is not in use
