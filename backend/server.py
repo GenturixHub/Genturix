@@ -3428,7 +3428,7 @@ async def clock_in_out(
     clock_doc = {
         "id": str(uuid.uuid4()),
         "employee_id": guard["id"],
-        "employee_name": guard["user_name"],
+        "employee_name": guard.get("user_name") or guard.get("name") or "Sin nombre",
         "type": clock_req.type,
         "timestamp": now_iso,
         "date": today,
