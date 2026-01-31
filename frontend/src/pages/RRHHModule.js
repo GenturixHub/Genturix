@@ -1652,7 +1652,7 @@ const EmployeeEvaluationCard = ({ employee, evaluations, onViewHistory, onNewEva
             <User className="w-5 h-5 text-primary" />
           </div>
           <div>
-            <p className="font-semibold text-white">{employee.user_name}</p>
+            <p className="font-semibold text-white">{getEmployeeName(employee)}</p>
             <p className="text-xs text-muted-foreground">{employee.position || 'Guarda'}</p>
           </div>
         </div>
