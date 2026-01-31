@@ -168,6 +168,162 @@ const STATUS_CONFIG = {
 };
 
 // ============================================
+// SYSTEM CONFIG SECTION (Email Toggle)
+// ============================================
+const SystemConfigSection = () => {
+  const [emailConfig, setEmailConfig] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isToggling, setIsToggling] = useState(false);
+
+  useEffect(() => {
+    fetchEmailConfig();
+  }, []);
+
+  const fetchEmailConfig = async () => {
+    try {
+      const data = await api.getEmailStatus();
+      setEmailConfig(data);
+    } catch (error) {
+      console.error('Error fetching email config:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleToggle = async (newValue) => {
+    setIsToggling(true);
+    try {
+      const result = await api.setEmailStatus(newValue);
+      setEmailConfig({
+        ...emailConfig,
+        email_enabled: result.email_enabled,
+        status_text: result.status_text,
+        updated_at: result.updated_at,
+        updated_by: result.updated_by
+      });
+      toast.success(result.message);
+    } catch (error) {
+      toast.error(error.message || 'Error al cambiar configuración');
+    } finally {
+      setIsToggling(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Card className="bg-[#0F111A] border-[#1E293B]">
+        <CardContent className="p-4 flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const isEnabled = emailConfig?.email_enabled;
+
+  return (
+    <Card className={`bg-[#0F111A] border-2 ${isEnabled ? 'border-green-500/30' : 'border-yellow-500/30'}`}>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Settings className="w-5 h-5 text-blue-400" />
+          Configuración del Sistema
+        </CardTitle>
+        <CardDescription>
+          Controla las funcionalidades del sistema para pruebas y producción
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Email Toggle */}
+        <div className={`p-4 rounded-lg border ${
+          isEnabled 
+            ? 'bg-green-500/5 border-green-500/30' 
+            : 'bg-yellow-500/5 border-yellow-500/30'
+        }`}>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              {isEnabled ? (
+                <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                  <Mail className="w-5 h-5 text-green-400" />
+                </div>
+              ) : (
+                <div className="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center">
+                  <MailOff className="w-5 h-5 text-yellow-400" />
+                </div>
+              )}
+              <div>
+                <p className="font-semibold text-white">Envío de Emails</p>
+                <p className={`text-sm ${isEnabled ? 'text-green-400' : 'text-yellow-400'}`}>
+                  {emailConfig?.status_text || (isEnabled ? 'Habilitado' : 'Deshabilitado')}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <Switch
+                checked={isEnabled}
+                onCheckedChange={handleToggle}
+                disabled={isToggling}
+                data-testid="email-toggle-switch"
+              />
+              {isToggling && <Loader2 className="w-4 h-4 animate-spin" />}
+            </div>
+          </div>
+          
+          {/* Status Details */}
+          <div className="mt-3 pt-3 border-t border-[#1E293B] text-xs text-muted-foreground">
+            {isEnabled ? (
+              <div className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-green-400 font-medium">Modo Producción</p>
+                  <p>• Credenciales enviadas por email</p>
+                  <p>• Cambio de contraseña obligatorio en primer login</p>
+                  <p>• Contraseña NO visible en la interfaz</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-yellow-400 font-medium">Modo Pruebas</p>
+                  <p>• Emails NO se envían</p>
+                  <p>• Sin cambio de contraseña obligatorio</p>
+                  <p>• Contraseña visible en la interfaz después de crear usuario</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Last Updated */}
+          {emailConfig?.updated_by && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Último cambio: {emailConfig.updated_by} • {new Date(emailConfig.updated_at).toLocaleString('es-ES')}
+            </p>
+          )}
+        </div>
+
+        {/* DEV_MODE Info */}
+        {DEV_MODE_ENABLED && (
+          <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/30">
+            <div className="flex items-center gap-2 text-sm">
+              <Badge className="bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                DEV_MODE
+              </Badge>
+              <span className="text-purple-400">
+                Modo desarrollo activo desde .env
+              </span>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+// Check if DEV_MODE is enabled (will be fetched from API)
+const [DEV_MODE_ENABLED, setDevModeEnabled] = [false, () => {}]; // Placeholder, actual state in component
+
+// ============================================
 // OVERVIEW TAB
 // ============================================
 const OverviewTab = ({ stats, isLoading, onRefresh, onNavigateTab, navigate }) => {
