@@ -5753,20 +5753,35 @@ async def update_module_config(
         raise HTTPException(status_code=400, detail=f"Invalid module. Valid modules: {', '.join(valid_modules)}")
     
     # Verify condominium exists first
-    condo = await db.condominiums.find_one({"id": condo_id}, {"_id": 0, "id": 1, "name": 1})
+    condo = await db.condominiums.find_one({"id": condo_id}, {"_id": 0, "id": 1, "name": 1, "modules": 1})
     if not condo:
         logger.error(f"[module-toggle] Condominium {condo_id} not found")
         raise HTTPException(status_code=404, detail="Condominium not found")
     
-    update_data = {
-        f"modules.{module_name}.enabled": enabled,
-        "updated_at": datetime.now(timezone.utc).isoformat()
-    }
+    # Check current module structure - it might be a boolean or an object
+    current_modules = condo.get("modules", {})
+    current_value = current_modules.get(module_name)
+    
+    # If module is stored as a boolean (legacy format), convert to object format
+    if isinstance(current_value, bool) or current_value is None:
+        # Use $set with the full module object structure
+        update_data = {
+            f"modules.{module_name}": {"enabled": enabled},
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+    else:
+        # Module is already an object, just update the enabled field
+        update_data = {
+            f"modules.{module_name}.enabled": enabled,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
     
     if settings:
         update_data[f"modules.{module_name}.settings"] = settings
     
     logger.info(f"[module-toggle] Updating module '{module_name}' to enabled={enabled} for condo '{condo.get('name')}' ({condo_id})")
+    logger.info(f"[module-toggle] Current module value: {current_value} (type: {type(current_value).__name__})")
+    logger.info(f"[module-toggle] Update data: {update_data}")
     
     result = await db.condominiums.update_one(
         {"id": condo_id},
@@ -5777,7 +5792,7 @@ async def update_module_config(
         logger.error(f"[module-toggle] No document matched for condo_id={condo_id}")
         raise HTTPException(status_code=404, detail="Condominium not found")
     
-    logger.info(f"[module-toggle] SUCCESS: Module '{module_name}' {'enabled' if enabled else 'disabled'} for condo {condo_id}")
+    logger.info(f"[module-toggle] SUCCESS: Module '{module_name}' {'enabled' if enabled else 'disabled'} for condo {condo_id}. Modified: {result.modified_count}")
     return {"message": f"Module '{module_name}' {'enabled' if enabled else 'disabled'} successfully", "module": module_name, "enabled": enabled}
 
 # ==================== SUPER ADMIN ENDPOINTS ====================
