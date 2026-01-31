@@ -159,7 +159,7 @@ const EmergencyButton = ({ config, onPress, disabled, isLoading }) => {
       data-testid={`panic-btn-${config.id}`}
       className={`
         relative w-full rounded-2xl overflow-hidden
-        min-h-[120px] md:min-h-[140px]
+        min-h-[90px] sm:min-h-[110px] md:min-h-[130px]
         ${config.colors.bg}
         ${config.colors.glow}
         ${isPressed ? config.colors.glowPulse : ''}
@@ -172,15 +172,19 @@ const EmergencyButton = ({ config, onPress, disabled, isLoading }) => {
       style={{ WebkitTapHighlightColor: 'transparent' }}
     >
       <div className={`absolute inset-0 ${config.colors.bg} opacity-0 ${!disabled && !isLoading ? 'animate-pulse' : ''}`} />
-      <div className="relative z-10 flex flex-col items-center justify-center h-full p-4 gap-2">
-        {isLoading ? (
-          <Loader2 className={`w-12 h-12 ${config.colors.icon} animate-spin`} />
-        ) : (
-          <IconComponent className={`w-12 h-12 md:w-14 md:h-14 ${config.colors.icon}`} strokeWidth={2.5} />
-        )}
-        <div className="text-center">
-          <p className={`text-lg md:text-xl font-bold tracking-wide ${config.colors.text}`}>{config.label}</p>
-          <p className={`text-sm ${config.colors.text} opacity-80 mt-1`}>{config.subLabel}</p>
+      <div className="relative z-10 flex items-center justify-center h-full p-3 sm:p-4 gap-3 sm:gap-4">
+        {/* Icon - Smaller on mobile */}
+        <div className="flex-shrink-0">
+          {isLoading ? (
+            <Loader2 className={`w-10 h-10 sm:w-12 sm:h-12 ${config.colors.icon} animate-spin`} />
+          ) : (
+            <IconComponent className={`w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 ${config.colors.icon}`} strokeWidth={2.5} />
+          )}
+        </div>
+        {/* Text - Horizontal layout for mobile */}
+        <div className="text-left flex-1">
+          <p className={`text-base sm:text-lg md:text-xl font-bold tracking-wide ${config.colors.text}`}>{config.label}</p>
+          <p className={`text-xs sm:text-sm ${config.colors.text} opacity-80`}>{config.subLabel}</p>
         </div>
       </div>
     </button>
