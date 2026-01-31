@@ -1257,8 +1257,8 @@ async def get_profile(current_user = Depends(get_current_user)):
 @api_router.get("/profile/{user_id}", response_model=PublicProfileResponse)
 async def get_public_profile(user_id: str, current_user = Depends(get_current_user)):
     """Get public profile of another user - MUST be in same condominium (multi-tenant enforced)"""
-    # Fetch the target user
-    target_user = await db.users.find_one({"id": user_id}, {"_id": 0})
+    # Fetch the target user - exclude sensitive fields
+    target_user = await db.users.find_one({"id": user_id}, {"_id": 0, "hashed_password": 0})
     if not target_user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
