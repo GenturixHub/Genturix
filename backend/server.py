@@ -6440,10 +6440,12 @@ async def onboarding_create_condominium(
             "admin_credentials": {
                 "email": wizard_data.admin.email,
                 "password": admin_password,  # SHOWN ONCE - NOT STORED
-                "warning": "Guarda estas credenciales ahora. No se mostrarán de nuevo."
+                "show_password": True,  # Always show for wizard (one-time display)
+                "warning": "Guarda estas credenciales ahora. No se mostrarán de nuevo." if not DEV_MODE else "Modo desarrollo: La contraseña no requiere cambio obligatorio."
             },
             "modules_enabled": [k for k, v in modules_config.items() if v],
-            "areas_created": created_areas
+            "areas_created": created_areas,
+            "dev_mode": DEV_MODE
         }
         
     except Exception as e:
