@@ -2183,7 +2183,7 @@ const GuardUI = () => {
           </TabsContent>
           
           <TabsContent value="profile" className="h-full m-0 data-[state=inactive]:hidden">
-            <EmbeddedProfile />
+            <EmbeddedProfile onBack={() => setActiveTab('alerts')} />
           </TabsContent>
         </div>
       </Tabs>
