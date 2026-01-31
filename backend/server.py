@@ -2088,6 +2088,94 @@ async def get_my_authorizations(
     
     return authorizations
 
+# ===================== AUDIT & HISTORY (must be before {auth_id} routes) =====================
+
+@api_router.get("/authorizations/history")
+async def get_authorization_history(
+    auth_id: Optional[str] = None,
+    resident_id: Optional[str] = None,
+    visitor_name: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
+):
+    """
+    Get visitor entry/exit history for audit.
+    Filterable by authorization, resident, visitor name, date range.
+    """
+    condo_id = current_user.get("condominium_id")
+    
+    query = {}
+    if "SuperAdmin" not in current_user.get("roles", []):
+        if condo_id:
+            query["condominium_id"] = condo_id
+        else:
+            return []
+    
+    if auth_id:
+        query["authorization_id"] = auth_id
+    if resident_id:
+        query["resident_id"] = resident_id
+    if visitor_name:
+        query["visitor_name"] = {"$regex": visitor_name, "$options": "i"}
+    
+    # Date filtering
+    if date_from or date_to:
+        date_query = {}
+        if date_from:
+            date_query["$gte"] = f"{date_from}T00:00:00"
+        if date_to:
+            date_query["$lte"] = f"{date_to}T23:59:59"
+        if date_query:
+            query["entry_at"] = date_query
+    
+    entries = await db.visitor_entries.find(query, {"_id": 0}).sort("entry_at", -1).to_list(500)
+    return entries
+
+@api_router.get("/authorizations/stats")
+async def get_authorization_stats(
+    current_user = Depends(require_role("Administrador", "Supervisor"))
+):
+    """Get statistics about visitor authorizations and entries"""
+    condo_id = current_user.get("condominium_id")
+    
+    query = {}
+    if "SuperAdmin" not in current_user.get("roles", []):
+        if condo_id:
+            query["condominium_id"] = condo_id
+        else:
+            return {}
+    
+    # Count active authorizations by type
+    auth_pipeline = [
+        {"$match": {**query, "is_active": True}},
+        {"$group": {"_id": "$authorization_type", "count": {"$sum": 1}}}
+    ]
+    auth_counts = await db.visitor_authorizations.aggregate(auth_pipeline).to_list(10)
+    
+    # Count entries today
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today_entries = await db.visitor_entries.count_documents({
+        **query,
+        "entry_at": {"$gte": f"{today}T00:00:00"}
+    })
+    
+    # Count visitors currently inside
+    inside_count = await db.visitor_entries.count_documents({
+        **query,
+        "status": "inside"
+    })
+    
+    # Total authorizations
+    total_auths = await db.visitor_authorizations.count_documents({**query, "is_active": True})
+    
+    return {
+        "total_active_authorizations": total_auths,
+        "authorizations_by_type": {item["_id"]: item["count"] for item in auth_counts},
+        "entries_today": today_entries,
+        "visitors_inside": inside_count
+    }
+
 @api_router.get("/authorizations/{auth_id}")
 async def get_authorization(
     auth_id: str,
