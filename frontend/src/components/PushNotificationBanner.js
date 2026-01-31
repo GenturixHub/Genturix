@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Bell, BellOff, X, Check, AlertTriangle } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import usePushNotifications from '../hooks/usePushNotifications';
