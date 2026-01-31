@@ -249,7 +249,7 @@ const EditEmployeeDialog = ({ employee, open, onClose, onSuccess }) => {
             Editar Empleado
           </DialogTitle>
           <DialogDescription>
-            {employee.user_name} - {employee.email}
+            {getEmployeeName(employee)} - {employee.email}
           </DialogDescription>
         </DialogHeader>
 
