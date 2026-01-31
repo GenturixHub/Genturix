@@ -19,8 +19,6 @@ const apiRequest = (url, options = {}) => {
       const responseText = xhr.responseText;
       const status = xhr.status;
       
-      console.log('[apiRequest XHR] Status:', status, 'Response:', responseText.substring(0, 200));
-      
       if (status >= 200 && status < 300) {
         // Success - create a response-like object
         resolve({
