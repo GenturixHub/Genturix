@@ -53,7 +53,7 @@ const ROLE_CONFIG = {
 };
 
 const EmbeddedProfile = ({ userId = null }) => {
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
   const navigate = useNavigate();
   
   const [profile, setProfile] = useState(null);
@@ -63,6 +63,7 @@ const EmbeddedProfile = ({ userId = null }) => {
   const [success, setSuccess] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
@@ -72,6 +73,11 @@ const EmbeddedProfile = ({ userId = null }) => {
 
   const isOwnProfile = !userId || userId === user?.id;
   const currentPhoto = editMode ? formData.profile_photo : profile?.profile_photo;
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
