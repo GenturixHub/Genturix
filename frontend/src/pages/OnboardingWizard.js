@@ -897,24 +897,30 @@ const OnboardingWizard = () => {
       }
     } catch (error) {
       // Improved error handling with specific messages
-      const errorMessage = error.message || error.data?.detail || 'Error desconocido al crear el condominio';
+      // Priority: error.data.detail (from API) > error.message > fallback
+      const errorMessage = error.data?.detail || error.message || 'Error desconocido al crear el condominio';
+      
+      console.error('Onboarding error:', { error, errorMessage, condoData, adminData });
       
       // Check for specific errors and provide helpful guidance
-      if (errorMessage.includes('email') && errorMessage.includes('registrado')) {
+      if (errorMessage.includes('email') && (errorMessage.includes('registrado') || errorMessage.includes('registered'))) {
         toast.error(`El email "${adminData.email}" ya está en uso. Por favor usa otro email.`, {
           duration: 6000
         });
         setCurrentStep(2); // Go back to admin step
       } else if (errorMessage.includes('condominio') && errorMessage.includes('nombre')) {
-        toast.error(`Ya existe un condominio llamado "${condoData.name}". Por favor elige otro nombre.`, {
+        toast.error(`Ya existe un condominio con ese nombre. Por favor elige otro nombre.`, {
+          duration: 6000
+        });
+        setCurrentStep(1); // Go back to condo info step
+      } else if (errorMessage.includes('zona horaria') || errorMessage.includes('timezone')) {
+        toast.error(`Zona horaria inválida. Por favor selecciona una zona horaria válida.`, {
           duration: 6000
         });
         setCurrentStep(1); // Go back to condo info step
       } else {
         toast.error(errorMessage, { duration: 5000 });
       }
-      
-      console.error('Onboarding error:', { error, condoData, adminData });
     } finally {
       setIsSubmitting(false);
     }
