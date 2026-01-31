@@ -4657,12 +4657,12 @@ async def create_user_by_admin(
         "role_data": role_data,
         "credentials": {
             "email": user_data.email,
-            # In DEV_MODE, show the generated/provided password for testing
-            # In production, always mask the password
-            "password": password_to_use if DEV_MODE else "********",
-            "show_password": DEV_MODE  # Flag to indicate if password is visible
+            # Show password if DEV_MODE is true OR email toggle is disabled
+            "password": password_to_use if show_password_in_response else "********",
+            "show_password": show_password_in_response
         },
-        "dev_mode": DEV_MODE
+        "dev_mode": DEV_MODE,
+        "email_toggle_enabled": email_toggle_enabled
     }
     
     if send_email:
@@ -4670,7 +4670,10 @@ async def create_user_by_admin(
         if email_result.get("status") == "success":
             response["email_message"] = f"Credenciales enviadas a {user_data.email}"
         elif email_result.get("status") == "skipped":
-            response["email_message"] = "Servicio de email no configurado - credenciales no enviadas"
+            if email_result.get("toggle_disabled"):
+                response["email_message"] = "Envío de emails deshabilitado (modo pruebas) - credenciales mostradas en pantalla"
+            else:
+                response["email_message"] = "Servicio de email no configurado - credenciales no enviadas"
         else:
             response["email_message"] = f"Error al enviar email: {email_result.get('error', 'Unknown')}"
     
