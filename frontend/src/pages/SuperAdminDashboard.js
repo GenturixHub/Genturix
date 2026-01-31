@@ -376,7 +376,7 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin }) 
             </SelectContent>
           </Select>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)} className="gap-2 w-full sm:w-auto">
+        <Button onClick={() => navigate('/super-admin/onboarding')} className="gap-2 w-full sm:w-auto" data-testid="condos-new-condo-btn">
           <Plus className="w-4 h-4" />
           Nuevo Condominio
         </Button>
