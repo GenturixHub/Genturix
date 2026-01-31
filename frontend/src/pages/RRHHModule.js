@@ -940,16 +940,25 @@ const TurnosSubmodule = ({ employees, shifts, onCreateShift, onDeleteShift, isLo
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Empleado</Label>
-              <Select value={newShift.guard_id} onValueChange={(v) => setNewShift({...newShift, guard_id: v})}>
-                <SelectTrigger className="bg-[#181B25] border-[#1E293B]">
-                  <SelectValue placeholder="Seleccionar..." />
-                </SelectTrigger>
-                <SelectContent className="bg-[#0F111A] border-[#1E293B]">
-                  {employees.filter(e => e.is_active).map(emp => (
-                    <SelectItem key={emp.id} value={emp.id}>{emp.user_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {employees.filter(e => e.is_active).length === 0 ? (
+                <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-sm">
+                  <p className="font-medium">No hay empleados disponibles</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Primero debes contratar guardias desde el módulo de Reclutamiento
+                  </p>
+                </div>
+              ) : (
+                <Select value={newShift.guard_id} onValueChange={(v) => setNewShift({...newShift, guard_id: v})}>
+                  <SelectTrigger className="bg-[#181B25] border-[#1E293B]">
+                    <SelectValue placeholder="Seleccionar..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0F111A] border-[#1E293B]">
+                    {employees.filter(e => e.is_active).map(emp => (
+                      <SelectItem key={emp.id} value={emp.id}>{emp.user_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
