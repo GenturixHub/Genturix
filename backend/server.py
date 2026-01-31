@@ -3885,7 +3885,7 @@ async def get_areas(current_user = Depends(get_current_user)):
     
     await check_module_enabled(condo_id, "reservations")
     
-    areas = await db.areas.find(
+    areas = await db.reservation_areas.find(
         {"condominium_id": condo_id, "is_active": True},
         {"_id": 0}
     ).to_list(100)
@@ -3918,12 +3918,14 @@ async def create_area(
         "available_until": area_data.available_until,
         "requires_approval": area_data.requires_approval,
         "max_hours_per_reservation": area_data.max_hours_per_reservation,
+        "max_reservations_per_day": area_data.max_reservations_per_day,
+        "allowed_days": area_data.allowed_days,
         "is_active": area_data.is_active,
         "created_by": current_user["id"],
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     
-    await db.areas.insert_one(area_doc)
+    await db.reservation_areas.insert_one(area_doc)
     
     await log_audit_event(
         AuditEventType.ACCESS_GRANTED,
@@ -3940,6 +3942,7 @@ async def create_area(
 async def update_area(
     area_id: str,
     area_data: AreaUpdate,
+    request: Request,
     current_user = Depends(require_role("Administrador"))
 ):
     """Update an area (Admin only)"""
@@ -3948,7 +3951,7 @@ async def update_area(
         raise HTTPException(status_code=400, detail="Usuario no asignado a condominio")
     
     # Check area exists and belongs to this condo
-    area = await db.areas.find_one({"id": area_id, "condominium_id": condo_id})
+    area = await db.reservation_areas.find_one({"id": area_id, "condominium_id": condo_id})
     if not area:
         raise HTTPException(status_code=404, detail="Área no encontrada")
     
@@ -3957,13 +3960,23 @@ async def update_area(
         update_fields["area_type"] = update_fields["area_type"].value
     update_fields["updated_at"] = datetime.now(timezone.utc).isoformat()
     
-    await db.areas.update_one({"id": area_id}, {"$set": update_fields})
+    await db.reservation_areas.update_one({"id": area_id}, {"$set": update_fields})
+    
+    await log_audit_event(
+        AuditEventType.ACCESS_GRANTED,
+        current_user["id"],
+        "reservations",
+        {"action": "area_updated", "area_id": area_id},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
     
     return {"message": "Área actualizada exitosamente"}
 
 @api_router.delete("/reservations/areas/{area_id}")
 async def delete_area(
     area_id: str,
+    request: Request,
     current_user = Depends(require_role("Administrador"))
 ):
     """Soft delete an area (Admin only)"""
