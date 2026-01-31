@@ -4640,8 +4640,12 @@ async def create_user_by_admin(
         "role_data": role_data,
         "credentials": {
             "email": user_data.email,
-            "password": "********"  # Never expose password in response
-        }
+            # In DEV_MODE, show the generated/provided password for testing
+            # In production, always mask the password
+            "password": password_to_use if DEV_MODE else "********",
+            "show_password": DEV_MODE  # Flag to indicate if password is visible
+        },
+        "dev_mode": DEV_MODE
     }
     
     if send_email:
