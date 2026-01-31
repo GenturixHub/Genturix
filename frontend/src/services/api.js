@@ -93,11 +93,17 @@ class ApiService {
       let errorData = { detail: errorMessage };
       
       const errorBody = response._errorBody || '';
+      console.log('[DEBUG ApiService] Response not OK');
+      console.log('[DEBUG ApiService] response._errorBody:', errorBody);
+      
       if (errorBody) {
         try {
           errorData = JSON.parse(errorBody);
           errorMessage = errorData.detail || errorData.message || errorMessage;
-        } catch {
+          console.log('[DEBUG ApiService] Parsed errorData:', errorData);
+          console.log('[DEBUG ApiService] errorMessage:', errorMessage);
+        } catch (e) {
+          console.log('[DEBUG ApiService] JSON parse error:', e);
           errorMessage = errorBody;
           errorData = { detail: errorBody };
         }
