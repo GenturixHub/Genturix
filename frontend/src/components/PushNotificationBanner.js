@@ -14,15 +14,11 @@ export function PushNotificationBanner({ onClose }) {
   } = usePushNotifications();
 
   const [dismissed, setDismissed] = useState(false);
+  // Initialize dismissed state from localStorage
+  const [dismissed, setDismissed] = useState(() => {
+    return localStorage.getItem('push_banner_dismissed') === 'true';
+  });
   const [showSuccess, setShowSuccess] = useState(false);
-
-  // Check if user has already dismissed or subscribed
-  useEffect(() => {
-    const wasDismissed = localStorage.getItem('push_banner_dismissed');
-    if (wasDismissed) {
-      setDismissed(true);
-    }
-  }, []);
 
   // Don't show if not supported, already subscribed, permission denied, or dismissed
   if (!isSupported || isSubscribed || permission === 'denied' || dismissed) {
