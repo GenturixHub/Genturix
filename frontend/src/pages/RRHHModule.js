@@ -1512,7 +1512,7 @@ const CreateEvaluationDialog = ({ open, onClose, employees, onSuccess }) => {
               <SelectContent className="bg-[#0F111A] border-[#1E293B]">
                 {employees.map(emp => (
                   <SelectItem key={emp.id} value={emp.id}>
-                    {emp.user_name} - {emp.position || 'Guarda'}
+                    {getEmployeeName(emp)} - {emp.position || 'Guarda'}
                   </SelectItem>
                 ))}
               </SelectContent>
