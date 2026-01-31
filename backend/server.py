@@ -6687,6 +6687,101 @@ async def get_dev_mode_status():
         }
     }
 
+# ==================== EMAIL TOGGLE CONFIG ====================
+# This allows SuperAdmin to enable/disable email sending without touching .env
+
+async def get_email_config():
+    """Get email configuration from database or create default"""
+    config = await db.system_config.find_one({"key": "email_settings"})
+    if not config:
+        # Default: emails disabled for testing
+        default_config = {
+            "key": "email_settings",
+            "email_enabled": False,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "updated_by": "system"
+        }
+        await db.system_config.insert_one(default_config)
+        return default_config
+    return config
+
+async def is_email_enabled():
+    """Quick check if email sending is enabled"""
+    config = await get_email_config()
+    return config.get("email_enabled", False)
+
+@api_router.get("/config/email-status")
+async def get_email_status(current_user = Depends(get_current_user)):
+    """
+    Get current email sending status.
+    Any authenticated user can check this.
+    """
+    config = await get_email_config()
+    return {
+        "email_enabled": config.get("email_enabled", False),
+        "updated_at": config.get("updated_at"),
+        "updated_by": config.get("updated_by"),
+        "status_text": "Emails HABILITADOS (modo producción)" if config.get("email_enabled") else "Emails DESHABILITADOS (modo pruebas)"
+    }
+
+class EmailToggleRequest(BaseModel):
+    email_enabled: bool
+
+@api_router.post("/config/email-status")
+async def set_email_status(
+    data: EmailToggleRequest,
+    request: Request,
+    current_user = Depends(require_role("SuperAdmin"))
+):
+    """
+    Toggle email sending on/off.
+    ONLY SuperAdmin can change this setting.
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Get current status for audit
+    old_config = await get_email_config()
+    old_status = old_config.get("email_enabled", False)
+    
+    # Update config
+    await db.system_config.update_one(
+        {"key": "email_settings"},
+        {
+            "$set": {
+                "email_enabled": data.email_enabled,
+                "updated_at": now,
+                "updated_by": current_user.get("email", current_user.get("id"))
+            }
+        },
+        upsert=True
+    )
+    
+    # Log to audit
+    await log_audit_event(
+        AuditEventType.CONFIG_CHANGED if hasattr(AuditEventType, 'CONFIG_CHANGED') else AuditEventType.USER_UPDATED,
+        current_user["id"],
+        "system_config",
+        {
+            "setting": "email_enabled",
+            "old_value": old_status,
+            "new_value": data.email_enabled,
+            "changed_by": current_user.get("email")
+        },
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    action = "habilitado" if data.email_enabled else "deshabilitado"
+    
+    return {
+        "success": True,
+        "email_enabled": data.email_enabled,
+        "message": f"Envío de emails {action} exitosamente",
+        "status_text": "Emails HABILITADOS (modo producción)" if data.email_enabled else "Emails DESHABILITADOS (modo pruebas)",
+        "updated_at": now,
+        "updated_by": current_user.get("email")
+    }
+
 # Include the router in the main app
 app.include_router(api_router)
 
