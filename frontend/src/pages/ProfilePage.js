@@ -354,21 +354,37 @@ const ProfilePage = () => {
   const roleConfig = ROLE_CONFIG[primaryRole] || { icon: User, color: 'bg-gray-500/10 text-gray-400', label: primaryRole };
   const RoleIcon = roleConfig.icon;
 
+  // Determine the correct dashboard URL based on user role
+  const getDashboardUrl = () => {
+    if (!profile?.roles?.length) return '/';
+    const role = profile.roles[0];
+    switch (role) {
+      case 'SuperAdmin': return '/super-admin';
+      case 'Administrador': return '/admin/dashboard';
+      case 'Guardia': return '/guard';
+      case 'Residente': return '/resident';
+      case 'RRHH': return '/hr';
+      case 'Supervisor': return '/hr';
+      case 'Estudiante': return '/student';
+      default: return '/';
+    }
+  };
+
   return (
     <DashboardLayout title={pageTitle}>
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* Back button for viewing other profiles */}
-        {!isOwnProfile && (
+        {/* Back button - Always show with appropriate destination */}
+        <div className="flex items-center justify-between">
           <Button 
             variant="ghost" 
-            onClick={() => navigate(-1)}
+            onClick={() => isOwnProfile ? navigate(getDashboardUrl()) : navigate(-1)}
             className="flex items-center gap-2"
             data-testid="back-btn"
           >
             <ArrowLeft className="w-4 h-4" />
-            Volver
+            {isOwnProfile ? 'Volver al Dashboard' : 'Volver'}
           </Button>
-        )}
+        </div>
 
         {/* Success/Error Messages */}
         {success && (
