@@ -636,6 +636,14 @@ async def send_credentials_email(
     login_url: str
 ) -> dict:
     """Send credentials email to new user using Resend"""
+    
+    # FIRST: Check if email sending is enabled via toggle
+    email_enabled = await is_email_enabled()
+    if not email_enabled:
+        logger.info(f"Email not sent - Email sending is DISABLED via toggle (recipient: {recipient_email})")
+        return {"status": "skipped", "reason": "Email sending disabled (testing mode)", "toggle_disabled": True}
+    
+    # SECOND: Check if API key is configured
     if not RESEND_API_KEY or RESEND_API_KEY == 're_placeholder_key':
         logger.warning("Email not sent - RESEND_API_KEY not configured")
         return {"status": "skipped", "reason": "Email service not configured"}
