@@ -335,7 +335,7 @@ const ComingSoonBadge = () => (
 // ============================================
 // SHIFT CARD COMPONENT
 // ============================================
-const ShiftCard = ({ shift }) => {
+const ShiftCard = ({ shift, onDelete }) => {
   const getStatus = () => {
     const now = new Date();
     const start = new Date(shift.start_time);
@@ -360,7 +360,20 @@ const ShiftCard = ({ shift }) => {
           {status === 'active' && <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />}
           <span className="font-semibold text-white">{shift.guard_name}</span>
         </div>
-        <Badge className={`${config.color} text-white`}>{config.label}</Badge>
+        <div className="flex items-center gap-2">
+          <Badge className={`${config.color} text-white`}>{config.label}</Badge>
+          {onDelete && status !== 'active' && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => onDelete(shift)}
+              className="h-6 w-6 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+              title="Eliminar turno"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </Button>
+          )}
+        </div>
       </div>
       <div className="flex items-center gap-4 text-sm text-muted-foreground">
         <div className="flex items-center gap-1">
