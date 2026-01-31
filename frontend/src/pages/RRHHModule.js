@@ -2115,6 +2115,7 @@ const RRHHModule = () => {
                 employees={employees} 
                 shifts={shifts} 
                 onCreateShift={handleCreateShift}
+                onDeleteShift={handleDeleteShift}
                 isLoading={isLoading}
                 onEditEmployee={handleEditEmployee}
               />
