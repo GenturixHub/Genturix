@@ -1,42 +1,46 @@
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
-// Custom fetch wrapper that preserves response body for error handling
+// Enhanced error-handling fetch that properly captures response body
 const customFetch = async (url, options) => {
-  const response = await fetch(url, options);
+  let response;
+  let responseText = '';
   
-  // If the response is an error, immediately read and store the body
+  try {
+    response = await fetch(url, options);
+  } catch (networkError) {
+    throw new Error('Error de conexión. Por favor verifica tu red.');
+  }
+  
+  // For error responses, we need to capture the body immediately
   if (!response.ok) {
-    let errorBody = '';
+    // Try to read the response body as text
     try {
-      // Clone the response before reading the body to avoid consumption issues
-      const clonedResponse = response.clone();
-      errorBody = await clonedResponse.text();
-      console.log('[DEBUG customFetch] Error body read:', errorBody);
+      responseText = await response.text();
+      console.log('[DEBUG customFetch] Error response text:', responseText);
     } catch (e) {
-      console.log('[DEBUG customFetch] Error reading body:', e);
-      // If clone/text fails, try reading from original
-      try {
-        errorBody = await response.text();
-      } catch {
-        // Body might have been consumed
-      }
+      console.log('[DEBUG customFetch] Could not read response text:', e.message);
+      responseText = '';
     }
     
-    // Create a modified response-like object with the body data
+    // Return a mock response object with the captured body
     return {
       ok: false,
       status: response.status,
       statusText: response.statusText,
       headers: response.headers,
-      _errorBody: errorBody,
+      _errorBody: responseText,
+      // Provide methods that return the already-captured text
       json: async () => {
-        try {
-          return JSON.parse(errorBody || '{}');
-        } catch {
-          return { detail: errorBody || `Error ${response.status}` };
+        if (responseText) {
+          try {
+            return JSON.parse(responseText);
+          } catch {
+            return { detail: responseText };
+          }
         }
+        return { detail: `Error del servidor (${response.status})` };
       },
-      text: async () => errorBody
+      text: async () => responseText
     };
   }
   
