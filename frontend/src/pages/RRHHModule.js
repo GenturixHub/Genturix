@@ -2003,6 +2003,17 @@ const RRHHModule = () => {
     }
   };
 
+  // Delete shift handler
+  const handleDeleteShift = async (shiftId) => {
+    try {
+      await api.deleteShift(shiftId);
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting shift:', error);
+      alert('Error al eliminar turno');
+    }
+  };
+
   // Edit employee handler
   const handleEditEmployee = (employee) => {
     setEditingEmployee(employee);
