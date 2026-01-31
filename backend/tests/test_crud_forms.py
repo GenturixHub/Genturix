@@ -218,7 +218,8 @@ class TestAreasCRUD:
         response = requests.post(f"{BASE_URL}/api/reservations/areas", json=area_data, headers=headers)
         assert response.status_code in [200, 201], f"Area creation failed: {response.text}"
         data = response.json()
-        assert data.get("name") == area_data["name"], "Area name mismatch"
+        # API returns area_id and message, not the full area object
+        assert "area_id" in data or data.get("name") == area_data["name"], "Area creation response invalid"
         print(f"✓ Area created: {area_data['name']}")
         return data
     
@@ -274,7 +275,7 @@ class TestAreasCRUD:
         response = requests.post(f"{BASE_URL}/api/reservations/areas", json=area_data, headers=headers)
         if response.status_code in [200, 201]:
             area = response.json()
-            area_id = area.get("id") or area.get("_id")
+            area_id = area.get("area_id") or area.get("id") or area.get("_id")
             
             # Delete the area
             response = requests.delete(f"{BASE_URL}/api/reservations/areas/{area_id}", headers=headers)
