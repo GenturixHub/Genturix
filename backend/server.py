@@ -4137,22 +4137,27 @@ async def deactivate_employee(
         {"$set": {"is_active": False, "deactivated_at": datetime.now(timezone.utc).isoformat()}}
     )
     
-    # Deactivate user account
-    await db.users.update_one(
-        {"id": guard["user_id"]},
-        {"$set": {"is_active": False}}
-    )
+    # Deactivate user account if user_id exists
+    user_id = guard.get("user_id")
+    if user_id:
+        await db.users.update_one(
+            {"id": user_id},
+            {"$set": {"is_active": False}}
+        )
+    
+    # Get employee name safely
+    employee_name = guard.get("user_name") or guard.get("name") or guard.get("full_name") or "desconocido"
     
     await log_audit_event(
         AuditEventType.EMPLOYEE_DEACTIVATED,
         current_user["id"],
         "hr",
-        {"guard_id": guard_id, "user_id": guard["user_id"], "name": guard["user_name"]},
+        {"guard_id": guard_id, "user_id": user_id, "name": employee_name},
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
     )
     
-    return {"message": f"Empleado {guard['user_name']} desactivado"}
+    return {"message": f"Empleado {employee_name} desactivado"}
 
 @api_router.put("/hr/employees/{guard_id}/activate")
 async def activate_employee(
