@@ -6422,7 +6422,7 @@ async def onboarding_create_condominium(
         # === STEP 2: Create Admin User ===
         admin_doc = {
             "id": admin_user_id,
-            "email": wizard_data.admin.email,
+            "email": normalized_admin_email,  # Use normalized email
             "hashed_password": hash_password(admin_password),
             "full_name": wizard_data.admin.full_name,
             "roles": [RoleEnum.ADMINISTRADOR.value],
