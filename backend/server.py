@@ -4517,6 +4517,7 @@ async def create_user_by_admin(
             "phone": user_data.phone,
             "condominium_id": current_user.get("condominium_id"),
             "status": "active",
+            "is_active": True,
             "location": user_data.main_location or "Entrada Principal",
             "rate": 15.0,
             "total_hours": 0,
