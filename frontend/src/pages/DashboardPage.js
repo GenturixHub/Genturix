@@ -319,7 +319,7 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
 
           <div className="space-y-2">
             <Label htmlFor="role">Rol *</Label>
-            <Select value={form.role} onValueChange={(value) => setForm({ ...form, role: value, badge_number: '' })}>
+            <Select value={form.role} onValueChange={handleRoleChange}>
               <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B]" data-testid="create-user-role">
                 <SelectValue placeholder="Selecciona un rol" />
               </SelectTrigger>
