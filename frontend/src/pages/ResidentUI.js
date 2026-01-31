@@ -845,12 +845,12 @@ const ResidentUI = () => {
               Visitas
             </TabsTrigger>
             <TabsTrigger 
-              value="history" 
-              className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-yellow-500 rounded-none flex flex-col items-center gap-0.5 text-[10px]"
-              data-testid="tab-history"
+              value="reservations" 
+              className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-green-500 rounded-none flex flex-col items-center gap-0.5 text-[10px]"
+              data-testid="tab-reservations"
             >
-              <History className="w-4 h-4 text-yellow-400" />
-              Mis Alertas
+              <CalendarIcon className="w-4 h-4 text-green-400" />
+              Reservas
             </TabsTrigger>
             <TabsTrigger 
               value="directory" 
@@ -885,10 +885,8 @@ const ResidentUI = () => {
           <VisitorAuthorizationsResident />
         </TabsContent>
 
-        <TabsContent value="history" className="flex-1 mt-0">
-          <ScrollArea className={isMobile ? "h-[calc(100vh-160px)]" : "h-[calc(100vh-180px)]"}>
-            <AlertHistoryTab />
-          </ScrollArea>
+        <TabsContent value="reservations" className="flex-1 mt-0">
+          <ResidentReservations />
         </TabsContent>
         
         <TabsContent value="directory" className="flex-1 mt-0">
