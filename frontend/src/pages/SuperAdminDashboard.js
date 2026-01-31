@@ -302,20 +302,6 @@ const SystemConfigSection = () => {
             </p>
           )}
         </div>
-
-        {/* DEV_MODE Info */}
-        {DEV_MODE_ENABLED && (
-          <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/30">
-            <div className="flex items-center gap-2 text-sm">
-              <Badge className="bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                DEV_MODE
-              </Badge>
-              <span className="text-purple-400">
-                Modo desarrollo activo desde .env
-              </span>
-            </div>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
