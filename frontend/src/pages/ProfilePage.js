@@ -666,6 +666,50 @@ const ProfilePage = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Logout Section - Mobile visible, always show for own profile */}
+        {isOwnProfile && (
+          <Card className="bg-[#0F111A] border-[#1E293B] lg:hidden">
+            <CardContent className="p-4">
+              <Button
+                variant="destructive"
+                className="w-full flex items-center justify-center gap-2"
+                onClick={() => setShowLogoutConfirm(true)}
+                data-testid="mobile-logout-btn"
+              >
+                <LogOut className="w-4 h-4" />
+                Cerrar Sesión
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Logout Confirmation Dialog */}
+        <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+          <AlertDialogContent className="bg-[#0F111A] border-[#1E293B]">
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Cerrar sesión?</AlertDialogTitle>
+              <AlertDialogDescription>
+                ¿Estás seguro de que deseas cerrar tu sesión? Tendrás que volver a iniciar sesión para acceder a tu cuenta.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="bg-[#1E293B] border-[#2D3B4F] hover:bg-[#2D3B4F]">
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-red-600 hover:bg-red-700"
+                onClick={() => {
+                  logout();
+                  navigate('/login');
+                }}
+                data-testid="confirm-logout-btn"
+              >
+                Cerrar Sesión
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );
