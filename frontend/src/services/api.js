@@ -315,6 +315,13 @@ class ApiService {
 
   // ==================== RESERVATIONS ====================
   // Areas
+  getReservationAreas = () => this.get('/reservations/areas');
+  createReservationArea = (data) => this.post('/reservations/areas', data);
+  updateReservationArea = (areaId, data) => this.patch(`/reservations/areas/${areaId}`, data);
+  deleteReservationArea = (areaId) => this.delete(`/reservations/areas/${areaId}`);
+  getAreaAvailability = (areaId, date) => this.get(`/reservations/availability/${areaId}?date=${date}`);
+  
+  // Legacy aliases for backward compatibility
   getAreas = () => this.get('/reservations/areas');
   createArea = (data) => this.post('/reservations/areas', data);
   updateArea = (areaId, data) => this.patch(`/reservations/areas/${areaId}`, data);
