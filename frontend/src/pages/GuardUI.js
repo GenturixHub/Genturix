@@ -409,32 +409,31 @@ const PanicAlertModal = ({ alert, open, onClose, onResolve, resolutionNotes, set
                 Ubicación en Mapa
               </h4>
               
-              {/* Embedded Map using OpenStreetMap */}
-              <div className="relative">
+              {/* Embedded Map using OpenStreetMap - Reduced height on mobile */}
+              <div className="relative w-full overflow-hidden">
                 <iframe
                   title="Ubicación de la alerta"
-                  width="100%"
-                  height="200"
-                  style={{ border: 0 }}
+                  className="w-full h-[150px] sm:h-[180px]"
+                  style={{ border: 0, maxWidth: '100%' }}
                   loading="lazy"
                   src={`https://www.openstreetmap.org/export/embed.html?bbox=${alert.longitude - 0.002},${alert.latitude - 0.002},${alert.longitude + 0.002},${alert.latitude + 0.002}&layer=mapnik&marker=${alert.latitude},${alert.longitude}`}
                 />
               </div>
               
-              {/* Map Actions */}
-              <div className="p-3 bg-[#0F111A] flex flex-wrap gap-2">
+              {/* Map Actions - Stack on mobile */}
+              <div className="p-3 bg-[#0F111A] flex flex-col sm:flex-row gap-2">
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                  className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10 w-full sm:w-auto"
                   onClick={() => openMaps(alert.latitude, alert.longitude)}
                 >
                   <ExternalLink className="w-4 h-4 mr-2" />
-                  Abrir en Google Maps
+                  Abrir en Maps
                 </Button>
-                <div className="text-xs text-muted-foreground flex items-center">
-                  <MapPin className="w-3 h-3 mr-1" />
-                  {alert.latitude.toFixed(6)}, {alert.longitude.toFixed(6)}
+                <div className="text-xs text-muted-foreground flex items-center justify-center sm:justify-start">
+                  <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
+                  <span className="truncate">{alert.latitude.toFixed(4)}, {alert.longitude.toFixed(4)}</span>
                 </div>
               </div>
             </div>
