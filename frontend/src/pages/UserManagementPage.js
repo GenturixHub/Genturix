@@ -154,6 +154,7 @@ const CredentialsDialog = ({ open, onClose, credentials }) => {
 
   const emailSent = credentials.email_sent;
   const emailSuccess = credentials.email_status === 'success';
+  const isDevMode = credentials.dev_mode;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -162,18 +163,36 @@ const CredentialsDialog = ({ open, onClose, credentials }) => {
           <DialogTitle className="flex items-center gap-2 text-green-400">
             <CheckCircle className="w-5 h-5" />
             Usuario Creado Exitosamente
+            {isDevMode && (
+              <Badge className="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 ml-2">
+                DEV MODE
+              </Badge>
+            )}
           </DialogTitle>
           <DialogDescription>
-            {emailSent && emailSuccess 
-              ? "Las credenciales han sido enviadas al email del usuario."
-              : "Guarda estas credenciales de forma segura. La contraseña no se mostrará de nuevo."
+            {isDevMode 
+              ? "Modo desarrollo: La contraseña se muestra para pruebas. No se requiere cambio obligatorio."
+              : emailSent && emailSuccess 
+                ? "Las credenciales han sido enviadas al email del usuario."
+                : "Guarda estas credenciales de forma segura. La contraseña no se mostrará de nuevo."
             }
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* DEV MODE Banner */}
+          {isDevMode && (
+            <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-start gap-2">
+              <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5 text-yellow-400" />
+              <div className="text-sm text-yellow-400">
+                <strong>Modo Desarrollo Activo</strong><br/>
+                La contraseña se muestra para facilitar pruebas. En producción, esta información estará oculta.
+              </div>
+            </div>
+          )}
+
           {/* Email Status Banner */}
-          {emailSent && (
+          {emailSent && !isDevMode && (
             <div className={`p-3 rounded-lg flex items-start gap-2 ${
               emailSuccess 
                 ? 'bg-green-500/10 border border-green-500/20' 
@@ -196,8 +215,8 @@ const CredentialsDialog = ({ open, onClose, credentials }) => {
             </div>
           )}
 
-          {/* Warning Banner - only show if NOT sent by email */}
-          {!emailSent && (
+          {/* Warning Banner - only show if NOT sent by email and NOT dev mode */}
+          {!emailSent && !isDevMode && (
             <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-start gap-2">
               <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-yellow-400">
