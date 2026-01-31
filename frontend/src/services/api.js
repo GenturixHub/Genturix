@@ -56,12 +56,15 @@ class ApiService {
       let errorData = { detail: 'Request failed' };
       try {
         errorData = await response.json();
-      } catch {
+        console.log('API Error Response:', errorData);
+      } catch (e) {
+        console.log('Failed to parse error JSON:', e);
         // If JSON parsing fails, use default error
       }
       
       // Create error with status code for proper handling
-      const error = new Error(errorData.detail || `API error: ${response.status}`);
+      const errorMessage = errorData.detail || errorData.message || `API error: ${response.status}`;
+      const error = new Error(errorMessage);
       error.status = response.status;
       error.data = errorData;
       throw error;
