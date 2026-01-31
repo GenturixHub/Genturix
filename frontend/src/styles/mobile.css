@@ -80,6 +80,14 @@
     touch-action: auto !important;
     -webkit-user-select: text !important;
     user-select: text !important;
+    pointer-events: auto !important;
+  }
+
+  /* Ensure ALL elements in dialogs are interactive - CRITICAL FIX */
+  [role="dialog"] *,
+  [data-radix-dialog-content] *,
+  [data-state="open"] * {
+    pointer-events: auto;
   }
 
   /* Ensure inputs in dialogs are interactive */
@@ -95,6 +103,24 @@
     touch-action: auto !important;
     -webkit-user-select: text !important;
     user-select: text !important;
+  }
+
+  /* Ensure labels and other elements don't block inputs */
+  [role="dialog"] label,
+  [role="dialog"] div,
+  [role="dialog"] span {
+    pointer-events: none;
+  }
+  
+  /* Re-enable pointer events for interactive elements */
+  [role="dialog"] input,
+  [role="dialog"] textarea,
+  [role="dialog"] select,
+  [role="dialog"] button,
+  [role="dialog"] [role="combobox"],
+  [role="dialog"] [role="option"],
+  [role="dialog"] a {
+    pointer-events: auto !important;
   }
 
   /* Form field containers */
