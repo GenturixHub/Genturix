@@ -4662,7 +4662,7 @@ async def get_users_by_admin(
     if role:
         query["roles"] = role
     
-    users = await db.users.find(query, {"_id": 0, "password_hash": 0}).to_list(500)
+    users = await db.users.find(query, {"_id": 0, "hashed_password": 0}).to_list(500)
     return users
 
 # ==================== RESERVATIONS MODULE ====================
