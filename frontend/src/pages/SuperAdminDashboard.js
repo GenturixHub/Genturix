@@ -837,19 +837,22 @@ const EditCondoDialog = ({ condo, open, onClose, onSuccess }) => {
     plan: condo.plan || 'basic'
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [togglingModule, setTogglingModule] = useState(null); // Track which module is being toggled
 
   const handleModuleToggle = async (moduleId, enabled) => {
-    setIsSubmitting(true);
+    setTogglingModule(moduleId);
     try {
       await api.updateCondoModule(condo.id, moduleId, enabled);
       setModules(prev => ({
         ...prev,
         [moduleId]: { ...prev[moduleId], enabled }
       }));
+      const moduleName = MODULES.find(m => m.id === moduleId)?.name || moduleId;
+      toast.success(`Módulo "${moduleName}" ${enabled ? 'activado' : 'desactivado'}`);
     } catch (error) {
-      alert('Error updating module');
+      toast.error(`Error al actualizar módulo: ${error.message || 'Error desconocido'}`);
     } finally {
-      setIsSubmitting(false);
+      setTogglingModule(null);
     }
   };
 
@@ -857,9 +860,10 @@ const EditCondoDialog = ({ condo, open, onClose, onSuccess }) => {
     setIsSubmitting(true);
     try {
       await api.updateCondoPricing(condo.id, pricing.discount_percent, pricing.plan);
+      toast.success('Precios actualizados correctamente');
       onSuccess();
     } catch (error) {
-      alert('Error updating pricing');
+      toast.error(`Error al actualizar precios: ${error.message || 'Error desconocido'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -871,10 +875,10 @@ const EditCondoDialog = ({ condo, open, onClose, onSuccess }) => {
     setIsSubmitting(true);
     try {
       await api.resetDemoData(condo.id);
-      alert('Datos de demo reseteados');
+      toast.success('Datos de demo reseteados correctamente');
       onSuccess();
     } catch (error) {
-      alert('Error resetting demo data');
+      toast.error(`Error al resetear datos: ${error.message || 'Error desconocido'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -904,6 +908,7 @@ const EditCondoDialog = ({ condo, open, onClose, onSuccess }) => {
             {MODULES.map((mod) => {
               const isEnabled = modules[mod.id]?.enabled !== false;
               const ModIcon = mod.icon;
+              const isToggling = togglingModule === mod.id;
               
               return (
                 <div 
@@ -911,7 +916,9 @@ const EditCondoDialog = ({ condo, open, onClose, onSuccess }) => {
                   className={`flex items-center justify-between p-3 rounded-lg border ${
                     mod.future 
                       ? 'bg-[#0A0A0F]/50 border-[#1E293B]/50 opacity-50' 
-                      : 'bg-[#0A0A0F] border-[#1E293B]'
+                      : isToggling
+                        ? 'bg-primary/5 border-primary/30'
+                        : 'bg-[#0A0A0F] border-[#1E293B]'
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -923,11 +930,14 @@ const EditCondoDialog = ({ condo, open, onClose, onSuccess }) => {
                   </div>
                   {mod.future ? (
                     <Badge variant="outline" className="text-xs">Próximamente</Badge>
+                  ) : isToggling ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
                   ) : (
                     <Switch
                       checked={isEnabled}
                       onCheckedChange={(checked) => handleModuleToggle(mod.id, checked)}
-                      disabled={isSubmitting}
+                      disabled={togglingModule !== null}
+                      data-testid={`module-toggle-${mod.id}`}
                     />
                   )}
                 </div>
