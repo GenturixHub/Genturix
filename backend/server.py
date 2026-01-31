@@ -3281,7 +3281,7 @@ async def update_shift(
 async def delete_shift(
     shift_id: str,
     request: Request,
-    current_user = Depends(require_role("Administrador"))
+    current_user = Depends(require_role("Administrador", "HR", "Supervisor", "SuperAdmin"))
 ):
     """Delete (cancel) a shift"""
     shift = await db.shifts.find_one({"id": shift_id})
