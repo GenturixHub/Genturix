@@ -1314,8 +1314,8 @@ async def update_profile(profile_data: ProfileUpdate, current_user = Depends(get
         {"$set": update_fields}
     )
     
-    # Fetch updated user
-    updated_user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0})
+    # Fetch updated user - exclude sensitive fields
+    updated_user = await db.users.find_one({"id": current_user["id"]}, {"_id": 0, "hashed_password": 0})
     
     condo_name = None
     if updated_user.get("condominium_id"):
