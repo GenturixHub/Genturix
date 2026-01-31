@@ -17,7 +17,7 @@ BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 # Test credentials
 ADMIN_CREDS = {"email": "admin@genturix.com", "password": "Admin123!"}
 GUARD_CREDS = {"email": "guarda1@genturix.com", "password": "Guard123!"}
-RESIDENT_CREDS = {"email": "visitresident@genturix.com", "password": "NewVisit123!"}
+RESIDENT_CREDS = {"email": "residente@genturix.com", "password": "Residente123!"}
 
 
 class TestVisitorAuthorizationSystem:
