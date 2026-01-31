@@ -366,6 +366,51 @@ const EmbeddedProfile = ({ userId = null }) => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Logout Section - Mobile friendly */}
+        {isOwnProfile && (
+          <Card className="bg-[#0F111A] border-[#1E293B] mt-4">
+            <CardContent className="p-3">
+              <Button
+                variant="outline"
+                className="w-full border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                onClick={() => setShowLogoutConfirm(true)}
+                data-testid="logout-btn"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Cerrar Sesión
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Logout Confirmation Dialog */}
+        <Dialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+          <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <LogOut className="w-5 h-5 text-red-400" />
+                Cerrar Sesión
+              </DialogTitle>
+              <DialogDescription>
+                ¿Estás seguro de que deseas cerrar sesión?
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="flex-col sm:flex-row gap-2 mt-4">
+              <Button variant="outline" onClick={() => setShowLogoutConfirm(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                variant="destructive"
+                onClick={handleLogout}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Cerrar Sesión
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </ScrollArea>
   );
