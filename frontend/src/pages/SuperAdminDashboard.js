@@ -1910,9 +1910,16 @@ const SuperAdminDashboard = () => {
             </div>
             
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" onClick={fetchData} className="gap-2">
-                <RefreshCw className="w-4 h-4" />
-                <span className="hidden sm:inline">Actualizar</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => fetchData(true)} 
+                disabled={isRefreshing}
+                className="gap-2"
+                data-testid="refresh-btn"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">{isRefreshing ? 'Actualizando...' : 'Actualizar'}</span>
               </Button>
               <div className="hidden sm:block text-right">
                 <p className="text-sm font-medium">{user?.full_name}</p>
