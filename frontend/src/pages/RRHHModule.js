@@ -48,6 +48,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { useIsMobile } from '../components/layout/BottomNav';
 import api from '../services/api';
 import ProfileDirectory from '../components/ProfileDirectory';
+
+// Helper function to get employee name (handles both user_name and name fields)
+const getEmployeeName = (emp) => emp?.user_name || emp?.name || emp?.full_name || 'Sin nombre';
 import EmbeddedProfile from '../components/EmbeddedProfile';
 import { 
   Users, 
