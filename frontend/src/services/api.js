@@ -82,81 +82,51 @@ class ApiService {
       headers['Authorization'] = `Bearer ${accessToken}`;
     }
 
-    let response;
     try {
-      response = await customFetch(url, {
+      const response = await apiRequest(url, {
         ...options,
         headers,
       });
-    } catch (networkError) {
-      const error = new Error('Error de conexión. Por favor verifica tu red.');
-      error.status = 0;
-      error.data = { detail: error.message };
-      throw error;
-    }
+      
+      // Successful response
+      return response;
+      
+    } catch (error) {
+      // Handle 401 - try to refresh token
+      if (error.status === 401) {
+        const refreshToken = sessionStorage.getItem('refreshToken');
+        if (refreshToken) {
+          try {
+            const refreshResponse = await window.fetch(`${API_URL}/api/auth/refresh`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refresh_token: refreshToken }),
+            });
 
-    if (response.status === 401) {
-      // Try to refresh token
-      const refreshToken = sessionStorage.getItem('refreshToken');
-      if (refreshToken) {
-        try {
-          const refreshResponse = await fetch(`${API_URL}/api/auth/refresh`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refresh_token: refreshToken }),
-          });
-
-          if (refreshResponse.ok) {
-            const data = await refreshResponse.json();
-            sessionStorage.setItem('accessToken', data.access_token);
-            sessionStorage.setItem('refreshToken', data.refresh_token);
-            
-            // Retry original request
-            headers['Authorization'] = `Bearer ${data.access_token}`;
-            const retryResponse = await customFetch(url, { ...options, headers });
-            if (!retryResponse.ok) {
-              throw new Error(`API error: ${retryResponse.status}`);
+            if (refreshResponse.ok) {
+              const data = await refreshResponse.json();
+              sessionStorage.setItem('accessToken', data.access_token);
+              sessionStorage.setItem('refreshToken', data.refresh_token);
+              
+              // Retry original request with new token
+              headers['Authorization'] = `Bearer ${data.access_token}`;
+              return await apiRequest(url, { ...options, headers });
             }
-            return retryResponse;
+          } catch (e) {
+            // Refresh failed, clear session
+            sessionStorage.clear();
+            window.location.href = '/login';
+            throw error;
           }
-        } catch (e) {
-          // Refresh failed, clear session
-          sessionStorage.clear();
-          window.location.href = '/login';
         }
-      }
-    }
-
-    if (!response.ok) {
-      // Parse error from the already-captured body
-      let errorMessage = `Error del servidor (${response.status})`;
-      let errorData = { detail: errorMessage };
-      
-      const errorBody = response._errorBody || '';
-      console.log('[DEBUG ApiService] Response not OK');
-      console.log('[DEBUG ApiService] response._errorBody:', errorBody);
-      
-      if (errorBody) {
-        try {
-          errorData = JSON.parse(errorBody);
-          errorMessage = errorData.detail || errorData.message || errorMessage;
-          console.log('[DEBUG ApiService] Parsed errorData:', errorData);
-          console.log('[DEBUG ApiService] errorMessage:', errorMessage);
-        } catch (e) {
-          console.log('[DEBUG ApiService] JSON parse error:', e);
-          errorMessage = errorBody;
-          errorData = { detail: errorBody };
-        }
+        // No refresh token, clear session
+        sessionStorage.clear();
+        window.location.href = '/login';
       }
       
-      // Create structured error
-      const error = new Error(errorMessage);
-      error.status = response.status;
-      error.data = errorData;
+      // Re-throw the error for other status codes
       throw error;
     }
-
-    return response;
   }
 
   async get(endpoint) {
