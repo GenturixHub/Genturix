@@ -6380,7 +6380,7 @@ async def onboarding_create_condominium(
             "condominium_id": condo_id,
             "is_active": True,
             "is_locked": False,
-            "password_reset_required": True,  # Force password change on first login
+            "password_reset_required": not DEV_MODE,  # Skip password reset in DEV_MODE
             "created_by": current_user["id"],
             "created_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat()
