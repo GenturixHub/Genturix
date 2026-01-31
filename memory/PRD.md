@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 31, 2026 (Session 36 - P0 Shift Deletion + User Creation Fixes)
+## Last Updated: January 31, 2026 (Session 37 - P0 User Creation Error Messages Fix)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -9,44 +9,29 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY - ALL P0 BLOCKERS FIXED
 
-### Session 36 - P0 BUG FIXES: Shift Deletion + User Creation (January 31, 2026) ⭐⭐⭐⭐⭐
+### Session 37 - P0 BUG FIX: User Creation Error Messages (January 31, 2026) ⭐⭐⭐⭐⭐
 
-#### 🔴 P0 BUG #1 FIXED: Shift Deletion Not Working
-**Problem:** The "Eliminar Turno" button existed but deleting a shift did not update the UI visually.
-
-**Root Cause:**
-1. DELETE endpoint only allowed "Administrador" role, not HR/Supervisor
-2. Frontend was showing all shifts including cancelled ones
-
-**Solution Applied:**
-1. Updated DELETE /hr/shifts/{id} to allow roles: Administrador, HR, Supervisor, SuperAdmin
-2. Frontend now filters shifts: `shiftsData.filter(s => s.status !== 'cancelled')`
-3. Toast notification shows after successful deletion
-
-#### 🔴 P0 BUG #2 FIXED: User Creation Broken (Role Configuration Missing)
-**Problem:** The role selector showed options but no role-specific fields appeared. Form returned 400 error.
+#### 🔴 P0 BUG FIXED: Error Messages Not Showing Correctly
+**Problem:** Frontend showed generic "Error del servidor (400)" instead of specific backend error messages like "El email ya está registrado".
 
 **Root Cause:**
-1. Frontend didn't show required fields per role (apartment_number for Residente, badge_number for Guarda)
-2. Backend validated required fields but frontend didn't collect them
+- The `fetch()` API response body was being consumed by interceptors (Emergent script or Service Workers) before the application code could read it
+- Error: "Failed to execute 'text' on 'Response': body stream already read"
 
 **Solution Applied:**
-1. Added `handleRoleChange` to reset role-specific fields when role changes
-2. Added conditional field rendering:
-   - **Residente**: apartment_number (required), tower_block, resident_type
-   - **Guarda**: badge_number (required)
-   - **HR**: department
-   - **Supervisor**: supervised_area
-3. Frontend validates required fields before submit
-4. Backend errors now show in dialog (not generic "Error del servidor")
-5. New guards created with `is_active: true` by default
+1. Replaced `fetch()` with `XMLHttpRequest` in `/app/frontend/src/services/api.js`
+2. XMLHttpRequest is not subject to the same interceptors and can always read the response body
+3. Error messages now properly extracted from backend responses
 
 **Verification Results:**
-- ✅ Backend: 100% (9/9 tests passed)
+- ✅ Backend: 100% (7/7 tests passed)
 - ✅ Frontend: 100% (all UI tests passed)
-- ✅ Mobile: Dropdowns and forms work without freezing
+- ✅ Error "El email ya está registrado" displays correctly
+- ✅ Error "Número de apartamento/casa es requerido" displays correctly
+- ✅ Error "Número de placa es requerido" displays correctly
+- ✅ Mobile: All forms and dropdowns work without freezing
 
-**Test Report:** `/app/test_reports/iteration_42.json`
+**Test Report:** `/app/test_reports/iteration_43.json`
 
 ---
 
