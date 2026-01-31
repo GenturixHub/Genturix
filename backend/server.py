@@ -3871,8 +3871,16 @@ async def check_module_enabled(condo_id: str, module_name: str):
     if not condo:
         raise HTTPException(status_code=404, detail="Condominio no encontrado")
     modules = condo.get("modules", {})
-    module_config = modules.get(module_name, {})
-    if not module_config.get("enabled", False):
+    module_config = modules.get(module_name, False)
+    
+    # Handle both boolean and dict formats
+    is_enabled = False
+    if isinstance(module_config, bool):
+        is_enabled = module_config
+    elif isinstance(module_config, dict):
+        is_enabled = module_config.get("enabled", False)
+    
+    if not is_enabled:
         raise HTTPException(status_code=403, detail=f"Módulo '{module_name}' no está habilitado para este condominio")
     return True
 
