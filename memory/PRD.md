@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 30, 2026 (Session 24 - Push Notifications Complete)
+## Last Updated: January 31, 2026 (Session 25 - Onboarding Wizard Complete)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,39 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ FULLY MOBILE-OPTIMIZED & PRODUCTION READY
+
+### Session 25 - ONBOARDING WIZARD FOR NEW CONDOMINIUMS (January 31, 2026) ⭐⭐⭐⭐⭐ 
+**100% Tests Passed (14/14 Backend + Frontend Complete)**
+
+#### KEY ACCOMPLISHMENTS
+1. **Backend Implementation (COMPLETE)**
+   - ✅ GET /api/super-admin/onboarding/timezones - Returns 9 timezone options
+   - ✅ POST /api/super-admin/onboarding/create-condominium - Atomic creation
+   - ✅ Rollback on failure - No partial condominiums or admins
+   - ✅ Admin password auto-generated (12 chars, mixed case, digits, special)
+   - ✅ Admin password_reset_required=true - Forces password change
+   - ✅ Security module always enabled (cannot be disabled)
+   - ✅ Areas created in reservation_areas collection
+   - ✅ Role validation - Only SuperAdmin can access
+
+2. **Frontend Implementation (COMPLETE)**
+   - ✅ Full-screen wizard at /super-admin/onboarding
+   - ✅ 5-step flow: Info → Admin → Modules → Areas → Summary
+   - ✅ Step validation - Next disabled until fields valid
+   - ✅ Step skipping - Areas skipped if Reservations not enabled
+   - ✅ localStorage state persistence
+   - ✅ Cancel confirmation dialog
+   - ✅ Credentials shown ONCE with copy button
+   - ✅ Mobile-first responsive design
+
+3. **UX Features**
+   - ✅ Progress indicator with checkmarks for completed steps
+   - ✅ Module toggles with "Obligatorio" badge on Security
+   - ✅ Quick-add presets for common areas (Pool, Gym, etc.)
+   - ✅ Warning banner before credentials display
+   - ✅ Redirect to SuperAdmin dashboard after completion
+
+4. **Test Report**: `/app/test_reports/iteration_32.json` - 100% pass rate
 
 ### Session 24 - PUSH NOTIFICATIONS FOR PANIC ALERTS (January 30, 2026) ⭐⭐⭐⭐⭐ 
 **100% Tests Passed (13/13 Backend + Frontend Complete)**
