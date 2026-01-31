@@ -6487,14 +6487,38 @@ async def get_available_timezones(current_user = Depends(require_role(RoleEnum.S
     """Get list of available timezones for onboarding"""
     return {
         "timezones": [
+            # Centroamérica
+            {"value": "America/Costa_Rica", "label": "Costa Rica (San José)", "offset": "UTC-6"},
+            {"value": "America/Guatemala", "label": "Guatemala", "offset": "UTC-6"},
+            {"value": "America/Tegucigalpa", "label": "Honduras (Tegucigalpa)", "offset": "UTC-6"},
+            {"value": "America/El_Salvador", "label": "El Salvador", "offset": "UTC-6"},
+            {"value": "America/Managua", "label": "Nicaragua (Managua)", "offset": "UTC-6"},
+            {"value": "America/Panama", "label": "Panamá", "offset": "UTC-5"},
+            # Norteamérica
             {"value": "America/Mexico_City", "label": "México (Ciudad de México)", "offset": "UTC-6"},
-            {"value": "America/Bogota", "label": "Colombia (Bogotá)", "offset": "UTC-5"},
-            {"value": "America/Lima", "label": "Perú (Lima)", "offset": "UTC-5"},
-            {"value": "America/Buenos_Aires", "label": "Argentina (Buenos Aires)", "offset": "UTC-3"},
-            {"value": "America/Santiago", "label": "Chile (Santiago)", "offset": "UTC-4"},
-            {"value": "America/Caracas", "label": "Venezuela (Caracas)", "offset": "UTC-4"},
+            {"value": "America/Tijuana", "label": "México (Tijuana)", "offset": "UTC-8"},
+            {"value": "America/Cancun", "label": "México (Cancún)", "offset": "UTC-5"},
+            {"value": "America/New_York", "label": "Estados Unidos (Este)", "offset": "UTC-5"},
+            {"value": "America/Los_Angeles", "label": "Estados Unidos (Pacífico)", "offset": "UTC-8"},
+            # Sudamérica
+            {"value": "America/Argentina/Buenos_Aires", "label": "Argentina (Buenos Aires)", "offset": "UTC-3"},
+            {"value": "America/La_Paz", "label": "Bolivia (La Paz)", "offset": "UTC-4"},
             {"value": "America/Sao_Paulo", "label": "Brasil (São Paulo)", "offset": "UTC-3"},
+            {"value": "America/Santiago", "label": "Chile (Santiago)", "offset": "UTC-3"},
+            {"value": "America/Bogota", "label": "Colombia (Bogotá)", "offset": "UTC-5"},
+            {"value": "America/Guayaquil", "label": "Ecuador (Guayaquil)", "offset": "UTC-5"},
+            {"value": "America/Asuncion", "label": "Paraguay (Asunción)", "offset": "UTC-4"},
+            {"value": "America/Lima", "label": "Perú (Lima)", "offset": "UTC-5"},
+            {"value": "America/Montevideo", "label": "Uruguay (Montevideo)", "offset": "UTC-3"},
+            {"value": "America/Caracas", "label": "Venezuela (Caracas)", "offset": "UTC-4"},
+            # Caribe
+            {"value": "America/Puerto_Rico", "label": "Puerto Rico", "offset": "UTC-4"},
+            {"value": "America/Santo_Domingo", "label": "República Dominicana", "offset": "UTC-4"},
+            {"value": "America/Havana", "label": "Cuba (La Habana)", "offset": "UTC-5"},
+            # Europa
             {"value": "Europe/Madrid", "label": "España (Madrid)", "offset": "UTC+1"},
+            {"value": "Europe/Lisbon", "label": "Portugal (Lisboa)", "offset": "UTC+0"},
+            # Otros
             {"value": "UTC", "label": "UTC", "offset": "UTC+0"}
         ]
     }
