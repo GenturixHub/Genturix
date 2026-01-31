@@ -57,7 +57,7 @@ const ROLE_CONFIG = {
   'SuperAdmin': { icon: Shield, color: 'bg-red-500/10 text-red-400', label: 'Super Admin' },
 };
 
-const EmbeddedProfile = ({ userId = null }) => {
+const EmbeddedProfile = ({ userId = null, onBack = null }) => {
   const { user, refreshUser, logout } = useAuth();
   const navigate = useNavigate();
   
@@ -82,6 +82,15 @@ const EmbeddedProfile = ({ userId = null }) => {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  // Handle back navigation - either use provided callback or navigate
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      navigate(-1);
+    }
   };
 
   useEffect(() => {
