@@ -6332,15 +6332,34 @@ async def onboarding_create_condominium(
     This is the main endpoint for the onboarding wizard.
     Returns admin credentials ONCE - they are not stored or retrievable later.
     """
+    logger.info(f"Onboarding started by {current_user['email']} for: {wizard_data.condominium.name}")
+    
     # Validate email is not in use
     existing_user = await db.users.find_one({"email": wizard_data.admin.email})
     if existing_user:
-        raise HTTPException(status_code=400, detail="El email del administrador ya está registrado")
+        logger.warning(f"Onboarding failed: email {wizard_data.admin.email} already registered")
+        raise HTTPException(
+            status_code=400, 
+            detail=f"El email del administrador '{wizard_data.admin.email}' ya está registrado en el sistema"
+        )
     
     # Validate condominium name is not in use
     existing_condo = await db.condominiums.find_one({"name": wizard_data.condominium.name})
     if existing_condo:
-        raise HTTPException(status_code=400, detail="Ya existe un condominio con ese nombre")
+        logger.warning(f"Onboarding failed: condominium name '{wizard_data.condominium.name}' already exists")
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Ya existe un condominio con el nombre '{wizard_data.condominium.name}'"
+        )
+    
+    # Validate timezone (basic check - must start with valid region)
+    valid_tz_prefixes = ['America/', 'Europe/', 'Asia/', 'Africa/', 'Pacific/', 'UTC']
+    if not any(wizard_data.condominium.timezone.startswith(prefix) for prefix in valid_tz_prefixes):
+        logger.warning(f"Onboarding failed: invalid timezone '{wizard_data.condominium.timezone}'")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Zona horaria inválida: '{wizard_data.condominium.timezone}'. Use un formato válido como 'America/Costa_Rica'"
+        )
     
     # Generate IDs
     condo_id = str(uuid.uuid4())
