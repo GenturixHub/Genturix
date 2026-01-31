@@ -891,7 +891,7 @@ const TurnosSubmodule = ({ employees, shifts, onCreateShift, onDeleteShift, isLo
       <div className="grid gap-3">
         {shifts.length > 0 ? (
           shifts.map(shift => (
-            <ShiftCard key={shift.id} shift={shift} />
+            <ShiftCard key={shift.id} shift={shift} onDelete={handleDeleteClick} />
           ))
         ) : (
           <div className="text-center py-8 text-muted-foreground">
@@ -900,6 +900,35 @@ const TurnosSubmodule = ({ employees, shifts, onCreateShift, onDeleteShift, isLo
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-400">
+              <Trash2 className="w-5 h-5" />
+              Eliminar Turno
+            </DialogTitle>
+            <DialogDescription>
+              ¿Estás seguro de eliminar el turno de {shiftToDelete?.guard_name}?
+              Esta acción no se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2 mt-4">
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteConfirm}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Eliminar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Create Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
