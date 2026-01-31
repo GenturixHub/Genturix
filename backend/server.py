@@ -3131,7 +3131,7 @@ async def create_shift(shift: ShiftCreate, request: Request, current_user = Depe
     shift_doc = {
         "id": str(uuid.uuid4()),
         "guard_id": shift.guard_id,
-        "guard_name": guard["user_name"],
+        "guard_name": guard.get("user_name") or guard.get("name") or "Sin nombre",
         "start_time": shift.start_time,
         "end_time": shift.end_time,
         "location": shift.location,
