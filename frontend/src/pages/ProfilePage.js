@@ -38,8 +38,19 @@ import {
   ArrowLeft,
   FileText,
   X,
-  ZoomIn
+  ZoomIn,
+  LogOut
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../components/ui/alert-dialog';
 
 // Role configuration for display
 const ROLE_CONFIG = {
