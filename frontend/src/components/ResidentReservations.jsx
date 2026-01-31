@@ -63,8 +63,10 @@ const AREA_ICONS = {
   pool: Waves,
   gym: Dumbbell,
   bbq: UtensilsCrossed,
-  event_room: Building2,
-  sports: Tent,
+  salon: Building2,
+  tennis: Tent,
+  cinema: Building2,
+  playground: Tent,
   other: MoreHorizontal
 };
 
@@ -72,8 +74,10 @@ const AREA_LABELS = {
   pool: 'Piscina',
   gym: 'Gimnasio',
   bbq: 'Área BBQ',
-  event_room: 'Salón de Eventos',
-  sports: 'Cancha Deportiva',
+  salon: 'Salón de Eventos',
+  tennis: 'Cancha de Tenis',
+  cinema: 'Cine',
+  playground: 'Área Infantil',
   other: 'Otro'
 };
 
