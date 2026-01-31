@@ -355,6 +355,79 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
             </div>
           )}
 
+          {/* Residente-specific fields */}
+          {form.role === 'Residente' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="apartment_number">Número de Apartamento/Casa *</Label>
+                <Input
+                  id="apartment_number"
+                  value={form.apartment_number}
+                  onChange={(e) => setForm({ ...form, apartment_number: e.target.value })}
+                  placeholder="Ej: A-101, Casa 15"
+                  className="bg-[#0A0A0F] border-[#1E293B]"
+                  required
+                  data-testid="create-user-apartment"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="tower_block">Torre/Bloque</Label>
+                  <Input
+                    id="tower_block"
+                    value={form.tower_block}
+                    onChange={(e) => setForm({ ...form, tower_block: e.target.value })}
+                    placeholder="Ej: Torre A"
+                    className="bg-[#0A0A0F] border-[#1E293B]"
+                    data-testid="create-user-tower"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="resident_type">Tipo</Label>
+                  <Select value={form.resident_type} onValueChange={(v) => setForm({ ...form, resident_type: v })}>
+                    <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B]" data-testid="create-user-resident-type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#0F111A] border-[#1E293B]">
+                      <SelectItem value="owner">Propietario</SelectItem>
+                      <SelectItem value="tenant">Inquilino</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* HR-specific fields */}
+          {form.role === 'HR' && (
+            <div className="space-y-2">
+              <Label htmlFor="department">Departamento</Label>
+              <Input
+                id="department"
+                value={form.department}
+                onChange={(e) => setForm({ ...form, department: e.target.value })}
+                placeholder="Recursos Humanos"
+                className="bg-[#0A0A0F] border-[#1E293B]"
+                data-testid="create-user-department"
+              />
+            </div>
+          )}
+
+          {/* Supervisor-specific fields */}
+          {form.role === 'Supervisor' && (
+            <div className="space-y-2">
+              <Label htmlFor="supervised_area">Área Supervisada</Label>
+              <Input
+                id="supervised_area"
+                value={form.supervised_area}
+                onChange={(e) => setForm({ ...form, supervised_area: e.target.value })}
+                placeholder="Ej: Seguridad, Mantenimiento"
+                className="bg-[#0A0A0F] border-[#1E293B]"
+                data-testid="create-user-area"
+              />
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="phone">Teléfono (opcional)</Label>
             <Input
