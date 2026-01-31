@@ -1,71 +1,77 @@
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
-// Direct API call that bypasses any interceptors
-const apiRequest = async (url, options) => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000);
-  
-  try {
-    const response = await window.fetch(url, {
-      ...options,
-      signal: controller.signal
+// Use XMLHttpRequest to avoid any fetch interceptors that may be consuming the response body
+const apiRequest = (url, options = {}) => {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    const method = options.method || 'GET';
+    
+    xhr.open(method, url, true);
+    xhr.timeout = 30000;
+    
+    // Set headers
+    const headers = options.headers || {};
+    Object.keys(headers).forEach(key => {
+      xhr.setRequestHeader(key, headers[key]);
     });
-    clearTimeout(timeoutId);
     
-    // For successful responses, return as-is
-    if (response.ok) {
-      return response;
-    }
-    
-    // For errors, read the body text directly
-    let errorText = '';
-    let errorData = {};
-    
-    try {
-      // Read the response as text first
-      errorText = await response.text();
-      console.log('[apiRequest] Error response body:', errorText);
+    xhr.onload = function() {
+      const responseText = xhr.responseText;
+      const status = xhr.status;
       
-      // Try to parse as JSON
-      if (errorText) {
-        try {
-          errorData = JSON.parse(errorText);
-        } catch {
-          errorData = { detail: errorText };
+      console.log('[apiRequest XHR] Status:', status, 'Response:', responseText.substring(0, 200));
+      
+      if (status >= 200 && status < 300) {
+        // Success - create a response-like object
+        resolve({
+          ok: true,
+          status: status,
+          json: async () => JSON.parse(responseText || '{}'),
+          text: async () => responseText
+        });
+      } else {
+        // Error - parse the response body
+        let errorData = { detail: `Error del servidor (${status})` };
+        let errorMessage = errorData.detail;
+        
+        if (responseText) {
+          try {
+            errorData = JSON.parse(responseText);
+            errorMessage = errorData.detail || errorData.message || errorMessage;
+          } catch {
+            errorMessage = responseText;
+            errorData = { detail: responseText };
+          }
         }
+        
+        const error = new Error(errorMessage);
+        error.status = status;
+        error.data = errorData;
+        reject(error);
       }
-    } catch (readError) {
-      console.log('[apiRequest] Could not read error body:', readError.message);
+    };
+    
+    xhr.onerror = function() {
+      const error = new Error('Error de conexión. Por favor verifica tu red.');
+      error.status = 0;
+      error.data = { detail: error.message };
+      reject(error);
+    };
+    
+    xhr.ontimeout = function() {
+      const error = new Error('La solicitud tardó demasiado. Intenta de nuevo.');
+      error.status = 408;
+      error.data = { detail: error.message };
+      reject(error);
+    };
+    
+    // Send body if provided
+    if (options.body) {
+      xhr.send(options.body);
+    } else {
+      xhr.send();
     }
-    
-    // Create a custom error with the response data
-    const error = new Error(errorData.detail || `Error del servidor (${response.status})`);
-    error.status = response.status;
-    error.data = errorData;
-    error.response = response;
-    throw error;
-    
-  } catch (error) {
-    clearTimeout(timeoutId);
-    
-    if (error.name === 'AbortError') {
-      const timeoutError = new Error('La solicitud tardó demasiado. Intenta de nuevo.');
-      timeoutError.status = 408;
-      timeoutError.data = { detail: timeoutError.message };
-      throw timeoutError;
-    }
-    
-    // Re-throw if it's already our custom error
-    if (error.status) {
-      throw error;
-    }
-    
-    // Network error
-    const networkError = new Error('Error de conexión. Por favor verifica tu red.');
-    networkError.status = 0;
-    networkError.data = { detail: networkError.message };
-    throw networkError;
-  }
+  });
 };
 
 class ApiService {
