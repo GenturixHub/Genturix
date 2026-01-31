@@ -905,7 +905,7 @@ const ResidentUI = () => {
         </TabsContent>
         
         <TabsContent value="profile" className="flex-1 mt-0">
-          <EmbeddedProfile />
+          <EmbeddedProfile onBack={() => setActiveTab('panic')} />
         </TabsContent>
       </Tabs>
 
