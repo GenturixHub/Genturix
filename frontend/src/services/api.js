@@ -303,6 +303,10 @@ class ApiService {
   permanentlyDeleteCondominium = (condoId, password) =>
     this.delete(`/super-admin/condominiums/${condoId}`, { password });
 
+  // Super Admin - Onboarding Wizard
+  getOnboardingTimezones = () => this.get('/super-admin/onboarding/timezones');
+  createCondominiumOnboarding = (wizardData) => this.post('/super-admin/onboarding/create-condominium', wizardData);
+
   // Profile - Public View
   getPublicProfile = (userId) => this.get(`/profile/${userId}`);
   
