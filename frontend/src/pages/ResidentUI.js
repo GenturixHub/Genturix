@@ -5,7 +5,10 @@
  * 
  * Tabs:
  * - Emergencia: Panic buttons (NOT modified)
- * - Visitas: Pre-register visitors
+ * - Autorizaciones: Advanced visitor authorization system
+ * - Historial: Alert history
+ * - Directorio: Condominium directory
+ * - Perfil: User profile
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -36,6 +39,7 @@ import {
 import api from '../services/api';
 import ProfileDirectory from '../components/ProfileDirectory';
 import EmbeddedProfile from '../components/EmbeddedProfile';
+import VisitorAuthorizationsResident from '../components/VisitorAuthorizationsResident';
 import MobileBottomNav, { useIsMobile } from '../components/layout/BottomNav';
 import { 
   Heart, 
