@@ -1,5 +1,33 @@
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+// Custom fetch wrapper that preserves response body for error handling
+const customFetch = async (url, options) => {
+  const response = await fetch(url, options);
+  
+  // If the response is an error, immediately read and store the body
+  if (!response.ok) {
+    let errorBody = '';
+    try {
+      errorBody = await response.text();
+    } catch {
+      // Body might have been consumed
+    }
+    
+    // Create a modified response-like object with the body data
+    return {
+      ok: false,
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+      _errorBody: errorBody,
+      json: async () => JSON.parse(errorBody || '{}'),
+      text: async () => errorBody
+    };
+  }
+  
+  return response;
+};
+
 class ApiService {
   async request(endpoint, options = {}) {
     const url = `${API_URL}/api${endpoint}`;
@@ -16,7 +44,7 @@ class ApiService {
 
     let response;
     try {
-      response = await fetch(url, {
+      response = await customFetch(url, {
         ...options,
         headers,
       });
@@ -45,7 +73,7 @@ class ApiService {
             
             // Retry original request
             headers['Authorization'] = `Bearer ${data.access_token}`;
-            const retryResponse = await fetch(url, { ...options, headers });
+            const retryResponse = await customFetch(url, { ...options, headers });
             if (!retryResponse.ok) {
               throw new Error(`API error: ${retryResponse.status}`);
             }
@@ -60,25 +88,18 @@ class ApiService {
     }
 
     if (!response.ok) {
-      // Handle error response - try multiple ways to get the error message
+      // Parse error from the already-captured body
       let errorMessage = `Error del servidor (${response.status})`;
       let errorData = { detail: errorMessage };
       
-      // First, try to read the body if not consumed
-      if (!response.bodyUsed) {
+      const errorBody = response._errorBody || '';
+      if (errorBody) {
         try {
-          const text = await response.text();
-          if (text) {
-            try {
-              errorData = JSON.parse(text);
-              errorMessage = errorData.detail || errorData.message || errorMessage;
-            } catch {
-              errorMessage = text;
-              errorData = { detail: text };
-            }
-          }
+          errorData = JSON.parse(errorBody);
+          errorMessage = errorData.detail || errorData.message || errorMessage;
         } catch {
-          // Body read failed
+          errorMessage = errorBody;
+          errorData = { detail: errorBody };
         }
       }
       
