@@ -137,8 +137,41 @@ const DEFAULT_AREAS = [
 // STEP COMPONENTS
 // ============================================
 
+// Country to timezone mapping for auto-selection
+const COUNTRY_TIMEZONE_MAP = {
+  'Costa Rica': 'America/Costa_Rica',
+  'Guatemala': 'America/Guatemala',
+  'Honduras': 'America/Tegucigalpa',
+  'El Salvador': 'America/El_Salvador',
+  'Nicaragua': 'America/Managua',
+  'Panama': 'America/Panama',
+  'Mexico': 'America/Mexico_City',
+  'Estados Unidos': 'America/New_York',
+  'Argentina': 'America/Argentina/Buenos_Aires',
+  'Bolivia': 'America/La_Paz',
+  'Brasil': 'America/Sao_Paulo',
+  'Chile': 'America/Santiago',
+  'Colombia': 'America/Bogota',
+  'Ecuador': 'America/Guayaquil',
+  'Paraguay': 'America/Asuncion',
+  'Peru': 'America/Lima',
+  'Uruguay': 'America/Montevideo',
+  'Venezuela': 'America/Caracas',
+  'Puerto Rico': 'America/Puerto_Rico',
+  'Republica Dominicana': 'America/Santo_Domingo',
+  'Cuba': 'America/Havana',
+  'España': 'Europe/Madrid',
+  'Portugal': 'Europe/Lisbon'
+};
+
 // Step 1: Condominium Info
 const Step1CondoInfo = ({ data, onChange, timezones }) => {
+  // Auto-select timezone when country changes
+  const handleCountryChange = (country) => {
+    const defaultTimezone = COUNTRY_TIMEZONE_MAP[country] || data.timezone;
+    onChange({ ...data, country, timezone: defaultTimezone });
+  };
+
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -177,7 +210,7 @@ const Step1CondoInfo = ({ data, onChange, timezones }) => {
             <Globe className="w-4 h-4" />
             País
           </Label>
-          <Select value={data.country} onValueChange={(value) => onChange({ ...data, country: value })}>
+          <Select value={data.country} onValueChange={handleCountryChange}>
             <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B] h-12" data-testid="condo-country-select">
               <SelectValue placeholder="Seleccionar país" />
             </SelectTrigger>
