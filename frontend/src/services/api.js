@@ -348,6 +348,7 @@ class ApiService {
 
   // Super Admin - Onboarding Wizard
   getOnboardingTimezones = () => this.get('/super-admin/onboarding/timezones');
+  validateOnboardingField = (field, value) => this.post('/super-admin/onboarding/validate', { field, value });
   createCondominiumOnboarding = (wizardData) => this.post('/super-admin/onboarding/create-condominium', wizardData);
 
   // Profile - Public View
