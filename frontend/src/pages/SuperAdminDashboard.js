@@ -1834,8 +1834,10 @@ const SuperAdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [condos, setCondos] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (showToast = false) => {
+    if (showToast) setIsRefreshing(true);
     try {
       const [statsData, condosData] = await Promise.all([
         api.getPlatformStats(),
@@ -1843,10 +1845,17 @@ const SuperAdminDashboard = () => {
       ]);
       setStats(statsData);
       setCondos(condosData);
+      if (showToast) {
+        toast.success('Datos actualizados correctamente');
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
+      if (showToast) {
+        toast.error('Error al actualizar datos');
+      }
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, []);
 
