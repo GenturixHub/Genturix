@@ -228,7 +228,11 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
       }, 2000);
     } catch (err) {
       // Show the specific backend error message
-      setError(err.message || 'Error al crear usuario');
+      console.log('[DEBUG CreateUserDialog] Error caught:', err);
+      console.log('[DEBUG CreateUserDialog] err.message:', err.message);
+      console.log('[DEBUG CreateUserDialog] err.data:', err.data);
+      const errorMsg = err.data?.detail || err.message || 'Error al crear usuario';
+      setError(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
