@@ -89,22 +89,13 @@
      MODAL FULL-SCREEN ON MOBILE
      ========================================== */
   
-  /* Dialog content becomes fullscreen */
-  [role="dialog"] > div:first-child,
-  .dialog-content,
-  [data-radix-popper-content-wrapper] .dialog-content {
-    position: fixed !important;
-    inset: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    max-width: 100vw !important;
-    max-height: 100vh !important;
-    border-radius: 0 !important;
-    margin: 0 !important;
-    transform: none !important;
-  }
-
-  /* Sheet/drawer behavior for modals */
+  /* 
+   * IMPORTANT: Do NOT override Radix Dialog behavior globally.
+   * Radix handles positioning and overflow correctly.
+   * Only apply mobile-specific tweaks for our custom classes.
+   */
+  
+  /* Custom mobile sheet behavior */
   .mobile-sheet {
     position: fixed !important;
     bottom: 0 !important;
