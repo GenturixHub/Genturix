@@ -470,8 +470,13 @@ const ResidentReservations = () => {
       setMyReservations(reservationsData);
     } catch (error) {
       console.error('Error loading reservations data:', error);
-      if (!error.message?.includes('módulo')) {
-        toast.error('Error al cargar datos de reservaciones');
+      // Silently fail if module is not enabled or no data
+      // Only show error for unexpected failures
+      if (!error.message?.includes('módulo') && !error.message?.includes('No encontrado') && error.status !== 404) {
+        // Don't show toast for expected "no data" scenarios
+        if (error.status >= 500) {
+          toast.error('Error al cargar datos de reservaciones');
+        }
       }
     } finally {
       setLoading(false);
