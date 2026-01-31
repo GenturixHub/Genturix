@@ -504,6 +504,7 @@ class AreaCreate(BaseModel):
     max_reservations_per_day: int = 10
     allowed_days: List[str] = Field(default=["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"])
     is_active: bool = True
+    condominium_id: Optional[str] = None  # For SuperAdmin to specify condo
 
 class AreaUpdate(BaseModel):
     name: Optional[str] = None
