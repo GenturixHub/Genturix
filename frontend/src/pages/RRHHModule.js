@@ -1993,7 +1993,9 @@ const RRHHModule = () => {
         api.getShifts()
       ]);
       setEmployees(employeesData);
-      setShifts(shiftsData);
+      // Filter out cancelled shifts - they should not appear in the UI
+      const activeShifts = shiftsData.filter(s => s.status !== 'cancelled');
+      setShifts(activeShifts);
     } catch (error) {
       console.error('Error fetching RRHH data:', error);
     } finally {
