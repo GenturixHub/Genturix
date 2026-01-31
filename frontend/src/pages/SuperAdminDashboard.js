@@ -1799,7 +1799,7 @@ const SuperAdminDashboard = () => {
           )}
 
           <TabsContent value="overview">
-            <OverviewTab stats={stats} isLoading={isLoading} onRefresh={fetchData} onNavigateTab={setActiveTab} />
+            <OverviewTab stats={stats} isLoading={isLoading} onRefresh={fetchData} onNavigateTab={setActiveTab} navigate={navigate} />
           </TabsContent>
 
           <TabsContent value="condominiums">
