@@ -1787,7 +1787,7 @@ const HistoryTab = () => {
 // Mobile Bottom Nav Configuration for Guard
 const GUARD_MOBILE_NAV = [
   { id: 'alerts', label: 'Alertas', icon: AlertTriangle },
-  { id: 'visits', label: 'Visitas', icon: Users },
+  { id: 'checkin', label: 'Check-In', icon: ScanLine },
   { id: 'panic', label: 'Pánico', icon: Siren, bgColor: 'bg-red-600', glowColor: 'shadow-red-500/50' },
   { id: 'myshift', label: 'Mi Turno', icon: Briefcase },
   { id: 'profile', label: 'Perfil', icon: User },
