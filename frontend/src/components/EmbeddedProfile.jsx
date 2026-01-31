@@ -18,6 +18,10 @@ import { ScrollArea } from './ui/scroll-area';
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from './ui/dialog';
 import api from '../services/api';
 import { PushNotificationToggle } from './PushNotificationBanner';
@@ -38,7 +42,8 @@ import {
   XCircle,
   FileText,
   X,
-  ZoomIn
+  ZoomIn,
+  LogOut
 } from 'lucide-react';
 
 // Role configuration
