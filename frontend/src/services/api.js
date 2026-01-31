@@ -14,10 +14,18 @@ class ApiService {
       headers['Authorization'] = `Bearer ${accessToken}`;
     }
 
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
+    let response;
+    try {
+      response = await fetch(url, {
+        ...options,
+        headers,
+      });
+    } catch (networkError) {
+      const error = new Error('Error de conexión. Por favor verifica tu red.');
+      error.status = 0;
+      error.data = { detail: error.message };
+      throw error;
+    }
 
     if (response.status === 401) {
       // Try to refresh token
@@ -52,25 +60,26 @@ class ApiService {
     }
 
     if (!response.ok) {
-      // Parse error response to get detailed message
-      let errorMessage = `API error: ${response.status}`;
+      // Handle error response - try multiple ways to get the error message
+      let errorMessage = `Error del servidor (${response.status})`;
       let errorData = { detail: errorMessage };
       
-      try {
-        // Try to read the error response body
-        const text = await response.text();
-        if (text) {
-          try {
-            errorData = JSON.parse(text);
-            errorMessage = errorData.detail || errorData.message || errorMessage;
-          } catch {
-            // If not JSON, use text as message
-            errorMessage = text;
-            errorData = { detail: text };
+      // First, try to read the body if not consumed
+      if (!response.bodyUsed) {
+        try {
+          const text = await response.text();
+          if (text) {
+            try {
+              errorData = JSON.parse(text);
+              errorMessage = errorData.detail || errorData.message || errorMessage;
+            } catch {
+              errorMessage = text;
+              errorData = { detail: text };
+            }
           }
+        } catch {
+          // Body read failed
         }
-      } catch {
-        // Body already consumed or other error - use default message
       }
       
       // Create structured error
