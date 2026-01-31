@@ -369,14 +369,23 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
 
     try {
       const response = await api.createUserByAdmin(form);
+      
+      // In DEV_MODE, the API returns the actual password
+      // In production, password is masked
+      const displayPassword = response.credentials?.show_password 
+        ? response.credentials.password 
+        : (form.send_credentials_email ? '(enviada por email)' : form.password);
+      
       onSuccess({
         email: form.email,
-        password: form.send_credentials_email ? '(enviada por email)' : form.password,
+        password: displayPassword,
         full_name: form.full_name,
         role: form.role,
         email_sent: form.send_credentials_email,
         email_status: response.email_status,
-        email_message: response.email_message
+        email_message: response.email_message,
+        dev_mode: response.dev_mode,
+        show_password: response.credentials?.show_password
       });
       // Reset form
       setForm({
