@@ -120,19 +120,23 @@
      NO HORIZONTAL SCROLLING
      ========================================== */
   
-  body,
   html {
-    overflow-x: hidden !important;
+    overflow-x: hidden;
+  }
+  
+  /* Only prevent horizontal scroll on main content, NOT on modals */
+  body:not(:has([data-state="open"])) {
+    overflow-x: hidden;
   }
 
-  .overflow-x-auto {
-    overflow-x: hidden !important;
+  .overflow-x-auto:not([role="dialog"] *) {
+    overflow-x: hidden;
   }
 
   /* Force tables to not overflow */
   table {
-    width: 100% !important;
-    table-layout: fixed !important;
+    width: 100%;
+    table-layout: fixed;
   }
 
   /* ==========================================
