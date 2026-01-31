@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 31, 2026 (Session 31 - P0 Core Fixes)
+## Last Updated: January 31, 2026 (Session 32 - P1 UX Improvements)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,47 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
+
+### Session 32 - P1 UX & CONSISTENCY (January 31, 2026) ⭐⭐⭐⭐
+
+#### 1. ✅ PROFILE IMAGE CONSISTENCY (VERIFIED)
+- Profile photos sync correctly across:
+  - Sidebar (collapsed and expanded)
+  - Topbar
+  - Profile edit view
+  - EmbeddedProfile component
+- `refreshUser()` called after photo updates
+- Works for Admin, HR, Guard, Resident
+
+#### 2. ✅ PROFILE NAVIGATION (IMPROVED)
+**File Modified:** `/app/frontend/src/pages/ProfilePage.js`
+- Added "Volver al Dashboard" button (always visible)
+- Smart routing: returns to correct dashboard based on role:
+  - SuperAdmin → /super-admin
+  - Admin → /admin/dashboard
+  - Guard → /guard
+  - Resident → /resident
+  - HR/Supervisor → /hr
+  - Student → /student
+
+#### 3. ✅ RESIDENT PANIC BUTTON MOBILE UX (IMPROVED)
+**File Modified:** `/app/frontend/src/pages/ResidentUI.js`
+- Buttons repositioned higher on screen
+- Reduced height: 90px mobile, 110px tablet, 130px desktop
+- Horizontal layout: icon left, text right
+- GPS status now sticky at top
+- All buttons fully visible on small screens (iPhone SE tested)
+- Reduced gaps and padding
+
+#### 4. ✅ CREDENTIALS TEST MODE (ALREADY IMPLEMENTED)
+**Files:** `/app/backend/.env`, `/app/backend/server.py`
+- `DEV_MODE=true` bypasses email-based password reset
+- When DEV_MODE or email toggle disabled:
+  - No forced password reset on first login
+  - Password shown in UI after user creation
+- Works without RESEND_API_KEY
+
+---
 
 ### Session 31 - P0 CORE FUNCTIONAL FIXES (January 31, 2026) ⭐⭐⭐⭐⭐
 
