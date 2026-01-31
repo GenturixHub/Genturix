@@ -236,7 +236,7 @@ const SystemResetButton = ({ onSuccess }) => {
                 <li>Todos los registros de acceso y auditoría</li>
               </ul>
               <p className="text-red-400 font-semibold mt-4">
-                Para confirmar, escribe "BORRAR TODO" en el campo de abajo:
+                Para confirmar, escribe &quot;BORRAR TODO&quot; en el campo de abajo:
               </p>
               <Input
                 value={confirmText}
