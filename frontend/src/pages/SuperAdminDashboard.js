@@ -321,9 +321,6 @@ const SystemConfigSection = () => {
   );
 };
 
-// Check if DEV_MODE is enabled (will be fetched from API)
-const [DEV_MODE_ENABLED, setDevModeEnabled] = [false, () => {}]; // Placeholder, actual state in component
-
 // ============================================
 // OVERVIEW TAB
 // ============================================
