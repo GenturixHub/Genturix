@@ -4,7 +4,7 @@
  * Platform-level administration for multi-tenant management
  * 
  * Sections:
- * 1. Overview - Platform stats and KPIs
+ * 1. Overview - Platform stats, KPIs, and System Config
  * 2. Condominiums - CRUD and configuration
  * 3. Modules - Per-condominium module toggling
  * 4. Users - Global user oversight
@@ -13,6 +13,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
