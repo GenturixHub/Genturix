@@ -384,6 +384,58 @@ class VisitorStatusEnum(str, Enum):
     CANCELLED = "cancelled"
     EXPIRED = "expired"
 
+class AuthorizationTypeEnum(str, Enum):
+    TEMPORARY = "temporary"      # Single date or date range
+    PERMANENT = "permanent"      # Always allowed
+    RECURRING = "recurring"      # Specific days of week
+    EXTENDED = "extended"        # Date range + time windows
+
+class AuthorizationColorEnum(str, Enum):
+    GREEN = "green"       # Permanent visitors
+    BLUE = "blue"         # Recurring visitors
+    YELLOW = "yellow"     # Temporary visitors
+    PURPLE = "purple"     # Extended visitors
+    GRAY = "gray"         # Expired
+
+# New model for advanced visitor authorizations
+class VisitorAuthorizationCreate(BaseModel):
+    visitor_name: str = Field(..., min_length=2, max_length=100)
+    identification_number: Optional[str] = None
+    vehicle_plate: Optional[str] = None
+    authorization_type: AuthorizationTypeEnum = AuthorizationTypeEnum.TEMPORARY
+    valid_from: Optional[str] = None  # YYYY-MM-DD
+    valid_to: Optional[str] = None    # YYYY-MM-DD
+    allowed_days: Optional[List[str]] = None  # ["Lunes", "Martes", etc.]
+    allowed_hours_from: Optional[str] = None  # HH:MM
+    allowed_hours_to: Optional[str] = None    # HH:MM
+    notes: Optional[str] = None
+    color_code: AuthorizationColorEnum = AuthorizationColorEnum.YELLOW
+
+class VisitorAuthorizationUpdate(BaseModel):
+    visitor_name: Optional[str] = None
+    identification_number: Optional[str] = None
+    vehicle_plate: Optional[str] = None
+    authorization_type: Optional[AuthorizationTypeEnum] = None
+    valid_from: Optional[str] = None
+    valid_to: Optional[str] = None
+    allowed_days: Optional[List[str]] = None
+    allowed_hours_from: Optional[str] = None
+    allowed_hours_to: Optional[str] = None
+    notes: Optional[str] = None
+    color_code: Optional[AuthorizationColorEnum] = None
+    is_active: Optional[bool] = None
+
+class VisitorCheckIn(BaseModel):
+    authorization_id: Optional[str] = None  # If pre-authorized
+    visitor_name: Optional[str] = None      # Manual entry if not authorized
+    identification_number: Optional[str] = None
+    vehicle_plate: Optional[str] = None
+    notes: Optional[str] = None
+
+class VisitorCheckOut(BaseModel):
+    entry_id: str
+    notes: Optional[str] = None
+
 class VisitorPreRegistration(BaseModel):
     full_name: str = Field(..., min_length=2, max_length=100)
     national_id: Optional[str] = None  # Cedula
