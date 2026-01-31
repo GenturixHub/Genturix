@@ -332,6 +332,13 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
               className="bg-[#0A0A0F] border-[#1E293B] h-10"
               data-testid="reservation-date"
             />
+            {/* Show allowed days info */}
+            {area.allowed_days && area.allowed_days.length < 7 && (
+              <div className="flex items-start gap-2 text-xs text-blue-400 mt-1">
+                <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                <span>Disponible solo: {area.allowed_days.join(', ')}</span>
+              </div>
+            )}
           </div>
           
           {/* Availability Info */}
