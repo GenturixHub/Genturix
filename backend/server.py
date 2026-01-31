@@ -1928,6 +1928,743 @@ async def get_all_visitors(
     visitors = await db.visitors.find(query, {"_id": 0}).sort("created_at", -1).to_list(200)
     return visitors
 
+# ==================== ADVANCED VISITOR AUTHORIZATION SYSTEM ====================
+# Phase 3: Competitor-Level Feature
+# Flow: Resident creates authorization → Guard validates & checks in → System notifies
+
+def get_color_code_for_type(auth_type: str) -> str:
+    """Get color code based on authorization type"""
+    color_map = {
+        "permanent": "green",
+        "recurring": "blue",
+        "temporary": "yellow",
+        "extended": "purple"
+    }
+    return color_map.get(auth_type, "yellow")
+
+def check_authorization_validity(authorization: dict) -> dict:
+    """
+    Check if an authorization is currently valid.
+    Returns: {is_valid: bool, status: str, message: str}
+    """
+    now = datetime.now(timezone.utc)
+    today_str = now.strftime("%Y-%m-%d")
+    current_time = now.strftime("%H:%M")
+    current_day_es = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"][now.weekday()]
+    
+    auth_type = authorization.get("authorization_type", "temporary")
+    
+    # Check if authorization is active
+    if not authorization.get("is_active", True):
+        return {"is_valid": False, "status": "revoked", "message": "Autorización revocada"}
+    
+    # Permanent: Always valid
+    if auth_type == "permanent":
+        return {"is_valid": True, "status": "authorized", "message": "Autorización permanente"}
+    
+    # Check date range for temporary, extended
+    valid_from = authorization.get("valid_from")
+    valid_to = authorization.get("valid_to")
+    
+    if valid_from and today_str < valid_from:
+        return {"is_valid": False, "status": "not_yet_valid", "message": f"Válido desde {valid_from}"}
+    
+    if valid_to and today_str > valid_to:
+        return {"is_valid": False, "status": "expired", "message": f"Expiró el {valid_to}"}
+    
+    # Check allowed days for recurring
+    if auth_type == "recurring":
+        allowed_days = authorization.get("allowed_days", [])
+        if allowed_days and current_day_es not in allowed_days:
+            return {"is_valid": False, "status": "not_today", "message": f"No autorizado hoy ({current_day_es})"}
+    
+    # Check time windows for extended
+    if auth_type == "extended":
+        hours_from = authorization.get("allowed_hours_from")
+        hours_to = authorization.get("allowed_hours_to")
+        
+        if hours_from and current_time < hours_from:
+            return {"is_valid": False, "status": "too_early", "message": f"Válido desde las {hours_from}"}
+        
+        if hours_to and current_time > hours_to:
+            return {"is_valid": False, "status": "too_late", "message": f"Válido hasta las {hours_to}"}
+    
+    return {"is_valid": True, "status": "authorized", "message": "Autorización válida"}
+
+# ===================== RESIDENT AUTHORIZATION ENDPOINTS =====================
+
+@api_router.post("/authorizations")
+async def create_visitor_authorization(
+    auth_data: VisitorAuthorizationCreate,
+    request: Request,
+    current_user = Depends(get_current_user)
+):
+    """
+    Resident creates a visitor authorization.
+    Types: temporary (single/range), permanent (always), recurring (days), extended (range+hours)
+    """
+    auth_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Auto-assign color based on type
+    color_code = get_color_code_for_type(auth_data.authorization_type.value)
+    
+    # Set defaults based on type
+    valid_from = auth_data.valid_from
+    valid_to = auth_data.valid_to
+    
+    if auth_data.authorization_type == AuthorizationTypeEnum.TEMPORARY and not valid_from:
+        # Default to today if temporary and no date set
+        valid_from = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        valid_to = valid_to or valid_from
+    
+    auth_doc = {
+        "id": auth_id,
+        "visitor_name": auth_data.visitor_name,
+        "identification_number": auth_data.identification_number,
+        "vehicle_plate": auth_data.vehicle_plate.upper() if auth_data.vehicle_plate else None,
+        "authorization_type": auth_data.authorization_type.value,
+        "valid_from": valid_from,
+        "valid_to": valid_to,
+        "allowed_days": auth_data.allowed_days or [],
+        "allowed_hours_from": auth_data.allowed_hours_from,
+        "allowed_hours_to": auth_data.allowed_hours_to,
+        "notes": auth_data.notes,
+        "color_code": color_code,
+        "is_active": True,
+        "created_by": current_user["id"],
+        "created_by_name": current_user.get("full_name", "Residente"),
+        "resident_apartment": current_user.get("role_data", {}).get("apartment_number", "N/A"),
+        "condominium_id": current_user.get("condominium_id"),
+        "created_at": now,
+        "updated_at": now,
+        "total_visits": 0,
+        "last_visit": None
+    }
+    
+    await db.visitor_authorizations.insert_one(auth_doc)
+    
+    await log_audit_event(
+        AuditEventType.AUTHORIZATION_CREATED,
+        current_user["id"],
+        "visitor_authorizations",
+        {
+            "authorization_id": auth_id,
+            "visitor_name": auth_data.visitor_name,
+            "type": auth_data.authorization_type.value,
+            "resident": current_user.get("full_name")
+        },
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    # Return without _id
+    auth_doc.pop("_id", None)
+    return auth_doc
+
+@api_router.get("/authorizations/my")
+async def get_my_authorizations(
+    status: Optional[str] = None,  # active, expired, all
+    current_user = Depends(get_current_user)
+):
+    """Resident gets their own visitor authorizations"""
+    query = {"created_by": current_user["id"]}
+    
+    if status == "active":
+        query["is_active"] = True
+    elif status == "expired":
+        query["is_active"] = False
+    
+    authorizations = await db.visitor_authorizations.find(
+        query, {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    # Enrich with validity status
+    for auth in authorizations:
+        validity = check_authorization_validity(auth)
+        auth["validity_status"] = validity["status"]
+        auth["validity_message"] = validity["message"]
+        auth["is_currently_valid"] = validity["is_valid"]
+    
+    return authorizations
+
+@api_router.get("/authorizations/{auth_id}")
+async def get_authorization(
+    auth_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Get a specific authorization by ID"""
+    auth = await db.visitor_authorizations.find_one({"id": auth_id}, {"_id": 0})
+    if not auth:
+        raise HTTPException(status_code=404, detail="Autorización no encontrada")
+    
+    # Multi-tenant check
+    if "SuperAdmin" not in current_user.get("roles", []):
+        if auth.get("condominium_id") != current_user.get("condominium_id"):
+            raise HTTPException(status_code=403, detail="No tienes acceso a esta autorización")
+    
+    validity = check_authorization_validity(auth)
+    auth["validity_status"] = validity["status"]
+    auth["validity_message"] = validity["message"]
+    auth["is_currently_valid"] = validity["is_valid"]
+    
+    return auth
+
+@api_router.patch("/authorizations/{auth_id}")
+async def update_authorization(
+    auth_id: str,
+    auth_data: VisitorAuthorizationUpdate,
+    request: Request,
+    current_user = Depends(get_current_user)
+):
+    """Resident updates their own authorization"""
+    auth = await db.visitor_authorizations.find_one({"id": auth_id})
+    if not auth:
+        raise HTTPException(status_code=404, detail="Autorización no encontrada")
+    
+    # Only owner can update
+    if auth.get("created_by") != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Solo puedes modificar tus propias autorizaciones")
+    
+    update_fields = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    if auth_data.visitor_name is not None:
+        update_fields["visitor_name"] = auth_data.visitor_name
+    if auth_data.identification_number is not None:
+        update_fields["identification_number"] = auth_data.identification_number
+    if auth_data.vehicle_plate is not None:
+        update_fields["vehicle_plate"] = auth_data.vehicle_plate.upper() if auth_data.vehicle_plate else None
+    if auth_data.authorization_type is not None:
+        update_fields["authorization_type"] = auth_data.authorization_type.value
+        update_fields["color_code"] = get_color_code_for_type(auth_data.authorization_type.value)
+    if auth_data.valid_from is not None:
+        update_fields["valid_from"] = auth_data.valid_from
+    if auth_data.valid_to is not None:
+        update_fields["valid_to"] = auth_data.valid_to
+    if auth_data.allowed_days is not None:
+        update_fields["allowed_days"] = auth_data.allowed_days
+    if auth_data.allowed_hours_from is not None:
+        update_fields["allowed_hours_from"] = auth_data.allowed_hours_from
+    if auth_data.allowed_hours_to is not None:
+        update_fields["allowed_hours_to"] = auth_data.allowed_hours_to
+    if auth_data.notes is not None:
+        update_fields["notes"] = auth_data.notes
+    if auth_data.is_active is not None:
+        update_fields["is_active"] = auth_data.is_active
+    
+    await db.visitor_authorizations.update_one(
+        {"id": auth_id},
+        {"$set": update_fields}
+    )
+    
+    await log_audit_event(
+        AuditEventType.AUTHORIZATION_UPDATED,
+        current_user["id"],
+        "visitor_authorizations",
+        {"authorization_id": auth_id, "changes": list(update_fields.keys())},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    # Fetch and return updated
+    updated = await db.visitor_authorizations.find_one({"id": auth_id}, {"_id": 0})
+    return updated
+
+@api_router.delete("/authorizations/{auth_id}")
+async def deactivate_authorization(
+    auth_id: str,
+    request: Request,
+    current_user = Depends(get_current_user)
+):
+    """Resident deactivates (soft delete) their authorization"""
+    auth = await db.visitor_authorizations.find_one({"id": auth_id})
+    if not auth:
+        raise HTTPException(status_code=404, detail="Autorización no encontrada")
+    
+    # Only owner can deactivate
+    if auth.get("created_by") != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Solo puedes eliminar tus propias autorizaciones")
+    
+    await db.visitor_authorizations.update_one(
+        {"id": auth_id},
+        {"$set": {"is_active": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    await log_audit_event(
+        AuditEventType.AUTHORIZATION_DEACTIVATED,
+        current_user["id"],
+        "visitor_authorizations",
+        {"authorization_id": auth_id, "visitor_name": auth.get("visitor_name")},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {"message": "Autorización desactivada"}
+
+# ===================== GUARD AUTHORIZATION ENDPOINTS =====================
+
+@api_router.get("/guard/authorizations")
+async def get_authorizations_for_guard(
+    search: Optional[str] = None,
+    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
+):
+    """
+    Guard gets list of active authorizations for validation.
+    Supports search by visitor name, ID, or vehicle plate.
+    """
+    condo_id = current_user.get("condominium_id")
+    
+    query = {"is_active": True}
+    if "SuperAdmin" not in current_user.get("roles", []):
+        if condo_id:
+            query["condominium_id"] = condo_id
+        else:
+            return []
+    
+    authorizations = await db.visitor_authorizations.find(query, {"_id": 0}).to_list(500)
+    
+    # Enrich with validity status
+    for auth in authorizations:
+        validity = check_authorization_validity(auth)
+        auth["validity_status"] = validity["status"]
+        auth["validity_message"] = validity["message"]
+        auth["is_currently_valid"] = validity["is_valid"]
+    
+    # Filter by search if provided
+    if search:
+        search_lower = search.lower().strip()
+        authorizations = [
+            a for a in authorizations
+            if search_lower in a.get("visitor_name", "").lower() or
+               search_lower in (a.get("identification_number") or "").lower() or
+               search_lower in (a.get("vehicle_plate") or "").lower() or
+               search_lower in (a.get("created_by_name") or "").lower()
+        ]
+    
+    # Sort: valid first, then by name
+    authorizations.sort(key=lambda x: (not x.get("is_currently_valid", False), x.get("visitor_name", "").lower()))
+    
+    return authorizations
+
+@api_router.post("/guard/checkin")
+async def fast_checkin(
+    checkin_data: FastCheckInRequest,
+    request: Request,
+    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
+):
+    """
+    Guard registers a visitor check-in (entry).
+    - If authorization_id provided: validates authorization and logs entry
+    - If no authorization: creates manual entry record
+    """
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
+    entry_id = str(uuid.uuid4())
+    condo_id = current_user.get("condominium_id")
+    
+    authorization = None
+    resident_id = None
+    resident_name = None
+    resident_apartment = None
+    visitor_name = checkin_data.visitor_name
+    is_authorized = False
+    auth_type = "manual"
+    color_code = "gray"
+    
+    # If authorization provided, validate it
+    if checkin_data.authorization_id:
+        authorization = await db.visitor_authorizations.find_one({
+            "id": checkin_data.authorization_id,
+            "condominium_id": condo_id
+        })
+        
+        if not authorization:
+            raise HTTPException(status_code=404, detail="Autorización no encontrada")
+        
+        validity = check_authorization_validity(authorization)
+        
+        if not validity["is_valid"]:
+            # Still allow entry but mark as unauthorized
+            is_authorized = False
+        else:
+            is_authorized = True
+        
+        visitor_name = authorization.get("visitor_name")
+        resident_id = authorization.get("created_by")
+        resident_name = authorization.get("created_by_name")
+        resident_apartment = authorization.get("resident_apartment")
+        auth_type = authorization.get("authorization_type", "temporary")
+        color_code = authorization.get("color_code", "yellow")
+    
+    # Create entry record
+    entry_doc = {
+        "id": entry_id,
+        "authorization_id": checkin_data.authorization_id,
+        "visitor_name": visitor_name or "Visitante Manual",
+        "identification_number": checkin_data.identification_number or (authorization.get("identification_number") if authorization else None),
+        "vehicle_plate": (checkin_data.vehicle_plate or (authorization.get("vehicle_plate") if authorization else None) or "").upper() or None,
+        "destination": checkin_data.destination or resident_apartment,
+        "authorization_type": auth_type,
+        "color_code": color_code,
+        "is_authorized": is_authorized,
+        "resident_id": resident_id,
+        "resident_name": resident_name,
+        "resident_apartment": resident_apartment,
+        "entry_at": now_iso,
+        "entry_by": current_user["id"],
+        "entry_by_name": current_user.get("full_name", "Guardia"),
+        "entry_notes": checkin_data.notes,
+        "exit_at": None,
+        "exit_by": None,
+        "exit_by_name": None,
+        "exit_notes": None,
+        "status": "inside",
+        "condominium_id": condo_id,
+        "created_at": now_iso
+    }
+    
+    await db.visitor_entries.insert_one(entry_doc)
+    
+    # Update authorization stats
+    if authorization:
+        await db.visitor_authorizations.update_one(
+            {"id": checkin_data.authorization_id},
+            {
+                "$inc": {"total_visits": 1},
+                "$set": {"last_visit": now_iso}
+            }
+        )
+    
+    # Create notification for resident
+    if resident_id:
+        notification_doc = {
+            "id": str(uuid.uuid4()),
+            "type": "visitor_arrival",
+            "user_id": resident_id,
+            "condominium_id": condo_id,
+            "title": "Tu visitante ha llegado",
+            "message": f"{visitor_name} ha ingresado al condominio",
+            "data": {
+                "entry_id": entry_id,
+                "visitor_name": visitor_name,
+                "entry_at": now_iso,
+                "guard_name": current_user.get("full_name")
+            },
+            "read": False,
+            "created_at": now_iso
+        }
+        await db.resident_notifications.insert_one(notification_doc)
+        
+        await log_audit_event(
+            AuditEventType.VISITOR_ARRIVAL_NOTIFIED,
+            current_user["id"],
+            "visitor_notifications",
+            {"resident_id": resident_id, "visitor_name": visitor_name},
+            request.client.host if request.client else "unknown",
+            request.headers.get("user-agent", "unknown")
+        )
+    
+    await log_audit_event(
+        AuditEventType.VISITOR_CHECKIN,
+        current_user["id"],
+        "visitor_entries",
+        {
+            "entry_id": entry_id,
+            "visitor_name": visitor_name,
+            "is_authorized": is_authorized,
+            "authorization_id": checkin_data.authorization_id
+        },
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    entry_doc.pop("_id", None)
+    return {
+        "success": True,
+        "entry": entry_doc,
+        "is_authorized": is_authorized,
+        "message": "Entrada registrada" if is_authorized else "Entrada registrada (sin autorización válida)"
+    }
+
+@api_router.post("/guard/checkout/{entry_id}")
+async def fast_checkout(
+    entry_id: str,
+    checkout_data: FastCheckOutRequest,
+    request: Request,
+    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
+):
+    """
+    Guard registers a visitor check-out (exit).
+    """
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
+    condo_id = current_user.get("condominium_id")
+    
+    # Find entry
+    entry = await db.visitor_entries.find_one({
+        "id": entry_id,
+        "status": "inside"
+    })
+    
+    if not entry:
+        raise HTTPException(status_code=404, detail="Registro de entrada no encontrado o ya salió")
+    
+    # Multi-tenant check
+    if entry.get("condominium_id") != condo_id and "SuperAdmin" not in current_user.get("roles", []):
+        raise HTTPException(status_code=403, detail="No tienes acceso a este registro")
+    
+    # Calculate duration
+    entry_at = entry.get("entry_at")
+    duration_minutes = None
+    if entry_at:
+        try:
+            entry_time = datetime.fromisoformat(entry_at.replace('Z', '+00:00'))
+            duration_minutes = int((now - entry_time).total_seconds() / 60)
+        except:
+            pass
+    
+    # Update entry
+    await db.visitor_entries.update_one(
+        {"id": entry_id},
+        {"$set": {
+            "exit_at": now_iso,
+            "exit_by": current_user["id"],
+            "exit_by_name": current_user.get("full_name", "Guardia"),
+            "exit_notes": checkout_data.notes,
+            "status": "completed",
+            "duration_minutes": duration_minutes
+        }}
+    )
+    
+    # Create notification for resident
+    resident_id = entry.get("resident_id")
+    if resident_id:
+        notification_doc = {
+            "id": str(uuid.uuid4()),
+            "type": "visitor_exit",
+            "user_id": resident_id,
+            "condominium_id": condo_id,
+            "title": "Tu visitante ha salido",
+            "message": f"{entry.get('visitor_name')} ha salido del condominio",
+            "data": {
+                "entry_id": entry_id,
+                "visitor_name": entry.get("visitor_name"),
+                "exit_at": now_iso,
+                "duration_minutes": duration_minutes,
+                "guard_name": current_user.get("full_name")
+            },
+            "read": False,
+            "created_at": now_iso
+        }
+        await db.resident_notifications.insert_one(notification_doc)
+        
+        await log_audit_event(
+            AuditEventType.VISITOR_EXIT_NOTIFIED,
+            current_user["id"],
+            "visitor_notifications",
+            {"resident_id": resident_id, "visitor_name": entry.get("visitor_name")},
+            request.client.host if request.client else "unknown",
+            request.headers.get("user-agent", "unknown")
+        )
+    
+    # Save to guard_history for audit
+    guard = await db.guards.find_one({"user_id": current_user["id"]})
+    history_entry = {
+        "id": str(uuid.uuid4()),
+        "type": "visitor_checkout",
+        "guard_id": guard["id"] if guard else None,
+        "guard_user_id": current_user["id"],
+        "guard_name": current_user.get("full_name"),
+        "condominium_id": condo_id,
+        "entry_id": entry_id,
+        "visitor_name": entry.get("visitor_name"),
+        "resident_name": entry.get("resident_name"),
+        "entry_at": entry_at,
+        "exit_at": now_iso,
+        "duration_minutes": duration_minutes,
+        "timestamp": now_iso
+    }
+    await db.guard_history.insert_one(history_entry)
+    
+    await log_audit_event(
+        AuditEventType.VISITOR_CHECKOUT,
+        current_user["id"],
+        "visitor_entries",
+        {
+            "entry_id": entry_id,
+            "visitor_name": entry.get("visitor_name"),
+            "duration_minutes": duration_minutes
+        },
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {
+        "success": True,
+        "message": "Salida registrada",
+        "exit_at": now_iso,
+        "duration_minutes": duration_minutes
+    }
+
+@api_router.get("/guard/visitors-inside")
+async def get_visitors_inside(
+    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
+):
+    """Get all visitors currently inside the condominium"""
+    condo_id = current_user.get("condominium_id")
+    
+    query = {"status": "inside"}
+    if "SuperAdmin" not in current_user.get("roles", []):
+        if condo_id:
+            query["condominium_id"] = condo_id
+        else:
+            return []
+    
+    entries = await db.visitor_entries.find(query, {"_id": 0}).sort("entry_at", -1).to_list(200)
+    return entries
+
+# ===================== RESIDENT NOTIFICATIONS =====================
+
+@api_router.get("/resident/visitor-notifications")
+async def get_visitor_notifications(
+    unread_only: bool = False,
+    current_user = Depends(get_current_user)
+):
+    """Resident gets their visitor arrival/exit notifications"""
+    query = {
+        "user_id": current_user["id"],
+        "type": {"$in": ["visitor_arrival", "visitor_exit"]}
+    }
+    
+    if unread_only:
+        query["read"] = False
+    
+    notifications = await db.resident_notifications.find(
+        query, {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    
+    return notifications
+
+@api_router.put("/resident/visitor-notifications/{notification_id}/read")
+async def mark_notification_read(
+    notification_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Mark a notification as read"""
+    result = await db.resident_notifications.update_one(
+        {"id": notification_id, "user_id": current_user["id"]},
+        {"$set": {"read": True}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Notificación no encontrada")
+    
+    return {"message": "Notificación marcada como leída"}
+
+@api_router.put("/resident/visitor-notifications/read-all")
+async def mark_all_notifications_read(
+    current_user = Depends(get_current_user)
+):
+    """Mark all visitor notifications as read"""
+    result = await db.resident_notifications.update_many(
+        {
+            "user_id": current_user["id"],
+            "type": {"$in": ["visitor_arrival", "visitor_exit"]},
+            "read": False
+        },
+        {"$set": {"read": True}}
+    )
+    
+    return {"message": f"{result.modified_count} notificaciones marcadas como leídas"}
+
+# ===================== AUDIT & HISTORY =====================
+
+@api_router.get("/authorizations/history")
+async def get_authorization_history(
+    auth_id: Optional[str] = None,
+    resident_id: Optional[str] = None,
+    visitor_name: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
+):
+    """
+    Get visitor entry/exit history for audit.
+    Filterable by authorization, resident, visitor name, date range.
+    """
+    condo_id = current_user.get("condominium_id")
+    
+    query = {}
+    if "SuperAdmin" not in current_user.get("roles", []):
+        if condo_id:
+            query["condominium_id"] = condo_id
+        else:
+            return []
+    
+    if auth_id:
+        query["authorization_id"] = auth_id
+    if resident_id:
+        query["resident_id"] = resident_id
+    if visitor_name:
+        query["visitor_name"] = {"$regex": visitor_name, "$options": "i"}
+    
+    # Date filtering
+    if date_from or date_to:
+        date_query = {}
+        if date_from:
+            date_query["$gte"] = f"{date_from}T00:00:00"
+        if date_to:
+            date_query["$lte"] = f"{date_to}T23:59:59"
+        if date_query:
+            query["entry_at"] = date_query
+    
+    entries = await db.visitor_entries.find(query, {"_id": 0}).sort("entry_at", -1).to_list(500)
+    return entries
+
+@api_router.get("/authorizations/stats")
+async def get_authorization_stats(
+    current_user = Depends(require_role("Administrador", "Supervisor"))
+):
+    """Get statistics about visitor authorizations and entries"""
+    condo_id = current_user.get("condominium_id")
+    
+    query = {}
+    if "SuperAdmin" not in current_user.get("roles", []):
+        if condo_id:
+            query["condominium_id"] = condo_id
+        else:
+            return {}
+    
+    # Count active authorizations by type
+    auth_pipeline = [
+        {"$match": {**query, "is_active": True}},
+        {"$group": {"_id": "$authorization_type", "count": {"$sum": 1}}}
+    ]
+    auth_counts = await db.visitor_authorizations.aggregate(auth_pipeline).to_list(10)
+    
+    # Count entries today
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today_entries = await db.visitor_entries.count_documents({
+        **query,
+        "entry_at": {"$gte": f"{today}T00:00:00"}
+    })
+    
+    # Count visitors currently inside
+    inside_count = await db.visitor_entries.count_documents({
+        **query,
+        "status": "inside"
+    })
+    
+    # Total authorizations
+    total_auths = await db.visitor_authorizations.count_documents({**query, "is_active": True})
+    
+    return {
+        "total_active_authorizations": total_auths,
+        "authorizations_by_type": {item["_id"]: item["count"] for item in auth_counts},
+        "entries_today": today_entries,
+        "visitors_inside": inside_count
+    }
+
 # Endpoint for Guards to write to their logbook
 @api_router.get("/security/logbook")
 async def get_guard_logbook(current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
