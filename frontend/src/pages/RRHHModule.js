@@ -1407,7 +1407,7 @@ const OnboardingSubmodule = ({ employees }) => (
             <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
               <UserCheck className="w-4 h-4 text-green-400" />
             </div>
-            <span className="text-white">{emp.user_name}</span>
+            <span className="text-white">{getEmployeeName(emp)}</span>
           </div>
           <Badge variant="outline" className="text-green-400 border-green-500/30">Completado</Badge>
         </div>
