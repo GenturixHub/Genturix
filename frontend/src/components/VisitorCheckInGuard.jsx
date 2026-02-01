@@ -492,6 +492,7 @@ const VisitorCheckInGuard = () => {
   const [processingCheckout, setProcessingCheckout] = useState(null);
   const [showEntriesToday, setShowEntriesToday] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false); // Track refresh state
+  const [recentlyProcessed, setRecentlyProcessed] = useState(new Set()); // Track recently processed to prevent double-clicks
 
   const fetchData = useCallback(async (showToast = false) => {
     if (showToast) setIsRefreshing(true);
