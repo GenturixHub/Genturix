@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 1, 2026 (Session 52 - Theme Update & Bug Fixes)
+## Last Updated: February 1, 2026 (Session 52 - Theme & Emergency Button Enhancement)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,42 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
+
+### Session 52 - P0 UX: Emergency Button Redesign (February 1, 2026) ⭐⭐⭐⭐⭐
+
+**Objective:**
+Mejorar el diseño visual de los botones de pánico sin cambiar la lógica funcional.
+
+**Implementation:**
+
+**1. Nuevo CSS centralizado:**
+- `/app/frontend/src/styles/emergency-buttons.css` - Estilos profesionales
+- Animaciones: breathing pulse, ripple effect, icon float
+- Gradientes más brillantes y depth shadows
+- Glassmorphism (efecto cristal) en la parte superior
+
+**2. Jerarquía Visual:**
+- EMERGENCIA GENERAL: Más grande (105px → 125px desktop), borde más grueso
+- EMERGENCIA MÉDICA: Rojo vibrante con glow intenso  
+- ACTIVIDAD SOSPECHOSA: Amber/dorado con alto contraste
+
+**3. Micro-interacciones:**
+- Ripple effect al tap (círculo que se expande)
+- Scale feedback al presionar (0.97)
+- Icon con fondo circular oscuro
+- Breathing animation en idle
+
+**4. Rollback:**
+- Archivo backup: `/app/frontend/src/styles/emergency-buttons-v1-legacy.css`
+- Instrucciones completas para revertir
+
+**Colors Preserved:**
+- ❌ Rojo para médica
+- ⚠️ Amber para sospechosa  
+- 🔶 Naranja para general
+- Textos y backgrounds sin cambios
+
+---
 
 ### Session 52 - THEME UPDATE: Purple → Blue/Teal (February 1, 2026) ⭐⭐⭐⭐⭐
 
