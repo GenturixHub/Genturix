@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 1, 2026 (Session 52 - Admin Manual Access Fix)
+## Last Updated: February 1, 2026 (Session 52 - Theme Update & Bug Fixes)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,62 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
+
+### Session 52 - THEME UPDATE: Purple → Blue/Teal (February 1, 2026) ⭐⭐⭐⭐⭐
+
+**Objective:**
+Actualizar la paleta de colores de la aplicación basándose en el logo GENTURIX:
+- Reemplazar el morado por azul/teal (#4A90A4 primary)
+- Mantener dark mode intacto
+- Preservar colores semánticos (rojo, verde, amarillo)
+- Permitir rollback fácil
+
+**Implementation:**
+
+**1. Theme System Centralizado:**
+```css
+/* /app/frontend/src/styles/theme.css */
+:root {
+    --primary: 193 45% 47%;           /* #4A90A4 - Main brand color */
+    --primary-foreground: 210 40% 98%;
+    --secondary: 193 52% 68%;          /* #80CBDC - Lighter accent */
+    --ring: 193 45% 47%;
+}
+/* Paleta V1 (purple) comentada para rollback */
+```
+
+**2. Components Updated:**
+- `GenturixLogo.jsx` - SVG gradient actualizado
+- `ProfilePage.js`, `SecurityModule.js`, `GuardUI.js`, etc. - `purple-xxx` → `cyan-xxx`
+- `PanelSelectionPage.js`, `UserManagementPage.js` - Role colors
+- Total: ~30 archivos actualizados
+
+**3. Rollback Instructions:**
+```css
+/* En /app/frontend/src/styles/theme.css:
+   1. Comentar bloque V2 (azul/teal)
+   2. Descomentar bloque V1 (purple)
+*/
+```
+
+**4. Colors Changed:**
+- Primary/Accent: `#7C3AED` (purple) → `#4A90A4` (teal)
+- Icon accents: `purple-400/500` → `cyan-400/500`
+- Badges/Tags: Updated to cyan family
+
+**5. Colors Preserved (No Changes):**
+- ❌ Destructive/Error: Red
+- ✅ Success: Green
+- ⚠️ Warning: Yellow/Orange
+- 🔵 Info: Blue
+- Background/Foreground: Dark theme colors
+
+**Files Created/Modified:**
+- `/app/frontend/src/styles/theme.css` (NEW - centralized theme)
+- `/app/frontend/src/components/GenturixLogo.jsx` (Updated gradient)
+- Multiple `.js` and `.jsx` files with hardcoded purple colors
+
+---
 
 ### Session 52 - P0 BUG FIX: Registro Manual Admin No Persistía (February 1, 2026) ⭐⭐⭐⭐⭐
 
