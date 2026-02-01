@@ -715,6 +715,11 @@ const ResidentReservations = () => {
   const [selectedArea, setSelectedArea] = useState(null);
   const [showReservationForm, setShowReservationForm] = useState(false);
   
+  // Cancel confirmation dialog state
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [reservationToCancel, setReservationToCancel] = useState(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+  
   // Load data
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -761,14 +766,36 @@ const ResidentReservations = () => {
     }
   };
   
-  const handleCancelReservation = async (reservation) => {
+  // Open cancel confirmation dialog
+  const openCancelDialog = (reservation) => {
+    setReservationToCancel(reservation);
+    setShowCancelDialog(true);
+  };
+  
+  // Confirm and execute cancellation using DELETE endpoint
+  const confirmCancelReservation = async () => {
+    if (!reservationToCancel) return;
+    
+    setIsCancelling(true);
     try {
-      await api.updateReservation(reservation.id, { status: 'cancelled' });
-      toast.success('Reservación cancelada');
+      await api.cancelReservation(reservationToCancel.id);
+      toast.success('Reservación cancelada. El espacio ha sido liberado.');
+      setShowCancelDialog(false);
+      setReservationToCancel(null);
       loadData();
     } catch (error) {
-      const errorMessage = error?.message || (typeof error === 'string' ? error : 'Error al cancelar');
+      const errorMessage = error?.message || (typeof error === 'string' ? error : 'Error al cancelar reservación');
       toast.error(errorMessage);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+  
+  // Close cancel dialog
+  const closeCancelDialog = () => {
+    if (!isCancelling) {
+      setShowCancelDialog(false);
+      setReservationToCancel(null);
     }
   };
   
