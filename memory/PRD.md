@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 1, 2026 (Session 46 - P0 Check-In Duplicates Bug Fix VERIFIED)
+## Last Updated: February 1, 2026 (Session 46 - P0 Check-In Bug + UX Reservaciones + Mi Turno Fix)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -9,88 +9,49 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
 
-### Session 46 - P0 CRITICAL BUG FIX VERIFIED: Check-In Duplicates (February 1, 2026) ⭐⭐⭐⭐⭐
+### Session 46 - Latest Updates (February 1, 2026)
 
-#### 🔴 P0 BUG FIXED & VERIFIED: Pre-registros duplicados / Re-uso infinito
+#### ⭐ NEW: UX Reservaciones - Slots de Tiempo Clickeables
 
-**Problem (User Report):**
-- Pre-registrations (temporary and extended) could be re-used infinitely
-- After guard registers a visitor entry, the pre-registration stayed visible in the pending list
-- Clicking again generated duplicate entries
-- Cleanup button reported "no authorizations to clean" but duplicates remained
+**Implementación:**
+- Grid visual de slots de hora con estados: Disponible (verde), Ocupado (rojo), Seleccionado (púrpura)
+- Clic en slot disponible auto-llena los campos "Hora Inicio" y "Hora Fin"
+- Toast de confirmación mostrando el rango seleccionado
+- Badges "Auto-llenado" en los campos de tiempo
+- Leyenda actualizada con indicador de "Seleccionado"
+- Texto animado "← Clic para seleccionar" como guía UX
 
-**Complete Solution Implemented:**
+**Archivos modificados:**
+- `/app/frontend/src/components/ResidentReservations.jsx`
 
-**1. Backend - Triple Verification in check-in (server.py:2680-2718):**
-```python
-if auth_type_value in ["temporary", "extended"]:
-    # Check 1: Status is "used"
-    if auth_status == "used": raise HTTPException(409)
-    
-    # Check 2: checked_in_at timestamp set
-    if authorization.get("checked_in_at"): raise HTTPException(409)
-    
-    # Check 3: Entry already exists in visitor_entries
-    if await db.visitor_entries.find_one({"authorization_id": auth_id}):
-        raise HTTPException(409)
-```
+#### 🔧 FIX: Error "Mi Turno" (TypeError: datetime)
 
-**2. Backend - Auto-fix legacy data on fetch (server.py:2580-2616):**
-```python
-# In get_authorizations_for_guard():
-for auth in authorizations:
-    if auth_type in ["temporary", "extended"]:
-        entry_exists = await db.visitor_entries.find_one({"authorization_id": auth_id})
-        already_used = entry_exists or checked_in_at or total_visits > 0
-        if already_used:
-            # Fix legacy data: update status to 'used'
-            await db.visitor_authorizations.update_one(...)
-```
+**Problema:**
+- Error 500 "Internal Server Error" al cargar pestaña "Mi Turno"
+- Causa: `TypeError: can't subtract offset-naive and offset-aware datetimes`
 
-**3. Frontend - Anti-double-click protection (VisitorCheckInGuard.jsx):**
-```javascript
-const [recentlyProcessed, setRecentlyProcessed] = useState(new Set());
+**Solución:**
+- Se corrigió el parsing de fechas para asegurar que siempre sean timezone-aware
+- Se agregó lógica para manejar diferentes formatos de ISO timestamps
 
-const handleCheckInSubmit = async (payload) => {
-    // GUARD 1: Check if recently processed (prevents race condition)
-    if (authId && recentlyProcessed.has(authId)) return;
-    
-    // GUARD 2: Check if already processing
-    if (processingAuthId) return;
-    
-    // Immediately mark as recently processed
-    setRecentlyProcessed(prev => new Set([...prev, authId]));
-    
-    // Immediately remove from local lists (optimistic update)
-    setAuthorizations(prev => prev.filter(a => a.id !== authId));
-    setTodayPreregistrations(prev => prev.filter(a => a.id !== authId));
-    
-    // ... API call ...
-};
-```
+**Archivos modificados:**
+- `/app/backend/server.py` (líneas 3195-3228, 3843-3858)
 
-**4. Frontend - Visual feedback for blocked items:**
-- Button shows "YA PROCESADO" with spinner when blocked
-- Card is grayed out and non-clickable
-- 5-second cooldown before allowing retry
+#### ⭐ NEW: Historial Visual de Check-ins para Guardias
 
-**Testing Agent Verification (100% Pass Rate):**
-- ✅ Backend: 15/15 tests passed
-- ✅ Frontend: All UI tests passed
-- ✅ Create TEMPORARY auth → status='pending'
-- ✅ First check-in → HTTP 200, status='used'
-- ✅ Second check-in → HTTP 409 "Esta autorización ya fue utilizada"
-- ✅ Auth NOT in /guard/authorizations after check-in
-- ✅ PERMANENT auths allow multiple check-ins (expected)
-- ✅ RECURRING auths allow multiple check-ins (expected)
-- ✅ Diagnose endpoint identifies problems
-- ✅ Cleanup endpoint fixes legacy data
+**Componente:** `GuardHistoryVisual.jsx`
+- Dashboard visual con análisis de actividad
+- Tarjetas de estadísticas: Entradas, Salidas, Hora Pico, Total
+- Gráfico de barras de actividad por hora (24h)
+- Filtros: Hoy, Últimos 7 días, Últimos 30 días
+- Hora actual resaltada en verde
 
-**Files Modified:**
-- `/app/backend/server.py` - Enhanced check-in validation and auto-fix
-- `/app/frontend/src/components/VisitorCheckInGuard.jsx` - Anti-double-click protection
+#### 🔴 P0 BUG FIXED: Check-In Duplicados (VERIFIED)
 
-**Test Report:** `/app/test_reports/iteration_46.json`
+- Triple verificación en backend para prevenir re-uso
+- Protección anti-doble-clic en frontend
+- Botón muestra "YA PROCESADO" cuando está bloqueado
+- Testing agent: 100% tests pasados
 
 ---
 
