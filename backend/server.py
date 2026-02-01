@@ -3920,6 +3920,56 @@ async def cleanup_invalid_guards(
     
     return results
 
+@api_router.get("/hr/evaluable-employees")
+async def get_evaluable_employees(
+    current_user = Depends(require_role("Administrador", "Supervisor", "HR"))
+):
+    """
+    Get employees that are eligible for evaluation:
+    - Have valid user_id
+    - User exists in users collection
+    - Is active
+    - Not the current user (can't evaluate yourself)
+    """
+    condo_id = current_user.get("condominium_id")
+    current_user_id = current_user.get("id")
+    
+    # Build query
+    query = {
+        "user_id": {"$ne": None, "$exists": True},
+        "is_active": True
+    }
+    
+    if "SuperAdmin" not in current_user.get("roles", []) and condo_id:
+        query["condominium_id"] = condo_id
+    
+    guards = await db.guards.find(query, {"_id": 0}).to_list(100)
+    
+    evaluable_employees = []
+    for guard in guards:
+        user_id = guard.get("user_id")
+        
+        # Skip self
+        if user_id == current_user_id:
+            continue
+        
+        # Verify user exists
+        user = await db.users.find_one({"id": user_id}, {"_id": 0, "full_name": 1, "email": 1, "is_active": 1})
+        if user and user.get("is_active", True):
+            # Enrich guard data with user info
+            guard["user_name"] = user.get("full_name") or guard.get("user_name")
+            guard["full_name"] = user.get("full_name") or guard.get("full_name")
+            guard["email"] = user.get("email") or guard.get("email")
+            guard["_is_evaluable"] = True
+            
+            # Get evaluation count
+            eval_count = await db.hr_evaluations.count_documents({"employee_id": guard.get("id")})
+            guard["evaluation_count"] = eval_count
+            
+            evaluable_employees.append(guard)
+    
+    return evaluable_employees
+
 @api_router.get("/hr/guards/{guard_id}")
 async def get_guard(guard_id: str, current_user = Depends(require_role("Administrador", "Supervisor", "HR"))):
     guard = await db.guards.find_one({"id": guard_id}, {"_id": 0})
