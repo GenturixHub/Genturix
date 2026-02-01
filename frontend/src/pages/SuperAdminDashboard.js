@@ -472,10 +472,10 @@ const BillingSummarySection = ({ billingOverview }) => {
           </div>
           
           {/* Total Users / Seats */}
-          <div className="p-3 rounded-lg bg-gradient-to-br from-purple-500/10 to-purple-500/5 border border-purple-500/20">
+          <div className="p-3 rounded-lg bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 border border-cyan-500/20">
             <div className="flex items-center gap-2 mb-1">
-              <Users className="w-4 h-4 text-purple-400" />
-              <span className="text-xs text-purple-400 font-medium">Usuarios</span>
+              <Users className="w-4 h-4 text-cyan-400" />
+              <span className="text-xs text-cyan-400 font-medium">Usuarios</span>
             </div>
             <p className="text-2xl font-bold text-white">
               {totals.total_active_users || 0}
