@@ -2467,27 +2467,49 @@ async def get_authorizations_for_guard(
     authorizations = await db.visitor_authorizations.find(query, {"_id": 0}).to_list(500)
     
     # ==================== FILTER OUT ALREADY CHECKED-IN (for temporary/extended) ====================
-    # This handles legacy data where status wasn't set to 'used' but checked_in_at or total_visits exists
+    # This handles legacy data where status wasn't set to 'used'
+    # Check multiple indicators: checked_in_at, total_visits, or actual entry in visitor_entries
     filtered_authorizations = []
+    
     for auth in authorizations:
         auth_type = auth.get("authorization_type", "temporary")
+        auth_id = auth.get("id")
         checked_in_at = auth.get("checked_in_at")
         total_visits = auth.get("total_visits", 0)
         
-        # If it's temporary or extended AND already has been used (check multiple indicators)
-        already_used = checked_in_at or total_visits > 0
+        # Only filter temporary and extended (permanent/recurring can be reused)
+        if auth_type not in ["temporary", "extended"]:
+            filtered_authorizations.append(auth)
+            continue
         
-        if auth_type in ["temporary", "extended"] and already_used:
-            # Also update the status in DB asynchronously (fix legacy data)
+        # Check if already used via multiple indicators
+        already_used = False
+        
+        # Indicator 1: checked_in_at field is set
+        if checked_in_at:
+            already_used = True
+        
+        # Indicator 2: total_visits > 0
+        elif total_visits > 0:
+            already_used = True
+        
+        # Indicator 3: There's an entry in visitor_entries with this authorization_id
+        else:
+            entry_exists = await db.visitor_entries.find_one({"authorization_id": auth_id})
+            if entry_exists:
+                already_used = True
+        
+        if already_used:
+            # Fix legacy data: update status to 'used'
             result = await db.visitor_authorizations.update_one(
-                {"id": auth.get("id"), "status": {"$in": ["pending", None]}},
+                {"id": auth_id, "status": {"$in": ["pending", None]}},
                 {"$set": {"status": "used"}}
             )
             if result.modified_count > 0:
-                logger.info(f"[guard/authorizations] Auto-fixed legacy auth {auth.get('id')[:8]} to status=used (checked_in_at={bool(checked_in_at)}, total_visits={total_visits})")
+                logger.info(f"[guard/authorizations] Auto-fixed legacy auth {auth_id[:8]} to status=used")
             
             if not include_used:
-                continue  # Skip this authorization from results
+                continue  # Skip from results
         
         filtered_authorizations.append(auth)
     
