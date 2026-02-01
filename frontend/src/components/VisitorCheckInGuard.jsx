@@ -478,6 +478,7 @@ const VisitorCheckInGuard = () => {
   const [selectedAuth, setSelectedAuth] = useState(null);
   const [processingCheckout, setProcessingCheckout] = useState(null);
   const [showEntriesToday, setShowEntriesToday] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false); // Track refresh state
 
   const fetchData = useCallback(async () => {
     try {
