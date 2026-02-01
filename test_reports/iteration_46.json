@@ -1,0 +1,111 @@
+{
+  "summary": "P0 Bug Fix VERIFIED: Pre-registraciones de visitantes duplicadas. All 15 backend tests pass (100%). Frontend correctly removes authorization from pending list after check-in, shows success toast, and displays entry in INGRESADOS HOY section. Count decreased from 17 to 16 after check-in.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_results": {
+    "backend_api_tests": {
+      "test_01_resident_creates_temporary_authorization": "PASS - Creates auth with status='pending'",
+      "test_02_guard_sees_authorization_in_pending_list": "PASS - Auth visible in /guard/authorizations",
+      "test_03_first_checkin_returns_200": "PASS - First check-in succeeds, marks auth as 'used'",
+      "test_04_second_checkin_returns_409": "PASS - Second check-in blocked with 409 'Esta autorización ya fue utilizada'",
+      "test_05_authorization_not_in_pending_list_after_checkin": "PASS - Used auth NOT in /guard/authorizations",
+      "test_06_entry_appears_in_entries_today": "PASS - Entry appears in /guard/entries-today",
+      "test_07_permanent_authorization_multiple_checkins": "PASS - Permanent auths allow multiple check-ins",
+      "test_08_diagnose_authorizations_endpoint": "PASS - GET /guard/diagnose-authorizations works",
+      "test_09_cleanup_authorizations_endpoint": "PASS - POST /guard/cleanup-authorizations works",
+      "test_10_include_used_parameter": "PASS - include_used=true shows used auths",
+      "test_extended_01_create": "PASS - Creates EXTENDED auth with status='pending'",
+      "test_extended_02_first_checkin": "PASS - First check-in succeeds",
+      "test_extended_03_second_checkin_blocked": "PASS - Second check-in blocked with 409",
+      "test_recurring_01_create": "PASS - Creates RECURRING auth",
+      "test_recurring_02_multiple_checkins": "PASS - RECURRING allows multiple check-ins (expected)"
+    },
+    "frontend_ui_tests": {
+      "guard_login": "PASS - Guard can login successfully",
+      "checkin_tab_navigation": "PASS - Check-In tab accessible",
+      "pre_registros_pendientes_section": "PASS - Shows pending count (17 initially)",
+      "search_functionality": "PASS - Search input works",
+      "manual_checkin_button": "PASS - 'Entrada Manual (Sin Autorización)' button present",
+      "diagnose_button": "PASS - Bug icon button present",
+      "cleanup_button": "PASS - Trash icon button present",
+      "checkin_dialog": "PASS - Shows 'Confirmar Entrada' with AUTORIZADO status",
+      "checkin_success_toast": "PASS - Shows '✓ Entrada autorizada registrada'",
+      "authorization_removed_after_checkin": "PASS - Count decreased from 17 to 16",
+      "ingresados_hoy_section": "PASS - Shows 49 entries with timestamps",
+      "dentro_del_condominio_section": "PASS - Section visible"
+    }
+  },
+  "features_verified": [
+    "✓ Crear autorización TEMPORAL como Residente - status='pending'",
+    "✓ Crear autorización EXTENDIDA como Residente - status='pending'",
+    "✓ Crear autorización RECURRENTE como Residente",
+    "✓ Crear autorización PERMANENTE como Residente",
+    "✓ Guardia ve la autorización en PRE-REGISTROS PENDIENTES",
+    "✓ Primer check-in con autorización TEMPORAL retorna HTTP 200",
+    "✓ Segundo check-in con MISMA autorización TEMPORAL retorna HTTP 409",
+    "✓ Primer check-in con autorización EXTENDIDA retorna HTTP 200",
+    "✓ Segundo check-in con MISMA autorización EXTENDIDA retorna HTTP 409",
+    "✓ Autorizaciones PERMANENTES pueden usarse múltiples veces",
+    "✓ Autorizaciones RECURRENTES pueden usarse múltiples veces",
+    "✓ Mensaje de error 409 dice 'Esta autorización ya fue utilizada'",
+    "✓ Después del check-in, la autorización NO aparece en /guard/authorizations",
+    "✓ La sección 'INGRESADOS HOY' muestra la entrada",
+    "✓ Frontend remueve autorización de lista inmediatamente después de check-in",
+    "✓ Endpoint /guard/diagnose-authorizations identifica autorizaciones problemáticas",
+    "✓ Endpoint /guard/cleanup-authorizations corrige datos legacy"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_p0_duplicate_preregistro.py",
+    "/app/test_reports/pytest/p0_duplicate_preregistro_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Fix correctly implemented: status field added to authorizations (pending/used)",
+    "GET /guard/authorizations correctly filters by status='pending' by default",
+    "POST /guard/checkin returns 409 Conflict for already-used temporary/extended authorizations",
+    "Permanent and recurring authorizations correctly allow multiple check-ins (no status change)",
+    "Frontend handleCheckInSubmit correctly removes auth from list and handles 409 error",
+    "Anti-double-click protection implemented with recentlyProcessed state",
+    "Optimistic UI update removes authorization immediately before API call"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_p0_duplicate_preregistro.py - Created comprehensive test suite for P0 bug fix"
+  ],
+  "success_rate": {
+    "backend": "100% (15/15 tests passed)",
+    "frontend": "100% (all UI tests passed)"
+  },
+  "test_credentials": {
+    "guard": "guarda1@genturix.com / Guard123!",
+    "resident": "residente@genturix.com / Resi123!"
+  },
+  "seed_data_creation": "Created multiple TEST_Temporal_*, TEST_Extendido_*, TEST_Permanente_*, TEST_Recurrente_* authorizations during testing",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "P0 bug fix for duplicate pre-registrations verified. Key endpoints: POST /api/authorizations (creates with status='pending'), GET /api/guard/authorizations (filters pending by default), POST /api/guard/checkin (marks temporary/extended as 'used', returns 409 if already used), GET /api/guard/entries-today (shows today's entries), GET /api/guard/diagnose-authorizations (identifies problems), POST /api/guard/cleanup-authorizations (fixes legacy data). Frontend component: VisitorCheckInGuard.jsx handles 409 error and removes auth from list with anti-double-click protection.",
+  "mocked_api": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": []
+  },
+  "bug_fix_verification": {
+    "original_bug": "Pre-registro permanecía visible después del check-in permitiendo múltiples ingresos con la misma autorización temporal/extendida",
+    "fix_implemented": [
+      "1. Autorizaciones tienen campo 'status' (pending/used)",
+      "2. GET /guard/authorizations filtra status='pending' por defecto",
+      "3. POST /guard/checkin retorna 409 si auth ya usada, marca status='used' para temporales/extendidas",
+      "4. Endpoint GET /guard/entries-today para sección 'Ingresados Hoy'",
+      "5. Endpoint GET /guard/diagnose-authorizations para identificar problemas",
+      "6. Endpoint POST /guard/cleanup-authorizations para corregir datos legacy",
+      "7. Frontend remueve auth de lista en handleCheckInSubmit y maneja error 409",
+      "8. Anti-double-click protection con recentlyProcessed state"
+    ],
+    "verification_status": "VERIFIED - All requirements met"
+  }
+}
