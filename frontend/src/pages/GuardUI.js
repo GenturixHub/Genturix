@@ -195,6 +195,8 @@ const AlertsTab = ({ alerts, onResolve, resolvingId, onRefresh, isRefreshing, hi
 
   const handleResolve = async () => {
     if (!selectedAlert) return;
+    // CRITICAL: Stop sound when resolving alert
+    AlertSoundManager.stop();
     setIsResolving(true);
     try {
       await onResolve(selectedAlert.id, resolutionNotes);
