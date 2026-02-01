@@ -849,6 +849,12 @@ const ReservationsModule = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [areaToDelete, setAreaToDelete] = useState(null);
   
+  // Cancel reservation dialog state (for admin)
+  const [showCancelReservationDialog, setShowCancelReservationDialog] = useState(false);
+  const [reservationToCancel, setReservationToCancel] = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [isCancelling, setIsCancelling] = useState(false);
+  
   // Fetch data
   const fetchData = useCallback(async () => {
     setIsLoading(true);
