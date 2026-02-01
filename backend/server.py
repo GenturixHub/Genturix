@@ -6166,6 +6166,261 @@ async def get_area_availability(
         )
     }
 
+
+# ============================================
+# NEW: SMART AVAILABILITY ENDPOINT (Phase 2-3)
+# Returns detailed slot availability based on area behavior type
+# ============================================
+@api_router.get("/reservations/smart-availability/{area_id}")
+async def get_smart_availability(
+    area_id: str,
+    date: str,
+    current_user = Depends(get_current_user)
+):
+    """
+    Get smart availability for an area based on its reservation_behavior type.
+    Returns detailed slots with remaining capacity for CAPACITY type areas.
+    Backward compatible: areas without reservation_behavior use EXCLUSIVE logic.
+    """
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="Usuario no asignado a condominio")
+    
+    # Get the area
+    area = await db.reservation_areas.find_one({"id": area_id, "condominium_id": condo_id, "is_active": True})
+    if not area:
+        raise HTTPException(status_code=404, detail="Área no encontrada")
+    
+    # Get reservation behavior (default to EXCLUSIVE for backward compatibility)
+    behavior = area.get("reservation_behavior", "exclusive")
+    
+    # FREE_ACCESS areas cannot be reserved
+    if behavior == "free_access":
+        return {
+            "area_id": area_id,
+            "area_name": area.get("name"),
+            "reservation_behavior": behavior,
+            "date": date,
+            "is_available": False,
+            "message": "Esta área es de acceso libre y no requiere reservación",
+            "time_slots": []
+        }
+    
+    # Parse and validate date
+    try:
+        res_date = datetime.strptime(date, "%Y-%m-%d")
+        day_name = DAY_NAMES.get(res_date.weekday())
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        # Check if date is in the past
+        if res_date < today:
+            return {
+                "area_id": area_id,
+                "area_name": area.get("name"),
+                "reservation_behavior": behavior,
+                "date": date,
+                "is_available": False,
+                "message": "No se pueden hacer reservaciones en fechas pasadas",
+                "time_slots": []
+            }
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de fecha inválido. Use YYYY-MM-DD")
+    
+    # Check if day is allowed
+    allowed_days = area.get("allowed_days", [])
+    if allowed_days and len(allowed_days) > 0 and day_name not in allowed_days:
+        return {
+            "area_id": area_id,
+            "area_name": area.get("name"),
+            "reservation_behavior": behavior,
+            "date": date,
+            "day_name": day_name,
+            "is_available": False,
+            "message": f"El área no está disponible los {day_name}",
+            "time_slots": []
+        }
+    
+    # Get existing reservations for this date
+    existing_reservations = await db.reservations.find({
+        "area_id": area_id,
+        "date": date,
+        "status": {"$in": ["pending", "approved"]}
+    }, {"_id": 0}).to_list(100)
+    
+    # Check user's reservations for this day (for max_reservations_per_user_per_day)
+    max_user_per_day = area.get("max_reservations_per_user_per_day")
+    user_reservations_today = 0
+    if max_user_per_day:
+        user_reservations_today = await db.reservations.count_documents({
+            "area_id": area_id,
+            "date": date,
+            "resident_id": current_user["id"],
+            "status": {"$in": ["pending", "approved"]}
+        })
+    
+    user_can_reserve = max_user_per_day is None or user_reservations_today < max_user_per_day
+    
+    # Get operating hours
+    available_from = area.get("available_from", "06:00")
+    available_until = area.get("available_until", "22:00")
+    slot_duration = area.get("slot_duration_minutes", 60)
+    
+    # Parse hours
+    try:
+        start_hour = int(available_from.split(":")[0])
+        start_min = int(available_from.split(":")[1]) if ":" in available_from else 0
+        end_hour = int(available_until.split(":")[0])
+        end_min = int(available_until.split(":")[1]) if ":" in available_until else 0
+    except:
+        start_hour, start_min = 6, 0
+        end_hour, end_min = 22, 0
+    
+    # Generate time slots based on behavior type
+    time_slots = []
+    
+    if behavior == "exclusive":
+        # EXCLUSIVE: 1 reservation blocks the entire area for that time
+        current_time = start_hour * 60 + start_min
+        end_time = end_hour * 60 + end_min
+        
+        while current_time < end_time:
+            slot_start = f"{current_time // 60:02d}:{current_time % 60:02d}"
+            slot_end_mins = min(current_time + slot_duration, end_time)
+            slot_end = f"{slot_end_mins // 60:02d}:{slot_end_mins % 60:02d}"
+            
+            # Check if this slot overlaps with any existing reservation
+            slot_occupied = False
+            occupied_by = None
+            for res in existing_reservations:
+                res_start = res.get("start_time", "")
+                res_end = res.get("end_time", "")
+                # Check overlap
+                if res_start < slot_end and res_end > slot_start:
+                    slot_occupied = True
+                    occupied_by = res.get("status")
+                    break
+            
+            time_slots.append({
+                "start": slot_start,
+                "end": slot_end,
+                "available": not slot_occupied and user_can_reserve,
+                "status": "occupied" if slot_occupied else ("available" if user_can_reserve else "user_limit"),
+                "remaining_slots": 0 if slot_occupied else 1,
+                "total_capacity": 1
+            })
+            
+            current_time += slot_duration
+    
+    elif behavior == "capacity":
+        # CAPACITY: Multiple reservations allowed up to max_capacity_per_slot
+        max_capacity = area.get("max_capacity_per_slot") or area.get("capacity", 10)
+        current_time = start_hour * 60 + start_min
+        end_time = end_hour * 60 + end_min
+        
+        while current_time < end_time:
+            slot_start = f"{current_time // 60:02d}:{current_time % 60:02d}"
+            slot_end_mins = min(current_time + slot_duration, end_time)
+            slot_end = f"{slot_end_mins // 60:02d}:{slot_end_mins % 60:02d}"
+            
+            # Count reservations in this slot
+            slot_reservations = 0
+            for res in existing_reservations:
+                res_start = res.get("start_time", "")
+                res_end = res.get("end_time", "")
+                # Check overlap
+                if res_start < slot_end and res_end > slot_start:
+                    slot_reservations += res.get("guests_count", 1)
+            
+            remaining = max(0, max_capacity - slot_reservations)
+            slot_available = remaining > 0 and user_can_reserve
+            
+            # Determine status
+            if remaining == 0:
+                status = "full"
+            elif remaining <= max_capacity * 0.3:
+                status = "limited"  # Yellow - few spots left
+            else:
+                status = "available"
+            
+            if not user_can_reserve:
+                status = "user_limit"
+            
+            time_slots.append({
+                "start": slot_start,
+                "end": slot_end,
+                "available": slot_available,
+                "status": status,
+                "remaining_slots": remaining,
+                "total_capacity": max_capacity,
+                "current_count": slot_reservations
+            })
+            
+            current_time += slot_duration
+    
+    elif behavior == "slot_based":
+        # SLOT_BASED: Fixed slots, 1 reservation = 1 slot, no overlap allowed
+        current_time = start_hour * 60 + start_min
+        end_time = end_hour * 60 + end_min
+        
+        while current_time < end_time:
+            slot_start = f"{current_time // 60:02d}:{current_time % 60:02d}"
+            slot_end_mins = min(current_time + slot_duration, end_time)
+            slot_end = f"{slot_end_mins // 60:02d}:{slot_end_mins % 60:02d}"
+            
+            # Check if exact slot is taken
+            slot_taken = False
+            for res in existing_reservations:
+                if res.get("start_time") == slot_start and res.get("end_time") == slot_end:
+                    slot_taken = True
+                    break
+            
+            time_slots.append({
+                "start": slot_start,
+                "end": slot_end,
+                "available": not slot_taken and user_can_reserve,
+                "status": "occupied" if slot_taken else ("available" if user_can_reserve else "user_limit"),
+                "remaining_slots": 0 if slot_taken else 1,
+                "total_capacity": 1
+            })
+            
+            current_time += slot_duration
+    
+    # Calculate overall availability
+    available_slots = sum(1 for s in time_slots if s["available"])
+    is_available = available_slots > 0
+    
+    # Build response
+    return {
+        "area_id": area_id,
+        "area_name": area.get("name"),
+        "area_type": area.get("area_type"),
+        "reservation_behavior": behavior,
+        "date": date,
+        "day_name": day_name,
+        "is_available": is_available,
+        "available_from": available_from,
+        "available_until": available_until,
+        "capacity": area.get("capacity", 10),
+        "max_capacity_per_slot": area.get("max_capacity_per_slot"),
+        "slot_duration_minutes": slot_duration,
+        "time_slots": time_slots,
+        "available_slots_count": available_slots,
+        "total_slots_count": len(time_slots),
+        # User limits info
+        "user_reservations_today": user_reservations_today,
+        "max_reservations_per_user_per_day": max_user_per_day,
+        "user_can_reserve": user_can_reserve,
+        # Area config for UI
+        "min_duration_hours": area.get("min_duration_hours", 1),
+        "max_duration_hours": area.get("max_duration_hours", 4),
+        "requires_approval": area.get("requires_approval", False),
+        "message": None if is_available else (
+            "Has alcanzado el límite de reservaciones por día" if not user_can_reserve else
+            "No hay espacios disponibles para esta fecha"
+        )
+    }
+
+
 @api_router.patch("/reservations/{reservation_id}")
 async def update_reservation_status(
     reservation_id: str,
