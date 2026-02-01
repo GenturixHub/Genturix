@@ -38,8 +38,8 @@ import {
 
 // Role configuration
 const ROLE_CONFIG = {
-  'Administrador': { icon: Shield, color: 'bg-purple-500/10 text-purple-400 border-purple-500/30', label: 'Administradores' },
-  'Supervisor': { icon: UserCheck, color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30', label: 'Supervisores' },
+  'Administrador': { icon: Shield, color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30', label: 'Administradores' },
+  'Supervisor': { icon: UserCheck, color: 'bg-teal-500/10 text-teal-400 border-teal-500/30', label: 'Supervisores' },
   'HR': { icon: Briefcase, color: 'bg-orange-500/10 text-orange-400 border-orange-500/30', label: 'Recursos Humanos' },
   'Guarda': { icon: Shield, color: 'bg-green-500/10 text-green-400 border-green-500/30', label: 'Guardias' },
   'Residente': { icon: Home, color: 'bg-blue-500/10 text-blue-400 border-blue-500/30', label: 'Residentes' },
