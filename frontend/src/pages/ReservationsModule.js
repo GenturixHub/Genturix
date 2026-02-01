@@ -931,6 +931,42 @@ const ReservationsModule = () => {
     }
   };
   
+  // Open cancel reservation dialog (for admin)
+  const openCancelReservationDialog = (reservation) => {
+    setReservationToCancel(reservation);
+    setCancelReason('');
+    setShowCancelReservationDialog(true);
+  };
+  
+  // Confirm and execute admin cancellation using DELETE endpoint
+  const confirmCancelReservation = async () => {
+    if (!reservationToCancel) return;
+    
+    setIsCancelling(true);
+    try {
+      await api.cancelReservation(reservationToCancel.id, cancelReason || null);
+      toast.success('Reservación cancelada. El espacio ha sido liberado.');
+      setShowCancelReservationDialog(false);
+      setReservationToCancel(null);
+      setCancelReason('');
+      fetchData();
+    } catch (error) {
+      const errorMessage = error?.message || (typeof error === 'string' ? error : 'Error al cancelar reservación');
+      toast.error(errorMessage);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+  
+  // Close cancel dialog
+  const closeCancelReservationDialog = () => {
+    if (!isCancelling) {
+      setShowCancelReservationDialog(false);
+      setReservationToCancel(null);
+      setCancelReason('');
+    }
+  };
+  
   const openEditArea = (area) => {
     setEditingArea(area);
     setShowAreaDialog(true);
