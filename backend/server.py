@@ -2570,12 +2570,40 @@ async def fast_checkin(
         auth_status = authorization.get("status", "pending")
         auth_type_value = authorization.get("authorization_type", "temporary")
         
-        # For TEMPORARY and EXTENDED authorizations, check if already used
-        if auth_type_value in ["temporary", "extended"] and auth_status == "used":
-            raise HTTPException(
-                status_code=409, 
-                detail="Esta autorización ya fue utilizada. No se puede usar nuevamente."
-            )
+        # For TEMPORARY and EXTENDED authorizations, check multiple indicators of usage
+        if auth_type_value in ["temporary", "extended"]:
+            # Check 1: Status is "used"
+            if auth_status == "used":
+                raise HTTPException(
+                    status_code=409, 
+                    detail="Esta autorización ya fue utilizada. No se puede usar nuevamente."
+                )
+            
+            # Check 2: checked_in_at is set
+            if authorization.get("checked_in_at"):
+                # Fix the status and reject
+                await db.visitor_authorizations.update_one(
+                    {"id": checkin_data.authorization_id},
+                    {"$set": {"status": "used"}}
+                )
+                raise HTTPException(
+                    status_code=409, 
+                    detail="Esta autorización ya tiene un registro de entrada. No se puede usar nuevamente."
+                )
+            
+            # Check 3: There's already an entry in visitor_entries with this authorization_id
+            existing_entry = await db.visitor_entries.find_one({"authorization_id": checkin_data.authorization_id})
+            if existing_entry:
+                # Fix the status and reject
+                await db.visitor_authorizations.update_one(
+                    {"id": checkin_data.authorization_id},
+                    {"$set": {"status": "used"}}
+                )
+                logger.warning(f"[check-in] BLOCKED duplicate check-in for auth {checkin_data.authorization_id[:8]} - entry already exists")
+                raise HTTPException(
+                    status_code=409, 
+                    detail="Ya existe un registro de entrada para esta autorización. No se permite duplicar."
+                )
         # ==========================================================================================
         
         validity = check_authorization_validity(authorization)
