@@ -1904,6 +1904,46 @@ const GuardUI = () => {
     };
   }, []);
 
+  // Auto-subscribe to push notifications for guards
+  useEffect(() => {
+    const subscribeGuardToPush = async () => {
+      try {
+        const { PushNotificationManager } = await import('../utils/PushNotificationManager');
+        
+        if (!PushNotificationManager.isSupported()) {
+          console.log('[Guard] Push notifications not supported');
+          return;
+        }
+        
+        // Request permission
+        const permission = await pushManager.requestPermission();
+        if (permission !== 'granted') {
+          console.log('[Guard] Push permission not granted:', permission);
+          return;
+        }
+        
+        // Get VAPID key
+        const vapidResponse = await api.getVapidPublicKey();
+        if (!vapidResponse?.publicKey) {
+          console.log('[Guard] No VAPID key from server');
+          return;
+        }
+        
+        // Subscribe
+        const subscriptionData = await pushManager.subscribe(vapidResponse.publicKey);
+        await api.subscribeToPush(subscriptionData);
+        console.log('[Guard] Successfully subscribed to push notifications');
+        
+      } catch (error) {
+        console.error('[Guard] Error subscribing to push:', error);
+      }
+    };
+    
+    // Delay to not interfere with initial load
+    const timer = setTimeout(subscribeGuardToPush, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Handler for tab changes - stops panic sound when navigating to alerts tab
   const handleTabChange = useCallback((newTab) => {
     // Stop panic sound when navigating to alerts tab
