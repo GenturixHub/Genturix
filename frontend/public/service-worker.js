@@ -1,5 +1,6 @@
 // GENTURIX Service Worker for PWA + Push Notifications
-const CACHE_NAME = 'genturix-v2';
+// VERSION 3 - Fixed duplicate sounds
+const CACHE_NAME = 'genturix-v3';
 const OFFLINE_URL = '/offline.html';
 
 // Assets to cache
