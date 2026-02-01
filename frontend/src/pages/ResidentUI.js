@@ -926,13 +926,121 @@ const ResidentUI = () => {
             <p className="text-xs text-muted-foreground truncate max-w-[140px]">{user?.full_name}</p>
           </div>
         </div>
-        <button
-          onClick={handleLogout}
-          className="p-2 rounded-lg text-muted-foreground hover:text-white hover:bg-white/5 transition-colors"
-          data-testid="logout-btn"
-        >
-          <LogOut className="w-5 h-5" />
-        </button>
+        
+        <div className="flex items-center gap-2">
+          {/* Notifications Bell */}
+          <DropdownMenu open={isNotificationsOpen} onOpenChange={handleNotificationsDropdownOpenChange}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative"
+                data-testid="resident-notifications-btn"
+              >
+                <Bell className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <span 
+                    className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-[10px] font-bold flex items-center justify-center animate-pulse"
+                    data-testid="resident-notification-badge"
+                  >
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-80 bg-[#0F111A] border-[#1E293B]">
+              <DropdownMenuLabel className="flex items-center justify-between">
+                <span>Notificaciones</span>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 px-2"
+                    onClick={handleRefreshNotifications}
+                    disabled={isRefreshingNotifications}
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isRefreshingNotifications ? 'animate-spin' : ''}`} />
+                  </Button>
+                  {unreadCount > 0 && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-6 px-2 text-primary"
+                      onClick={handleMarkAllRead}
+                      title="Marcar todas como leídas"
+                    >
+                      <CheckCheck className="w-3 h-3" />
+                    </Button>
+                  )}
+                  <span className="text-xs text-muted-foreground">
+                    {unreadCount > 0 ? `${unreadCount} sin leer` : 'Al día'}
+                  </span>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-[#1E293B]" />
+              {notifications.length === 0 ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                  No tienes notificaciones pendientes
+                </div>
+              ) : (
+                <div className="max-h-80 overflow-y-auto">
+                  {notifications.map((notif) => (
+                    <DropdownMenuItem 
+                      key={notif.id} 
+                      className={`flex items-start gap-3 py-3 cursor-pointer ${!notif.read ? 'bg-primary/5' : ''}`}
+                    >
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        notif.type === 'visitor_arrival' 
+                          ? 'bg-green-500/20 text-green-400' 
+                          : 'bg-orange-500/20 text-orange-400'
+                      }`}>
+                        {notif.type === 'visitor_arrival' ? (
+                          <UserCheck className="w-4 h-4" />
+                        ) : (
+                          <LogOut className="w-4 h-4" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm ${notif.read ? 'text-muted-foreground' : 'font-medium'}`}>
+                          {notif.type === 'visitor_arrival' ? 'Visitante ingresó' : 'Visitante salió'}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {notif.visitor_name || 'Visitante'}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          {new Date(notif.created_at).toLocaleString('es-ES', { 
+                            day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                      {!notif.read && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 flex-shrink-0"
+                          onClick={(e) => handleMarkNotificationRead(notif.id, e)}
+                          title="Marcar como leída"
+                        >
+                          <Check className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </div>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            className="p-2 rounded-lg text-muted-foreground hover:text-white hover:bg-white/5 transition-colors"
+            data-testid="logout-btn"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
       </header>
 
       {/* Tabs */}
