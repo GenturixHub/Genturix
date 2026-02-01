@@ -505,6 +505,29 @@ const DashboardPage = () => {
     fetchData();
   }, []);
 
+  // Handle seat upgrade
+  const handleUpgradeSeats = async () => {
+    if (additionalSeats < 1) return;
+    
+    setIsUpgrading(true);
+    try {
+      const result = await api.upgradeSeats(additionalSeats);
+      if (result.url) {
+        window.location.href = result.url;
+      }
+    } catch (error) {
+      console.error('Error creating upgrade checkout:', error);
+      alert(error.message || 'Error al procesar la actualización');
+    } finally {
+      setIsUpgrading(false);
+    }
+  };
+
+  // Check if can create users based on billing
+  const canCreateUsers = billingInfo?.can_create_users !== false;
+  const isAtSeatLimit = billingInfo && billingInfo.remaining_seats <= 0;
+  const billingStatusWarning = billingInfo?.billing_status && !['active', 'trialing'].includes(billingInfo.billing_status);
+
   if (isLoading) {
     return (
       <DashboardLayout title="Dashboard">
