@@ -186,6 +186,8 @@ const AlertsTab = ({ alerts, onResolve, resolvingId, onRefresh, isRefreshing, hi
   }, [highlightedAlertId, alerts]);
 
   const handleOpenAlert = (alert) => {
+    // CRITICAL: Stop panic sound immediately when opening an alert
+    AlertSoundManager.stop();
     setSelectedAlert(alert);
     setResolutionNotes('');
     setShowModal(true);
