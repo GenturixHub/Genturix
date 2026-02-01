@@ -348,27 +348,65 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
               Verificando disponibilidad...
             </div>
           ) : availability && (
-            <div className={`p-3 rounded-lg text-xs ${
-              availability.is_available 
-                ? 'bg-green-500/10 border border-green-500/30 text-green-400'
-                : 'bg-red-500/10 border border-red-500/30 text-red-400'
-            }`}>
-              <div className="flex items-center gap-2">
-                {availability.is_available ? (
-                  <>
-                    <CheckCircle className="w-3.5 h-3.5" />
-                    <span>{availability.slots_remaining} espacios disponibles</span>
-                  </>
-                ) : (
-                  <>
-                    <AlertCircle className="w-3.5 h-3.5" />
-                    <span>No hay disponibilidad para esta fecha</span>
-                  </>
+            <div className="space-y-3">
+              {/* Main availability status */}
+              <div className={`p-3 rounded-lg text-xs ${
+                availability.is_available 
+                  ? 'bg-green-500/10 border border-green-500/30 text-green-400'
+                  : 'bg-red-500/10 border border-red-500/30 text-red-400'
+              }`}>
+                <div className="flex items-center gap-2">
+                  {availability.is_available ? (
+                    <>
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      <span>{availability.slots_remaining} espacios disponibles</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      <span>{availability.message || 'No hay disponibilidad para esta fecha'}</span>
+                    </>
+                  )}
+                </div>
+                {!availability.is_day_allowed && (
+                  <div className="mt-1 text-[10px] opacity-80">
+                    {availability.day_name && `${availability.day_name} no está habilitado para esta área`}
+                  </div>
                 )}
               </div>
-              {availability.reserved_slots?.length > 0 && (
-                <div className="mt-2 text-muted-foreground">
-                  Horarios ocupados: {availability.reserved_slots.map(s => `${s.start_time}-${s.end_time}`).join(', ')}
+              
+              {/* Visual time slots */}
+              {availability.is_day_allowed && availability.time_slots?.length > 0 && (
+                <div className="bg-[#0A0A0F] rounded-lg p-3 border border-[#1E293B]">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground font-medium">Disponibilidad por horario</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {availability.time_slots.map((slot, idx) => (
+                      <div 
+                        key={idx}
+                        className={`px-2 py-1.5 rounded text-[10px] text-center transition-all ${
+                          slot.status === 'available' 
+                            ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                            : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                        }`}
+                        title={slot.status === 'available' ? 'Disponible' : 'Ocupado'}
+                      >
+                        {slot.start_time.slice(0, 5)}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-4 mt-2 text-[10px] text-muted-foreground">
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-sm bg-green-500/40" />
+                      <span>Disponible</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-sm bg-red-500/40" />
+                      <span>Ocupado</span>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
