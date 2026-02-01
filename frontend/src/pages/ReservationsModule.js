@@ -1137,6 +1137,7 @@ const ReservationsModule = () => {
                       isAdmin={true}
                       onApprove={(r) => handleUpdateReservation(r.id, 'approved')}
                       onReject={(r) => handleUpdateReservation(r.id, 'rejected')}
+                      onCancel={openCancelReservationDialog}
                     />
                   ))}
                 </div>
