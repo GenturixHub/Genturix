@@ -112,7 +112,6 @@ class TestAdminAreaCRUD(TestSetup):
         # Store for cleanup
         self.__class__.created_area_id = area_id
         print(f"✓ Area created successfully: {area_id}, message: {data.get('message')}")
-        return data["id"]
     
     def test_create_area_error_handling(self, admin_headers):
         """Test that error messages are properly formatted (no [object Object])"""
