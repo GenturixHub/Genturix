@@ -2117,7 +2117,7 @@ const GuardUI = () => {
       )}
 
       {/* Tabs - Hidden on mobile, visible on desktop */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1 flex flex-col min-h-0">
         {/* Desktop Tabs - hidden on mobile */}
         {!isMobile && (
           <TabsList className="flex-shrink-0 grid grid-cols-8 bg-[#0A0A0F] border-b border-[#1E293B] rounded-none h-14 p-0">
