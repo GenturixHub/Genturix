@@ -509,6 +509,25 @@ const VisitorCheckInGuard = () => {
     }
   }, []);
 
+  // Cleanup legacy authorizations that weren't properly marked as used
+  const handleCleanup = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      const result = await api.cleanupAuthorizations();
+      if (result.fixed_count > 0) {
+        toast.success(`🧹 Se limpiaron ${result.fixed_count} autorizaciones duplicadas`);
+        // Refresh data after cleanup
+        await fetchData();
+      } else {
+        toast.info('✓ No hay autorizaciones para limpiar');
+      }
+    } catch (error) {
+      toast.error('Error al limpiar autorizaciones');
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [fetchData]);
+
   useEffect(() => {
     fetchData();
     // Poll every 15 seconds
