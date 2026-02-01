@@ -459,6 +459,7 @@ class ApiService {
   
   // Resident notifications
   getVisitorNotifications = (unreadOnly = false) => this.get(`/resident/visitor-notifications${unreadOnly ? '?unread_only=true' : ''}`);
+  getResidentUnreadNotificationCount = () => this.get('/resident/visitor-notifications/unread-count');
   markNotificationRead = (notificationId) => this.put(`/resident/visitor-notifications/${notificationId}/read`);
   markAllNotificationsRead = () => this.put('/resident/visitor-notifications/read-all');
   
