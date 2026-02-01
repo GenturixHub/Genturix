@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 1, 2026 (Session 52 - Theme & Emergency Button Enhancement)
+## Last Updated: February 1, 2026 (Session 52 - Push Notifications)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,61 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
+
+### Session 52 - Contextual Push Notifications (February 1, 2026) ⭐⭐⭐⭐⭐
+
+**Objective:**
+Implementar notificaciones push contextuales basadas en eventos reales del sistema.
+
+**Implementation:**
+
+**1. Backend Helper Functions:**
+```python
+# New functions in server.py:
+- send_push_to_user(user_id, payload) # Push to specific user
+- send_push_to_guards(condominium_id, payload) # Push to all guards
+- send_push_to_admins(condominium_id, payload) # Push to all admins
+- create_and_send_notification() # Creates DB record + sends push
+```
+
+**2. Events with Push Notifications:**
+
+| Event | Target User | Push Message |
+|-------|-------------|--------------|
+| Check-in | Resident | 🚪 Tu visitante ha llegado: {nombre} |
+| Check-out | Resident | 👋 Tu visitante ha salido: {nombre} (duración) |
+| Pre-registration | Guards | 📋 Nuevo visitante preregistrado |
+| Reservation created (auto-approved) | Resident | ✅ Reservación confirmada |
+| Reservation pending | Admins | 📅 Nueva reservación pendiente |
+| Reservation approved | Resident | ✅ Reservación aprobada |
+| Reservation rejected | Resident | ❌ Reservación rechazada (motivo) |
+
+**3. Duplicate Prevention:**
+```python
+# Check for duplicate within 1 minute window
+duplicate_check = {
+    "type": notification_type,
+    "user_id": user_id,
+    "created_at": {"$gte": 1_minute_ago}
+}
+```
+
+**4. Frontend Changes:**
+- Residents can now subscribe to push (was guards-only)
+- Auto-subscription on ResidentUI load
+- Notifications stored in `resident_notifications` collection
+
+**Files Modified:**
+- `/app/backend/server.py` - Added helper functions and push integration
+- `/app/frontend/src/pages/ResidentUI.js` - Auto push subscription
+
+**Testing:**
+- ✅ Residents can subscribe to push
+- ✅ VAPID key endpoint works
+- ✅ Notifications appear in bell dropdown
+- ✅ No duplicate notifications
+
+---
 
 ### Session 52 - P0 UX: Emergency Hero Action Layout (February 1, 2026) ⭐⭐⭐⭐⭐
 
