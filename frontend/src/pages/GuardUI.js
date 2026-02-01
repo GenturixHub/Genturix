@@ -1478,7 +1478,7 @@ const AbsencesTab = () => {
         <DialogContent className="bg-[#0A0A0F] border-[#1E293B] max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <CalendarPlus className="w-5 h-5 text-purple-400" />
+              <CalendarPlus className="w-5 h-5 text-cyan-400" />
               Nueva Solicitud de Ausencia
             </DialogTitle>
             <DialogDescription>
@@ -1568,7 +1568,7 @@ const AbsencesTab = () => {
               Cancelar
             </Button>
             <Button 
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-cyan-600 hover:bg-cyan-700"
               onClick={handleSubmit}
               disabled={isSubmitting}
               data-testid="submit-absence-btn"
