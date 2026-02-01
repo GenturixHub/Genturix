@@ -3240,27 +3240,35 @@ async def fast_checkout(
         }}
     )
     
-    # Create notification for resident
+    # Create notification AND send push to resident (optional for exit)
     resident_id = entry.get("resident_id")
     if resident_id:
-        notification_doc = {
-            "id": str(uuid.uuid4()),
-            "type": "visitor_exit",
-            "user_id": resident_id,
-            "condominium_id": condo_id,
-            "title": "Tu visitante ha salido",
-            "message": f"{entry.get('visitor_name')} ha salido del condominio",
-            "data": {
+        # Format duration for display
+        duration_text = ""
+        if duration_minutes:
+            hours = duration_minutes // 60
+            mins = duration_minutes % 60
+            if hours > 0:
+                duration_text = f" (duración: {hours}h {mins}m)"
+            else:
+                duration_text = f" (duración: {mins} min)"
+        
+        await create_and_send_notification(
+            user_id=resident_id,
+            condominium_id=condo_id,
+            notification_type="visitor_exit",
+            title="👋 Tu visitante ha salido",
+            message=f"{entry.get('visitor_name')} ha salido del condominio{duration_text}",
+            data={
                 "entry_id": entry_id,
                 "visitor_name": entry.get("visitor_name"),
                 "exit_at": now_iso,
                 "duration_minutes": duration_minutes,
                 "guard_name": current_user.get("full_name")
             },
-            "read": False,
-            "created_at": now_iso
-        }
-        await db.resident_notifications.insert_one(notification_doc)
+            send_push=True,  # Optional - can be configured per user
+            url="/resident?tab=history"
+        )
         
         await log_audit_event(
             AuditEventType.VISITOR_EXIT_NOTIFIED,
