@@ -462,17 +462,11 @@ const GuardHistoryVisual = () => {
       const filteredHistory = data.filter(h => new Date(h.timestamp) >= filterDate);
       setHistory(filteredHistory);
     } catch (error) {
-      console.error('Error fetching history:', error);
-      setHistory([]);
+      console.error('Error refreshing history:', error);
     } finally {
-      setLoading(false);
       setRefreshing(false);
     }
   };
-
-  useEffect(() => {
-    fetchHistory();
-  }, [filter]);
 
   // Computed values
   const hourlyData = useMemo(() => generateHourlyData(history), [history]);
