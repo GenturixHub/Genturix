@@ -1970,10 +1970,10 @@ const GuardUI = () => {
       {/* Header with Clock Status */}
       <header className="flex-shrink-0 p-2 flex items-center justify-between border-b border-[#1E293B] bg-[#0A0A0F]">
         <div className="flex items-center gap-2">
-          {/* Clickable Avatar - navigates to profile */}
+          {/* Clickable Avatar - opens embedded profile tab (no separate page) */}
           <div 
             className="cursor-pointer group"
-            onClick={() => isMobile ? setActiveTab('profile') : navigate('/profile')}
+            onClick={() => setActiveTab('profile')}
             data-testid="guard-profile-avatar"
           >
             <Avatar className={`w-9 h-9 border-2 ${isClockedIn ? 'border-green-500' : 'border-gray-500'} transition-transform group-hover:scale-110`}>
@@ -1985,7 +1985,7 @@ const GuardUI = () => {
           </div>
           <div 
             className="cursor-pointer hover:opacity-80"
-            onClick={() => isMobile ? setActiveTab('profile') : navigate('/profile')}
+            onClick={() => setActiveTab('profile')}
           >
             <h1 className="text-xs font-bold tracking-wide">GENTURIX</h1>
             <p className="text-[10px] text-muted-foreground truncate max-w-[100px]">{user?.full_name}</p>
@@ -2012,13 +2012,13 @@ const GuardUI = () => {
             )}
           </Button>
           
-          {/* Profile quick access - hide on mobile (use bottom nav) */}
+          {/* Profile quick access - uses embedded profile tab (no separate page) */}
           {!isMobile && (
             <Button 
               variant="ghost" 
               size="icon" 
               className="h-8 w-8" 
-              onClick={() => navigate('/profile')}
+              onClick={() => setActiveTab('profile')}
               data-testid="guard-profile-btn"
               title="Mi Perfil"
             >
