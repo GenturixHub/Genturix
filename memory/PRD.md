@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 1, 2026 (Session 46 - P0 Check-In Bug + UX Reservaciones + Mi Turno Fix)
+## Last Updated: February 1, 2026 (Session 47 - P0 Notification Badge Bug Fix VERIFIED)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,51 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
+
+### Session 47 - P0 BUG FIX: Campanita de Notificaciones Estática (February 1, 2026) ⭐⭐⭐⭐⭐
+
+**Problem:**
+El badge de la campanita siempre mostraba el mismo número y no se actualizaba al:
+- Abrir las notificaciones
+- Marcarlas como leídas
+- Cambiar de vista o refrescar
+
+**Solution Implemented:**
+
+**1. Backend - New Notification Endpoints (server.py):**
+```python
+GET  /api/notifications           # Lista notificaciones con campo 'read'
+GET  /api/notifications/unread-count  # Contador exacto de no leídas
+PUT  /api/notifications/{id}/read     # Marcar individual como leída
+PUT  /api/notifications/mark-all-read # Marcar todas como leídas
+```
+
+**2. Frontend - Dynamic Header.js:**
+- `unreadCount` state actualizado por polling cada 30 segundos
+- Badge dinámico: `{unreadCount > 0 && <span>{unreadCount}</span>}`
+- Auto-mark-as-read después de 2 segundos de visualizar dropdown
+- Botones de refresh y mark-all-read en dropdown
+- Toast notifications para feedback de acciones
+
+**3. Database Schema:**
+- Colección `guard_notifications` con campo `read: boolean`
+- `read_at: ISO timestamp` cuando se marca como leída
+
+**Testing Agent Verification:**
+- Backend: 92% (12/13 tests)
+- Frontend: 100% (all UI tests)
+- ✅ Badge desaparece cuando count=0
+- ✅ Auto-mark-as-read funciona
+- ✅ Estado persiste después de refrescar página
+
+**Files Modified:**
+- `/app/backend/server.py` - Nuevos endpoints (líneas 3076-3212)
+- `/app/frontend/src/components/layout/Header.js` - Componente rediseñado
+- `/app/frontend/src/services/api.js` - Nuevos métodos API
+
+**Test Report:** `/app/test_reports/iteration_47.json`
+
+---
 
 ### Session 46 - Latest Updates (February 1, 2026)
 
