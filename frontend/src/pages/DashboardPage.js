@@ -652,17 +652,45 @@ const DashboardPage = () => {
             <CardContent className="space-y-2 md:space-y-3">
               {hasRole('Administrador') && (
                 <>
+                  <div className="relative group">
+                    <Button
+                      className={`w-full justify-between h-12 ${canCreateUsers ? 'bg-primary hover:bg-primary/90' : 'bg-gray-600 cursor-not-allowed opacity-60'}`}
+                      onClick={() => canCreateUsers ? setShowCreateUser(true) : setShowUpgradeDialog(true)}
+                      data-testid="create-user-btn"
+                    >
+                      <span className="flex items-center gap-3">
+                        <UserPlus className="w-4 h-4" />
+                        Crear Usuario
+                        {!canCreateUsers && <AlertCircle className="w-4 h-4 text-yellow-400" />}
+                      </span>
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                    {!canCreateUsers && (
+                      <div className="absolute bottom-full left-0 right-0 mb-2 p-2 bg-gray-800 rounded text-xs text-center opacity-0 group-hover:opacity-100 transition-opacity z-50">
+                        Límite de usuarios alcanzado. Actualiza tu plan.
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Billing & Plan Button */}
                   <Button
-                    className="w-full justify-between h-12 bg-primary hover:bg-primary/90"
-                    onClick={() => setShowCreateUser(true)}
-                    data-testid="create-user-btn"
+                    variant="outline"
+                    className="w-full justify-between h-12 border-[#1E293B] hover:bg-muted"
+                    onClick={() => setShowUpgradeDialog(true)}
+                    data-testid="billing-btn"
                   >
                     <span className="flex items-center gap-3">
-                      <UserPlus className="w-4 h-4" />
-                      Crear Usuario
+                      <Wallet className="w-4 h-4 text-emerald-400" />
+                      Plan y Facturación
+                      {billingInfo && (
+                        <span className="text-xs text-muted-foreground">
+                          ({billingInfo.active_users}/{billingInfo.paid_seats})
+                        </span>
+                      )}
                     </span>
                     <ChevronRight className="w-4 h-4" />
                   </Button>
+                  
                   {isModuleEnabled('security') && (
                     <Button
                       variant="outline"
