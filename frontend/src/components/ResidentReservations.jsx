@@ -96,9 +96,9 @@ const DAYS_SHORT = { 'Lunes': 'L', 'Martes': 'M', 'Miércoles': 'X', 'Jueves': '
 // ============================================
 // Behavior labels for display
 const BEHAVIOR_LABELS = {
-  exclusive: { label: 'Exclusivo', color: 'bg-purple-500/20 text-purple-400' },
+  exclusive: { label: 'Exclusivo', color: 'bg-cyan-500/20 text-cyan-400' },
   capacity: { label: 'Por cupo', color: 'bg-blue-500/20 text-blue-400' },
-  slot_based: { label: 'Por turno', color: 'bg-cyan-500/20 text-cyan-400' },
+  slot_based: { label: 'Por turno', color: 'bg-teal-500/20 text-teal-400' },
   free_access: { label: 'Acceso libre', color: 'bg-green-500/20 text-green-400' }
 };
 
