@@ -573,15 +573,22 @@ const SecurityModule = () => {
                     </div>
                   </div>
                   <DialogFooter>
-                    <Button variant="outline" onClick={() => setAccessDialogOpen(false)}>
+                    <Button variant="outline" onClick={() => setAccessDialogOpen(false)} disabled={isCreatingAccess}>
                       Cancelar
                     </Button>
                     <Button 
                       onClick={handleCreateAccessLog}
-                      disabled={!accessForm.person_name || !accessForm.location}
+                      disabled={!accessForm.person_name || !accessForm.location || isCreatingAccess}
                       data-testid="confirm-access-btn"
                     >
-                      Registrar
+                      {isCreatingAccess ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Registrando...
+                        </>
+                      ) : (
+                        'Registrar'
+                      )}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
