@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 1, 2026 (Session 41 - P0 Check-In Duplicate Prevention)
+## Last Updated: February 1, 2026 (Session 41 - Resend Email Integration)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -9,7 +9,47 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
 
-### Session 41 - P0 CRITICAL FIX: Check-In Duplicate Prevention (February 1, 2026) ⭐⭐⭐⭐⭐
+### Session 41 - Resend Email Integration (DEMO Mode) ⭐⭐⭐⭐⭐
+
+#### ✅ EMAIL INTEGRATION ACTIVATED
+
+**Provider:** Resend
+**Mode:** DEMO (testing)
+**Sender:** onboarding@resend.dev
+
+**Email Flows Implemented:**
+
+1. **User Creation with Credentials**
+   - When admin creates a user with `send_credentials_email: true`
+   - Email contains: full name, email, temporary password, login link
+   - User is flagged for `password_reset_required`
+
+2. **Password Reset by Admin** (NEW)
+   - Endpoint: `POST /admin/users/{user_id}/reset-password`
+   - Generates new temporary password
+   - Sends email with new password
+   - Flags user for password reset on next login
+
+**Environment Variables:**
+```
+RESEND_API_KEY=re_MHqNnsKg_... (configured)
+SENDER_EMAIL=onboarding@resend.dev
+```
+
+**Email Toggle:**
+- Email sending can be enabled/disabled via Super Admin
+- `POST /config/email-status` with `{"email_enabled": true/false}`
+- When disabled: credentials shown in response, no email sent
+
+**Verification Results:**
+- ✅ User creation → Email sent successfully
+- ✅ Password reset → Email sent successfully
+- ✅ API key not exposed in logs
+- ✅ Graceful fallback when email disabled
+
+---
+
+### Earlier P0 Fix: Check-In Duplicate Prevention
 
 #### 🔴 P0 BUG FIXED: Preregistros se reutilizan infinitamente
 
