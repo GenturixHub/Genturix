@@ -475,16 +475,23 @@ const DashboardPage = () => {
   const [activities, setActivities] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateUser, setShowCreateUser] = useState(false);
+  // SaaS Billing State
+  const [billingInfo, setBillingInfo] = useState(null);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const [additionalSeats, setAdditionalSeats] = useState(10);
+  const [isUpgrading, setIsUpgrading] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [statsData, activityData] = await Promise.all([
+        const [statsData, activityData, billingData] = await Promise.all([
           api.getDashboardStats(),
-          api.getRecentActivity()
+          api.getRecentActivity(),
+          api.getBillingInfo().catch(() => null) // Don't fail if billing not available
         ]);
         setStats(statsData);
         setActivities(activityData);
+        setBillingInfo(billingData);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
