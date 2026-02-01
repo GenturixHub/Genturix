@@ -2099,7 +2099,7 @@ const SuperAdminDashboard = () => {
           )}
 
           <TabsContent value="overview">
-            <OverviewTab stats={stats} isLoading={isLoading} onRefresh={fetchData} onNavigateTab={setActiveTab} navigate={navigate} />
+            <OverviewTab stats={stats} billingOverview={billingOverview} isLoading={isLoading} onRefresh={fetchData} onNavigateTab={setActiveTab} navigate={navigate} />
           </TabsContent>
 
           <TabsContent value="condominiums">
