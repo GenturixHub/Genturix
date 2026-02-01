@@ -23,6 +23,7 @@ import {
 import { Input } from '../ui/input';
 import { toast } from 'sonner';
 import api from '../../services/api';
+import AlertSoundManager from '../../utils/AlertSoundManager';
 
 const Header = ({ onMenuClick, title }) => {
   const navigate = useNavigate();
