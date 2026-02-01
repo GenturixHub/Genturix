@@ -7445,6 +7445,65 @@ async def seed_demo_data():
         "estudiante": {"email": "estudiante@genturix.com", "password": "Stud123!"}
     }}
 
+# ==================== CLEANUP USED AUTHORIZATIONS ====================
+@api_router.post("/guard/cleanup-authorizations")
+async def cleanup_used_authorizations(
+    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
+):
+    """
+    Manually clean up authorizations that have been used but weren't marked as 'used'.
+    This fixes legacy data issues where temporary/extended authorizations weren't properly
+    marked after check-in.
+    """
+    condo_id = current_user.get("condominium_id")
+    
+    # Find all temporary/extended authorizations in this condominium
+    query = {
+        "condominium_id": condo_id,
+        "authorization_type": {"$in": ["temporary", "extended"]},
+        "status": {"$in": ["pending", None]},
+        "is_active": True
+    }
+    
+    authorizations = await db.visitor_authorizations.find(query, {"_id": 0}).to_list(500)
+    
+    fixed_count = 0
+    fixed_auths = []
+    
+    for auth in authorizations:
+        auth_id = auth.get("id")
+        
+        # Check if there's an entry in visitor_entries with this authorization_id
+        entry_exists = await db.visitor_entries.find_one({"authorization_id": auth_id})
+        
+        # Or check if checked_in_at is set or total_visits > 0
+        already_used = (
+            entry_exists or 
+            auth.get("checked_in_at") or 
+            (auth.get("total_visits", 0) > 0)
+        )
+        
+        if already_used:
+            # Mark as used
+            result = await db.visitor_authorizations.update_one(
+                {"id": auth_id},
+                {"$set": {"status": "used"}}
+            )
+            if result.modified_count > 0:
+                fixed_count += 1
+                fixed_auths.append({
+                    "visitor_name": auth.get("visitor_name"),
+                    "authorization_type": auth.get("authorization_type")
+                })
+                logger.info(f"[cleanup] Fixed auth {auth_id[:8]} - {auth.get('visitor_name')}")
+    
+    return {
+        "success": True,
+        "message": f"Se corrigieron {fixed_count} autorizaciones",
+        "fixed_count": fixed_count,
+        "fixed_authorizations": fixed_auths
+    }
+
 # ==================== HEALTH CHECK ====================
 @api_router.get("/")
 async def root():
