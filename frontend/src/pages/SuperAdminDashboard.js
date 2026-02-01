@@ -752,7 +752,7 @@ const OverviewTab = ({ stats, billingOverview, isLoading, onRefresh, onNavigateT
               onClick={() => onNavigateTab('users')}
               data-testid="quick-action-view-users"
             >
-              <Users className="w-5 h-5 text-purple-400" />
+              <Users className="w-5 h-5 text-cyan-400" />
               <span className="text-xs">Ver Usuarios</span>
             </Button>
             <Button 
