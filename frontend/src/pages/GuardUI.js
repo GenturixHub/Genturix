@@ -45,6 +45,7 @@ import { toast } from 'sonner';
 import api from '../services/api';
 import PushNotificationBanner from '../components/PushNotificationBanner';
 import VisitorCheckInGuard from '../components/VisitorCheckInGuard';
+import GuardHistoryVisual from '../components/GuardHistoryVisual';
 import { 
   Shield, 
   LogOut,
