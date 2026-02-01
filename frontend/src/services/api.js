@@ -425,6 +425,8 @@ class ApiService {
   updateReservationArea = (areaId, data) => this.patch(`/reservations/areas/${areaId}`, data);
   deleteReservationArea = (areaId) => this.delete(`/reservations/areas/${areaId}`);
   getAreaAvailability = (areaId, date) => this.get(`/reservations/availability/${areaId}?date=${date}`);
+  // NEW: Smart availability with behavior-based slot calculation
+  getSmartAvailability = (areaId, date) => this.get(`/reservations/smart-availability/${areaId}?date=${date}`);
   
   // Legacy aliases for backward compatibility
   getAreas = () => this.get('/reservations/areas');
