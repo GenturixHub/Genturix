@@ -701,9 +701,15 @@ const ResidentReservations = () => {
   };
   
   const handleCreateReservation = async (reservationData) => {
-    await api.createReservation(reservationData);
-    toast.success('Reservación creada exitosamente');
-    loadData();
+    try {
+      await api.createReservation(reservationData);
+      toast.success('Reservación creada exitosamente');
+      loadData();
+    } catch (error) {
+      const errorMessage = error?.message || (typeof error === 'string' ? error : 'Error al crear reservación');
+      toast.error(errorMessage);
+      throw error; // Re-throw to let the dialog know
+    }
   };
   
   const handleCancelReservation = async (reservation) => {
