@@ -293,6 +293,35 @@ class ApiService {
   // Super Admin - Condo Admin Creation
   createCondoAdmin = (condoId, data) => this.post(`/super-admin/condominiums/${condoId}/admin`, data);
 
+  // ==================== SAAS BILLING ====================
+  // Get billing info for current condominium
+  getBillingInfo = () => this.get('/billing/info');
+  
+  // Check if can create a new user
+  canCreateUser = () => this.get('/billing/can-create-user');
+  
+  // Upgrade seats - creates Stripe checkout session
+  upgradeSeats = (additionalSeats, originUrl = window.location.origin) => {
+    const params = new URLSearchParams({ origin_url: originUrl });
+    return this.post(`/billing/upgrade-seats?${params.toString()}`, { additional_seats: additionalSeats });
+  };
+  
+  // Get billing transaction history
+  getBillingHistory = () => this.get('/billing/history');
+  
+  // SuperAdmin: Get all condominiums billing overview
+  getAllCondominiumsBilling = () => this.get('/super-admin/billing/overview');
+  
+  // SuperAdmin: Update condominium billing settings
+  updateCondominiumBilling = (condoId, data) => {
+    const params = new URLSearchParams();
+    if (data.paid_seats !== undefined) params.append('paid_seats', data.paid_seats);
+    if (data.billing_status) params.append('billing_status', data.billing_status);
+    if (data.stripe_customer_id) params.append('stripe_customer_id', data.stripe_customer_id);
+    if (data.stripe_subscription_id) params.append('stripe_subscription_id', data.stripe_subscription_id);
+    return this.patch(`/super-admin/condominiums/${condoId}/billing?${params.toString()}`);
+  };
+
   // School
   createCourse = (data) => this.post('/school/courses', data);
   getCourses = () => this.get('/school/courses');
