@@ -9,7 +9,7 @@ import requests
 import os
 import time
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://fixphase.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://saas-dashboard-31.preview.emergentagent.com').rstrip('/')
 
 class TestShiftDeletion:
     """P0 BUG #1 - Shift Deletion Tests"""
