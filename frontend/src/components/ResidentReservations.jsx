@@ -432,7 +432,12 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
                   {availability.is_available ? (
                     <>
                       <CheckCircle className="w-3.5 h-3.5" />
-                      <span>{availability.slots_remaining} espacios disponibles</span>
+                      <span>
+                        {availability.reservation_behavior === 'capacity' 
+                          ? `${availability.available_slots_count} horarios disponibles`
+                          : `${availability.available_slots_count || availability.slots_remaining} espacios disponibles`
+                        }
+                      </span>
                     </>
                   ) : (
                     <>
@@ -441,6 +446,12 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
                     </>
                   )}
                 </div>
+                {/* Show user limit warning */}
+                {availability.user_can_reserve === false && (
+                  <div className="mt-1 text-[10px] opacity-80">
+                    Has alcanzado el límite de {availability.max_reservations_per_user_per_day} reservación(es) por día
+                  </div>
+                )}
                 {!availability.is_day_allowed && (
                   <div className="mt-1 text-[10px] opacity-80">
                     {availability.day_name && `${availability.day_name} no está habilitado para esta área`}
@@ -448,7 +459,7 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
                 )}
               </div>
               
-              {/* Visual time slots - CLICKABLE */}
+              {/* Visual time slots - CLICKABLE with CAPACITY support */}
               {availability.is_day_allowed && availability.time_slots?.length > 0 && (
                 <div className="bg-[#0A0A0F] rounded-lg p-3 border border-[#1E293B]">
                   <div className="flex items-center justify-between mb-2">
@@ -461,7 +472,23 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
                   <div className="grid grid-cols-4 gap-1.5">
                     {availability.time_slots.map((slot, idx) => {
                       const isSelected = selectedSlotIndex === idx;
-                      const isAvailable = slot.status === 'available';
+                      // Support both old (status) and new (available) formats
+                      const isAvailable = slot.available !== undefined ? slot.available : slot.status === 'available';
+                      const slotStatus = slot.status || (isAvailable ? 'available' : 'occupied');
+                      const slotTime = (slot.start || slot.start_time || '').slice(0, 5);
+                      
+                      // Determine slot color based on status (including new 'limited' and 'full' states)
+                      let slotClasses;
+                      if (isSelected) {
+                        slotClasses = 'bg-primary text-primary-foreground border-2 border-primary ring-2 ring-primary/30 scale-105';
+                      } else if (slotStatus === 'limited') {
+                        // Yellow for limited capacity
+                        slotClasses = 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 hover:bg-yellow-500/30 cursor-pointer';
+                      } else if (isAvailable) {
+                        slotClasses = 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 hover:scale-102 cursor-pointer';
+                      } else {
+                        slotClasses = 'bg-red-500/20 text-red-400 border border-red-500/30 cursor-not-allowed opacity-60';
+                      }
                       
                       return (
                         <button 
@@ -469,17 +496,23 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
                           type="button"
                           onClick={() => handleSlotClick(slot, idx)}
                           disabled={!isAvailable}
-                          className={`px-2 py-2 rounded text-[11px] text-center transition-all font-medium ${
-                            isSelected
-                              ? 'bg-primary text-primary-foreground border-2 border-primary ring-2 ring-primary/30 scale-105'
-                              : isAvailable 
-                                ? 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 hover:scale-102 cursor-pointer' 
-                                : 'bg-red-500/20 text-red-400 border border-red-500/30 cursor-not-allowed opacity-60'
-                          }`}
-                          title={isAvailable ? 'Clic para seleccionar este horario' : 'Horario ocupado'}
+                          className={`px-2 py-2 rounded text-[11px] text-center transition-all font-medium ${slotClasses}`}
+                          title={
+                            isAvailable 
+                              ? (slot.remaining_slots !== undefined 
+                                  ? `${slotTime} - ${slot.remaining_slots}/${slot.total_capacity} cupos`
+                                  : 'Clic para seleccionar este horario')
+                              : (slotStatus === 'full' ? 'Sin cupos disponibles' : 'Horario ocupado')
+                          }
                           data-testid={`time-slot-${idx}`}
                         >
-                          {slot.start_time.slice(0, 5)}
+                          <span>{slotTime}</span>
+                          {/* Show remaining slots for CAPACITY type */}
+                          {slot.remaining_slots !== undefined && slot.total_capacity > 1 && (
+                            <span className="block text-[9px] opacity-75 mt-0.5">
+                              {slot.remaining_slots}/{slot.total_capacity}
+                            </span>
+                          )}
                         </button>
                       );
                     })}
@@ -490,9 +523,16 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
                         <div className="w-2 h-2 rounded-sm bg-green-500/40" />
                         <span>Disponible</span>
                       </div>
+                      {/* Show yellow legend for capacity areas */}
+                      {availability.reservation_behavior === 'capacity' && (
+                        <div className="flex items-center gap-1">
+                          <div className="w-2 h-2 rounded-sm bg-yellow-500/40" />
+                          <span>Pocos cupos</span>
+                        </div>
+                      )}
                       <div className="flex items-center gap-1">
                         <div className="w-2 h-2 rounded-sm bg-red-500/40" />
-                        <span>Ocupado</span>
+                        <span>{availability.reservation_behavior === 'capacity' ? 'Lleno' : 'Ocupado'}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <div className="w-2 h-2 rounded-sm bg-primary" />
