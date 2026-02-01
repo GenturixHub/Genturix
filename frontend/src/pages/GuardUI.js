@@ -1950,6 +1950,20 @@ const GuardUI = () => {
     return () => clearInterval(interval);
   }, [fetchAlerts, fetchClockStatus]);
 
+  // Stop panic sound on component unmount (cleanup)
+  useEffect(() => {
+    return () => {
+      AlertSoundManager.stop();
+    };
+  }, []);
+
+  // Stop sound when guard views alerts tab (mounting)
+  useEffect(() => {
+    if (activeTab === 'alerts') {
+      AlertSoundManager.stop();
+    }
+  }, [activeTab]);
+
   // Vibrate on new active alerts
   useEffect(() => {
     const activeCount = alerts.filter(a => a.status === 'active').length;
