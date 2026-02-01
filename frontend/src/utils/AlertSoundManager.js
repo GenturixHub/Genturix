@@ -5,7 +5,8 @@
  * Prevents multiple audio instances and ensures sound stops
  * immediately when any interaction occurs.
  * 
- * Uses localStorage to coordinate across tabs - only ONE tab plays sound.
+ * Uses BroadcastChannel + localStorage to coordinate across tabs.
+ * Only ONE tab plays sound at a time.
  * 
  * Usage:
  *   import AlertSoundManager from '../utils/AlertSoundManager';
@@ -16,6 +17,7 @@
 
 const SOUND_LOCK_KEY = 'genturix_panic_sound_lock';
 const SOUND_LOCK_TIMEOUT = 5000; // 5 seconds max lock
+const BROADCAST_CHANNEL_NAME = 'genturix_alert_sound';
 
 class AlertSoundManagerClass {
   constructor() {
@@ -25,12 +27,26 @@ class AlertSoundManagerClass {
     this.currentOscillator = null;
     this.currentGain = null;
     this.tabId = Math.random().toString(36).substring(7);
+    this.broadcastChannel = null;
     
-    // Listen for storage events to detect stop from other tabs
+    // Setup cross-tab communication
     if (typeof window !== 'undefined') {
+      // BroadcastChannel for instant cross-tab communication
+      try {
+        this.broadcastChannel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
+        this.broadcastChannel.onmessage = (event) => {
+          if (event.data.type === 'STOP_ALL_SOUNDS') {
+            console.log('[AlertSoundManager] Received stop broadcast from another tab');
+            this._stopInternal();
+          }
+        };
+      } catch (e) {
+        console.warn('[AlertSoundManager] BroadcastChannel not supported');
+      }
+      
+      // Fallback: Listen for storage events
       window.addEventListener('storage', (e) => {
         if (e.key === SOUND_LOCK_KEY) {
-          // If lock was cleared or changed to different tab, stop our sound
           const lockData = e.newValue ? JSON.parse(e.newValue) : null;
           if (!lockData || lockData.tabId !== this.tabId) {
             this._stopInternal();
