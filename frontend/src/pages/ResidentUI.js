@@ -151,92 +151,118 @@ const STATUS_CONFIG = {
 };
 
 // ============================================
-// EMERGENCY BUTTON COMPONENT (Enhanced Design v2)
+// HERO EMERGENCY BUTTON (Emergencia General)
 // ============================================
-const EmergencyButton = ({ config, onPress, disabled, isLoading }) => {
-  const [isPressed, setIsPressed] = useState(false);
+const HeroEmergencyButton = ({ config, onPress, disabled, isLoading }) => {
   const [ripples, setRipples] = useState([]);
   const IconComponent = config.icon;
-
-  // Map config ID to CSS modifier class
-  const typeClass = {
-    'emergencia_medica': 'emergency-btn--medical',
-    'actividad_sospechosa': 'emergency-btn--suspicious',
-    'emergencia_general': 'emergency-btn--general',
-  }[config.id] || '';
 
   const handlePress = (e) => {
     if (disabled || isLoading) return;
     
-    // Haptic feedback
-    if (navigator.vibrate) navigator.vibrate(50);
+    // Strong haptic feedback for hero button
+    if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
     
-    // Create ripple effect
+    // Create ripple
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     const rippleId = Date.now();
     setRipples(prev => [...prev, { id: rippleId, x, y }]);
-    setTimeout(() => {
-      setRipples(prev => prev.filter(r => r.id !== rippleId));
-    }, 600);
+    setTimeout(() => setRipples(prev => prev.filter(r => r.id !== rippleId)), 600);
     
-    setIsPressed(true);
     onPress(config.id);
-    setTimeout(() => setIsPressed(false), 200);
   };
-
-  // Determine text color based on type
-  const textColor = config.id === 'actividad_sospechosa' ? 'text-gray-900' : 'text-white';
-  const iconColor = config.id === 'actividad_sospechosa' ? 'text-gray-900' : 'text-white';
 
   return (
     <button
       onClick={handlePress}
       disabled={disabled || isLoading}
       data-testid={`panic-btn-${config.id}`}
-      className={`
-        emergency-btn
-        ${typeClass}
-        ${isLoading ? 'is-loading' : ''}
-        ${isPressed ? 'scale-[0.97]' : ''}
-      `}
-      style={{ WebkitTapHighlightColor: 'transparent' }}
+      className={`emergency-hero ${isLoading ? 'is-loading' : ''}`}
     >
-      {/* Ripple effects */}
+      {/* Ripples */}
       {ripples.map(ripple => (
         <span
           key={ripple.id}
-          className="emergency-btn-ripple"
+          className="emergency-hero-ripple"
           style={{ left: ripple.x, top: ripple.y }}
         />
       ))}
       
-      {/* Main content */}
-      <div className="emergency-btn-content">
-        {/* Icon with background circle */}
-        <div className="emergency-icon-container">
-          <div className="emergency-icon-bg" />
-          {isLoading ? (
-            <Loader2 className={`emergency-icon ${iconColor} animate-spin`} />
-          ) : (
-            <IconComponent 
-              className={`emergency-icon ${iconColor}`} 
-              strokeWidth={2.5} 
-            />
-          )}
-        </div>
-        
-        {/* Text */}
-        <div className="emergency-btn-text">
-          <p className={`emergency-btn-label ${textColor}`}>
-            {config.label}
-          </p>
-          <p className={`emergency-btn-sublabel ${textColor}`}>
-            {config.subLabel}
-          </p>
-        </div>
+      {/* Icon */}
+      <div className="emergency-hero-icon">
+        <div className="emergency-hero-icon-bg" />
+        {isLoading ? (
+          <Loader2 className="animate-spin" />
+        ) : (
+          <IconComponent strokeWidth={2.5} />
+        )}
       </div>
+      
+      {/* Text */}
+      <div className="emergency-hero-text">
+        <p className="emergency-hero-label">{config.label}</p>
+        <p className="emergency-hero-sublabel">{config.subLabel}</p>
+      </div>
+    </button>
+  );
+};
+
+// ============================================
+// SECONDARY EMERGENCY BUTTON (Médica & Sospechosa)
+// ============================================
+const SecondaryEmergencyButton = ({ config, variant, onPress, disabled, isLoading }) => {
+  const [ripples, setRipples] = useState([]);
+  const IconComponent = config.icon;
+
+  const handlePress = (e) => {
+    if (disabled || isLoading) return;
+    
+    // Light haptic
+    if (navigator.vibrate) navigator.vibrate(30);
+    
+    // Create ripple
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const rippleId = Date.now();
+    setRipples(prev => [...prev, { id: rippleId, x, y }]);
+    setTimeout(() => setRipples(prev => prev.filter(r => r.id !== rippleId)), 500);
+    
+    onPress(config.id);
+  };
+
+  return (
+    <button
+      onClick={handlePress}
+      disabled={disabled || isLoading}
+      data-testid={`panic-btn-${config.id}`}
+      className={`emergency-secondary emergency-secondary--${variant} ${isLoading ? 'is-loading' : ''}`}
+    >
+      {/* Ripples */}
+      {ripples.map(ripple => (
+        <span
+          key={ripple.id}
+          className="emergency-secondary-ripple"
+          style={{ left: ripple.x, top: ripple.y }}
+        />
+      ))}
+      
+      {/* Icon */}
+      <div className="emergency-secondary-icon">
+        <div className="emergency-secondary-icon-bg" />
+        {isLoading ? (
+          <Loader2 className="animate-spin" />
+        ) : (
+          <IconComponent strokeWidth={2.5} />
+        )}
+      </div>
+      
+      {/* Label - shorter text */}
+      <p className="emergency-secondary-label">
+        {config.id === 'emergencia_medica' ? 'MÉDICA' : 'SOSPECHOSA'}
+      </p>
     </button>
   );
 };
