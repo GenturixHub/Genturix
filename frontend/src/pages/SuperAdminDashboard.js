@@ -1970,18 +1970,21 @@ const SuperAdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState(null);
   const [condos, setCondos] = useState([]);
+  const [billingOverview, setBillingOverview] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchData = useCallback(async (showToast = false) => {
     if (showToast) setIsRefreshing(true);
     try {
-      const [statsData, condosData] = await Promise.all([
+      const [statsData, condosData, billingData] = await Promise.all([
         api.getPlatformStats(),
-        api.getCondominiums()
+        api.getCondominiums(),
+        api.getAllCondominiumsBilling().catch(() => null)
       ]);
       setStats(statsData);
       setCondos(condosData);
+      setBillingOverview(billingData);
       if (showToast) {
         toast.success('Datos actualizados correctamente');
       }
