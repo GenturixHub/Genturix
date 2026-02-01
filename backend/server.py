@@ -7444,6 +7444,50 @@ async def seed_demo_data():
         "estudiante": {"email": "estudiante@genturix.com", "password": "Stud123!"}
     }}
 
+# ==================== DIAGNOSTIC ENDPOINT ====================
+@api_router.get("/guard/diagnose-authorizations")
+async def diagnose_authorizations(
+    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
+):
+    """
+    Diagnostic endpoint to check authorization state.
+    Returns detailed info about pending authorizations and their usage.
+    """
+    condo_id = current_user.get("condominium_id")
+    
+    # Get all pending temporary/extended authorizations
+    pending = await db.visitor_authorizations.find({
+        "condominium_id": condo_id,
+        "authorization_type": {"$in": ["temporary", "extended"]},
+        "status": {"$in": ["pending", None]},
+        "is_active": True
+    }, {"_id": 0}).to_list(100)
+    
+    results = []
+    for auth in pending:
+        auth_id = auth.get("id")
+        
+        # Check for entries with this auth_id
+        entries = await db.visitor_entries.find({"authorization_id": auth_id}, {"_id": 0}).to_list(10)
+        
+        results.append({
+            "id": auth_id[:12] + "...",
+            "visitor_name": auth.get("visitor_name"),
+            "authorization_type": auth.get("authorization_type"),
+            "status": auth.get("status"),
+            "checked_in_at": auth.get("checked_in_at"),
+            "total_visits": auth.get("total_visits", 0),
+            "entries_count": len(entries),
+            "entries": [{"entry_at": e.get("entry_at"), "visitor_name": e.get("visitor_name")} for e in entries[:3]],
+            "SHOULD_BE_USED": len(entries) > 0 or auth.get("checked_in_at") or (auth.get("total_visits", 0) > 0)
+        })
+    
+    return {
+        "condo_id": condo_id[:12] + "..." if condo_id else None,
+        "total_pending": len(pending),
+        "authorizations": results
+    }
+
 # ==================== CLEANUP USED AUTHORIZATIONS ====================
 @api_router.post("/guard/cleanup-authorizations")
 async def cleanup_used_authorizations(
