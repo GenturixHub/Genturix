@@ -205,7 +205,30 @@ const ReservationCard = ({ reservation, isAdmin, onApprove, onReject, onCancel }
   const statusConfig = STATUS_CONFIG[reservation.status] || STATUS_CONFIG.pending;
   const StatusIcon = statusConfig.icon;
   const AreaIcon = AREA_ICONS[reservation.area_type] || MoreHorizontal;
-  const canCancel = reservation.status === 'pending';
+  
+  // Determine if cancellation is allowed
+  const canCancel = (() => {
+    // Can only cancel pending or approved reservations
+    if (!['pending', 'approved'].includes(reservation.status)) return false;
+    
+    // For non-admin, also check if reservation has started
+    if (!isAdmin) {
+      try {
+        const now = new Date();
+        const [year, month, day] = reservation.date.split('-').map(Number);
+        const [startHour, startMin] = reservation.start_time.split(':').map(Number);
+        const reservationStart = new Date(year, month - 1, day, startHour, startMin);
+        if (now >= reservationStart) return false;
+      } catch (e) {
+        return true;
+      }
+    }
+    
+    return true;
+  })();
+  
+  // Admin can cancel any non-completed/non-cancelled reservation
+  const adminCanCancel = isAdmin && ['pending', 'approved'].includes(reservation.status);
   
   return (
     <Card className="bg-[#0F111A] border-[#1E293B]">
@@ -249,6 +272,12 @@ const ReservationCard = ({ reservation, isAdmin, onApprove, onReject, onCancel }
                   {reservation.purpose}
                 </p>
               )}
+              {/* Show cancellation reason if available */}
+              {reservation.status === 'cancelled' && reservation.cancellation_reason && (
+                <p className="text-xs text-red-400 mt-1">
+                  Motivo: {reservation.cancellation_reason}
+                </p>
+              )}
             </div>
           </div>
           <Badge className={`${statusConfig.color} flex-shrink-0`}>
@@ -257,35 +286,65 @@ const ReservationCard = ({ reservation, isAdmin, onApprove, onReject, onCancel }
           </Badge>
         </div>
         
-        {/* Actions */}
+        {/* Admin Actions - Pending: Approve/Reject + Cancel */}
         {isAdmin && reservation.status === 'pending' && (
-          <div className="flex gap-2 mt-3">
+          <div className="flex flex-col gap-2 mt-3">
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 border-red-500/50 text-red-400 hover:bg-red-500/10"
+                onClick={() => onReject(reservation)}
+                data-testid={`reject-reservation-${reservation.id}`}
+              >
+                <XCircle className="w-3 h-3 mr-1" />
+                Rechazar
+              </Button>
+              <Button
+                size="sm"
+                className="flex-1 bg-green-600 hover:bg-green-700"
+                onClick={() => onApprove(reservation)}
+                data-testid={`approve-reservation-${reservation.id}`}
+              >
+                <CheckCircle className="w-3 h-3 mr-1" />
+                Aprobar
+              </Button>
+            </div>
             <Button
               size="sm"
               variant="outline"
-              className="flex-1 border-red-500/50 text-red-400 hover:bg-red-500/10"
-              onClick={() => onReject(reservation)}
+              className="w-full text-orange-400 border-orange-500/30 hover:bg-orange-500/10"
+              onClick={() => onCancel(reservation)}
+              data-testid={`admin-cancel-reservation-${reservation.id}`}
             >
-              <XCircle className="w-3 h-3 mr-1" />
-              Rechazar
-            </Button>
-            <Button
-              size="sm"
-              className="flex-1 bg-green-600 hover:bg-green-700"
-              onClick={() => onApprove(reservation)}
-            >
-              <CheckCircle className="w-3 h-3 mr-1" />
-              Aprobar
+              <Trash2 className="w-3 h-3 mr-1" />
+              Cancelar Reservación
             </Button>
           </div>
         )}
         
+        {/* Admin Actions - Approved: Just Cancel */}
+        {isAdmin && reservation.status === 'approved' && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full mt-3 text-orange-400 border-orange-500/30 hover:bg-orange-500/10"
+            onClick={() => onCancel(reservation)}
+            data-testid={`admin-cancel-reservation-${reservation.id}`}
+          >
+            <Trash2 className="w-3 h-3 mr-1" />
+            Cancelar Reservación
+          </Button>
+        )}
+        
+        {/* Non-admin Cancel */}
         {!isAdmin && canCancel && (
           <Button
             size="sm"
             variant="outline"
             className="w-full mt-3 text-red-400 hover:bg-red-500/10"
             onClick={() => onCancel(reservation)}
+            data-testid={`cancel-reservation-${reservation.id}`}
           >
             <XCircle className="w-3 h-3 mr-1" />
             Cancelar Reservación
