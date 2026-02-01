@@ -95,7 +95,7 @@ const MODULES_CONFIG = {
     icon: Calendar, 
     description: 'Áreas comunes, amenidades',
     mandatory: false,
-    color: 'text-purple-400'
+    color: 'text-cyan-400'
   },
   school: { 
     label: 'Escuela', 
