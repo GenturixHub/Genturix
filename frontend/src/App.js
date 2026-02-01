@@ -347,17 +347,18 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
 
-      {/* Profile - Available to all authenticated users */}
+      {/* Profile - Available to all authenticated users EXCEPT Guards */}
+      {/* Guards have their own embedded profile in GuardUI */}
       <Route path="/profile" element={
         <ProtectedRoute>
-          <ProfilePage />
+          <ProfilePageOrRedirect />
         </ProtectedRoute>
       } />
       
       {/* View other user's profile */}
       <Route path="/profile/:userId" element={
         <ProtectedRoute>
-          <ProfilePage />
+          <ProfilePageOrRedirect />
         </ProtectedRoute>
       } />
 
