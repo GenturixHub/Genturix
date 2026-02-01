@@ -2577,14 +2577,27 @@ async def fast_checkin(
     
     await db.visitor_entries.insert_one(entry_doc)
     
-    # Update authorization stats
+    # Update authorization stats and status
     if authorization:
+        auth_type_value = authorization.get("authorization_type", "temporary")
+        
+        update_data = {
+            "$inc": {"total_visits": 1},
+            "$set": {
+                "last_visit": now_iso,
+                "checked_in_at": now_iso,
+                "checked_in_by": current_user["id"],
+                "checked_in_by_name": current_user.get("full_name", "Guardia")
+            }
+        }
+        
+        # For TEMPORARY authorizations, mark as "used" to prevent reuse
+        if auth_type_value == "temporary":
+            update_data["$set"]["status"] = "used"
+        
         await db.visitor_authorizations.update_one(
             {"id": checkin_data.authorization_id},
-            {
-                "$inc": {"total_visits": 1},
-                "$set": {"last_visit": now_iso}
-            }
+            update_data
         )
     
     # Create notification for resident
