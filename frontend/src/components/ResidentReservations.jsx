@@ -244,6 +244,7 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
         purpose: ''
       });
       setAvailability(null);
+      setSelectedSlotIndex(null);
     }
   }, [area, open]);
   
@@ -253,6 +254,7 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
       if (!area?.id || !form.date) return;
       
       setLoadingAvailability(true);
+      setSelectedSlotIndex(null); // Reset slot selection when date changes
       try {
         const data = await api.getReservationAvailability(area.id, form.date);
         setAvailability(data);
@@ -275,6 +277,53 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
       setForm(prev => ({ ...prev, end_time: endTime }));
     }
   }, [form.start_time, area?.max_hours_per_reservation]);
+  
+  // Handle time slot click - auto-fill start and end times
+  const handleSlotClick = (slot, slotIndex) => {
+    if (slot.status !== 'available') return;
+    
+    const maxHours = area?.max_hours_per_reservation || area?.max_duration_hours || 2;
+    const reservationMode = area?.reservation_mode || 'por_hora';
+    const closingTime = area?.closing_time || area?.available_until || '22:00';
+    
+    const startTime = slot.start_time.slice(0, 5); // "09:00"
+    const [startHour, startMin] = startTime.split(':').map(Number);
+    
+    let endTime;
+    
+    if (reservationMode === 'bloque') {
+      // Block mode: Select consecutive available slots until occupied or closing
+      let endHour = startHour + 1;
+      const slots = availability?.time_slots || [];
+      
+      for (let i = slotIndex + 1; i < slots.length; i++) {
+        if (slots[i].status === 'available') {
+          const nextSlotHour = parseInt(slots[i].start_time.slice(0, 2));
+          if (nextSlotHour >= parseInt(closingTime.split(':')[0])) break;
+          endHour = nextSlotHour + 1;
+        } else {
+          break;
+        }
+      }
+      
+      endTime = `${String(Math.min(endHour, parseInt(closingTime.split(':')[0]))).padStart(2, '0')}:${String(startMin).padStart(2, '0')}`;
+    } else {
+      // Per-hour mode: Use max_hours_per_reservation
+      const endHour = Math.min(startHour + maxHours, parseInt(closingTime.split(':')[0]));
+      endTime = `${String(endHour).padStart(2, '0')}:${String(startMin).padStart(2, '0')}`;
+    }
+    
+    setForm(prev => ({
+      ...prev,
+      start_time: startTime,
+      end_time: endTime
+    }));
+    
+    setSelectedSlotIndex(slotIndex);
+    
+    // Visual feedback
+    toast.success(`Horario seleccionado: ${startTime} - ${endTime}`, { duration: 2000 });
+  };
   
   const handleSave = async () => {
     if (!form.date) {
