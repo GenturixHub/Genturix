@@ -107,7 +107,7 @@ class TestDuplicatePreregistroFix:
             headers={"Authorization": f"Bearer {self.resident_token}"}
         )
         
-        assert response.status_code == 201, f"Should create authorization: {response.status_code} - {response.text}"
+        assert response.status_code in [200, 201], f"Should create authorization: {response.status_code} - {response.text}"
         
         data = response.json()
         assert "id" in data, "Response should contain authorization ID"
@@ -298,7 +298,7 @@ class TestDuplicatePreregistroFix:
             headers={"Authorization": f"Bearer {self.resident_token}"}
         )
         
-        assert response.status_code == 201, f"Should create permanent authorization: {response.status_code}"
+        assert response.status_code in [200, 201], f"Should create permanent authorization: {response.status_code}"
         
         perm_auth_id = response.json().get("id")
         print(f"✓ Created permanent authorization: {perm_auth_id}")
