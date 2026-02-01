@@ -573,7 +573,7 @@ const BillingSummarySection = ({ billingOverview }) => {
                 
                 <div className="flex items-center gap-3 text-sm">
                   <div className="flex items-center gap-1 shrink-0">
-                    <Users className="w-3.5 h-3.5 text-purple-400" />
+                    <Users className="w-3.5 h-3.5 text-cyan-400" />
                     <span className="text-xs">{condo.active_users}/{condo.paid_seats}</span>
                   </div>
                   <div className="flex-1">
