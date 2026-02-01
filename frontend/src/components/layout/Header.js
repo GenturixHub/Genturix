@@ -89,6 +89,11 @@ const Header = ({ onMenuClick, title }) => {
   const handleDropdownOpenChange = async (open) => {
     setIsDropdownOpen(open);
     
+    // CRITICAL: Stop panic sound when opening notifications dropdown
+    if (open) {
+      AlertSoundManager.stop();
+    }
+    
     // When opening the dropdown, mark visible unread notifications as read
     if (open && unreadCount > 0) {
       // Small delay to let user see notifications first
