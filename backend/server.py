@@ -1104,6 +1104,207 @@ async def notify_guards_of_panic(condominium_id: str, panic_data: dict):
     logger.info(f"Panic notifications - Sent: {sent}, Failed: {failed}, Total: {len(subscriptions)}")
     return {"sent": sent, "failed": failed, "total": len(subscriptions)}
 
+# ==================== CONTEXTUAL PUSH NOTIFICATION HELPERS ====================
+
+async def send_push_to_user(user_id: str, payload: dict) -> dict:
+    """Send push notification to a specific user (all their active subscriptions)"""
+    if not VAPID_PUBLIC_KEY or not VAPID_PRIVATE_KEY:
+        logger.warning("VAPID keys not configured, skipping push")
+        return {"sent": 0, "failed": 0, "total": 0}
+    
+    subscriptions = await db.push_subscriptions.find({
+        "user_id": user_id,
+        "is_active": True
+    }).to_list(None)
+    
+    if not subscriptions:
+        logger.debug(f"No push subscriptions for user {user_id}")
+        return {"sent": 0, "failed": 0, "total": 0}
+    
+    sent = 0
+    failed = 0
+    
+    for sub in subscriptions:
+        subscription_info = {
+            "endpoint": sub.get("endpoint"),
+            "keys": {
+                "p256dh": sub.get("p256dh"),
+                "auth": sub.get("auth")
+            }
+        }
+        success = await send_push_notification(subscription_info, payload)
+        if success:
+            sent += 1
+        else:
+            failed += 1
+    
+    return {"sent": sent, "failed": failed, "total": len(subscriptions)}
+
+async def send_push_to_guards(condominium_id: str, payload: dict) -> dict:
+    """Send push notification to all guards in a condominium"""
+    if not condominium_id:
+        return {"sent": 0, "failed": 0, "total": 0}
+    
+    # Get guard user IDs for this condominium
+    guards = await db.users.find({
+        "condominium_id": condominium_id,
+        "roles": {"$in": ["Guarda", "Guardia"]},
+        "is_active": True
+    }, {"id": 1}).to_list(None)
+    
+    guard_ids = [g["id"] for g in guards]
+    
+    if not guard_ids:
+        return {"sent": 0, "failed": 0, "total": 0}
+    
+    subscriptions = await db.push_subscriptions.find({
+        "user_id": {"$in": guard_ids},
+        "is_active": True
+    }).to_list(None)
+    
+    if not subscriptions:
+        return {"sent": 0, "failed": 0, "total": 0}
+    
+    sent = 0
+    failed = 0
+    
+    for sub in subscriptions:
+        subscription_info = {
+            "endpoint": sub.get("endpoint"),
+            "keys": {
+                "p256dh": sub.get("p256dh"),
+                "auth": sub.get("auth")
+            }
+        }
+        success = await send_push_notification(subscription_info, payload)
+        if success:
+            sent += 1
+        else:
+            failed += 1
+    
+    logger.info(f"Guard notifications - Sent: {sent}, Failed: {failed}")
+    return {"sent": sent, "failed": failed, "total": len(subscriptions)}
+
+async def send_push_to_admins(condominium_id: str, payload: dict) -> dict:
+    """Send push notification to admins in a condominium"""
+    if not condominium_id:
+        return {"sent": 0, "failed": 0, "total": 0}
+    
+    admins = await db.users.find({
+        "condominium_id": condominium_id,
+        "roles": {"$in": ["Administrador", "Supervisor"]},
+        "is_active": True
+    }, {"id": 1}).to_list(None)
+    
+    admin_ids = [a["id"] for a in admins]
+    
+    if not admin_ids:
+        return {"sent": 0, "failed": 0, "total": 0}
+    
+    subscriptions = await db.push_subscriptions.find({
+        "user_id": {"$in": admin_ids},
+        "is_active": True
+    }).to_list(None)
+    
+    if not subscriptions:
+        return {"sent": 0, "failed": 0, "total": 0}
+    
+    sent = 0
+    failed = 0
+    
+    for sub in subscriptions:
+        subscription_info = {
+            "endpoint": sub.get("endpoint"),
+            "keys": {
+                "p256dh": sub.get("p256dh"),
+                "auth": sub.get("auth")
+            }
+        }
+        success = await send_push_notification(subscription_info, payload)
+        if success:
+            sent += 1
+        else:
+            failed += 1
+    
+    return {"sent": sent, "failed": failed, "total": len(subscriptions)}
+
+async def create_and_send_notification(
+    user_id: str,
+    condominium_id: str,
+    notification_type: str,
+    title: str,
+    message: str,
+    data: dict = None,
+    send_push: bool = True,
+    url: str = None
+) -> dict:
+    """
+    Creates a notification in DB and optionally sends push.
+    Prevents duplicates by checking existing notifications.
+    """
+    now_iso = datetime.now(timezone.utc).isoformat()
+    
+    # Check for duplicate (same type, user, and key data within last minute)
+    duplicate_check = {
+        "type": notification_type,
+        "user_id": user_id,
+        "created_at": {"$gte": (datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat()}
+    }
+    
+    # Add specific data fields to duplicate check based on type
+    if data:
+        if notification_type == "visitor_arrival" and data.get("entry_id"):
+            duplicate_check["data.entry_id"] = data["entry_id"]
+        elif notification_type == "visitor_exit" and data.get("entry_id"):
+            duplicate_check["data.entry_id"] = data["entry_id"]
+        elif notification_type in ["reservation_approved", "reservation_rejected"] and data.get("reservation_id"):
+            duplicate_check["data.reservation_id"] = data["reservation_id"]
+    
+    existing = await db.resident_notifications.find_one(duplicate_check)
+    if existing:
+        logger.debug(f"Skipping duplicate notification: {notification_type} for user {user_id}")
+        return {"created": False, "push_sent": False, "reason": "duplicate"}
+    
+    # Create notification document
+    notification_doc = {
+        "id": str(uuid.uuid4()),
+        "type": notification_type,
+        "user_id": user_id,
+        "condominium_id": condominium_id,
+        "title": title,
+        "message": message,
+        "data": data or {},
+        "url": url,
+        "read": False,
+        "created_at": now_iso
+    }
+    
+    await db.resident_notifications.insert_one(notification_doc)
+    
+    # Send push if enabled
+    push_result = {"sent": 0}
+    if send_push:
+        payload = {
+            "title": title,
+            "body": message,
+            "icon": "/logo192.png",
+            "badge": "/logo192.png",
+            "tag": f"{notification_type}-{notification_doc['id'][:8]}",
+            "data": {
+                "type": notification_type,
+                "notification_id": notification_doc["id"],
+                "url": url or "/resident?tab=history",
+                **(data or {})
+            }
+        }
+        push_result = await send_push_to_user(user_id, payload)
+    
+    return {
+        "created": True,
+        "notification_id": notification_doc["id"],
+        "push_sent": push_result.get("sent", 0) > 0
+    }
+
 # ==================== SAAS BILLING HELPERS ====================
 
 async def count_active_users(condominium_id: str) -> int:
