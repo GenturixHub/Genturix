@@ -507,7 +507,7 @@ const GuardHistoryVisual = () => {
           <Button 
             variant="ghost" 
             size="sm"
-            onClick={() => fetchHistory(true)}
+            onClick={handleRefresh}
             disabled={refreshing}
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
