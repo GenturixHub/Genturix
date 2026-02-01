@@ -876,11 +876,11 @@ const VisitorCheckInGuard = () => {
                 className="w-full flex items-center justify-between mb-2 px-0 hover:bg-transparent"
                 onClick={() => setShowEntriesToday(!showEntriesToday)}
               >
-                <h3 className="text-xs font-bold text-purple-400 uppercase tracking-wider flex items-center gap-2">
+                <h3 className="text-xs font-bold text-cyan-400 uppercase tracking-wider flex items-center gap-2">
                   <CheckCircle className="w-4 h-4" />
                   INGRESADOS HOY ({entriesToday.length})
                 </h3>
-                <ChevronRight className={`w-4 h-4 text-purple-400 transition-transform ${showEntriesToday ? 'rotate-90' : ''}`} />
+                <ChevronRight className={`w-4 h-4 text-cyan-400 transition-transform ${showEntriesToday ? 'rotate-90' : ''}`} />
               </Button>
               
               {showEntriesToday && (
@@ -888,7 +888,7 @@ const VisitorCheckInGuard = () => {
                   {entriesToday.slice(0, 10).map((entry) => (
                     <div 
                       key={entry.id}
-                      className="p-3 rounded-lg bg-purple-500/5 border border-purple-500/20"
+                      className="p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20"
                     >
                       <div className="flex justify-between items-start">
                         <div>
@@ -899,7 +899,7 @@ const VisitorCheckInGuard = () => {
                           </p>
                         </div>
                         <div className="text-right">
-                          <Badge variant="outline" className="text-purple-400 border-purple-400/30 text-xs">
+                          <Badge variant="outline" className="text-cyan-400 border-cyan-400/30 text-xs">
                             {new Date(entry.entry_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                           </Badge>
                           {entry.is_authorized && (
