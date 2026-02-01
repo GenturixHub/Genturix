@@ -2177,7 +2177,7 @@ const GuardUI = () => {
             
             <TabsTrigger 
               value="absences" 
-              className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-purple-500 flex flex-col gap-0.5"
+              className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-cyan-500 flex flex-col gap-0.5"
               data-testid="tab-absences"
             >
               <CalendarOff className="w-5 h-5" />
