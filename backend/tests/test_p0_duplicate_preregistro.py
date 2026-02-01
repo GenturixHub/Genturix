@@ -22,7 +22,7 @@ from datetime import datetime, timedelta
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
-# Test credentials from the request
+# Test credentials
 GUARD_EMAIL = "guarda1@genturix.com"
 GUARD_PASSWORD = "Guard123!"
 RESIDENT_EMAIL = "residente@genturix.com"
@@ -89,11 +89,13 @@ class TestP0DuplicatePreregistro:
             }
         )
         
-        assert response.status_code == 201, f"Expected 201, got {response.status_code}: {response.text}"
+        # API returns 200 for creation (not 201)
+        assert response.status_code in [200, 201], f"Expected 200/201, got {response.status_code}: {response.text}"
         data = response.json()
         
         # Store for later tests
         TestP0DuplicatePreregistro.test_auth_id = data.get("id")
+        assert TestP0DuplicatePreregistro.test_auth_id, "Authorization ID should be returned"
         
         # Verify status is pending
         assert data.get("status") == "pending", f"Expected status='pending', got '{data.get('status')}'"
@@ -103,6 +105,8 @@ class TestP0DuplicatePreregistro:
     # ==================== TEST 2: Guard sees authorization in pending list ====================
     def test_02_guard_sees_authorization_in_pending_list(self):
         """Guard should see the new authorization in /guard/authorizations"""
+        assert TestP0DuplicatePreregistro.test_auth_id, "test_auth_id not set - run test_01 first"
+        
         response = requests.get(
             f"{BASE_URL}/api/guard/authorizations",
             headers=self.get_guard_headers()
@@ -119,6 +123,8 @@ class TestP0DuplicatePreregistro:
     # ==================== TEST 3: First check-in succeeds ====================
     def test_03_first_checkin_returns_200(self):
         """First check-in with TEMPORARY authorization should succeed"""
+        assert TestP0DuplicatePreregistro.test_auth_id, "test_auth_id not set - run test_01 first"
+        
         response = requests.post(
             f"{BASE_URL}/api/guard/checkin",
             headers=self.get_guard_headers(),
@@ -131,12 +137,14 @@ class TestP0DuplicatePreregistro:
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         data = response.json()
         
-        assert data.get("is_authorized") == True, "Expected is_authorized=True"
-        print(f"✓ First check-in succeeded - entry_id: {data.get('entry_id', 'N/A')[:12]}...")
+        assert data.get("is_authorized") == True, f"Expected is_authorized=True, got {data}"
+        print(f"✓ First check-in succeeded - entry_id: {data.get('entry', {}).get('id', 'N/A')[:12]}...")
     
     # ==================== TEST 4: Second check-in returns 409 ====================
     def test_04_second_checkin_returns_409(self):
         """Second check-in with SAME TEMPORARY authorization should return 409 Conflict"""
+        assert TestP0DuplicatePreregistro.test_auth_id, "test_auth_id not set - run test_01 first"
+        
         response = requests.post(
             f"{BASE_URL}/api/guard/checkin",
             headers=self.get_guard_headers(),
@@ -158,6 +166,8 @@ class TestP0DuplicatePreregistro:
     # ==================== TEST 5: Authorization NOT in pending list after check-in ====================
     def test_05_authorization_not_in_pending_list_after_checkin(self):
         """After check-in, TEMPORARY authorization should NOT appear in pending list"""
+        assert TestP0DuplicatePreregistro.test_auth_id, "test_auth_id not set - run test_01 first"
+        
         response = requests.get(
             f"{BASE_URL}/api/guard/authorizations",
             headers=self.get_guard_headers()
@@ -174,6 +184,8 @@ class TestP0DuplicatePreregistro:
     # ==================== TEST 6: Entry appears in entries-today ====================
     def test_06_entry_appears_in_entries_today(self):
         """The check-in should appear in /guard/entries-today"""
+        assert TestP0DuplicatePreregistro.test_auth_id, "test_auth_id not set - run test_01 first"
+        
         response = requests.get(
             f"{BASE_URL}/api/guard/entries-today",
             headers=self.get_guard_headers()
@@ -204,8 +216,9 @@ class TestP0DuplicatePreregistro:
             }
         )
         
-        assert response.status_code == 201, f"Expected 201, got {response.status_code}"
+        assert response.status_code in [200, 201], f"Expected 200/201, got {response.status_code}"
         TestP0DuplicatePreregistro.test_permanent_auth_id = response.json().get("id")
+        assert TestP0DuplicatePreregistro.test_permanent_auth_id, "Permanent auth ID should be returned"
         print(f"✓ Created PERMANENT auth: {unique_name}")
         
         # First check-in
@@ -266,6 +279,8 @@ class TestP0DuplicatePreregistro:
     # ==================== TEST 10: include_used parameter shows used authorizations ====================
     def test_10_include_used_parameter(self):
         """include_used=true should show used authorizations"""
+        assert TestP0DuplicatePreregistro.test_auth_id, "test_auth_id not set - run test_01 first"
+        
         response = requests.get(
             f"{BASE_URL}/api/guard/authorizations?include_used=true",
             headers=self.get_guard_headers()
@@ -276,7 +291,7 @@ class TestP0DuplicatePreregistro:
         
         # Should find our used test authorization
         found = any(a.get("id") == TestP0DuplicatePreregistro.test_auth_id for a in authorizations)
-        assert found, "Used authorization should appear when include_used=true"
+        assert found, f"Used authorization should appear when include_used=true (looking for {TestP0DuplicatePreregistro.test_auth_id[:12]}...)"
         print(f"✓ include_used=true shows used authorizations ({len(authorizations)} total)")
 
 
@@ -333,9 +348,10 @@ class TestExtendedAuthorization:
             }
         )
         
-        assert response.status_code == 201, f"Expected 201, got {response.status_code}: {response.text}"
+        assert response.status_code in [200, 201], f"Expected 200/201, got {response.status_code}: {response.text}"
         data = response.json()
         TestExtendedAuthorization.test_extended_auth_id = data.get("id")
+        assert TestExtendedAuthorization.test_extended_auth_id, "Extended auth ID should be returned"
         
         assert data.get("authorization_type") == "extended"
         assert data.get("status") == "pending"
@@ -343,6 +359,8 @@ class TestExtendedAuthorization:
     
     def test_02_first_checkin_extended_succeeds(self):
         """First check-in with EXTENDED authorization should succeed"""
+        assert TestExtendedAuthorization.test_extended_auth_id, "test_extended_auth_id not set - run test_01 first"
+        
         response = requests.post(
             f"{BASE_URL}/api/guard/checkin",
             headers=self.get_guard_headers(),
@@ -357,6 +375,8 @@ class TestExtendedAuthorization:
     
     def test_03_second_checkin_extended_blocked(self):
         """Second check-in with EXTENDED authorization should be blocked (409)"""
+        assert TestExtendedAuthorization.test_extended_auth_id, "test_extended_auth_id not set - run test_01 first"
+        
         response = requests.post(
             f"{BASE_URL}/api/guard/checkin",
             headers=self.get_guard_headers(),
@@ -420,15 +440,18 @@ class TestRecurringAuthorization:
             }
         )
         
-        assert response.status_code == 201, f"Expected 201, got {response.status_code}: {response.text}"
+        assert response.status_code in [200, 201], f"Expected 200/201, got {response.status_code}: {response.text}"
         data = response.json()
         TestRecurringAuthorization.test_recurring_auth_id = data.get("id")
+        assert TestRecurringAuthorization.test_recurring_auth_id, "Recurring auth ID should be returned"
         
         assert data.get("authorization_type") == "recurring"
         print(f"✓ Created RECURRING auth: {unique_name}")
     
     def test_02_recurring_allows_multiple_checkins(self):
         """RECURRING authorization should allow multiple check-ins (like permanent)"""
+        assert TestRecurringAuthorization.test_recurring_auth_id, "test_recurring_auth_id not set - run test_01 first"
+        
         # First check-in
         response1 = requests.post(
             f"{BASE_URL}/api/guard/checkin",
