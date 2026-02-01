@@ -103,7 +103,7 @@ const TYPE_ICONS = {
 // ============================================
 // AUTHORIZATION SEARCH CARD
 // ============================================
-const AuthorizationSearchCard = ({ auth, onCheckIn }) => {
+const AuthorizationSearchCard = ({ auth, onCheckIn, isProcessing }) => {
   const colorConfig = COLOR_CONFIG[auth.color_code] || COLOR_CONFIG.yellow;
   const IconComponent = TYPE_ICONS[auth.authorization_type] || Timer;
   const isValid = auth.is_currently_valid;
@@ -129,7 +129,7 @@ const AuthorizationSearchCard = ({ auth, onCheckIn }) => {
         isValid 
           ? `${colorConfig.light} ${colorConfig.border}` 
           : 'bg-gray-800/50 border-gray-700'
-      }`}
+      } ${isProcessing ? 'opacity-50 pointer-events-none' : ''}`}
       data-testid={`auth-card-${auth.id}`}
     >
       {/* Header */}
