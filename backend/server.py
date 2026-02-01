@@ -7466,12 +7466,15 @@ async def cleanup_used_authorizations(
     }
     
     authorizations = await db.visitor_authorizations.find(query, {"_id": 0}).to_list(500)
+    logger.info(f"[cleanup] Found {len(authorizations)} temporary/extended pending authorizations in condo {condo_id[:8] if condo_id else 'N/A'}")
     
     fixed_count = 0
     fixed_auths = []
     
     for auth in authorizations:
         auth_id = auth.get("id")
+        visitor_name = auth.get("visitor_name")
+        auth_type = auth.get("authorization_type")
         
         # Check if there's an entry in visitor_entries with this authorization_id
         entry_exists = await db.visitor_entries.find_one({"authorization_id": auth_id})
@@ -7483,6 +7486,8 @@ async def cleanup_used_authorizations(
             (auth.get("total_visits", 0) > 0)
         )
         
+        logger.info(f"[cleanup] Checking auth {auth_id[:8]} - {visitor_name} (type={auth_type}): entry_exists={bool(entry_exists)}, checked_in_at={bool(auth.get('checked_in_at'))}, total_visits={auth.get('total_visits', 0)}, already_used={already_used}")
+        
         if already_used:
             # Mark as used
             result = await db.visitor_authorizations.update_one(
@@ -7492,16 +7497,29 @@ async def cleanup_used_authorizations(
             if result.modified_count > 0:
                 fixed_count += 1
                 fixed_auths.append({
-                    "visitor_name": auth.get("visitor_name"),
-                    "authorization_type": auth.get("authorization_type")
+                    "visitor_name": visitor_name,
+                    "authorization_type": auth_type
                 })
-                logger.info(f"[cleanup] Fixed auth {auth_id[:8]} - {auth.get('visitor_name')}")
+                logger.info(f"[cleanup] Fixed auth {auth_id[:8]} - {visitor_name}")
+    
+    # Also check ALL authorizations regardless of type to see what's happening
+    all_pending = await db.visitor_authorizations.find({
+        "condominium_id": condo_id,
+        "status": {"$in": ["pending", None]},
+        "is_active": True
+    }, {"_id": 0}).to_list(100)
+    
+    logger.info(f"[cleanup] Total pending auths in condo: {len(all_pending)}")
+    for a in all_pending[:5]:  # Log first 5
+        logger.info(f"[cleanup] Pending: {a.get('visitor_name')} - type={a.get('authorization_type')}, status={a.get('status')}")
     
     return {
         "success": True,
         "message": f"Se corrigieron {fixed_count} autorizaciones",
         "fixed_count": fixed_count,
-        "fixed_authorizations": fixed_auths
+        "fixed_authorizations": fixed_auths,
+        "total_pending_checked": len(authorizations),
+        "total_all_pending": len(all_pending)
     }
 
 # ==================== HEALTH CHECK ====================
