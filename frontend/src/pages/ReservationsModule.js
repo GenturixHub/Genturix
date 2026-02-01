@@ -1181,6 +1181,91 @@ const ReservationsModule = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Cancel Reservation Confirmation (Admin) */}
+      <Dialog open={showCancelReservationDialog} onOpenChange={closeCancelReservationDialog}>
+        <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-orange-400">
+              <AlertCircle className="w-5 h-5" />
+              Cancelar Reservación
+            </DialogTitle>
+            <DialogDescription>
+              Esta acción liberará el espacio para que otros residentes puedan reservarlo.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {reservationToCancel && (
+            <div className="p-3 rounded-lg bg-[#0A0A0F] border border-[#1E293B] space-y-2">
+              <div className="flex items-center gap-2">
+                <Avatar className="w-8 h-8">
+                  <AvatarImage src={reservationToCancel.resident_photo} />
+                  <AvatarFallback>{reservationToCancel.resident_name?.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-sm font-medium text-white">{reservationToCancel.resident_name}</p>
+                  <p className="text-xs text-muted-foreground">{reservationToCancel.area_name}</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <CalendarDays className="w-3 h-3" />
+                  {reservationToCancel.date}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {reservationToCancel.start_time} - {reservationToCancel.end_time}
+                </span>
+              </div>
+            </div>
+          )}
+          
+          {/* Cancellation reason (optional for admin) */}
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Motivo de cancelación (opcional)</Label>
+            <Textarea
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              placeholder="Ej: Mantenimiento del área, conflicto de horarios..."
+              className="bg-[#0A0A0F] border-[#1E293B] min-h-[80px] resize-none"
+              data-testid="cancel-reason-input"
+            />
+            <p className="text-[10px] text-muted-foreground">
+              El residente recibirá una notificación con este motivo.
+            </p>
+          </div>
+          
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={closeCancelReservationDialog}
+              disabled={isCancelling}
+              className="w-full sm:w-auto"
+            >
+              No, mantener
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={confirmCancelReservation}
+              disabled={isCancelling}
+              className="w-full sm:w-auto bg-orange-600 hover:bg-orange-700"
+              data-testid="confirm-cancel-reservation"
+            >
+              {isCancelling ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Cancelando...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Cancelar Reservación
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
