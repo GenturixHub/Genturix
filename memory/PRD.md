@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 1, 2026 (Session 41 - Resend Email Integration)
+## Last Updated: February 1, 2026 (Session 41 - P0 Reservations Module Fix)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -9,7 +9,58 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
 
-### Session 41 - Resend Email Integration (DEMO Mode) ⭐⭐⭐⭐⭐
+### Session 41 - P0 CRITICAL FIX: Reservations Module (February 1, 2026) ⭐⭐⭐⭐⭐
+
+#### 🔴 P0 BUG FIXED: Residents Cannot Make Reservations
+
+**Problem:** 
+- Residents couldn't reserve any common area
+- Always showed "No hay disponibilidad para esta fecha"
+- "Crear Reservación" button was permanently disabled
+
+**Root Cause:**
+The backend `/reservations/availability/{area_id}` endpoint was missing the `is_available` field that the frontend was checking. The frontend was checking `availability.is_available` but the backend only returned:
+- `is_day_allowed`
+- `slots_remaining`
+- `occupied_slots`
+
+**Solution Implemented:**
+
+**1. Backend - Complete availability response:**
+```python
+return {
+    "is_available": is_day_allowed and slots_remaining > 0,  # NEW
+    "is_day_allowed": is_day_allowed,
+    "day_name": day_name,
+    "slots_remaining": slots_remaining,
+    "time_slots": [...],  # NEW - visual availability
+    "message": None if is_available else "Fecha no disponible..."  # NEW
+}
+```
+
+**2. Backend - Generate time slots for visual display:**
+- Generates hourly slots from `available_from` to `available_until`
+- Marks each slot as "available" or "occupied" based on existing reservations
+
+**3. Frontend - Visual availability module:**
+- Shows green/red indicators for each time slot
+- Clear message about why date is unavailable
+- Legend: "Disponible" / "Ocupado"
+
+**Files Modified:**
+- `/app/backend/server.py` - Enhanced availability endpoint
+- `/app/frontend/src/components/ResidentReservations.jsx` - Visual availability
+
+**Verification Results:**
+- ✅ `is_available: True` for valid dates with slots
+- ✅ `is_available: False` for past dates (with message)
+- ✅ Time slots correctly show occupied/available
+- ✅ Reservations created successfully
+- ✅ "Crear Reservación" button enabled when available
+
+---
+
+### Earlier Fix: Resend Email Integration
 
 #### ✅ EMAIL INTEGRATION ACTIVATED
 
