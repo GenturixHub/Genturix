@@ -2915,7 +2915,7 @@ async def get_guard_my_shift(current_user = Depends(require_role("Guarda", "Admi
                     match_reasons.append(f"condo mismatch: shift={s.get('condominium_id')} != user={effective_condo_id}")
                 logger.info(f"[my-shift] Shift {s.get('id')[:8]}... rejected: {', '.join(match_reasons) or 'unknown'}")
         else:
-            logger.info(f"[my-shift] Guard has NO shifts assigned at all")
+            logger.info("[my-shift] Guard has NO shifts assigned at all")
     
     # Find next upcoming shift (start_time > now)
     next_shift_query = {
@@ -2950,7 +2950,7 @@ async def get_guard_my_shift(current_user = Depends(require_role("Guarda", "Admi
         if minutes_until <= 15:
             can_clock_in = True
             clock_in_message = f"Tu turno comienza en {minutes_until} minutos"
-            logger.info(f"[my-shift] Guard CAN clock in - within 15 min early window")
+            logger.info("[my-shift] Guard CAN clock in - within 15 min early window")
         else:
             can_clock_in = False
             if minutes_until > 60:
@@ -2961,7 +2961,7 @@ async def get_guard_my_shift(current_user = Depends(require_role("Guarda", "Admi
     else:
         can_clock_in = False
         clock_in_message = "No tienes un turno asignado para hoy"
-        logger.info(f"[my-shift] Guard CANNOT clock in - no shifts found")
+        logger.info("[my-shift] Guard CANNOT clock in - no shifts found")
     
     return {
         "has_guard_record": True,
