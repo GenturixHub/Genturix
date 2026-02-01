@@ -555,6 +555,8 @@ class CondominiumCreate(BaseModel):
     contact_phone: str
     max_users: int = Field(default=100, ge=1)
     modules: Optional[CondominiumModules] = None
+    # Billing fields
+    paid_seats: int = Field(default=10, ge=1)  # Default 10 seats for new condos
 
 class CondominiumUpdate(BaseModel):
     name: Optional[str] = None
@@ -564,6 +566,7 @@ class CondominiumUpdate(BaseModel):
     max_users: Optional[int] = None
     modules: Optional[CondominiumModules] = None
     is_active: Optional[bool] = None
+    paid_seats: Optional[int] = None
 
 class CondominiumResponse(BaseModel):
     id: str
@@ -581,6 +584,37 @@ class CondominiumResponse(BaseModel):
     is_demo: bool = False
     discount_percent: float = 0.0
     plan: str = "basic"
+    # SaaS Billing Fields
+    paid_seats: int = 10  # How many users are paid for
+    active_users: int = 0  # Real count of active users (excluding SuperAdmin)
+    remaining_seats: int = 10  # paid_seats - active_users
+    stripe_customer_id: Optional[str] = None
+    stripe_subscription_id: Optional[str] = None
+    billing_status: str = "active"  # active, past_due, cancelled, trialing
+    billing_period_end: Optional[str] = None
+
+# SaaS Billing Models
+class BillingStatus(str, Enum):
+    ACTIVE = "active"
+    PAST_DUE = "past_due"
+    CANCELLED = "cancelled"
+    TRIALING = "trialing"
+
+class SeatUpgradeRequest(BaseModel):
+    additional_seats: int = Field(..., ge=1, le=1000)
+
+class BillingInfoResponse(BaseModel):
+    condominium_id: str
+    condominium_name: str
+    paid_seats: int
+    active_users: int
+    remaining_seats: int
+    billing_status: str
+    stripe_subscription_id: Optional[str] = None
+    price_per_seat: float = 1.0
+    monthly_cost: float
+    billing_period_end: Optional[str] = None
+    can_create_users: bool
 
 # Push Notification Models
 class PushSubscriptionKeys(BaseModel):
