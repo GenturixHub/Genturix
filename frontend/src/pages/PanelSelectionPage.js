@@ -19,8 +19,8 @@ const ROLE_CONFIGS = {
     icon: Shield,
     title: 'Panel Administrador',
     description: 'Acceso completo: usuarios, pagos, auditoría, todos los módulos.',
-    color: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-    iconBg: 'bg-purple-500/20',
+    color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+    iconBg: 'bg-cyan-500/20',
     route: '/admin/dashboard'
   },
   'HR': {
