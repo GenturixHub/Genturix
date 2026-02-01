@@ -798,10 +798,166 @@ const DashboardPage = () => {
         open={showCreateUser}
         onClose={() => setShowCreateUser(false)}
         onSuccess={() => {
-          // Refresh stats after creating user
-          api.getDashboardStats().then(setStats).catch(console.error);
+          // Refresh stats and billing after creating user
+          Promise.all([
+            api.getDashboardStats().then(setStats),
+            api.getBillingInfo().then(setBillingInfo)
+          ]).catch(console.error);
         }}
       />
+      
+      {/* Billing & Upgrade Dialog */}
+      <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+        <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wallet className="w-5 h-5 text-emerald-400" />
+              Plan y Facturación
+            </DialogTitle>
+          </DialogHeader>
+          
+          {billingInfo ? (
+            <div className="space-y-4">
+              {/* Current Plan Info */}
+              <div className="p-4 rounded-lg bg-[#1E293B]/30 border border-[#1E293B]">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-sm text-muted-foreground">Estado</span>
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    billingInfo.billing_status === 'active' ? 'bg-emerald-500/20 text-emerald-400' :
+                    billingInfo.billing_status === 'trialing' ? 'bg-blue-500/20 text-blue-400' :
+                    billingInfo.billing_status === 'past_due' ? 'bg-yellow-500/20 text-yellow-400' :
+                    'bg-red-500/20 text-red-400'
+                  }`}>
+                    {billingInfo.billing_status === 'active' ? 'Activo' :
+                     billingInfo.billing_status === 'trialing' ? 'Periodo de Prueba' :
+                     billingInfo.billing_status === 'past_due' ? 'Pago Pendiente' :
+                     'Cancelado'}
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <p className="text-2xl font-bold text-primary">{billingInfo.paid_seats}</p>
+                    <p className="text-xs text-muted-foreground">Asientos Pagados</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-emerald-400">{billingInfo.active_users}</p>
+                    <p className="text-xs text-muted-foreground">Usuarios Activos</p>
+                  </div>
+                  <div>
+                    <p className={`text-2xl font-bold ${billingInfo.remaining_seats > 0 ? 'text-blue-400' : 'text-yellow-400'}`}>
+                      {billingInfo.remaining_seats}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Disponibles</p>
+                  </div>
+                </div>
+                
+                <div className="mt-3 pt-3 border-t border-[#1E293B]">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Costo Mensual</span>
+                    <span className="text-lg font-bold">${billingInfo.monthly_cost?.toFixed(2)} USD</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    ${billingInfo.price_per_seat?.toFixed(2)} USD por usuario/mes
+                  </p>
+                </div>
+              </div>
+              
+              {/* Seat Usage Progress Bar */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Uso de Asientos</span>
+                  <span className={billingInfo.remaining_seats <= 2 ? 'text-yellow-400' : ''}>
+                    {Math.round((billingInfo.active_users / billingInfo.paid_seats) * 100)}%
+                  </span>
+                </div>
+                <div className="h-2 bg-[#1E293B] rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full transition-all ${
+                      billingInfo.remaining_seats <= 0 ? 'bg-red-500' :
+                      billingInfo.remaining_seats <= 2 ? 'bg-yellow-500' :
+                      'bg-emerald-500'
+                    }`}
+                    style={{ width: `${Math.min(100, (billingInfo.active_users / billingInfo.paid_seats) * 100)}%` }}
+                  />
+                </div>
+              </div>
+              
+              {/* Upgrade Section */}
+              <div className="p-4 rounded-lg bg-primary/10 border border-primary/30">
+                <h4 className="font-medium mb-3 flex items-center gap-2">
+                  <ArrowUpRight className="w-4 h-4 text-primary" />
+                  Agregar más asientos
+                </h4>
+                
+                <div className="flex items-center gap-3 mb-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-[#1E293B]"
+                    onClick={() => setAdditionalSeats(Math.max(1, additionalSeats - 10))}
+                    disabled={additionalSeats <= 1}
+                  >
+                    -10
+                  </Button>
+                  <div className="flex-1">
+                    <Input
+                      type="number"
+                      value={additionalSeats}
+                      onChange={(e) => setAdditionalSeats(Math.max(1, parseInt(e.target.value) || 1))}
+                      className="bg-[#0A0A0F] border-[#1E293B] text-center"
+                      min={1}
+                      max={1000}
+                    />
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-[#1E293B]"
+                    onClick={() => setAdditionalSeats(additionalSeats + 10)}
+                  >
+                    +10
+                  </Button>
+                </div>
+                
+                <div className="flex justify-between items-center mb-3 text-sm">
+                  <span className="text-muted-foreground">Nuevo total de asientos:</span>
+                  <span className="font-bold">{billingInfo.paid_seats + additionalSeats}</span>
+                </div>
+                
+                <div className="flex justify-between items-center mb-4 text-sm">
+                  <span className="text-muted-foreground">Costo adicional:</span>
+                  <span className="font-bold text-primary">
+                    +${(additionalSeats * (billingInfo.price_per_seat || 1)).toFixed(2)} USD/mes
+                  </span>
+                </div>
+                
+                <Button
+                  className="w-full bg-primary hover:bg-primary/90"
+                  onClick={handleUpgradeSeats}
+                  disabled={isUpgrading || additionalSeats < 1}
+                >
+                  {isUpgrading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Procesando...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Actualizar Plan
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
