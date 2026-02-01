@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 1, 2026 (Session 48 - P0/P1 Admin & Residente Bugs VERIFIED)
+## Last Updated: February 1, 2026 (Session 49 - P0 RRHH Duplicates Bug VERIFIED)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,44 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
+
+### Session 49 - P0 BUG FIX: RRHH Empleado Duplicado (February 1, 2026) ⭐⭐⭐⭐⭐
+
+**Problem:** Empleado duplicado en Evaluaciones que no permitía ser evaluado
+
+**Root Cause:**
+- 8 guardias sin `user_id` (registros huérfanos)
+- 6 evaluaciones huérfanas (employee_id inexistente)
+
+**Solution Implemented:**
+
+**1. HR Data Integrity Validation Endpoints:**
+```
+GET  /api/hr/validate-integrity     # Detect issues
+POST /api/hr/cleanup-invalid-guards # Clean up (SuperAdmin only, dry_run support)
+GET  /api/hr/evaluable-employees    # Only valid employees
+```
+
+**2. Enhanced GET /api/hr/guards:**
+- Default filters: `user_id != null`, `is_active = true`
+- Enriches with `_is_evaluable` and `_validation_status`
+- Optional `include_invalid=true` to see all records
+
+**3. Frontend EmployeeEvaluationCard:**
+- Shows "No evaluable" badge for invalid employees
+- Hides "Evaluar" button for non-evaluable employees
+- Visual differentiation (red border) for invalid records
+
+**Data Cleanup Performed:**
+- 8 guards deactivated (`is_active=false`, `deactivation_reason="no_user_id"`)
+- Preserves historical data (no deletions)
+
+**Testing Agent Verification:**
+- Backend: 100% (16/16 tests)
+- Frontend: 100% (all UI tests)
+- **Test Report:** `/app/test_reports/iteration_49.json`
+
+---
 
 ### Session 48 - P0/P1 Bug Fixes VERIFIED (February 1, 2026) ⭐⭐⭐⭐⭐
 
