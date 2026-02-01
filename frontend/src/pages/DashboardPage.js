@@ -42,7 +42,9 @@ import {
   UserPlus,
   Wallet,
   AlertCircle,
-  ArrowUpRight
+  ArrowUpRight,
+  LogOut,
+  Calendar
 } from 'lucide-react';
 
 const StatCard = ({ title, value, icon: Icon, trend, color = 'primary', onClick }) => {
