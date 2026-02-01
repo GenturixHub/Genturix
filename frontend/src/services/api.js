@@ -194,6 +194,12 @@ class ApiService {
   getGuardMyShift = () => this.get('/guard/my-shift');
   getGuardMyAbsences = () => this.get('/guard/my-absences');
 
+  // General Notifications (Admin/Guard/Supervisor)
+  getNotifications = (unreadOnly = false) => this.get(`/notifications${unreadOnly ? '?unread_only=true' : ''}`);
+  getUnreadNotificationCount = () => this.get('/notifications/unread-count');
+  markNotificationAsRead = (notificationId) => this.put(`/notifications/${notificationId}/read`);
+  markAllNotificationsAsRead = () => this.put('/notifications/mark-all-read');
+
   // Resident notifications
   getResidentNotifications = () => this.get('/resident/notifications');
   
