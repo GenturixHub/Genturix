@@ -59,7 +59,12 @@ const Header = ({ onMenuClick, title }) => {
 
   // Initial fetch and polling
   useEffect(() => {
-    fetchNotifications();
+    // Fetch on mount - using IIFE to handle async properly
+    const initFetch = async () => {
+      await fetchNotifications();
+    };
+    initFetch();
+    
     // Refresh every 30 seconds
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
