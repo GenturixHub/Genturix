@@ -2525,17 +2525,17 @@ async def fast_checkin(
         if not authorization:
             raise HTTPException(status_code=404, detail="Autorización no encontrada")
         
-        # ==================== BLOCK REUSE OF TEMPORARY AUTHORIZATIONS ====================
+        # ==================== BLOCK REUSE OF TEMPORARY/EXTENDED AUTHORIZATIONS ====================
         auth_status = authorization.get("status", "pending")
         auth_type_value = authorization.get("authorization_type", "temporary")
         
-        # For TEMPORARY authorizations, check if already used
-        if auth_type_value == "temporary" and auth_status == "used":
+        # For TEMPORARY and EXTENDED authorizations, check if already used
+        if auth_type_value in ["temporary", "extended"] and auth_status == "used":
             raise HTTPException(
                 status_code=409, 
                 detail="Esta autorización ya fue utilizada. No se puede usar nuevamente."
             )
-        # ==================================================================================
+        # ==========================================================================================
         
         validity = check_authorization_validity(authorization)
         
