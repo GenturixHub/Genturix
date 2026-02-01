@@ -168,6 +168,13 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
+        // Send stop sound message to ALL clients immediately
+        clientList.forEach((client) => {
+          client.postMessage({
+            type: 'STOP_PANIC_SOUND'
+          });
+        });
+        
         // Try to find an existing window to focus
         for (const client of clientList) {
           if (client.url.includes(self.registration.scope) && 'focus' in client) {
