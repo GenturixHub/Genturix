@@ -1845,14 +1845,26 @@ const GuardUI = () => {
   // Highlighted alert from push notification
   const [highlightedAlertId, setHighlightedAlertId] = useState(null);
 
-  // Handle alert parameter from push notification click
+  // Handle URL parameters (alert from push notification, tab from redirect)
   useEffect(() => {
     const alertId = searchParams.get('alert');
+    const tabParam = searchParams.get('tab');
+    
     if (alertId) {
       setActiveTab('alerts');
       setHighlightedAlertId(alertId);
       // Clear highlight after animation
       setTimeout(() => setHighlightedAlertId(null), 5000);
+      // Clean URL
+      navigate('/guard', { replace: true });
+    }
+    
+    // Handle tab parameter (e.g., from profile redirect)
+    if (tabParam) {
+      const validTabs = ['alerts', 'checkin', 'history', 'profile'];
+      if (validTabs.includes(tabParam)) {
+        setActiveTab(tabParam);
+      }
       // Clean URL
       navigate('/guard', { replace: true });
     }
