@@ -1111,7 +1111,7 @@ const ReservationsModule = () => {
                     key={res.id}
                     reservation={res}
                     isAdmin={false}
-                    onCancel={(r) => handleUpdateReservation(r.id, 'cancelled')}
+                    onCancel={openCancelReservationDialog}
                   />
                 ))}
               </div>
