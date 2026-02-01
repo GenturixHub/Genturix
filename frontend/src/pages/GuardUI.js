@@ -1857,6 +1857,8 @@ const GuardUI = () => {
     const tabParam = searchParams.get('tab');
     
     if (alertId) {
+      // Stop sound when navigating to alerts via URL param
+      AlertSoundManager.stop();
       setActiveTab('alerts');
       setHighlightedAlertId(alertId);
       // Clear highlight after animation
@@ -1869,6 +1871,10 @@ const GuardUI = () => {
     if (tabParam) {
       const validTabs = ['alerts', 'checkin', 'history', 'profile'];
       if (validTabs.includes(tabParam)) {
+        // Stop sound if navigating to alerts
+        if (tabParam === 'alerts') {
+          AlertSoundManager.stop();
+        }
         setActiveTab(tabParam);
       }
       // Clean URL
