@@ -113,7 +113,7 @@ const ActivityItem = ({ activity }) => {
   const getModuleColor = (module) => {
     switch (module) {
       case 'security': return 'text-red-400';
-      case 'reservations': return 'text-purple-400';
+      case 'reservations': return 'text-cyan-400';
       case 'auth': return 'text-green-400';
       case 'visitor': return 'text-blue-400';
       default: return 'text-muted-foreground';
