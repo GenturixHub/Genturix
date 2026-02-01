@@ -978,6 +978,98 @@ async def notify_guards_of_panic(condominium_id: str, panic_data: dict):
     logger.info(f"Panic notifications - Sent: {sent}, Failed: {failed}, Total: {len(subscriptions)}")
     return {"sent": sent, "failed": failed, "total": len(subscriptions)}
 
+# ==================== SAAS BILLING HELPERS ====================
+
+async def count_active_users(condominium_id: str) -> int:
+    """Count all active users in a condominium, excluding SuperAdmin"""
+    count = await db.users.count_documents({
+        "condominium_id": condominium_id,
+        "is_active": True,
+        "roles": {"$not": {"$in": ["SuperAdmin"]}}
+    })
+    return count
+
+async def get_billing_info(condominium_id: str) -> dict:
+    """Get billing information for a condominium"""
+    condo = await db.condominiums.find_one({"id": condominium_id}, {"_id": 0})
+    if not condo:
+        return None
+    
+    active_users = await count_active_users(condominium_id)
+    paid_seats = condo.get("paid_seats", 10)
+    billing_status = condo.get("billing_status", "active")
+    
+    return {
+        "condominium_id": condominium_id,
+        "condominium_name": condo.get("name", ""),
+        "paid_seats": paid_seats,
+        "active_users": active_users,
+        "remaining_seats": max(0, paid_seats - active_users),
+        "billing_status": billing_status,
+        "stripe_customer_id": condo.get("stripe_customer_id"),
+        "stripe_subscription_id": condo.get("stripe_subscription_id"),
+        "billing_period_end": condo.get("billing_period_end"),
+        "price_per_seat": GENTURIX_PRICE_PER_USER,
+        "monthly_cost": paid_seats * GENTURIX_PRICE_PER_USER,
+        "can_create_users": active_users < paid_seats and billing_status in ["active", "trialing"]
+    }
+
+async def update_active_user_count(condominium_id: str):
+    """Update the active_users count in the condominium document"""
+    if not condominium_id:
+        return
+    
+    active_count = await count_active_users(condominium_id)
+    await db.condominiums.update_one(
+        {"id": condominium_id},
+        {"$set": {"active_users": active_count, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    logger.info(f"Updated active_users count for condo {condominium_id}: {active_count}")
+    return active_count
+
+async def can_create_user(condominium_id: str) -> tuple[bool, str]:
+    """Check if a new user can be created in the condominium.
+    Returns (can_create, error_message)"""
+    if not condominium_id:
+        return False, "Se requiere condominium_id"
+    
+    condo = await db.condominiums.find_one({"id": condominium_id}, {"_id": 0})
+    if not condo:
+        return False, "Condominio no encontrado"
+    
+    if not condo.get("is_active", True):
+        return False, "El condominio está inactivo"
+    
+    billing_status = condo.get("billing_status", "active")
+    if billing_status not in ["active", "trialing"]:
+        return False, f"Suscripción inactiva ({billing_status}). Por favor actualice su plan de pago."
+    
+    paid_seats = condo.get("paid_seats", 10)
+    active_users = await count_active_users(condominium_id)
+    
+    if active_users >= paid_seats:
+        return False, f"Límite de usuarios alcanzado ({active_users}/{paid_seats}). Por favor actualice su plan para agregar más usuarios."
+    
+    return True, ""
+
+async def log_billing_event(
+    event_type: str,
+    condominium_id: str,
+    details: dict,
+    user_id: str = None
+):
+    """Log billing-related events for audit"""
+    event = {
+        "id": str(uuid.uuid4()),
+        "event_type": f"billing_{event_type}",
+        "condominium_id": condominium_id,
+        "user_id": user_id,
+        "details": details,
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    await db.billing_logs.insert_one(event)
+    logger.info(f"Billing event logged: {event_type} for condo {condominium_id}")
+
 # ==================== AUTH ROUTES ====================
 @api_router.post("/auth/register", response_model=UserResponse)
 async def register(user_data: UserCreate, request: Request):
