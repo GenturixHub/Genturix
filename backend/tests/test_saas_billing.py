@@ -169,8 +169,9 @@ class TestBillingEndpoints:
         assert response.status_code == 200, f"Failed to update paid_seats: {response.text}"
         data = response.json()
         
-        # Verify update
-        assert data.get("paid_seats") == new_seats, f"paid_seats not updated: {data.get('paid_seats')} != {new_seats}"
+        # Verify update - API returns updates in "updates" field
+        updates = data.get("updates", data)
+        assert updates.get("paid_seats") == new_seats, f"paid_seats not updated: {updates.get('paid_seats')} != {new_seats}"
         
         # Restore original value
         response = requests.patch(
