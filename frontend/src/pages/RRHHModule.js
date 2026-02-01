@@ -1645,15 +1645,32 @@ const EmployeeEvaluationCard = ({ employee, evaluations, onViewHistory, onNewEva
     ? employeeEvaluations.reduce((acc, e) => acc + (e.score || 0), 0) / employeeEvaluations.length 
     : 0;
   
+  // Check if employee is evaluable
+  const isEvaluable = employee._is_evaluable !== false && employee.user_id;
+  
   return (
-    <div className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B]" data-testid={`eval-card-${employee.id}`}>
+    <div 
+      className={`p-4 rounded-xl border ${
+        isEvaluable 
+          ? 'bg-[#0F111A] border-[#1E293B]' 
+          : 'bg-red-500/5 border-red-500/20'
+      }`} 
+      data-testid={`eval-card-${employee.id}`}
+    >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-            <User className="w-5 h-5 text-primary" />
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+            isEvaluable ? 'bg-primary/20' : 'bg-red-500/20'
+          }`}>
+            <User className={`w-5 h-5 ${isEvaluable ? 'text-primary' : 'text-red-400'}`} />
           </div>
           <div>
-            <p className="font-semibold text-white">{getEmployeeName(employee)}</p>
+            <div className="flex items-center gap-2">
+              <p className="font-semibold text-white">{getEmployeeName(employee)}</p>
+              {!isEvaluable && (
+                <Badge variant="destructive" className="text-[10px]">No evaluable</Badge>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">{employee.position || 'Guarda'}</p>
           </div>
         </div>
@@ -1664,6 +1681,12 @@ const EmployeeEvaluationCard = ({ employee, evaluations, onViewHistory, onNewEva
           </p>
         </div>
       </div>
+      
+      {!isEvaluable && (
+        <div className="mb-3 p-2 rounded bg-red-500/10 text-xs text-red-400">
+          Este empleado no puede ser evaluado: {employee._validation_status === 'invalid_user' ? 'usuario no válido' : 'sin usuario asignado'}
+        </div>
+      )}
       
       <div className="flex items-center justify-between pt-3 border-t border-[#1E293B]">
         <span className="text-xs text-muted-foreground">
@@ -1680,7 +1703,7 @@ const EmployeeEvaluationCard = ({ employee, evaluations, onViewHistory, onNewEva
           >
             Ver historial
           </Button>
-          {canCreate && (
+          {canCreate && isEvaluable && (
             <Button 
               size="sm" 
               className="h-8 text-xs"
