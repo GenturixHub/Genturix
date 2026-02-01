@@ -94,8 +94,21 @@ const DAYS_SHORT = { 'Lunes': 'L', 'Martes': 'M', 'Miércoles': 'X', 'Jueves': '
 // ============================================
 // AREA CARD FOR RESIDENT
 // ============================================
+// Behavior labels for display
+const BEHAVIOR_LABELS = {
+  exclusive: { label: 'Exclusivo', color: 'bg-purple-500/20 text-purple-400' },
+  capacity: { label: 'Por cupo', color: 'bg-blue-500/20 text-blue-400' },
+  slot_based: { label: 'Por turno', color: 'bg-cyan-500/20 text-cyan-400' },
+  free_access: { label: 'Acceso libre', color: 'bg-green-500/20 text-green-400' }
+};
+
 const AreaCard = ({ area, onReserve }) => {
   const AreaIcon = AREA_ICONS[area.area_type] || MoreHorizontal;
+  const behavior = area.reservation_behavior || 'exclusive';
+  const behaviorConfig = BEHAVIOR_LABELS[behavior] || BEHAVIOR_LABELS.exclusive;
+  
+  // Don't render reserve button for FREE_ACCESS areas
+  const isFreeAccess = behavior === 'free_access';
   
   return (
     <Card className="bg-[#0F111A] border-[#1E293B] hover:border-primary/30 transition-all">
@@ -111,11 +124,18 @@ const AreaCard = ({ area, onReserve }) => {
             <div className="flex flex-wrap gap-1.5 mt-2">
               <Badge variant="outline" className="text-[10px] h-5">
                 <Users className="w-3 h-3 mr-1" />
-                {area.capacity} personas
+                {behavior === 'capacity' && area.max_capacity_per_slot 
+                  ? `${area.max_capacity_per_slot}/hora`
+                  : `${area.capacity} personas`
+                }
               </Badge>
               <Badge variant="outline" className="text-[10px] h-5">
                 <Clock className="w-3 h-3 mr-1" />
                 {area.available_from}-{area.available_until}
+              </Badge>
+              {/* Show behavior badge */}
+              <Badge className={`${behaviorConfig.color} text-[10px] h-5`}>
+                {behaviorConfig.label}
               </Badge>
             </div>
             
@@ -145,15 +165,21 @@ const AreaCard = ({ area, onReserve }) => {
           </div>
         </div>
         
-        <Button 
-          size="sm" 
-          onClick={() => onReserve(area)} 
-          className="w-full mt-3"
-          data-testid={`reserve-area-${area.id}`}
-        >
-          <Calendar className="w-3.5 h-3.5 mr-1.5" />
-          Reservar
-        </Button>
+        {isFreeAccess ? (
+          <div className="mt-3 p-2 rounded bg-green-500/10 border border-green-500/20 text-center">
+            <span className="text-xs text-green-400">Acceso libre sin reservación</span>
+          </div>
+        ) : (
+          <Button 
+            size="sm" 
+            onClick={() => onReserve(area)} 
+            className="w-full mt-3"
+            data-testid={`reserve-area-${area.id}`}
+          >
+            <Calendar className="w-3.5 h-3.5 mr-1.5" />
+            Reservar
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
