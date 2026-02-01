@@ -162,26 +162,29 @@ const StatCard = ({ title, value, subtitle, icon: Icon, color = 'blue', trend })
 );
 
 // ============================================
+// CHART TOOLTIP COMPONENT
+// ============================================
+const ChartTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-[#0A0A0F] border border-[#1E293B] rounded-lg p-3 shadow-xl">
+        <p className="font-bold text-white">{label}</p>
+        <p className="text-green-400 text-sm">
+          Entradas: {payload[0]?.payload?.entries || 0}
+        </p>
+        <p className="text-orange-400 text-sm">
+          Salidas: {payload[0]?.payload?.exits || 0}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
+// ============================================
 // HOURLY CHART COMPONENT
 // ============================================
 const HourlyActivityChart = ({ data, currentHour }) => {
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-[#0A0A0F] border border-[#1E293B] rounded-lg p-3 shadow-xl">
-          <p className="font-bold text-white">{label}</p>
-          <p className="text-green-400 text-sm">
-            Entradas: {payload[0]?.payload?.entries || 0}
-          </p>
-          <p className="text-orange-400 text-sm">
-            Salidas: {payload[0]?.payload?.exits || 0}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
-
   return (
     <Card className="bg-[#0A0A0F] border-[#1E293B]">
       <CardHeader className="pb-2">
@@ -207,7 +210,7 @@ const HourlyActivityChart = ({ data, currentHour }) => {
                 axisLine={{ stroke: '#1E293B' }}
                 allowDecimals={false}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<ChartTooltip />} />
               <Bar dataKey="total" radius={[4, 4, 0, 0]}>
                 {data.map((entry, index) => (
                   <Cell 
