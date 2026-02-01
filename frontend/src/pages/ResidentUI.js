@@ -151,19 +151,44 @@ const STATUS_CONFIG = {
 };
 
 // ============================================
-// EMERGENCY BUTTON COMPONENT
+// EMERGENCY BUTTON COMPONENT (Enhanced Design v2)
 // ============================================
 const EmergencyButton = ({ config, onPress, disabled, isLoading }) => {
   const [isPressed, setIsPressed] = useState(false);
+  const [ripples, setRipples] = useState([]);
   const IconComponent = config.icon;
 
-  const handlePress = () => {
+  // Map config ID to CSS modifier class
+  const typeClass = {
+    'emergencia_medica': 'emergency-btn--medical',
+    'actividad_sospechosa': 'emergency-btn--suspicious',
+    'emergencia_general': 'emergency-btn--general',
+  }[config.id] || '';
+
+  const handlePress = (e) => {
     if (disabled || isLoading) return;
+    
+    // Haptic feedback
     if (navigator.vibrate) navigator.vibrate(50);
+    
+    // Create ripple effect
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const rippleId = Date.now();
+    setRipples(prev => [...prev, { id: rippleId, x, y }]);
+    setTimeout(() => {
+      setRipples(prev => prev.filter(r => r.id !== rippleId));
+    }, 600);
+    
     setIsPressed(true);
     onPress(config.id);
     setTimeout(() => setIsPressed(false), 200);
   };
+
+  // Determine text color based on type
+  const textColor = config.id === 'actividad_sospechosa' ? 'text-gray-900' : 'text-white';
+  const iconColor = config.id === 'actividad_sospechosa' ? 'text-gray-900' : 'text-white';
 
   return (
     <button
@@ -171,33 +196,45 @@ const EmergencyButton = ({ config, onPress, disabled, isLoading }) => {
       disabled={disabled || isLoading}
       data-testid={`panic-btn-${config.id}`}
       className={`
-        relative w-full rounded-2xl overflow-hidden
-        min-h-[90px] sm:min-h-[110px] md:min-h-[130px]
-        ${config.colors.bg}
-        ${config.colors.glow}
-        ${isPressed ? config.colors.glowPulse : ''}
-        border-2 ${config.colors.border}
-        transition-all duration-150 ease-out
-        transform ${isPressed ? 'scale-[0.98]' : 'scale-100'}
-        ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer active:scale-[0.97]'}
-        focus:outline-none focus:ring-4 focus:ring-white/30
+        emergency-btn
+        ${typeClass}
+        ${isLoading ? 'is-loading' : ''}
+        ${isPressed ? 'scale-[0.97]' : ''}
       `}
       style={{ WebkitTapHighlightColor: 'transparent' }}
     >
-      <div className={`absolute inset-0 ${config.colors.bg} opacity-0 ${!disabled && !isLoading ? 'animate-pulse' : ''}`} />
-      <div className="relative z-10 flex items-center justify-center h-full p-3 sm:p-4 gap-3 sm:gap-4">
-        {/* Icon - Smaller on mobile */}
-        <div className="flex-shrink-0">
+      {/* Ripple effects */}
+      {ripples.map(ripple => (
+        <span
+          key={ripple.id}
+          className="emergency-btn-ripple"
+          style={{ left: ripple.x, top: ripple.y }}
+        />
+      ))}
+      
+      {/* Main content */}
+      <div className="emergency-btn-content">
+        {/* Icon with background circle */}
+        <div className="emergency-icon-container">
+          <div className="emergency-icon-bg" />
           {isLoading ? (
-            <Loader2 className={`w-10 h-10 sm:w-12 sm:h-12 ${config.colors.icon} animate-spin`} />
+            <Loader2 className={`emergency-icon ${iconColor} animate-spin`} />
           ) : (
-            <IconComponent className={`w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 ${config.colors.icon}`} strokeWidth={2.5} />
+            <IconComponent 
+              className={`emergency-icon ${iconColor}`} 
+              strokeWidth={2.5} 
+            />
           )}
         </div>
-        {/* Text - Horizontal layout for mobile */}
-        <div className="text-left flex-1">
-          <p className={`text-base sm:text-lg md:text-xl font-bold tracking-wide ${config.colors.text}`}>{config.label}</p>
-          <p className={`text-xs sm:text-sm ${config.colors.text} opacity-80`}>{config.subLabel}</p>
+        
+        {/* Text */}
+        <div className="emergency-btn-text">
+          <p className={`emergency-btn-label ${textColor}`}>
+            {config.label}
+          </p>
+          <p className={`emergency-btn-sublabel ${textColor}`}>
+            {config.subLabel}
+          </p>
         </div>
       </div>
     </button>
