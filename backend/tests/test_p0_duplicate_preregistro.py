@@ -25,7 +25,7 @@ BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 # Test credentials from the request
 GUARD_EMAIL = "guarda1@genturix.com"
 GUARD_PASSWORD = "Guard123!"
-RESIDENT_EMAIL = "residente1@genturix.com"
+RESIDENT_EMAIL = "residente@genturix.com"
 RESIDENT_PASSWORD = "Resi123!"
 
 
