@@ -480,7 +480,8 @@ const VisitorCheckInGuard = () => {
   const [showEntriesToday, setShowEntriesToday] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false); // Track refresh state
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (showToast = false) => {
+    if (showToast) setIsRefreshing(true);
     try {
       const [inside, allAuths, todayEntries] = await Promise.all([
         api.getVisitorsInside(),
@@ -493,10 +494,18 @@ const VisitorCheckInGuard = () => {
       // Filter only currently valid authorizations for today's list
       const validToday = allAuths.filter(auth => auth.is_currently_valid);
       setTodayPreregistrations(validToday);
+      
+      if (showToast) {
+        toast.success(`✓ Actualizado: ${validToday.length} pendientes, ${inside.length} adentro`);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
+      if (showToast) {
+        toast.error('Error al actualizar datos');
+      }
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, []);
 
