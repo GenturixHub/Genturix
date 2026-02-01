@@ -9,6 +9,78 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
 
+### Session 54 - P0 FEATURE: Sistema de Cancelación de Reservaciones (February 1, 2026) ⭐⭐⭐⭐⭐
+
+**Feature Implemented:**
+Sistema completo de cancelación de reservaciones para residentes y administradores con reglas de negocio específicas.
+
+**Business Rules:**
+
+| Rol | Puede Cancelar | Restricciones |
+|-----|----------------|---------------|
+| Residente | Solo sus propias reservaciones | Status: pending/approved, NO iniciada |
+| Admin | Cualquier reservación del condominio | Excepto status: completed |
+
+**Backend Implementation:**
+
+```python
+# DELETE /api/reservations/{reservation_id}
+# Soft delete - cambia status a 'cancelled', NO borra físicamente
+
+# Campos actualizados al cancelar:
+{
+    "status": "cancelled",
+    "cancelled_at": "2026-02-01T14:30:00Z",
+    "cancelled_by": "user_id",
+    "cancelled_by_role": "Administrador|Residente",
+    "cancellation_reason": "Opcional - solo admin"
+}
+```
+
+**Endpoint Response:**
+```json
+{
+  "message": "Reservación cancelada exitosamente. El espacio ha sido liberado.",
+  "reservation_id": "uuid",
+  "cancelled_by": "resident|admin"
+}
+```
+
+**Validation Errors:**
+- 403: "Solo puedes cancelar tus propias reservaciones"
+- 400: "No se puede cancelar una reservación ya completada"
+- 400: "Esta reservación ya fue cancelada"
+- 400: "No puedes cancelar una reservación que ya inició o está en progreso"
+
+**Frontend Implementation:**
+
+**1. ResidentReservations.jsx:**
+- `MyReservationCard` - Botón "Cancelar Reservación" visible solo si:
+  - Status es `pending` o `approved`
+  - Fecha/hora de inicio NO ha pasado
+- Modal de confirmación con info de la reservación
+- Toast: "Reservación cancelada. El espacio ha sido liberado."
+
+**2. ReservationsModule.js (Admin):**
+- Nueva pestaña "Todas" - muestra todas las reservaciones aprobadas
+- `ReservationCard` - Botón "Cancelar Reservación" (naranja)
+- Modal con campo de motivo opcional
+- Mensaje: "El residente recibirá una notificación con este motivo."
+- Toast de éxito al cancelar
+
+**Files Modified:**
+- `/app/backend/server.py` - DELETE endpoint (~línea 6840)
+- `/app/frontend/src/services/api.js` - cancelReservation method
+- `/app/frontend/src/components/ResidentReservations.jsx` - cancel flow
+- `/app/frontend/src/pages/ReservationsModule.js` - admin cancel flow + "Todas" tab
+
+**Testing Status:**
+- ✅ 100% backend API tests passed
+- ✅ 100% frontend UI tests passed
+- ✅ Test report: `/app/test_reports/iteration_53.json`
+
+---
+
 ### Session 53 - P0 FIX: Reservations [object Object] Bug (February 1, 2026) ⭐⭐⭐⭐⭐
 
 **Problem:**
