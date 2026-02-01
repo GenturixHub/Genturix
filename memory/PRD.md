@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 1, 2026 (Session 41 - P0 Guard Profile UX Fix)
+## Last Updated: February 1, 2026 (Session 41 - P0 Guard Profile + History Fix)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -9,9 +9,9 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
 
-### Session 41 - P0 UX FIX: Guard Profile Navigation (February 1, 2026) ⭐⭐⭐⭐⭐
+### Session 41 - P0 FIXES: Guard Profile Navigation + History (February 1, 2026) ⭐⭐⭐⭐⭐
 
-#### 🔴 P0 BUG FIXED: Perfil Duplicado en Guard UI
+#### 🔴 P0 BUG #1 FIXED: Perfil Duplicado en Guard UI
 
 **Problem:** For Guard role, clicking on the avatar in the header navigated to `/profile` (a separate ProfilePage with DashboardLayout), creating:
 - Duplicate profile views (ProfilePage.js vs embedded EmbeddedProfile.jsx)
@@ -19,34 +19,47 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 - Inconsistent UX between mobile (used embedded) and desktop (navigated away)
 
 **Root Cause:**
-In `GuardUI.js` lines 1976 and 1988:
+In `GuardUI.js` the avatar and profile button used conditional navigation:
 ```javascript
 onClick={() => isMobile ? setActiveTab('profile') : navigate('/profile')}
 ```
-This caused desktop users to navigate away from the Guard panel to a separate `/profile` route.
 
 **Solution Implemented:**
-
-1. **Unified Navigation:**
-   - Changed avatar click handler to always use `setActiveTab('profile')` (not conditional)
-   - Now mobile AND desktop both use the embedded profile tab
-   - No navigation away from `/guard`
-
-2. **Back Button Confirmed Working:**
-   - `EmbeddedProfile` already has `onBack={() => setActiveTab('alerts')}`
-   - "Volver al Panel" button is visible and functional
-
-3. **Desktop Profile Button Fixed:**
-   - Line 2021: Changed from `navigate('/profile')` to `setActiveTab('profile')`
+1. Changed all profile navigation to always use `setActiveTab('profile')`
+2. Both mobile AND desktop now use the embedded profile tab
+3. No navigation away from `/guard`
+4. "Volver al Panel" button works correctly
 
 **Files Modified:**
 - `/app/frontend/src/pages/GuardUI.js` (lines 1973-1992, 2015-2027)
 
+#### 🔴 P0 BUG #2 FIXED: Historial Vacío (No registraba entradas/salidas/alertas)
+
+**Problem:** The History tab showed 0 events even though there were check-ins and alerts.
+
+**Root Cause:**
+- `/guard/history` endpoint queried `guard_history` collection but check-ins were in `visitor_entries`
+- Filter was too restrictive (`entry_by = current_user.id`) - guards couldn't see entries from other guards
+
+**Solution Implemented:**
+1. Modified `/guard/history` endpoint to aggregate from multiple sources:
+   - `visitor_entries` → visit_entry, visit_exit events
+   - `panic_events` (status=resolved) → alert_resolved events
+   - `hr_clock_logs` → clock_in, clock_out events
+   - `shifts` (status=completed) → shift_completed events
+2. Removed overly restrictive filtering - guards now see ALL condominium activity
+3. Updated frontend HistoryTab to display new event types with proper icons/colors
+
+**Files Modified:**
+- `/app/backend/server.py` (lines 3096-3195)
+- `/app/frontend/src/pages/GuardUI.js` (HistoryTab component)
+
 **Verification Results:**
-- ✅ Avatar click stays on `/guard`
-- ✅ Profile tab shows embedded EmbeddedProfile.jsx
-- ✅ "Volver al Panel" button visible and works
-- ✅ Returns to Alerts tab correctly
+- ✅ Avatar click stays on `/guard` (desktop + mobile)
+- ✅ Profile button stays on `/guard`
+- ✅ "Volver al Panel" button visible and functional
+- ✅ History now shows 22 events (visitor entries)
+- ✅ History displays: Entradas Registradas, Salidas, Alertas, Fichajes, Turnos
 
 ---
 
