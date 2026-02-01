@@ -540,15 +540,35 @@ const VisitorCheckInGuard = () => {
   };
 
   const handleCheckInSubmit = async (payload) => {
-    const result = await api.guardCheckIn(payload);
-    
-    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-    
-    toast.success(result.is_authorized ? 'Entrada autorizada registrada' : 'Entrada manual registrada');
-    
-    setSearch('');
-    setAuthorizations([]);
-    fetchData();
+    try {
+      const result = await api.guardCheckIn(payload);
+      
+      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+      
+      // Remove the authorization from the list immediately if it was marked as used
+      if (payload.authorization_id && result.authorization_marked_used) {
+        setAuthorizations(prev => prev.filter(a => a.id !== payload.authorization_id));
+        setTodayPreregistrations(prev => prev.filter(a => a.id !== payload.authorization_id));
+      }
+      
+      toast.success(result.is_authorized ? '✅ Entrada autorizada registrada' : '⚠️ Entrada manual registrada');
+      
+      setSearch('');
+      fetchData();
+    } catch (error) {
+      // Handle 409 Conflict - authorization already used
+      if (error.status === 409) {
+        toast.error('🚫 ' + (error.message || 'Esta autorización ya fue utilizada'));
+        // Remove from local list since it's already used
+        if (payload.authorization_id) {
+          setAuthorizations(prev => prev.filter(a => a.id !== payload.authorization_id));
+          setTodayPreregistrations(prev => prev.filter(a => a.id !== payload.authorization_id));
+        }
+      } else {
+        toast.error(error.message || 'Error al registrar entrada');
+      }
+      throw error;
+    }
   };
 
   const handleCheckOut = async (entry) => {
