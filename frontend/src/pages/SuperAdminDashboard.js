@@ -424,6 +424,211 @@ const SystemConfigSection = ({ onRefreshStats }) => {
 };
 
 // ============================================
+// BILLING SUMMARY SECTION (Executive View)
+// ============================================
+const BillingSummarySection = ({ billingOverview }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const INITIAL_DISPLAY_COUNT = 3;
+  
+  const condominiums = billingOverview?.condominiums || [];
+  const totals = billingOverview?.totals || {};
+  const hasMoreItems = condominiums.length > INITIAL_DISPLAY_COUNT;
+  const displayedCondos = isExpanded ? condominiums : condominiums.slice(0, INITIAL_DISPLAY_COUNT);
+  
+  // Calculate overall seat usage percentage
+  const overallUsagePercent = totals.total_paid_seats > 0 
+    ? Math.round((totals.total_active_users / totals.total_paid_seats) * 100) 
+    : 0;
+
+  return (
+    <Card className="bg-[#0F111A] border-[#1E293B]">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-emerald-400" />
+              Facturación SaaS por Condominio
+            </CardTitle>
+            <CardDescription className="mt-1">
+              Resumen ejecutivo de asientos y suscripciones
+            </CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="space-y-4">
+        {/* Executive Summary - Always visible at top */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {/* Total Condominiums */}
+          <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20">
+            <div className="flex items-center gap-2 mb-1">
+              <Building2 className="w-4 h-4 text-blue-400" />
+              <span className="text-xs text-blue-400 font-medium">Condominios</span>
+            </div>
+            <p className="text-2xl font-bold text-white">{totals.total_condominiums || 0}</p>
+          </div>
+          
+          {/* Total Users / Seats */}
+          <div className="p-3 rounded-lg bg-gradient-to-br from-purple-500/10 to-purple-500/5 border border-purple-500/20">
+            <div className="flex items-center gap-2 mb-1">
+              <Users className="w-4 h-4 text-purple-400" />
+              <span className="text-xs text-purple-400 font-medium">Usuarios</span>
+            </div>
+            <p className="text-2xl font-bold text-white">
+              {totals.total_active_users || 0}
+              <span className="text-sm font-normal text-muted-foreground">/{totals.total_paid_seats || 0}</span>
+            </p>
+          </div>
+          
+          {/* MRR */}
+          <div className="p-3 rounded-lg bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20">
+            <div className="flex items-center gap-2 mb-1">
+              <DollarSign className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs text-emerald-400 font-medium">MRR</span>
+            </div>
+            <p className="text-2xl font-bold text-white">
+              ${totals.total_monthly_revenue?.toFixed(0) || 0}
+              <span className="text-xs font-normal text-muted-foreground ml-1">USD</span>
+            </p>
+          </div>
+          
+          {/* Capacity Usage */}
+          <div className="p-3 rounded-lg bg-gradient-to-br from-amber-500/10 to-amber-500/5 border border-amber-500/20">
+            <div className="flex items-center gap-2 mb-1">
+              <TrendingUp className="w-4 h-4 text-amber-400" />
+              <span className="text-xs text-amber-400 font-medium">Capacidad</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <p className="text-2xl font-bold text-white">{overallUsagePercent}%</p>
+              <div className="flex-1 h-2 bg-[#1E293B] rounded-full overflow-hidden">
+                <div 
+                  className={`h-full transition-all duration-500 ${
+                    overallUsagePercent >= 90 ? 'bg-red-500' :
+                    overallUsagePercent >= 70 ? 'bg-amber-500' :
+                    'bg-emerald-500'
+                  }`}
+                  style={{ width: `${overallUsagePercent}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Condominiums List - Collapsible */}
+        <div className="pt-2">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-medium text-muted-foreground">
+              Detalle por Condominio
+            </h4>
+            {hasMoreItems && (
+              <span className="text-xs text-muted-foreground">
+                Mostrando {displayedCondos.length} de {condominiums.length}
+              </span>
+            )}
+          </div>
+          
+          {/* Animated List Container */}
+          <div 
+            className="space-y-2 transition-all duration-300 ease-in-out overflow-hidden"
+            style={{ 
+              maxHeight: isExpanded ? `${condominiums.length * 80}px` : `${INITIAL_DISPLAY_COUNT * 80}px`
+            }}
+          >
+            {displayedCondos.map((condo, index) => (
+              <div 
+                key={condo.condominium_id}
+                className="p-3 rounded-lg bg-[#1E293B]/30 border border-[#1E293B] hover:bg-[#1E293B]/50 transition-colors"
+                style={{
+                  animation: isExpanded && index >= INITIAL_DISPLAY_COUNT 
+                    ? `fadeIn 0.3s ease-out ${(index - INITIAL_DISPLAY_COUNT) * 0.1}s forwards` 
+                    : 'none',
+                  opacity: isExpanded && index >= INITIAL_DISPLAY_COUNT ? 0 : 1
+                }}
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium truncate">{condo.condominium_name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      ${condo.monthly_revenue?.toFixed(2)} USD/mes
+                    </p>
+                  </div>
+                  <Badge 
+                    variant="outline" 
+                    className={`ml-2 shrink-0 ${
+                      condo.billing_status === 'active' ? 'text-green-400 border-green-400/30 bg-green-400/5' :
+                      condo.billing_status === 'trialing' ? 'text-blue-400 border-blue-400/30 bg-blue-400/5' :
+                      condo.billing_status === 'past_due' ? 'text-yellow-400 border-yellow-400/30 bg-yellow-400/5' :
+                      'text-red-400 border-red-400/30 bg-red-400/5'
+                    }`}
+                  >
+                    {condo.billing_status === 'active' ? 'Activo' :
+                     condo.billing_status === 'trialing' ? 'Prueba' :
+                     condo.billing_status === 'past_due' ? 'Pendiente' :
+                     'Cancelado'}
+                  </Badge>
+                </div>
+                
+                <div className="flex items-center gap-3 text-sm">
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Users className="w-3.5 h-3.5 text-purple-400" />
+                    <span className="text-xs">{condo.active_users}/{condo.paid_seats}</span>
+                  </div>
+                  <div className="flex-1">
+                    <div className="h-1.5 bg-[#0A0A0F] rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full transition-all duration-500 ${
+                          condo.remaining_seats <= 0 ? 'bg-red-500' :
+                          condo.remaining_seats <= 2 ? 'bg-yellow-500' :
+                          'bg-emerald-500'
+                        }`}
+                        style={{ width: `${Math.min(100, (condo.active_users / condo.paid_seats) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                  <span className={`text-xs shrink-0 ${condo.remaining_seats <= 0 ? 'text-red-400' : 'text-muted-foreground'}`}>
+                    {condo.remaining_seats} disp.
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {/* Expand/Collapse Button */}
+          {hasMoreItems && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full mt-3 text-muted-foreground hover:text-white hover:bg-[#1E293B]/50 transition-colors"
+              onClick={() => setIsExpanded(!isExpanded)}
+            >
+              {isExpanded ? (
+                <>
+                  <ChevronUp className="w-4 h-4 mr-2" />
+                  Ver menos
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-4 h-4 mr-2" />
+                  Ver más ({condominiums.length - INITIAL_DISPLAY_COUNT} restantes)
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </CardContent>
+      
+      {/* CSS Animation for fadeIn */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+    </Card>
+  );
+};
+
+// ============================================
 // OVERVIEW TAB
 // ============================================
 const OverviewTab = ({ stats, billingOverview, isLoading, onRefresh, onNavigateTab, navigate }) => {
