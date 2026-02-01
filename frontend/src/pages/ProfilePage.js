@@ -308,7 +308,7 @@ const ProfilePage = () => {
           <Card className="bg-[#0F111A] border-[#1E293B]">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
-                <UserCheck className="w-4 h-4 text-purple-400" />
+                <UserCheck className="w-4 h-4 text-cyan-400" />
                 Información de Supervisor
               </CardTitle>
             </CardHeader>
