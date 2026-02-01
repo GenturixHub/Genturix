@@ -614,6 +614,9 @@ const VisitorCheckInGuard = () => {
   };
 
   const handleCheckInSubmit = async (payload) => {
+    // Set processing state to disable the button
+    setProcessingAuthId(payload.authorization_id);
+    
     try {
       const result = await api.guardCheckIn(payload);
       
@@ -644,6 +647,8 @@ const VisitorCheckInGuard = () => {
         toast.error(error.message || 'Error al registrar entrada');
       }
       throw error;
+    } finally {
+      setProcessingAuthId(null);
     }
   };
 
