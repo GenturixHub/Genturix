@@ -452,9 +452,16 @@ class ApiService {
   markAllNotificationsRead = () => this.put('/resident/visitor-notifications/read-all');
   
   // Guard endpoints
-  getAuthorizationsForGuard = (search = '') => this.get(`/guard/authorizations${search ? `?search=${encodeURIComponent(search)}` : ''}`);
+  getAuthorizationsForGuard = (search = '', includeUsed = false) => {
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (includeUsed) params.append('include_used', 'true');
+    const queryString = params.toString();
+    return this.get(`/guard/authorizations${queryString ? `?${queryString}` : ''}`);
+  };
   guardCheckIn = (data) => this.post('/guard/checkin', data);
   guardCheckOut = (entryId, notes = '') => this.post(`/guard/checkout/${entryId}`, { notes });
+  getEntriesToday = () => this.get('/guard/entries-today');
   getVisitorsInside = () => this.get('/guard/visitors-inside');
   
   // Audit & History
