@@ -1,37 +1,68 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: January 31, 2026 (Session 37 - P0 User Creation Error Messages Fix)
+## Last Updated: February 1, 2026 (Session 38 - SaaS Billing Model Implementation)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
 
 ---
 
-## PLATFORM STATUS: ✅ PRODUCTION READY - ALL P0 BLOCKERS FIXED
+## PLATFORM STATUS: ✅ PRODUCTION READY - SAAS BILLING IMPLEMENTED
 
-### Session 37 - P0 BUG FIX: User Creation Error Messages (January 31, 2026) ⭐⭐⭐⭐⭐
+### Session 38 - SAAS SEAT-BASED BILLING MODEL (February 1, 2026) ⭐⭐⭐⭐⭐
 
-#### 🔴 P0 BUG FIXED: Error Messages Not Showing Correctly
-**Problem:** Frontend showed generic "Error del servidor (400)" instead of specific backend error messages like "El email ya está registrado".
+#### 🟢 MAJOR FEATURE: SaaS Billing with Stripe Integration
 
-**Root Cause:**
-- The `fetch()` API response body was being consumed by interceptors (Emergent script or Service Workers) before the application code could read it
-- Error: "Failed to execute 'text' on 'Response': body stream already read"
+**What was implemented:**
 
-**Solution Applied:**
-1. Replaced `fetch()` with `XMLHttpRequest` in `/app/frontend/src/services/api.js`
-2. XMLHttpRequest is not subject to the same interceptors and can always read the response body
-3. Error messages now properly extracted from backend responses
+1. **Data Model Extensions:**
+   - `paid_seats` - Number of user seats paid for
+   - `active_users` - Real count of active users (excluding SuperAdmin)
+   - `remaining_seats` - Calculated: paid_seats - active_users
+   - `billing_status` - active, trialing, past_due, cancelled
+   - `stripe_customer_id`, `stripe_subscription_id`
+
+2. **User Creation Enforcement (CRITICAL):**
+   - Backend checks `active_users < paid_seats` before creating ANY user
+   - Returns HTTP 403 with clear message: "Límite de usuarios alcanzado"
+   - SuperAdmin NOT counted in active_users
+   - Inactive users do NOT count
+
+3. **Billing Endpoints:**
+   - `GET /api/billing/info` - Get billing info for current condominium
+   - `GET /api/billing/can-create-user` - Check if can create user
+   - `POST /api/billing/upgrade-seats` - Create Stripe checkout for upgrade
+   - `POST /api/webhook/stripe-subscription` - Handle Stripe events
+   - `GET /api/billing/history` - Transaction history
+   - `GET /api/super-admin/billing/overview` - All condos billing
+   - `PATCH /api/super-admin/condominiums/{id}/billing` - Update billing
+
+4. **Admin UI:**
+   - "Plan y Facturación" button in Quick Actions showing (X/Y) seats
+   - Billing dialog with paid_seats, active_users, progress bar
+   - Upgrade section with seat selector and cost calculator
+   - Warning banner when at seat limit
+   - Create User button disabled at limit with tooltip
+
+5. **SuperAdmin Dashboard:**
+   - Billing overview showing all condominiums
+   - Per-condo: paid_seats, active_users, progress bar, monthly revenue
+   - Totals: total condos, total users/seats, total MRR
+
+6. **Safety Features:**
+   - Cannot create users if billing_status not active/trialing
+   - Cannot downgrade paid_seats below active_users
+   - All billing changes logged in audit logs
 
 **Verification Results:**
-- ✅ Backend: 100% (7/7 tests passed)
+- ✅ Backend: 100% (9/9 tests passed)
 - ✅ Frontend: 100% (all UI tests passed)
-- ✅ Error "El email ya está registrado" displays correctly
-- ✅ Error "Número de apartamento/casa es requerido" displays correctly
-- ✅ Error "Número de placa es requerido" displays correctly
-- ✅ Mobile: All forms and dropdowns work without freezing
+- ✅ User creation blocked at 403 when limit reached
+- ✅ User creation succeeds and updates count when seats available
+- ✅ Warning banner and disabled button at limit
+- ✅ SuperAdmin billing overview working
 
-**Test Report:** `/app/test_reports/iteration_43.json`
+**Test Report:** `/app/test_reports/iteration_44.json`
 
 ---
 
