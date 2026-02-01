@@ -679,7 +679,7 @@ async def send_credentials_email(
         return {"status": "skipped", "reason": "Email sending disabled (testing mode)", "toggle_disabled": True}
     
     # SECOND: Check if API key is configured
-    if not RESEND_API_KEY or RESEND_API_KEY == 're_placeholder_key':
+    if not RESEND_API_KEY:
         logger.warning("Email not sent - RESEND_API_KEY not configured")
         return {"status": "skipped", "reason": "Email service not configured"}
     
