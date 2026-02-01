@@ -677,8 +677,14 @@ const VisitorCheckInGuard = () => {
                   <CalendarCheck className="w-4 h-4" />
                   PRE-REGISTROS PENDIENTES ({todayPreregistrations.length})
                 </h3>
-                <Button variant="ghost" size="sm" onClick={fetchData}>
-                  <RefreshCw className="w-4 h-4" />
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => fetchData(true)}
+                  disabled={isRefreshing}
+                  data-testid="refresh-preregistrations-btn"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                 </Button>
               </div>
               
