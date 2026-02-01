@@ -2495,6 +2495,7 @@ async def fast_checkin(
     Guard registers a visitor check-in (entry).
     - If authorization_id provided: validates authorization and logs entry
     - If no authorization: creates manual entry record
+    - For TEMPORARY authorizations: marks as "used" after check-in
     """
     now = datetime.now(timezone.utc)
     now_iso = now.isoformat()
@@ -2520,6 +2521,18 @@ async def fast_checkin(
         if not authorization:
             raise HTTPException(status_code=404, detail="Autorización no encontrada")
         
+        # ==================== BLOCK REUSE OF TEMPORARY AUTHORIZATIONS ====================
+        auth_status = authorization.get("status", "pending")
+        auth_type_value = authorization.get("authorization_type", "temporary")
+        
+        # For TEMPORARY authorizations, check if already used
+        if auth_type_value == "temporary" and auth_status == "used":
+            raise HTTPException(
+                status_code=409, 
+                detail="Esta autorización ya fue utilizada. No se puede usar nuevamente."
+            )
+        # ==================================================================================
+        
         validity = check_authorization_validity(authorization)
         
         if not validity["is_valid"]:
@@ -2532,7 +2545,7 @@ async def fast_checkin(
         resident_id = authorization.get("created_by")
         resident_name = authorization.get("created_by_name")
         resident_apartment = authorization.get("resident_apartment")
-        auth_type = authorization.get("authorization_type", "temporary")
+        auth_type = auth_type_value
         color_code = authorization.get("color_code", "yellow")
     
     # Create entry record
