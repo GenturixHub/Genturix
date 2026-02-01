@@ -9,6 +9,107 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
 
+### Session 53 - P0 FIX: Reservations [object Object] Bug (February 1, 2026) ⭐⭐⭐⭐⭐
+
+**Problem:**
+- Al crear/editar áreas o reservaciones, en caso de error se mostraba `[object Object]` en vez del mensaje de error real
+- El error afectaba tanto al Admin (creación de áreas) como al Residente (creación de reservaciones)
+- Los handlers no tenían try-catch apropiado, causando que errores no manejados mostraran objetos crudos
+
+**Root Cause:**
+- Los handlers `handleSaveArea()`, `handleCreateReservation()`, `handleUpdateReservation()` en `ReservationsModule.js` no tenían manejo de errores
+- El handler `handleCreateReservation()` en `ResidentReservations.jsx` tampoco tenía try-catch
+- Cuando ocurría un error, el objeto de error se pasaba directamente a `toast.error()` sin extraer `.message`
+
+**Solution Implemented:**
+
+**1. ReservationsModule.js - Error Handling:**
+```javascript
+// handleSaveArea - Line 814
+const handleSaveArea = async (formData, areaId) => {
+  try {
+    // ... API calls
+    toast.success('Área creada/actualizada');
+    fetchData();
+  } catch (error) {
+    const errorMessage = error?.message || (typeof error === 'string' ? error : 'Error al guardar área');
+    toast.error(errorMessage);
+    throw error;
+  }
+};
+
+// handleCreateReservation - Line 838
+const handleCreateReservation = async (formData) => {
+  try {
+    await api.createReservation(formData);
+    toast.success('Reservación creada');
+    fetchData();
+  } catch (error) {
+    const errorMessage = error?.message || (typeof error === 'string' ? error : 'Error al crear reservación');
+    toast.error(errorMessage);
+    throw error;
+  }
+};
+
+// handleUpdateReservation - Line 856
+const handleUpdateReservation = async (reservationId, status, notes) => {
+  try {
+    await api.updateReservationStatus(reservationId, { status, admin_notes: notes });
+    toast.success(`Reservación ${status === 'approved' ? 'aprobada' : 'rechazada/cancelada'}`);
+    fetchData();
+  } catch (error) {
+    const errorMessage = error?.message || (typeof error === 'string' ? error : 'Error al actualizar');
+    toast.error(errorMessage);
+  }
+};
+```
+
+**2. ResidentReservations.jsx - Error Handling:**
+```javascript
+// handleCreateReservation - Line 703
+const handleCreateReservation = async (reservationData) => {
+  try {
+    await api.createReservation(reservationData);
+    toast.success('Reservación creada exitosamente');
+    loadData();
+  } catch (error) {
+    const errorMessage = error?.message || (typeof error === 'string' ? error : 'Error al crear');
+    toast.error(errorMessage);
+    throw error;
+  }
+};
+```
+
+**3. Dialog Catch Blocks Updated:**
+- `AreaFormDialog.handleSave()` - Line 374
+- `ReservationFormDialog.handleSave()` - Line 613 (both files)
+- All use: `error?.message || (typeof error === 'string' ? error : 'Fallback message')`
+
+**Files Modified:**
+- `/app/frontend/src/pages/ReservationsModule.js` - 4 handlers updated
+- `/app/frontend/src/components/ResidentReservations.jsx` - 2 handlers updated
+
+**Testing Status:**
+- ✅ 100% backend API tests passed (17/17)
+- ✅ 100% frontend UI tests passed
+- ✅ NO [object Object] in any error scenario
+- ✅ All toast messages show readable Spanish text
+- ✅ Test report: `/app/test_reports/iteration_52.json`
+
+**Toast Messages Verified:**
+| Action | Toast Message |
+|--------|---------------|
+| Área creada | "Área creada" |
+| Área actualizada | "Área actualizada" |
+| Área eliminada | "Área eliminada" |
+| Reservación creada | "Reservación creada exitosamente" |
+| Reservación aprobada | "Reservación aprobada" |
+| Reservación rechazada | "Reservación rechazada" |
+| Reservación cancelada | "Reservación cancelada" |
+| Error (cualquiera) | Mensaje legible en español |
+
+---
+
 ### Session 52 - P0 FIX: Push Notifications Not Working (February 1, 2026) ⭐⭐⭐⭐⭐
 
 **Problem:**
