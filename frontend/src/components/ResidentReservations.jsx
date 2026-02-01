@@ -497,11 +497,11 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Hora Fin</Label>
+              <Label className="text-xs">Hora Fin {selectedSlotIndex !== null && <Badge variant="outline" className="ml-1 text-[9px] py-0">Auto-llenado</Badge>}</Label>
               <Input
                 type="time"
                 value={form.end_time}
-                onChange={(e) => setForm({ ...form, end_time: e.target.value })}
+                onChange={(e) => { setForm({ ...form, end_time: e.target.value }); setSelectedSlotIndex(null); }}
                 min={form.start_time}
                 max={area.available_until}
                 className="bg-[#0A0A0F] border-[#1E293B] h-10"
