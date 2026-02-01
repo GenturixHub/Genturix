@@ -68,7 +68,7 @@ const SchoolModule = () => {
       'Seguridad': 'bg-red-500/20 text-red-400 border-red-500/20',
       'Salud': 'bg-green-500/20 text-green-400 border-green-500/20',
       'Administración': 'bg-blue-500/20 text-blue-400 border-blue-500/20',
-      'default': 'bg-purple-500/20 text-purple-400 border-purple-500/20'
+      'default': 'bg-cyan-500/20 text-cyan-400 border-cyan-500/20'
     };
     return colors[category] || colors.default;
   };
@@ -91,7 +91,7 @@ const SchoolModule = () => {
           <Card className="grid-card">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center">
                   <BookOpen className="w-6 h-6" />
                 </div>
                 <div>

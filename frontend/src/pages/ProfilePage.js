@@ -54,11 +54,11 @@ import {
 
 // Role configuration for display
 const ROLE_CONFIG = {
-  'Administrador': { icon: Shield, color: 'bg-purple-500/10 text-purple-400', label: 'Administrador' },
+  'Administrador': { icon: Shield, color: 'bg-cyan-500/10 text-cyan-400', label: 'Administrador' },
   'Residente': { icon: Home, color: 'bg-blue-500/10 text-blue-400', label: 'Residente' },
   'Guarda': { icon: Shield, color: 'bg-green-500/10 text-green-400', label: 'Guardia' },
   'HR': { icon: Briefcase, color: 'bg-orange-500/10 text-orange-400', label: 'Recursos Humanos' },
-  'Supervisor': { icon: UserCheck, color: 'bg-purple-500/10 text-purple-400', label: 'Supervisor' },
+  'Supervisor': { icon: UserCheck, color: 'bg-cyan-500/10 text-cyan-400', label: 'Supervisor' },
   'Estudiante': { icon: GraduationCap, color: 'bg-cyan-500/10 text-cyan-400', label: 'Estudiante' },
   'SuperAdmin': { icon: Shield, color: 'bg-red-500/10 text-red-400', label: 'Super Admin' },
 };
