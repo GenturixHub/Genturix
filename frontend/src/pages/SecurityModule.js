@@ -84,6 +84,7 @@ const SecurityModule = () => {
   });
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [isSendingPanic, setIsSendingPanic] = useState(false);
+  const [isCreatingAccess, setIsCreatingAccess] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -170,13 +171,26 @@ const SecurityModule = () => {
   };
 
   const handleCreateAccessLog = async () => {
+    if (!accessForm.person_name || !accessForm.location) {
+      toast.error('Por favor completa todos los campos requeridos');
+      return;
+    }
+    
+    setIsCreatingAccess(true);
     try {
-      await api.createAccessLog(accessForm);
-      setAccessDialogOpen(false);
-      setAccessForm({ person_name: '', access_type: 'entry', location: '', notes: '' });
-      fetchData();
+      const response = await api.createAccessLog(accessForm);
+      if (response) {
+        toast.success('✅ Registro creado correctamente');
+        setAccessDialogOpen(false);
+        setAccessForm({ person_name: '', access_type: 'entry', location: '', notes: '' });
+        // Refresh data immediately to show new record
+        await fetchData();
+      }
     } catch (error) {
       console.error('Error creating access log:', error);
+      toast.error(error.message || 'Error al crear el registro. Por favor intenta de nuevo.');
+    } finally {
+      setIsCreatingAccess(false);
     }
   };
 
