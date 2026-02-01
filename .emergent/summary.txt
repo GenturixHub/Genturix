@@ -1,67 +1,74 @@
 <analysis>**original_problem_statement:**
-The user initially reported a series of critical P0 bugs blocking production and requested several UX improvements. The major issues included:
-1.  **P0 BUG - Guard Check-In Duplication:** A critical security flaw allowing infinite re-use of pre-registrations.
-2.  **P0 BUG - Mi Turno Datetime Error:** A  crashed the My Shift tab for guards, preventing them from seeing their shift status.
-3.  **P0 BUG - Static Notification Bell:** The notification bell badge was static and did not reflect the actual number of unread notifications.
-4.  **P0 BUG - Admin Modules Without Information:** The Registro de Accesos and Actividad Reciente modules on the Admin dashboard were empty, showing no data.
-5.  **P0 BUG - HR Employee Duplication:** A duplicate, non-functional employee record in the HR evaluations module was blocking the HR workflow.
-6.  **P1 BUG - Resident Pre-registration Status:** Pre-registrations in the resident's view did not update their status (e.g., to used) after a guard completed the check-in.
-7.  **P1 Task - UX Improvement for Reservations:** Make the availability time slots in the reservations module clickable to auto-fill the booking form.
-8.  **Enhancement - Guard History:** User requested a visual history of check-ins.
+The user initiated this session to fix a critical P0 bug where the emergency alert sound for guards would not stop playing even after the alert was acknowledged. During the session, the user reported that the fix was unsuccessful and a duplicate sound issue persisted.
+
+Simultaneously, the user reported a new P0 bug: the notification bell for the RESIDENT role was completely static and non-functional.
+
+Finally, the user requested a major, phased feature enhancement for the reservations system to introduce logic based on area types (, , , ), requiring backward-compatible changes to the data model, new backend endpoints for calculating availability, and a revised frontend UX with clickable time slots.
 
 **User's preferred language**: Español
 
 **what currently exists?**
-The application is in a significantly more stable state. The agent has systematically addressed and resolved all the user's reported P0 and P1 issues.
--   **Guard Check-In:** The critical duplication bug has been fixed. Frontend safeguards were added to prevent double-clicks and optimistically update the UI. The fix was fully verified by the testing agent.
--   **Guard Mi Turno:** The backend  related to timezone-naive datetimes was corrected in . The module is now functional.
--   **Reservations UX:** The reservations form in  now features clickable time slots that auto-populate the start and end time fields, improving usability.
--   **Guard Visual History:** A new component, , was created and integrated into . It displays charts and statistics for guard activity.
--   **Dynamic Notifications:** A complete notification system (backend endpoints and frontend logic) was implemented for Admin/Supervisor roles. The bell icon now shows a dynamic badge for unread notifications, which are automatically marked as read upon viewing.
--   **Admin Modules:** The Registro de Accesos and Actividad Reciente modules now display real, unified data from multiple backend collections (, , ).
--   **Resident Pre-registrations:** The resident's view now correctly categorizes authorizations into Pendientes, Utilizadas, and Expiradas, providing clear status feedback.
--   **HR Employee Duplication:** The root cause (orphaned  records) was identified. A backend validation and cleanup job was created to ensure data integrity, and the frontend now only displays valid, evaluable employees.
+The application has two major changes from this session:
+1.  **Resident Notification System:** A fully functional notification system for the resident role has been implemented. The previously static bell icon is now dynamic, showing a real-time count of unread notifications fetched from the backend. The dropdown displays notifications, which are automatically marked as read. This P0 bug is resolved.
+2.  **Advanced Reservations (In Progress):** A significant portion of the new reservations system has been built. The backend  model was extended with new fields (e.g., , ). A new endpoint, , calculates availability based on the area's rules. The resident-facing reservation UI has been updated to use this endpoint, display clickable time slots, show capacity details, and hide areas that are not reservable (). The work is backward-compatible.
+
+The critical bug with the **alert sound duplication** for guards remains unresolved despite multiple fix attempts.
 
 **Last working item**:
--   Last item agent was working: Fixing the **P0 BUG - HR Employee Duplication**. The agent identified inconsistent data in the  collection as the root cause, created backend endpoints to validate and clean the data (, ), and updated the frontend () to only display valid, evaluable employees.
--   Status: USER VERIFICATION PENDING
--   Agent Testing Done: Y
--   Which testing method agent to use? NA(if testing is already done)
+-   Last item agent was working: The agent was implementing the advanced reservations system. They successfully extended the backend data model and API endpoints and updated the resident-facing frontend () to display and use the new smart availability logic. The agent tested the resident flow with  and screenshots, fixed a bug related to day availability, and confirmed the resident UI was working as expected.
+-   Status: IN PROGRESS
+-   Agent Testing Done: Y (Manual curl and screenshots for the implemented parts)
+-   Which testing method agent to use? backend testing agent
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   Issue 1: (P2, Low Priority) PostHog Console Error
--   Issue 2: (P2, Low Priority)  Attribute Error Warning
+-   Issue 1: (P0, Critical) Guard Alert Sound Duplication
+-   Issue 2: (P2, Low Priority) PostHog Console Error
+-   Issue 3: (P2, Low Priority)  Attribute Error Warning
 
 Issues Detail:
--   **Issue 1: PostHog Console Error**
-    -   A recurring  error appears in the browser console.
-    -   Attempted fixes: None.
+-   **Issue 1: Guard Alert Sound Duplication**
+    -   Description: When a guard receives a panic alert, multiple sounds play simultaneously, and one of the sounds persists even after the alert is acknowledged. This is a critical P0 UX issue for emergencies.
+    -   Attempted fixes:
+        1.  **:** A central manager was created to control audio.
+        2.  ** Lock:** Implemented a locking mechanism to ensure only one browser tab could play the sound. This failed.
+        3.  **:** Upgraded the inter-tab communication to use  to send a  command to all tabs. This also failed.
+        4.  **Service Worker:** Modified  to send the  message to only one client and to make the native browser notification silent ().
     -   Next debug checklist:
-        -   Investigate if the PostHog integration script is loaded correctly.
-        -   Check for conflicts with other scripts or iframe content.
-        -   Search for known issues related to PostHog and the specific browser/framework version.
-    -   Why fix this issue and what will be achieved with the fix? This will clean up the browser console, removing noise that can obscure more critical errors during development and debugging.
-    -   Status: NOT STARTED
+        -   **CRITICAL: Instruct the user to perform a hard refresh and clear their site data.** An old, cached Service Worker is the most likely cause. The agent must guide the user on how to do this in their browser.
+        -   Add aggressive logging to  and  to trace every  and  command, including the  and timestamps.
+        -   Verify if multiple s are accidentally being created.
+        -   Check if the issue is a race condition where a  command is dispatched immediately after a  command from a different event.
+    -   Why fix this issue and what will be achieved with the fix? Resolving this is critical for the guard's ability to respond to emergencies effectively without unnecessary stress and confusion from a persistent alarm sound.
+    -   Status: IN PROGRESS
     -   Is recurring issue? Y
     -   Should Test frontend/backend/both after fix? frontend
     -   Blocked on other issue: None.
 
--   **Issue 2:  Attribute Error Warning**
-    -   A non-blocking warning  appears in the backend logs on startup.
-    -   Attempted fixes: None.
-    -   Next debug checklist:
-        -   This is likely due to a version mismatch or an issue within the  library that uses .
-        -   Check the installed versions of  and .
-        -   Consider pinning  to a compatible version in .
-    -   Why fix this issue and what will be achieved with the fix? This will clean up the backend startup logs, ensuring a cleaner and less confusing developer experience.
+-   **Issue 2: PostHog Console Error**
+    -   Description: A recurring  error appears in the browser console.
+    -   Status: NOT STARTED
+    -   Is recurring issue? Y
+    -   Should Test frontend/backend/both after fix? frontend
+
+-   **Issue 3:  Attribute Error Warning**
+    -   Description: A non-blocking warning  appears in the backend logs on startup.
     -   Status: NOT STARTED
     -   Is recurring issue? N
     -   Should Test frontend/backend/both after fix? backend
-    -   Blocked on other issue: None.
 
 **In progress Task List**:
-There are no tasks currently in progress.
+-   Task 1: (P1) Advanced Reservations System
+
+Task Detail:
+-   **Task 1: Advanced Reservations System**
+    -   Where to resume:
+        1.  **Admin Frontend:** The Admin UI for managing common areas needs to be updated. The form for creating/editing an area must include new input fields for  (as a dropdown: EXCLUSIVE, CAPACITY, SLOT_BASED, FREE_ACCESS) and conditionally show inputs for , , , etc., based on the selected type.
+        2.  **Full E2E Testing:** After implementing the Admin UI, perform end-to-end testing. Create areas of each new type, and verify that the reservation logic and UI on the resident side behave correctly for each.
+    -   What will be achieved with this? This will complete the user's feature request, enabling admins to define granular rules for common areas and providing residents with a clear, user-friendly booking experience.
+    -   Status: IN PROGRESS
+    -   Should Test frontend/backend/both after fix? both
+    -   Blocked on something: The P0 sound bug should be addressed first, but work can proceed in parallel if the user agrees.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
@@ -74,14 +81,12 @@ There are no tasks currently in progress.
     -   (P3) Send an email notification to the admin on user password change.
 
 **Completed work in this session**
--   **P0 BUG - Guard Check-In Duplication (FIXED & VERIFIED):** Implemented frontend safeguards and verified the entire flow with the testing agent.
--   **P0 BUG - Mi Turno Datetime Error (FIXED & VERIFIED):** Corrected timezone handling in .
--   **P1 Task - UX Reservations Clickable Slots (FINISHED & VERIFIED):** Implemented clickable time slots in .
--   **Enhancement - Guard Visual History (DONE):** Created a new visual history tab with charts for the Guard UI ().
--   **P0 BUG - Static Notification Bell (FIXED & VERIFIED):** Implemented a full dynamic notification system for Admin/Supervisor roles.
--   **P0 BUG - Admin Modules Empty (FIXED & VERIFIED):** Unified backend data sources and updated frontend components (, ).
--   **P1 BUG - Resident Pre-registration Status (FIXED & VERIFIED):** Updated backend and frontend () to show clear authorization states.
--   **P0 BUG - HR Employee Duplication (FIXED & VERIFIED):** Created backend integrity checks and cleanup jobs, and fixed the frontend ().
+-   **P0 BUG - Resident Notification Bell (FIXED & VERIFIED):** Implemented a complete, dynamic notification system for the Resident UI. This included adding backend endpoints for unread counts () and updating the frontend () to display a dynamic badge and a functional notification dropdown.
+-   **Advanced Reservations System (Partially Implemented):**
+    -   Backend data model for  extended with backward compatibility.
+    -   New endpoint  created.
+    -   Reservation creation logic in  updated.
+    -   Resident frontend () overhauled to use the new system with clickable time slots.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: PostHog Console Error**
@@ -92,7 +97,7 @@ There are no tasks currently in progress.
     -   Status: NOT STARTED (P2)
 
 **Known issue recurrence from previous fork**
--   **Issue recurrence in previous fork:** PostHog Console Error
+-   **Issue recurrence in previous fork:** PostHog Console Error.
 -   **Recurrence count:** 5+
 -   **Status:** NOT STARTED
 
@@ -100,16 +105,15 @@ There are no tasks currently in progress.
 
 
 **Key Technical Concepts**
--   **Data Integrity Jobs:** Creation of backend endpoints (, ) to programmatically audit and correct inconsistent data, a crucial pattern for maintaining application health.
--   **Backend Data Aggregation:** Combining data from multiple MongoDB collections (, , ) into single, unified API responses to simplify frontend logic.
--   **Dynamic UI from Backend State:** Implementing features where the UI state (e.g., notification badge count) is driven directly and reliably by backend data.
--   **Timezone-Aware Datetimes:** Consistently using  and correctly handling ISO format strings to prevent  exceptions in Python.
--   **Robust Frontend State Management:** Using state to disable buttons () and optimistically update lists to prevent race conditions and provide immediate user feedback.
+-   **Inter-tab Communication:** Attempted to synchronize audio state across browser tabs using  events and, more robustly, the  API to prevent duplicate sounds.
+-   **Service Worker Lifecycle:** Managed the Service Worker by versioning caches to force updates and used its API () to control which clients receive push event messages.
+-   **Backward-Compatible Schema Extension:** Extended the backend  model with new optional fields (, , etc.) and default values, ensuring existing API endpoints and database documents continue to function without a breaking migration.
+-   **Rule-Based API Logic:** Created a smart backend endpoint () that dynamically alters its availability calculation based on a  field in the data model, supporting distinct business rules for different area types (Exclusive, Capacity, etc.).
+-   **Dynamic UI Rendering:** The  component was refactored to consume the new smart availability API, dynamically rendering a UI with clickable time slots, capacity information, and area status badges based on the rules defined in the backend.
 
 **key DB schema**
--   **guard_notifications:** Used with uid=0(root) gid=0(root) groups=0(root), , , , . The  field is critical for the notification system.
--   **guards:** Audited, revealing the importance of  being non-null and  for determining if a guard is valid and evaluable.
--   **visitor_authorizations:**  and a new backend-derived  are key to separating pending vs. used authorizations for residents.
+-   **areas:** Extended with optional fields:  (Enum: EXCLUSIVE, CAPACITY, SLOT_BASED, FREE_ACCESS), , , , , .
+-   **resident_visitor_notifications:** Used for the new resident notification feature, with fields like , , , and .
 
 **All files of reference**
 -   
@@ -124,51 +128,43 @@ There are no tasks currently in progress.
 -   
 
 **Areas that need refactoring**:
--   **:** Remains extremely long and would benefit from being broken into multiple files by feature area (e.g., , ).
--   **:** This component has become very large, containing logic for multiple tabs. The tabs could be extracted into their own components.
+-   **:** Continues to grow and is a prime candidate for being broken into a directory of routes (e.g., , ).
+-   **:** Has become very complex with the new logic. The availability calendar/slot selection and the form could be separated into smaller, more manageable components.
+-   **Sound Logic:** The responsibility for stopping the sound is still distributed across multiple components (, , ). A more robust solution might involve the  being the single source of truth, with components only sending events to it rather than calling  directly.
 
 **key api endpoints**
--   **HR Integrity (NEW):**
-    -   : Audits HR data for inconsistencies.
-    -   : Deactivates invalid guard records.
-    -   : Returns only valid employees for evaluation.
--   **Notifications (NEW):**
-    -   , , , 
--   **Admin Data (MODIFIED):**
-    -   : Now returns unified data from  and .
-    -   : Returns aggregated activity from multiple collections.
--   **Resident Authorizations (MODIFIED):**
-    -   : Now includes a  flag to indicate status.
--   **Guard Shift (FIXED):**
-    -   : Now correctly handles timezone-aware datetimes.
+-   **Resident Notifications (NEW & MODIFIED):**
+    -   
+    -   
+    -   
+-   **Smart Reservations (NEW & MODIFIED):**
+    -    (NEW)
+    -    (Validation logic updated)
+    -    &  (Updated to handle new area properties)
 
 **Critical Info for New Agent**
-1.  **All P0/P1 Bugs Are Resolved:** The agent has successfully addressed a large backlog of critical and high-priority bugs. The application is now in a much more stable and functional state. The next steps should focus on the user's upcoming feature requests or the remaining low-priority technical debt.
-2.  **Data Integrity is Key:** Many of the bugs were caused by inconsistent or legacy data. The pattern of creating backend validation/cleanup jobs () proved highly effective and should be considered for future similar issues.
-3.  **Testing Agent is Effective:** The testing agent was used successfully on multiple occasions to provide comprehensive verification of complex bug fixes across both frontend and backend. It should continue to be used for major features or critical bug fixes.
-4.  **Prioritize User Confirmation:** Before starting new work, confirm the plan with the user. All major fixes from this session are pending user verification.
+1.  **Sound Bug is P0 and Unresolved:** The top priority is fixing the alert sound duplication. The user has confirmed that multiple attempts have failed. Your first action MUST be to guide the user to **clear their browser cache and unregister the service worker**, as an old, cached worker is the most likely cause. Do not attempt another code fix until this environmental factor is eliminated.
+2.  **Reservations Feature is Incomplete:** The advanced reservations feature is a large task that is only partially finished. The backend and resident-facing frontend are implemented, but the crucial **Admin UI for configuring the new area rules is missing**. You will need to implement this part to complete the feature.
+3.  **Manage Dual Priorities:** The user is focused on both the P0 sound bug and the new reservations feature. You must address the sound bug first. Once a potential fix is deployed for user testing, you can proceed with the reservations feature while awaiting feedback.
 
 **documents and test reports created in this job**
 -   
 -   
--   
--   
--   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **USER:** Reports P0 bug with HR evaluations (duplicate employee). (LATEST)
-2.  **AGENT:** Fixes P0/P1 Admin & Resident bugs and summarizes.
-3.  **USER:** Reports P0 bugs in Admin modules (empty data) and P1 bug with resident pre-registrations (stale status).
-4.  **AGENT:** Fixes P0 notification bell bug and summarizes.
-5.  **USER:** Reports P0 bug with the notification bell being static.
-6.  **AGENT:** Completes reservation UX improvements and Mi Turno fix, and summarizes.
-7.  **USER:** Requests UX improvements for reservations (clickable slots) and reports a P0 bug with an error on the Mi Turno tab for guards (with screenshot).
-8.  **AGENT:** Implements visual history for guards and summarizes.
-9.  **USER:** si, un historial de check ins visual estaria bien (Yes, a visual check-in history would be good).
-10. **AGENT:** Fixes the P0 guard check-in bug and summarizes.
+1.  **USER:** Provides a detailed spec for a large, phased enhancement to the reservations system. (LATEST)
+2.  **AGENT:** Proposes a final fix for the sound bug using  and asks the user to re-test, also summarizing the implemented resident notification feature.
+3.  **USER:** sigue duplicado (it's still duplicated). Reports that the sound bug persists and, in the same message, provides a detailed spec for a P0 bug with the resident notification bell.
+4.  **AGENT:** Summarizes the  lock fix for the sound bug and asks the user to test again.
+5.  **USER:** si se apaga pero hay otra que sigue, como que se duplicaron los sonidos... (yes it turns off but another one continues, like the sounds were duplicated). Reports the initial fix failed and describes the duplication issue.
+6.  **AGENT:** Finishes the initial sound fix implementation and updates PRD.md.
+7.  **TESTING AGENT:** Reports success on the initial sound fix.
+8.  **AGENT:** Deploys initial fix and calls the testing agent.
+9.  **AGENT:** Implements the initial sound fix using .
+10. **USER:** Provides a detailed spec for the P0 critical bug with the guard alert sound not stopping immediately.
 
 **Project Health Check:**
--   **Broken:** None. All critical and high-priority reported issues have been fixed.
+-   **Broken:** The guard emergency alert audio system is critically broken due to sound duplication.
 -   **Mocked:** None.
 
 **3rd Party Integrations**
@@ -177,14 +173,11 @@ There are no tasks currently in progress.
 -   **Web Push (pywebpush):** Integrated.
 
 **Testing status**
--   Testing agent used after significant changes: YES
+-   Testing agent used after significant changes: YES (for the first sound fix, which was later proven insufficient).
 -   Troubleshoot agent used after agent stuck in loop: NO
 -   Test files created:
     -   
-    -   
-    -   
-    -   
--   Known regressions: None from this session. The previously recurring Guard Check-in bug has been definitively fixed and verified.
+-   Known regressions: None.
 
 **Credentials to test flow:**
 -   **Super Admin:**  / 
@@ -193,4 +186,5 @@ There are no tasks currently in progress.
 -   **Resident:**  / 
 
 **What agent forgot to execute**
--   The agent did not address the two low-priority technical debt issues mentioned in the initial handoff: the **PostHog console error** and the ** backend warning**. This was a reasonable tradeoff to focus on fixing numerous P0 production blockers.</analysis>
+-   The agent did not add the Admin UI portion for the new reservations feature, leaving the task incomplete.
+-   The agent did not ask the user to clear their browser cache or unregister the service worker, which is a critical debugging step for persistent issues related to service workers and caching, like the sound duplication problem.</analysis>
