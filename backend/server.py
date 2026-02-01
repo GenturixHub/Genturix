@@ -3097,12 +3097,10 @@ async def get_guard_history(
     history_entries = await db.guard_history.find(base_query, {"_id": 0}).sort("timestamp", -1).to_list(100)
     
     # ==================== VISITOR ENTRIES (Check-ins/Check-outs) ====================
+    # Guards see ALL entries in their condominium (useful for shift handoff)
     visitor_query = {}
     if condo_id:
         visitor_query["condominium_id"] = condo_id
-    # Guards see only their own entries
-    if guard_id and "Administrador" not in current_user.get("roles", []):
-        visitor_query["entry_by"] = current_user["id"]
     
     visitor_entries = await db.visitor_entries.find(visitor_query, {"_id": 0}).sort("entry_at", -1).to_list(50)
     
