@@ -1,45 +1,59 @@
-// GENTURIX Service Worker for PWA + Push Notifications
-// VERSION 3 - Fixed duplicate sounds
-const CACHE_NAME = 'genturix-v3';
+// =========================================================================
+// GENTURIX Service Worker v4 - Push Notifications + PWA
+// =========================================================================
+const CACHE_NAME = 'genturix-v4';
 const OFFLINE_URL = '/offline.html';
 
-// Assets to cache
-const urlsToCache = [
+// Assets to cache for offline
+const STATIC_ASSETS = [
   '/',
-  '/static/js/bundle.js',
   '/manifest.json',
   '/logo192.png',
-  '/favicon.ico',
-  OFFLINE_URL
+  '/favicon.ico'
 ];
 
-// Install event - cache basic assets
+// =========================================================================
+// INSTALL - Cache static assets
+// =========================================================================
 self.addEventListener('install', (event) => {
+  console.log('[SW] Installing Service Worker v4');
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(urlsToCache))
+      .then((cache) => {
+        console.log('[SW] Caching static assets');
+        return cache.addAll(STATIC_ASSETS);
+      })
       .then(() => self.skipWaiting())
   );
 });
 
-// Activate event - clean old caches
+// =========================================================================
+// ACTIVATE - Clean old caches and take control
+// =========================================================================
 self.addEventListener('activate', (event) => {
+  console.log('[SW] Activating Service Worker v4');
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.filter((cacheName) => {
-          return cacheName !== CACHE_NAME;
-        }).map((cacheName) => {
-          return caches.delete(cacheName);
-        })
-      );
-    }).then(() => self.clients.claim())
+    caches.keys()
+      .then((cacheNames) => {
+        return Promise.all(
+          cacheNames
+            .filter((name) => name !== CACHE_NAME)
+            .map((name) => {
+              console.log('[SW] Deleting old cache:', name);
+              return caches.delete(name);
+            })
+        );
+      })
+      .then(() => self.clients.claim())
+      .then(() => console.log('[SW] Service Worker v4 now active'))
   );
 });
 
-// Fetch event - network first, fallback to cache
+// =========================================================================
+// FETCH - Network first, fallback to cache
+// =========================================================================
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests and API calls
+  // Skip non-GET and API requests
   if (event.request.method !== 'GET' || event.request.url.includes('/api/')) {
     return;
   }
@@ -47,170 +61,212 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Clone the response and cache it
-        const responseClone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseClone);
-        });
+        // Cache successful responses
+        if (response.ok) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
         return response;
       })
       .catch(() => {
-        // Fallback to cache
         return caches.match(event.request)
-          .then((response) => {
-            if (response) {
-              return response;
-            }
-            // If not in cache, return offline page for navigation requests
-            if (event.request.mode === 'navigate') {
-              return caches.match(OFFLINE_URL);
-            }
-            return new Response('', { status: 404 });
-          });
+          .then((cached) => cached || caches.match('/'));
       })
   );
 });
 
-// ==================== PUSH NOTIFICATION HANDLING ====================
-
-// Handle push notification received
+// =========================================================================
+// PUSH - Handle incoming push notifications
+// =========================================================================
 self.addEventListener('push', (event) => {
-  console.log('[SW] Push notification received');
-  
-  let data = {
-    title: 'GENTURIX - Nueva Notificación',
-    body: 'Tienes una nueva notificación',
+  console.log('[SW] Push event received');
+
+  // Default notification data
+  let notification = {
+    title: 'GENTURIX',
+    body: 'Nueva notificación',
     icon: '/logo192.png',
     badge: '/logo192.png',
-    tag: 'default',
-    requireInteraction: true,
-    data: {}
+    tag: 'genturix-notification',
+    data: { url: '/' }
   };
 
-  try {
-    if (event.data) {
+  // Parse push payload
+  if (event.data) {
+    try {
       const payload = event.data.json();
-      data = {
-        title: payload.title || data.title,
-        body: payload.body || data.body,
-        icon: payload.icon || data.icon,
-        badge: payload.badge || data.badge,
-        tag: payload.tag || data.tag,
-        requireInteraction: payload.requireInteraction !== undefined ? payload.requireInteraction : true,
-        data: payload.data || {}
+      console.log('[SW] Push payload:', payload);
+      
+      notification = {
+        title: payload.title || notification.title,
+        body: payload.body || notification.body,
+        icon: payload.icon || notification.icon,
+        badge: payload.badge || notification.badge,
+        tag: payload.tag || notification.tag,
+        data: payload.data || notification.data
       };
+    } catch (e) {
+      console.error('[SW] Error parsing push payload:', e);
+      // Try as text
+      try {
+        notification.body = event.data.text();
+      } catch (e2) {
+        console.error('[SW] Error reading push as text:', e2);
+      }
     }
-  } catch (e) {
-    console.error('[SW] Error parsing push data:', e);
   }
 
-  // Determine if this is a panic alert
-  const isPanicAlert = data.data.type === 'panic_alert';
+  // Determine notification type for customization
+  const notificationType = notification.data?.type || 'default';
+  const isPanic = notificationType === 'panic_alert';
 
   // Configure notification options
   const options = {
-    body: data.body,
-    icon: data.icon,
-    badge: data.badge,
-    tag: data.tag,
-    requireInteraction: data.requireInteraction,
-    vibrate: isPanicAlert 
-      ? [500, 200, 500, 200, 500, 200, 500] // Longer urgent pattern for panic
-      : [200, 100, 200, 100, 200],
-    data: data.data,
-    // Silent for panic alerts - we control sound via AlertSoundManager
-    // This prevents duplicate sounds from native notification + our custom sound
-    silent: isPanicAlert ? true : false,
-    actions: isPanicAlert ? [
-      { action: 'open', title: 'Ver Alerta' },
-      { action: 'dismiss', title: 'Cerrar' }
-    ] : []
+    body: notification.body,
+    icon: notification.icon,
+    badge: notification.badge,
+    tag: notification.tag,
+    renotify: true, // Always notify even with same tag
+    requireInteraction: isPanic, // Only panic needs interaction
+    silent: false, // IMPORTANT: Let the system play sound
+    vibrate: isPanic 
+      ? [300, 100, 300, 100, 300, 100, 300] // Urgent pattern
+      : [100, 50, 100], // Friendly short vibration
+    data: notification.data,
+    actions: isPanic ? [
+      { action: 'view', title: '👁️ Ver Alerta' },
+      { action: 'dismiss', title: '✕ Cerrar' }
+    ] : [
+      { action: 'view', title: 'Ver' }
+    ]
   };
 
-  // For panic alerts, send message to ONE client to play sound
-  // AlertSoundManager uses localStorage lock to prevent duplicates across tabs
-  if (isPanicAlert) {
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clientList) => {
-        // Only send to first visible client to avoid duplicate sounds
-        // The AlertSoundManager will handle cross-tab coordination
-        if (clientList.length > 0) {
-          // Prefer focused/visible clients
-          const visibleClient = clientList.find(c => c.visibilityState === 'visible') || clientList[0];
-          visibleClient.postMessage({
-            type: 'PLAY_PANIC_SOUND',
-            data: data.data
-          });
-        }
-      });
-  }
-
+  // Show the notification
   event.waitUntil(
-    self.registration.showNotification(data.title, options)
-  );
-});
-
-// Handle notification click
-self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification clicked:', event.action);
-  
-  event.notification.close();
-  
-  // Handle dismiss action
-  if (event.action === 'dismiss') {
-    return;
-  }
-  
-  // Determine URL to open
-  let urlToOpen = '/';
-  const notificationData = event.notification.data || {};
-  
-  if (notificationData.url) {
-    urlToOpen = notificationData.url;
-  } else if (notificationData.type === 'panic_alert') {
-    urlToOpen = `/guard?alert=${notificationData.event_id}`;
-  }
-  
-  // Open or focus the app
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clientList) => {
-        // Send stop sound message to ALL clients immediately
-        clientList.forEach((client) => {
-          client.postMessage({
-            type: 'STOP_PANIC_SOUND'
-          });
-        });
+    self.registration.showNotification(notification.title, options)
+      .then(() => {
+        console.log('[SW] Notification shown:', notification.title);
         
-        // Try to find an existing window to focus
-        for (const client of clientList) {
-          if (client.url.includes(self.registration.scope) && 'focus' in client) {
-            // Navigate existing window to the alert
-            client.postMessage({
-              type: 'PANIC_ALERT_CLICK',
-              data: notificationData
+        // For panic alerts, also notify the app
+        if (isPanic) {
+          return self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+            .then((clients) => {
+              if (clients.length > 0) {
+                // Send to first visible client
+                const targetClient = clients.find(c => c.visibilityState === 'visible') || clients[0];
+                targetClient.postMessage({
+                  type: 'PANIC_ALERT_RECEIVED',
+                  data: notification.data
+                });
+              }
             });
-            return client.focus();
-          }
         }
-        // No existing window, open a new one
-        if (clients.openWindow) {
-          return clients.openWindow(urlToOpen);
-        }
+      })
+      .catch((err) => {
+        console.error('[SW] Error showing notification:', err);
       })
   );
 });
 
-// Handle notification close
-self.addEventListener('notificationclose', (event) => {
-  console.log('[SW] Notification closed');
+// =========================================================================
+// NOTIFICATION CLICK - Handle user clicking on notification
+// =========================================================================
+self.addEventListener('notificationclick', (event) => {
+  console.log('[SW] Notification clicked:', event.action);
+  
+  const notification = event.notification;
+  const notificationData = notification.data || {};
+  const action = event.action;
+
+  // Close the notification
+  notification.close();
+
+  // Handle dismiss action
+  if (action === 'dismiss') {
+    return;
+  }
+
+  // Determine URL to open
+  let targetUrl = notificationData.url || '/';
+  
+  // Route based on notification type
+  switch (notificationData.type) {
+    case 'panic_alert':
+      targetUrl = '/guard?tab=alerts';
+      break;
+    case 'visitor_arrival':
+    case 'visitor_exit':
+      targetUrl = '/resident?tab=history';
+      break;
+    case 'visitor_preregistration':
+      targetUrl = '/guard?tab=visits';
+      break;
+    case 'reservation_approved':
+    case 'reservation_rejected':
+    case 'reservation_pending':
+      targetUrl = notificationData.url || '/resident?tab=reservations';
+      break;
+    default:
+      targetUrl = notificationData.url || '/';
+  }
+
+  // Focus existing window or open new one
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clients) => {
+        // Try to find an existing app window
+        for (const client of clients) {
+          if (client.url.includes(self.location.origin) && 'focus' in client) {
+            // Navigate and focus
+            return client.navigate(targetUrl).then(() => client.focus());
+          }
+        }
+        // Open new window if no existing one
+        return self.clients.openWindow(targetUrl);
+      })
+      .then(() => {
+        // Notify the app that notification was clicked (to stop any sounds)
+        return self.clients.matchAll({ type: 'window' });
+      })
+      .then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({
+            type: 'NOTIFICATION_CLICKED',
+            data: notificationData
+          });
+        });
+      })
+  );
 });
 
-// Handle messages from the main app
+// =========================================================================
+// NOTIFICATION CLOSE - Handle user dismissing notification
+// =========================================================================
+self.addEventListener('notificationclose', (event) => {
+  console.log('[SW] Notification closed by user');
+  
+  // Notify app to stop any sounds
+  self.clients.matchAll({ type: 'window' }).then((clients) => {
+    clients.forEach((client) => {
+      client.postMessage({
+        type: 'NOTIFICATION_CLOSED',
+        data: event.notification.data
+      });
+    });
+  });
+});
+
+// =========================================================================
+// MESSAGE - Handle messages from the app
+// =========================================================================
 self.addEventListener('message', (event) => {
   console.log('[SW] Message received:', event.data);
   
-  if (event.data && event.data.type === 'SKIP_WAITING') {
+  if (event.data?.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 });
+
+console.log('[SW] Service Worker v4 script loaded');
