@@ -43,6 +43,7 @@ import {
 import { Textarea } from '../components/ui/textarea';
 import { toast } from 'sonner';
 import api from '../services/api';
+import AlertSoundManager from '../utils/AlertSoundManager';
 import PushNotificationBanner from '../components/PushNotificationBanner';
 import VisitorCheckInGuard from '../components/VisitorCheckInGuard';
 import GuardHistoryVisual from '../components/GuardHistoryVisual';
