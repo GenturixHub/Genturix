@@ -1612,7 +1612,7 @@ async def get_vapid_public_key():
     """Get the VAPID public key for push subscription"""
     if not VAPID_PUBLIC_KEY:
         raise HTTPException(status_code=503, detail="Push notifications not configured")
-    return {"vapid_public_key": VAPID_PUBLIC_KEY}
+    return {"publicKey": VAPID_PUBLIC_KEY}
 
 @api_router.post("/push/subscribe")
 async def subscribe_to_push(
