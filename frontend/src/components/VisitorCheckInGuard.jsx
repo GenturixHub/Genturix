@@ -46,7 +46,8 @@ import {
   Timer,
   Infinity as InfinityIcon,
   Repeat,
-  Eye
+  Eye,
+  Trash2
 } from 'lucide-react';
 
 // ============================================
