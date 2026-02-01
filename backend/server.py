@@ -3133,12 +3133,10 @@ async def get_guard_history(
             })
     
     # ==================== RESOLVED PANIC ALERTS ====================
+    # Guards see ALL resolved alerts in their condominium
     alert_query = {"status": "resolved"}
     if condo_id:
         alert_query["condominium_id"] = condo_id
-    # Guards see only alerts they resolved
-    if guard_id and "Administrador" not in current_user.get("roles", []):
-        alert_query["resolved_by"] = current_user["id"]
     
     resolved_alerts = await db.panic_events.find(alert_query, {"_id": 0}).sort("resolved_at", -1).to_list(30)
     
