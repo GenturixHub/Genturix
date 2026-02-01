@@ -536,6 +536,27 @@ const VisitorCheckInGuard = () => {
     }
   }, [fetchData]);
 
+  // Diagnose authorization issues
+  const handleDiagnose = useCallback(async () => {
+    try {
+      const result = await api.diagnoseAuthorizations();
+      console.log('Diagnose result:', result);
+      
+      // Find authorizations that SHOULD be marked as used but aren't
+      const problems = result.authorizations?.filter(a => a.SHOULD_BE_USED) || [];
+      
+      if (problems.length > 0) {
+        const names = problems.map(p => p.visitor_name).join(', ');
+        toast.error(`🔍 Encontrados ${problems.length} con problema: ${names}. Ver consola para detalles.`);
+      } else {
+        toast.success(`✓ ${result.total_pending} pendientes, todos correctos`);
+      }
+    } catch (error) {
+      console.error('Diagnose error:', error);
+      toast.error('Error al diagnosticar');
+    }
+  }, []);
+
   useEffect(() => {
     fetchData();
     // Poll every 15 seconds
