@@ -1767,70 +1767,42 @@ const HistoryTab = () => {
         )}
 
         {/* Alerts History */}
-        <div>
-          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4" />
-            Alertas Atendidas ({alertHistory.length})
-          </h3>
-          {alertHistory.length > 0 ? (
+        {alertHistory.length > 0 && (
+          <div>
+            <h3 className="text-xs font-bold text-red-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              Alertas Atendidas ({alertHistory.length})
+            </h3>
             <div className="space-y-2">
               {alertHistory.map((alert) => {
-                const config = PANIC_CONFIG[alert.event_type] || PANIC_CONFIG.emergencia_general;
+                const config = PANIC_CONFIG[alert.alert_type] || PANIC_CONFIG.emergencia_general;
                 return (
-                  <div key={alert.id} className="p-3 rounded-lg bg-[#0A0A0F] border border-[#1E293B] flex items-center gap-3">
+                  <div key={alert.id} className="p-3 rounded-lg bg-[#0A0A0F] border border-red-500/30 flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-lg ${config.bg} flex items-center justify-center`}>
                       <config.icon className="w-4 h-4 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{alert.resident_name || 'Residente'}</p>
-                      <p className="text-xs text-muted-foreground">{alert.location}</p>
+                      <p className="text-sm font-medium truncate">{alert.user_name || 'Residente'}</p>
+                      <p className="text-xs text-muted-foreground">{alert.location || 'Sin ubicación'}</p>
                     </div>
                     <div className="text-right text-xs text-muted-foreground">
-                      <p>{formatTime(alert.resolved_at || alert.timestamp)}</p>
-                      <p>{new Date(alert.resolved_at || alert.timestamp).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</p>
+                      <p>{formatTime(alert.timestamp)}</p>
+                      <Badge variant="outline" className="border-green-500/30 text-green-400 text-[10px]">
+                        Resuelta
+                      </Badge>
                     </div>
                   </div>
                 );
               })}
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">Sin alertas en este período</p>
-          )}
-        </div>
-
-        {/* Visits History */}
-        <div>
-          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Visitas Completadas ({visitHistory.length})
-          </h3>
-          {visitHistory.length > 0 ? (
-            <div className="space-y-2">
-              {visitHistory.map((visit) => (
-                <div key={visit.id} className="p-3 rounded-lg bg-[#0A0A0F] border border-[#1E293B] flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-                    <User className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{visit.visitor_name}</p>
-                    <p className="text-xs text-muted-foreground">Para: {visit.resident_name}</p>
-                  </div>
-                  <div className="text-right text-xs">
-                    <p className="text-green-400">↓ {formatTime(visit.entry_at)}</p>
-                    <p className="text-orange-400">↑ {formatTime(visit.exit_at)}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">Sin visitas en este período</p>
-          )}
-        </div>
+          </div>
+        )}
 
         {guardHistory.length === 0 && (
           <div className="text-center py-12">
             <History className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
             <p className="text-muted-foreground">No hay actividad registrada</p>
+            <p className="text-xs text-muted-foreground mt-2">Los check-ins, alertas y fichajes aparecerán aquí</p>
           </div>
         )}
       </div>
