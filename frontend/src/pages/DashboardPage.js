@@ -553,6 +553,38 @@ const DashboardPage = () => {
           </div>
         </div>
 
+        {/* Billing Warning Banner */}
+        {hasRole('Administrador') && (isAtSeatLimit || billingStatusWarning) && (
+          <Card className={`border-2 ${isAtSeatLimit ? 'border-yellow-500/50 bg-yellow-500/5' : 'border-red-500/50 bg-red-500/5'}`}>
+            <CardContent className="py-3 px-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className={`w-5 h-5 ${isAtSeatLimit ? 'text-yellow-400' : 'text-red-400'}`} />
+                  <div>
+                    <p className={`font-medium ${isAtSeatLimit ? 'text-yellow-400' : 'text-red-400'}`}>
+                      {isAtSeatLimit 
+                        ? `Límite de usuarios alcanzado (${billingInfo?.active_users}/${billingInfo?.paid_seats})` 
+                        : `Suscripción ${billingInfo?.billing_status}`}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {isAtSeatLimit 
+                        ? 'No puedes crear más usuarios. Actualiza tu plan para agregar más.' 
+                        : 'Por favor actualiza tu método de pago para continuar creando usuarios.'}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  className="bg-primary hover:bg-primary/90"
+                  onClick={() => setShowUpgradeDialog(true)}
+                >
+                  Actualizar Plan
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Stats Grid - 2 columns on mobile, 4 on desktop */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           <StatCard
