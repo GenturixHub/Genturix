@@ -608,8 +608,9 @@ const VisitorCheckInGuard = () => {
       
       if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
       
-      // Remove the authorization from the list immediately if it was marked as used
-      if (payload.authorization_id && result.authorization_marked_used) {
+      // ALWAYS remove the authorization from the list after successful check-in
+      // This ensures the item disappears even if the backend response flag is incorrect
+      if (payload.authorization_id) {
         setAuthorizations(prev => prev.filter(a => a.id !== payload.authorization_id));
         setTodayPreregistrations(prev => prev.filter(a => a.id !== payload.authorization_id));
       }
@@ -617,6 +618,7 @@ const VisitorCheckInGuard = () => {
       toast.success(result.is_authorized ? '✅ Entrada autorizada registrada' : '⚠️ Entrada manual registrada');
       
       setSearch('');
+      // fetchData will refresh from backend which should also exclude the used authorization
       fetchData();
     } catch (error) {
       // Handle 409 Conflict - authorization already used
