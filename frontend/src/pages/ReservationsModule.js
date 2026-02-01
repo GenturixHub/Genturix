@@ -1032,7 +1032,7 @@ const ReservationsModule = () => {
         
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className={`bg-[#0F111A] ${isMobile ? 'grid grid-cols-3 w-full' : ''}`}>
+          <TabsList className={`bg-[#0F111A] ${isMobile ? 'grid w-full' : ''}`} style={isMobile && isAdmin ? { gridTemplateColumns: 'repeat(4, 1fr)' } : isMobile ? { gridTemplateColumns: 'repeat(3, 1fr)' } : {}}>
             <TabsTrigger value="areas" className="gap-1">
               <MapPin className="w-3 h-3" />
               {!isMobile && 'Áreas'}
@@ -1053,6 +1053,17 @@ const ReservationsModule = () => {
                 {pendingReservations.length > 0 && (
                   <Badge className="ml-1 bg-yellow-500/20 text-yellow-400 text-[10px]">
                     {pendingReservations.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            )}
+            {isAdmin && (
+              <TabsTrigger value="all" className="gap-1">
+                <List className="w-3 h-3" />
+                {!isMobile && 'Todas'}
+                {approvedReservations.length > 0 && (
+                  <Badge className="ml-1 bg-green-500/20 text-green-400 text-[10px]">
+                    {approvedReservations.length}
                   </Badge>
                 )}
               </TabsTrigger>
