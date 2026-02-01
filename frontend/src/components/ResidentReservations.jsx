@@ -286,27 +286,38 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
     }
   }, [form.start_time, area?.max_hours_per_reservation]);
   
-  // Handle time slot click - auto-fill start and end times
+  // Handle time slot click - auto-fill start and end times (supports new smart availability)
   const handleSlotClick = (slot, slotIndex) => {
-    if (slot.status !== 'available') return;
+    // Support both old status field and new available field
+    const isSlotAvailable = slot.available !== undefined ? slot.available : slot.status === 'available';
+    if (!isSlotAvailable) return;
     
     const maxHours = area?.max_hours_per_reservation || area?.max_duration_hours || 2;
     const reservationMode = area?.reservation_mode || 'por_hora';
+    const reservationBehavior = availability?.reservation_behavior || 'exclusive';
     const closingTime = area?.closing_time || area?.available_until || '22:00';
     
-    const startTime = slot.start_time.slice(0, 5); // "09:00"
+    // Support both old (start_time) and new (start) field names
+    const slotStart = slot.start || slot.start_time || '';
+    const slotEnd = slot.end || slot.end_time || '';
+    const startTime = slotStart.slice(0, 5); // "09:00"
     const [startHour, startMin] = startTime.split(':').map(Number);
     
     let endTime;
     
-    if (reservationMode === 'bloque') {
+    // For SLOT_BASED or BY_HOUR areas, use the slot's exact end time
+    if (reservationBehavior === 'slot_based' || reservationMode === 'por_hora') {
+      endTime = slotEnd.slice(0, 5);
+    } else if (reservationMode === 'bloque') {
       // Block mode: Select consecutive available slots until occupied or closing
       let endHour = startHour + 1;
       const slots = availability?.time_slots || [];
       
       for (let i = slotIndex + 1; i < slots.length; i++) {
-        if (slots[i].status === 'available') {
-          const nextSlotHour = parseInt(slots[i].start_time.slice(0, 2));
+        const nextSlotAvailable = slots[i].available !== undefined ? slots[i].available : slots[i].status === 'available';
+        if (nextSlotAvailable) {
+          const nextSlotStart = slots[i].start || slots[i].start_time || '';
+          const nextSlotHour = parseInt(nextSlotStart.slice(0, 2));
           if (nextSlotHour >= parseInt(closingTime.split(':')[0])) break;
           endHour = nextSlotHour + 1;
         } else {
@@ -316,7 +327,7 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
       
       endTime = `${String(Math.min(endHour, parseInt(closingTime.split(':')[0]))).padStart(2, '0')}:${String(startMin).padStart(2, '0')}`;
     } else {
-      // Per-hour mode: Use max_hours_per_reservation
+      // Per-hour/flexible mode: Use max_hours_per_reservation
       const endHour = Math.min(startHour + maxHours, parseInt(closingTime.split(':')[0]));
       endTime = `${String(endHour).padStart(2, '0')}:${String(startMin).padStart(2, '0')}`;
     }
@@ -329,8 +340,12 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
     
     setSelectedSlotIndex(slotIndex);
     
-    // Visual feedback
-    toast.success(`Horario seleccionado: ${startTime} - ${endTime}`, { duration: 2000 });
+    // Show capacity info for CAPACITY type areas
+    if (reservationBehavior === 'capacity' && slot.remaining_slots !== undefined) {
+      toast.success(`Horario: ${startTime} - ${endTime} (${slot.remaining_slots} cupos disponibles)`, { duration: 2000 });
+    } else {
+      toast.success(`Horario seleccionado: ${startTime} - ${endTime}`, { duration: 2000 });
+    }
   };
   
   const handleSave = async () => {
