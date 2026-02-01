@@ -170,7 +170,7 @@ const PaymentsModule = () => {
 
         {/* GENTURIX Pricing Model */}
         <Card className="grid-card border-2 border-primary/20 overflow-hidden">
-          <div className="bg-gradient-to-r from-primary/10 to-purple-500/10 p-6 border-b border-[#1E293B]">
+          <div className="bg-gradient-to-r from-primary/10 to-cyan-500/10 p-6 border-b border-[#1E293B]">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
                 <Shield className="w-6 h-6 text-primary" />
@@ -185,7 +185,7 @@ const PaymentsModule = () => {
             <div className="grid gap-8 lg:grid-cols-2">
               {/* Pricing Info */}
               <div className="space-y-6">
-                <div className="text-center p-6 rounded-xl bg-gradient-to-br from-primary/5 to-purple-500/5 border border-primary/20">
+                <div className="text-center p-6 rounded-xl bg-gradient-to-br from-primary/5 to-cyan-500/5 border border-primary/20">
                   <div className="flex items-baseline justify-center gap-1">
                     <span className="text-6xl font-bold text-primary">$1</span>
                     <span className="text-2xl text-muted-foreground">/usuario</span>
