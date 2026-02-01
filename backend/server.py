@@ -3093,10 +3093,72 @@ async def get_guard_history(
     if history_type and history_type in valid_types:
         base_query["type"] = history_type
     
-    # Get guard_history entries
+    # Get guard_history entries (legacy)
     history_entries = await db.guard_history.find(base_query, {"_id": 0}).sort("timestamp", -1).to_list(100)
     
-    # Also get clock logs and convert to history format
+    # ==================== VISITOR ENTRIES (Check-ins/Check-outs) ====================
+    visitor_query = {}
+    if condo_id:
+        visitor_query["condominium_id"] = condo_id
+    # Guards see only their own entries
+    if guard_id and "Administrador" not in current_user.get("roles", []):
+        visitor_query["entry_by"] = current_user["id"]
+    
+    visitor_entries = await db.visitor_entries.find(visitor_query, {"_id": 0}).sort("entry_at", -1).to_list(50)
+    
+    for entry in visitor_entries:
+        # Add check-in event
+        history_entries.append({
+            "id": f"{entry.get('id')}_in",
+            "type": "visit_entry",
+            "guard_id": guard_id,
+            "guard_name": entry.get("entry_by_name"),
+            "condominium_id": entry.get("condominium_id"),
+            "timestamp": entry.get("entry_at"),
+            "visitor_name": entry.get("visitor_name"),
+            "destination": entry.get("destination") or entry.get("resident_apartment"),
+            "vehicle_plate": entry.get("vehicle_plate"),
+            "is_authorized": entry.get("is_authorized", False)
+        })
+        
+        # Add check-out event if exists
+        if entry.get("exit_at"):
+            history_entries.append({
+                "id": f"{entry.get('id')}_out",
+                "type": "visit_exit",
+                "guard_id": guard_id,
+                "guard_name": entry.get("exit_by_name"),
+                "condominium_id": entry.get("condominium_id"),
+                "timestamp": entry.get("exit_at"),
+                "visitor_name": entry.get("visitor_name"),
+                "destination": entry.get("destination") or entry.get("resident_apartment")
+            })
+    
+    # ==================== RESOLVED PANIC ALERTS ====================
+    alert_query = {"status": "resolved"}
+    if condo_id:
+        alert_query["condominium_id"] = condo_id
+    # Guards see only alerts they resolved
+    if guard_id and "Administrador" not in current_user.get("roles", []):
+        alert_query["resolved_by"] = current_user["id"]
+    
+    resolved_alerts = await db.panic_events.find(alert_query, {"_id": 0}).sort("resolved_at", -1).to_list(30)
+    
+    for alert in resolved_alerts:
+        history_entries.append({
+            "id": alert.get("id"),
+            "type": "alert_resolved",
+            "guard_id": guard_id,
+            "guard_name": alert.get("resolved_by_name"),
+            "condominium_id": alert.get("condominium_id"),
+            "timestamp": alert.get("resolved_at") or alert.get("created_at"),
+            "alert_type": alert.get("panic_type"),
+            "user_name": alert.get("user_name"),
+            "location": alert.get("location"),
+            "resolution_notes": alert.get("resolution_notes")
+        })
+    
+    # ==================== CLOCK LOGS ====================
     clock_query = {}
     if condo_id:
         clock_query["condominium_id"] = condo_id
@@ -3105,7 +3167,6 @@ async def get_guard_history(
     
     clock_logs = await db.hr_clock_logs.find(clock_query, {"_id": 0}).sort("timestamp", -1).to_list(50)
     
-    # Convert clock logs to history format
     for log in clock_logs:
         history_entries.append({
             "id": log.get("id"),
@@ -3117,7 +3178,7 @@ async def get_guard_history(
             "date": log.get("date")
         })
     
-    # Get completed shifts
+    # ==================== COMPLETED SHIFTS ====================
     shift_query = {"status": "completed"}
     if condo_id:
         shift_query["condominium_id"] = condo_id
@@ -3139,7 +3200,7 @@ async def get_guard_history(
             "location": shift.get("location")
         })
     
-    # Sort all entries by timestamp
+    # Sort all entries by timestamp (newest first)
     history_entries.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
     
     return history_entries[:100]
