@@ -5,12 +5,17 @@
  * Prevents multiple audio instances and ensures sound stops
  * immediately when any interaction occurs.
  * 
+ * Uses localStorage to coordinate across tabs - only ONE tab plays sound.
+ * 
  * Usage:
  *   import AlertSoundManager from '../utils/AlertSoundManager';
  *   AlertSoundManager.play();   // Start alert sound loop
  *   AlertSoundManager.stop();   // Stop immediately
  *   AlertSoundManager.reset();  // Stop and reset state
  */
+
+const SOUND_LOCK_KEY = 'genturix_panic_sound_lock';
+const SOUND_LOCK_TIMEOUT = 5000; // 5 seconds max lock
 
 class AlertSoundManagerClass {
   constructor() {
@@ -19,6 +24,79 @@ class AlertSoundManagerClass {
     this.isPlaying = false;
     this.currentOscillator = null;
     this.currentGain = null;
+    this.tabId = Math.random().toString(36).substring(7);
+    
+    // Listen for storage events to detect stop from other tabs
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', (e) => {
+        if (e.key === SOUND_LOCK_KEY) {
+          // If lock was cleared or changed to different tab, stop our sound
+          const lockData = e.newValue ? JSON.parse(e.newValue) : null;
+          if (!lockData || lockData.tabId !== this.tabId) {
+            this._stopInternal();
+          }
+        }
+      });
+    }
+  }
+
+  /**
+   * Try to acquire the sound lock (only one tab can play)
+   */
+  _acquireLock() {
+    try {
+      const existingLock = localStorage.getItem(SOUND_LOCK_KEY);
+      if (existingLock) {
+        const lockData = JSON.parse(existingLock);
+        // Check if lock is stale (older than timeout)
+        if (Date.now() - lockData.timestamp < SOUND_LOCK_TIMEOUT) {
+          // Another tab has the lock and it's not stale
+          console.log('[AlertSoundManager] Another tab is already playing sound');
+          return false;
+        }
+      }
+      // Acquire the lock
+      localStorage.setItem(SOUND_LOCK_KEY, JSON.stringify({
+        tabId: this.tabId,
+        timestamp: Date.now()
+      }));
+      return true;
+    } catch (e) {
+      // localStorage might be unavailable
+      return true;
+    }
+  }
+
+  /**
+   * Release the sound lock
+   */
+  _releaseLock() {
+    try {
+      const existingLock = localStorage.getItem(SOUND_LOCK_KEY);
+      if (existingLock) {
+        const lockData = JSON.parse(existingLock);
+        // Only release if we own the lock
+        if (lockData.tabId === this.tabId) {
+          localStorage.removeItem(SOUND_LOCK_KEY);
+        }
+      }
+    } catch (e) {
+      // Ignore errors
+    }
+  }
+
+  /**
+   * Refresh lock timestamp to keep it alive
+   */
+  _refreshLock() {
+    try {
+      localStorage.setItem(SOUND_LOCK_KEY, JSON.stringify({
+        tabId: this.tabId,
+        timestamp: Date.now()
+      }));
+    } catch (e) {
+      // Ignore errors
+    }
   }
 
   /**
@@ -72,6 +150,9 @@ class AlertSoundManagerClass {
       // Store references for potential immediate stop
       this.currentOscillator = oscillator;
       this.currentGain = gainNode;
+      
+      // Refresh lock to show we're still active
+      this._refreshLock();
     } catch (e) {
       console.warn('[AlertSoundManager] Could not play sound:', e);
     }
@@ -81,6 +162,12 @@ class AlertSoundManagerClass {
    * Start the repeating alert sound loop
    */
   play() {
+    // Try to acquire lock - only one tab should play
+    if (!this._acquireLock()) {
+      console.log('[AlertSoundManager] Skipping play - another tab has the lock');
+      return;
+    }
+    
     if (this.isPlaying) {
       console.log('[AlertSoundManager] Already playing, ignoring play request');
       return;
@@ -101,11 +188,9 @@ class AlertSoundManagerClass {
   }
 
   /**
-   * Stop all alert sounds immediately
+   * Internal stop without releasing lock (for cross-tab coordination)
    */
-  stop() {
-    console.log('[AlertSoundManager] Stopping panic sound');
-    
+  _stopInternal() {
     // Clear the interval
     if (this.soundInterval) {
       clearInterval(this.soundInterval);
@@ -136,12 +221,27 @@ class AlertSoundManagerClass {
   }
 
   /**
+   * Stop all alert sounds immediately (across all tabs)
+   */
+  stop() {
+    console.log('[AlertSoundManager] Stopping panic sound');
+    
+    this._stopInternal();
+    this._releaseLock();
+    
+    // Also clear lock from localStorage to signal other tabs
+    try {
+      localStorage.removeItem(SOUND_LOCK_KEY);
+    } catch (e) {
+      // Ignore
+    }
+  }
+
+  /**
    * Reset the manager to initial state
    */
   reset() {
     this.stop();
-    // Optionally close audio context to free resources
-    // Note: We keep it open for faster subsequent plays
   }
 
   /**
