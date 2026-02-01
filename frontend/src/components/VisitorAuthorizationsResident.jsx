@@ -675,9 +675,10 @@ const VisitorAuthorizationsResident = () => {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  // Separate active and inactive authorizations
-  const activeAuths = authorizations.filter(a => a.is_active);
-  const inactiveAuths = authorizations.filter(a => !a.is_active);
+  // Separate authorizations by status
+  const pendingAuths = authorizations.filter(a => a.is_active && a.status !== 'used' && !a.was_used);
+  const usedAuths = authorizations.filter(a => a.status === 'used' || a.was_used);
+  const inactiveAuths = authorizations.filter(a => !a.is_active && a.status !== 'used' && !a.was_used);
 
   if (isLoading) {
     return (
