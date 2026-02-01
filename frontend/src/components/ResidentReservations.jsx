@@ -885,7 +885,7 @@ const ResidentReservations = () => {
                       <MyReservationCard 
                         key={res.id} 
                         reservation={res}
-                        onCancel={handleCancelReservation}
+                        onCancel={openCancelDialog}
                       />
                     ))}
                   </div>
@@ -904,7 +904,7 @@ const ResidentReservations = () => {
                       <MyReservationCard 
                         key={res.id} 
                         reservation={res}
-                        onCancel={handleCancelReservation}
+                        onCancel={openCancelDialog}
                       />
                     ))}
                   </div>
