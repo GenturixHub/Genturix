@@ -1880,6 +1880,8 @@ const GuardUI = () => {
   useEffect(() => {
     const handleServiceWorkerMessage = (event) => {
       if (event.data?.type === 'PANIC_ALERT_CLICK') {
+        // Stop sound immediately when clicking push notification
+        AlertSoundManager.stop();
         const data = event.data.data;
         setActiveTab('alerts');
         if (data.event_id) {
@@ -1895,12 +1897,22 @@ const GuardUI = () => {
     };
   }, []);
 
+  // Handler for tab changes - stops panic sound when navigating to alerts tab
+  const handleTabChange = useCallback((newTab) => {
+    // Stop panic sound when navigating to alerts tab
+    if (newTab === 'alerts') {
+      AlertSoundManager.stop();
+    }
+    setActiveTab(newTab);
+  }, []);
+
   // Handle mobile nav tab changes
   const handleMobileTabChange = (tabId) => {
     if (tabId === 'panic') {
       setShowPanicModal(true);
     } else {
-      setActiveTab(tabId);
+      // Use the handler that stops sound
+      handleTabChange(tabId);
     }
   };
 
