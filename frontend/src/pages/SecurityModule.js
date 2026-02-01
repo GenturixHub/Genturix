@@ -592,19 +592,56 @@ const SecurityModule = () => {
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-medium truncate">{log.person_name}</span>
                             <Badge variant="outline" className="text-xs">
                               {log.access_type === 'entry' ? 'Entrada' : 'Salida'}
                             </Badge>
+                            {log.entry_type && log.entry_type !== 'manual' && (
+                              <Badge 
+                                variant="secondary" 
+                                className={`text-[10px] ${
+                                  log.entry_type === 'permanent' ? 'bg-green-500/20 text-green-400' :
+                                  log.entry_type === 'temporary' ? 'bg-yellow-500/20 text-yellow-400' :
+                                  log.entry_type === 'recurring' ? 'bg-blue-500/20 text-blue-400' :
+                                  'bg-purple-500/20 text-purple-400'
+                                }`}
+                              >
+                                {log.entry_type === 'permanent' ? 'Permanente' :
+                                 log.entry_type === 'temporary' ? 'Temporal' :
+                                 log.entry_type === 'recurring' ? 'Recurrente' :
+                                 log.entry_type === 'extended' ? 'Extendido' :
+                                 log.entry_type}
+                              </Badge>
+                            )}
+                            {log.is_authorized === false && (
+                              <Badge variant="destructive" className="text-[10px]">No autorizado</Badge>
+                            )}
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                            <MapPin className="w-3 h-3" />
-                            {log.location}
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1 flex-wrap">
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {log.location || log.destination || 'Sin ubicación'}
+                            </span>
+                            {log.guard_name && (
+                              <span className="flex items-center gap-1">
+                                <Shield className="w-3 h-3" />
+                                {log.guard_name}
+                              </span>
+                            )}
+                            {log.resident_name && (
+                              <span className="text-primary">Autorizado por: {log.resident_name}</span>
+                            )}
+                            {log.vehicle_plate && (
+                              <span>🚗 {log.vehicle_plate}</span>
+                            )}
                           </div>
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {formatTime(log.timestamp)}
+                        <div className="text-xs text-muted-foreground text-right">
+                          <div>{formatTime(log.timestamp)}</div>
+                          {log.exit_timestamp && (
+                            <div className="text-orange-400">Salió: {formatTime(log.exit_timestamp)}</div>
+                          )}
                         </div>
                       </div>
                     ))}
