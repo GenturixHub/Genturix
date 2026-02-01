@@ -6835,6 +6835,151 @@ async def update_reservation_status(
     
     return {"message": f"Reservación {update.status.value} exitosamente"}
 
+
+# ==================== DELETE RESERVATION (CANCEL) ====================
+class CancelReservationRequest(BaseModel):
+    """Request body for cancellation with optional reason"""
+    reason: Optional[str] = None
+
+@api_router.delete("/reservations/{reservation_id}")
+async def cancel_reservation(
+    reservation_id: str,
+    request: Request,
+    body: Optional[CancelReservationRequest] = None,
+    current_user = Depends(get_current_user)
+):
+    """
+    Cancel a reservation (soft delete - changes status to 'cancelled')
+    
+    RULES:
+    - Resident: Can only cancel their OWN reservations that are pending/approved and NOT yet started
+    - Admin: Can cancel ANY reservation except 'completed' ones
+    
+    This endpoint liberates the slot so others can book it.
+    """
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="Usuario no asignado a condominio")
+    
+    await check_module_enabled(condo_id, "reservations")
+    
+    user_roles = current_user.get("roles", [])
+    is_admin = "Administrador" in user_roles or "SuperAdmin" in user_roles
+    
+    # Find the reservation
+    reservation = await db.reservations.find_one({"id": reservation_id, "condominium_id": condo_id}, {"_id": 0})
+    if not reservation:
+        raise HTTPException(status_code=404, detail="Reservación no encontrada")
+    
+    current_status = reservation.get("status", "")
+    reservation_date = reservation.get("date", "")
+    reservation_start = reservation.get("start_time", "00:00")
+    resident_id = reservation.get("resident_id")
+    
+    # Get area info for notification
+    area = await db.reservation_areas.find_one({"id": reservation.get("area_id")}, {"_id": 0, "name": 1})
+    area_name = area.get("name", "Área común") if area else "Área común"
+    
+    # ==================== VALIDATION RULES ====================
+    
+    # Rule: Cannot cancel completed reservations (for anyone)
+    if current_status == "completed":
+        raise HTTPException(status_code=400, detail="No se puede cancelar una reservación ya completada")
+    
+    # Rule: Cannot cancel already cancelled reservations
+    if current_status == "cancelled":
+        raise HTTPException(status_code=400, detail="Esta reservación ya fue cancelada")
+    
+    # ==================== RESIDENT-SPECIFIC RULES ====================
+    if not is_admin:
+        # Resident can only cancel their own reservations
+        if reservation.get("resident_id") != current_user["id"]:
+            raise HTTPException(status_code=403, detail="Solo puedes cancelar tus propias reservaciones")
+        
+        # Resident can only cancel pending or approved reservations
+        if current_status not in ["pending", "approved"]:
+            raise HTTPException(status_code=400, detail="Solo puedes cancelar reservaciones pendientes o aprobadas")
+        
+        # Resident cannot cancel if reservation has already started
+        try:
+            now = datetime.now(timezone.utc)
+            res_datetime_str = f"{reservation_date}T{reservation_start}"
+            res_start_dt = datetime.fromisoformat(res_datetime_str).replace(tzinfo=timezone.utc)
+            
+            if now >= res_start_dt:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="No puedes cancelar una reservación que ya inició o está en progreso"
+                )
+        except ValueError:
+            # If date parsing fails, allow cancellation (fail-safe)
+            pass
+    
+    # ==================== ADMIN-SPECIFIC RULES ====================
+    # Admins can cancel any reservation except completed ones (already checked above)
+    
+    # ==================== PERFORM CANCELLATION ====================
+    cancellation_reason = body.reason if body else None
+    
+    update_fields = {
+        "status": "cancelled",
+        "cancelled_at": datetime.now(timezone.utc).isoformat(),
+        "cancelled_by": current_user["id"],
+        "cancelled_by_role": "Administrador" if is_admin else "Residente",
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "updated_by": current_user["id"]
+    }
+    
+    if cancellation_reason:
+        update_fields["cancellation_reason"] = cancellation_reason
+    
+    await db.reservations.update_one({"id": reservation_id}, {"$set": update_fields})
+    
+    # ==================== NOTIFICATIONS ====================
+    # If admin cancels resident's reservation, notify the resident
+    if is_admin and resident_id and resident_id != current_user["id"]:
+        reason_text = cancellation_reason or "Sin motivo especificado"
+        await create_and_send_notification(
+            user_id=resident_id,
+            condominium_id=condo_id,
+            notification_type="reservation_cancelled",
+            title="❌ Reservación cancelada",
+            message=f"Tu reservación de {area_name} para el {reservation_date} fue cancelada por el administrador. Motivo: {reason_text}",
+            data={
+                "reservation_id": reservation_id,
+                "area_name": area_name,
+                "date": reservation_date,
+                "cancelled_by": "admin",
+                "reason": reason_text
+            },
+            send_push=True,
+            url="/resident?tab=reservations"
+        )
+    
+    # ==================== AUDIT LOG ====================
+    await log_audit_event(
+        AuditEventType.ACCESS_GRANTED,
+        current_user["id"],
+        "reservations",
+        {
+            "action": "reservation_cancelled",
+            "reservation_id": reservation_id,
+            "area": area_name,
+            "date": reservation_date,
+            "cancelled_by_role": "admin" if is_admin else "resident",
+            "reason": cancellation_reason
+        },
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {
+        "message": "Reservación cancelada exitosamente. El espacio ha sido liberado.",
+        "reservation_id": reservation_id,
+        "cancelled_by": "admin" if is_admin else "resident"
+    }
+
+
 @api_router.get("/reservations/today")
 async def get_today_reservations(current_user = Depends(get_current_user)):
     """Get today's reservations for guard view"""
