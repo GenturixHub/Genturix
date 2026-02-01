@@ -209,15 +209,15 @@ const AuthorizationSearchCard = ({ auth, onCheckIn, isProcessing, isRecentlyProc
           isValid 
             ? 'bg-green-600 hover:bg-green-700' 
             : 'bg-yellow-600 hover:bg-yellow-700'
-        }`}
-        onClick={() => onCheckIn(auth)}
-        disabled={isProcessing}
+        } ${isDisabled ? 'cursor-not-allowed' : ''}`}
+        onClick={() => !isDisabled && onCheckIn(auth)}
+        disabled={isDisabled}
         data-testid={`checkin-btn-${auth.id}`}
       >
-        {isProcessing ? (
+        {isDisabled ? (
           <>
             <Loader2 className="w-6 h-6 mr-2 animate-spin" />
-            PROCESANDO...
+            {isRecentlyProcessed ? 'YA PROCESADO' : 'PROCESANDO...'}
           </>
         ) : (
           <>
