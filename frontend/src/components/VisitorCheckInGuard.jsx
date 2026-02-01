@@ -785,6 +785,7 @@ const VisitorCheckInGuard = () => {
                       key={auth.id}
                       auth={auth}
                       onCheckIn={handleCheckInClick}
+                      isProcessing={processingAuthId === auth.id}
                     />
                   ))}
                 </div>
