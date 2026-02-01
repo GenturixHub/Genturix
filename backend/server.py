@@ -2591,12 +2591,14 @@ async def fast_checkin(
                 "last_visit": now_iso,
                 "checked_in_at": now_iso,
                 "checked_in_by": current_user["id"],
-                "checked_in_by_name": current_user.get("full_name", "Guardia")
+                "checked_in_by_name": current_user.get("full_name", "Guardia"),
+                "last_entry_date": now.strftime("%Y-%m-%d")  # Track last entry date
             }
         }
         
-        # For TEMPORARY authorizations, mark as "used" to prevent reuse
-        if auth_type_value == "temporary":
+        # For TEMPORARY and EXTENDED authorizations, mark as "used" after check-in
+        # PERMANENT and RECURRING authorizations stay active (can be used multiple times)
+        if auth_type_value in ["temporary", "extended"]:
             update_data["$set"]["status"] = "used"
         
         await db.visitor_authorizations.update_one(
