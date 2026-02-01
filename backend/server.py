@@ -2474,30 +2474,21 @@ async def get_authorizations_for_guard(
     for auth in authorizations:
         auth_type = auth.get("authorization_type", "temporary")
         auth_id = auth.get("id")
-        checked_in_at = auth.get("checked_in_at")
-        total_visits = auth.get("total_visits", 0)
         
         # Only filter temporary and extended (permanent/recurring can be reused)
         if auth_type not in ["temporary", "extended"]:
             filtered_authorizations.append(auth)
             continue
         
-        # Check if already used via multiple indicators
-        already_used = False
+        # For temporary/extended, ALWAYS check if there's an entry in visitor_entries
+        # This is the most reliable indicator that the authorization was used
+        entry_exists = await db.visitor_entries.find_one({"authorization_id": auth_id})
         
-        # Indicator 1: checked_in_at field is set
-        if checked_in_at:
-            already_used = True
+        # Also check other indicators
+        checked_in_at = auth.get("checked_in_at")
+        total_visits = auth.get("total_visits", 0)
         
-        # Indicator 2: total_visits > 0
-        elif total_visits > 0:
-            already_used = True
-        
-        # Indicator 3: There's an entry in visitor_entries with this authorization_id
-        else:
-            entry_exists = await db.visitor_entries.find_one({"authorization_id": auth_id})
-            if entry_exists:
-                already_used = True
+        already_used = entry_exists or checked_in_at or total_visits > 0
         
         if already_used:
             # Fix legacy data: update status to 'used'
@@ -2506,7 +2497,7 @@ async def get_authorizations_for_guard(
                 {"$set": {"status": "used"}}
             )
             if result.modified_count > 0:
-                logger.info(f"[guard/authorizations] Auto-fixed legacy auth {auth_id[:8]} to status=used")
+                logger.info(f"[guard/authorizations] Auto-fixed auth {auth_id[:8]} to status=used (entry_exists={bool(entry_exists)}, checked_in_at={bool(checked_in_at)}, visits={total_visits})")
             
             if not include_used:
                 continue  # Skip from results
