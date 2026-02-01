@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 1, 2026 (Session 49 - P0 RRHH Duplicates Bug VERIFIED)
+## Last Updated: February 1, 2026 (Session 50 - P0 Alert Sound Bug VERIFIED)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,54 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
+
+### Session 50 - P0 BUG FIX: Sonido de Alerta Continúa (February 1, 2026) ⭐⭐⭐⭐⭐
+
+**Problem:**
+El sonido de alerta de emergencia continúa reproduciéndose incluso después de que el guardia abre/atiende la alerta. Esto genera:
+- Estrés innecesario
+- Mala UX
+- Confusión (parece que la alerta sigue activa)
+
+**Root Cause:**
+- No había control centralizado del audio
+- Múltiples instancias de audio podían reproducirse simultáneamente
+- No se llamaba a stop() en todos los puntos de interacción
+
+**Solution Implemented:**
+
+**1. AlertSoundManager (Singleton)**
+```javascript
+// /app/frontend/src/utils/AlertSoundManager.js
+AlertSoundManager.play()   // Inicia sonido en loop
+AlertSoundManager.stop()   // Detiene inmediatamente
+AlertSoundManager.reset()  // Stop + reset state
+AlertSoundManager.getIsPlaying() // Estado actual
+```
+
+**2. Integración en GuardUI.js:**
+- `handleOpenAlert()` - Detiene sonido al abrir alerta desde lista
+- `handleResolve()` - Detiene sonido al marcar alerta como atendida
+- `handleTabChange()` - Detiene sonido al cambiar a pestaña Alertas
+- `useEffect cleanup` - Detiene sonido al desmontar componente
+- URL param handler - Detiene sonido al navegar via `?alert=id`
+
+**3. Integración en Header.js:**
+- `handleDropdownOpenChange()` - Detiene sonido al abrir campanita
+
+**4. Service Worker:**
+- `notificationclick` - Envía `STOP_PANIC_SOUND` a todos los clientes
+
+**5. App.js:**
+- Listener para `STOP_PANIC_SOUND` message
+- Auto-stop safety net (30 segundos max)
+
+**Testing Agent Verification:**
+- Frontend: 100% success rate
+- Todos los puntos de integración verificados
+- **Test Report:** `/app/test_reports/iteration_50.json`
+
+---
 
 ### Session 49 - P0 BUG FIX: RRHH Empleado Duplicado (February 1, 2026) ⭐⭐⭐⭐⭐
 
