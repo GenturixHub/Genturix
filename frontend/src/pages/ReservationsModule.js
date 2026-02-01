@@ -1155,6 +1155,36 @@ const ReservationsModule = () => {
               )}
             </TabsContent>
           )}
+          
+          {/* All Reservations Tab (Admin) - Shows approved reservations for cancellation */}
+          {isAdmin && (
+            <TabsContent value="all" className="mt-4">
+              {approvedReservations.length === 0 ? (
+                <Card className="bg-[#0F111A] border-[#1E293B]">
+                  <CardContent className="p-8 text-center">
+                    <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-30" />
+                    <p className="text-muted-foreground">No hay reservaciones aprobadas activas</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Reservaciones aprobadas que pueden ser canceladas:
+                  </p>
+                  {approvedReservations.map(res => (
+                    <ReservationCard
+                      key={res.id}
+                      reservation={res}
+                      isAdmin={true}
+                      onApprove={() => {}}
+                      onReject={() => {}}
+                      onCancel={openCancelReservationDialog}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          )}
         </Tabs>
       </div>
       
