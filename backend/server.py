@@ -6437,6 +6437,7 @@ async def get_smart_availability(
         "reservation_behavior": behavior,
         "date": date,
         "day_name": day_name,
+        "is_day_allowed": True,  # If we got here, day is allowed
         "is_available": is_available,
         "available_from": available_from,
         "available_until": available_until,
