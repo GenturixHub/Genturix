@@ -443,6 +443,7 @@ class ApiService {
   createReservation = (data) => this.post('/reservations', data);
   updateReservation = (reservationId, data) => this.patch(`/reservations/${reservationId}`, data);
   updateReservationStatus = (reservationId, data) => this.patch(`/reservations/${reservationId}`, data);
+  cancelReservation = (reservationId, reason = null) => this.delete(`/reservations/${reservationId}`, reason ? { reason } : null);
   getReservationAvailability = (areaId, date) => this.get(`/reservations/availability/${areaId}?date=${date}`);
 
   // ==================== PUSH NOTIFICATIONS ====================
