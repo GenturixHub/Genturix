@@ -4743,6 +4743,16 @@ async def create_user_by_admin(
     
     await db.users.insert_one(user_doc)
     
+    # ==================== UPDATE ACTIVE USER COUNT ====================
+    await update_active_user_count(condominium_id)
+    await log_billing_event(
+        "user_created",
+        condominium_id,
+        {"user_id": user_id, "role": user_data.role, "email": normalized_email},
+        current_user["id"]
+    )
+    # ==================================================================
+    
     await log_audit_event(
         AuditEventType.USER_CREATED,
         current_user["id"],
