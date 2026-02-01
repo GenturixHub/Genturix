@@ -1,0 +1,134 @@
+/* ========================================
+   GENTURIX Theme System
+   Centralized Color Palette Management
+   ======================================== */
+
+/* ========================================
+   THEME V2 - Blue/Teal (ACTIVE)
+   Based on GENTURIX Logo
+   Primary: #4A90A4 (Steel Blue/Teal)
+   ======================================== */
+
+:root {
+    /* === PRIMARY COLORS (Blue/Teal) === */
+    --primary: 193 45% 47%;           /* #4A90A4 - Main brand color */
+    --primary-foreground: 210 40% 98%; /* White text on primary */
+    --primary-hover: 193 50% 42%;      /* Darker for hover states */
+    --primary-active: 193 55% 38%;     /* Even darker for active/pressed */
+    --primary-muted: 193 40% 25%;      /* Subtle backgrounds */
+    
+    /* === RING/FOCUS === */
+    --ring: 193 45% 47%;              /* Same as primary for focus rings */
+    
+    /* === SECONDARY (Lighter teal accent) === */
+    --secondary: 193 52% 68%;          /* #80CBDC - Lighter accent */
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    
+    /* === INFO (Matches primary family) === */
+    --info: 193 60% 55%;
+    
+    /* ========================================
+       NEUTRAL COLORS (Unchanged - Dark Mode)
+       ======================================== */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 6% 6%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 6% 6%;
+    --popover-foreground: 0 0% 98%;
+    --muted: 240 5% 12%;
+    --muted-foreground: 240 5% 55%;
+    --accent: 240 5% 15%;
+    --accent-foreground: 210 40% 98%;
+    --border: 240 5% 15%;
+    --input: 240 5% 15%;
+    --radius: 0.75rem;
+    
+    /* ========================================
+       SEMANTIC COLORS (Unchanged)
+       ======================================== */
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 40% 98%;
+}
+
+/* ========================================
+   THEME V1 - Purple (LEGACY - For Rollback)
+   To rollback: 
+   1. Comment out V2 above
+   2. Uncomment V1 below
+   ======================================== */
+
+/*
+:root {
+    --primary: 267 84% 58%;
+    --primary-foreground: 210 40% 98%;
+    --primary-hover: 267 84% 50%;
+    --primary-active: 267 84% 45%;
+    --primary-muted: 267 50% 20%;
+    --ring: 267 84% 58%;
+    --secondary: 217.2 91.2% 59.8%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --info: 199 89% 48%;
+    
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 6% 6%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 6% 6%;
+    --popover-foreground: 0 0% 98%;
+    --muted: 240 5% 12%;
+    --muted-foreground: 240 5% 55%;
+    --accent: 240 5% 15%;
+    --accent-foreground: 210 40% 98%;
+    --border: 240 5% 15%;
+    --input: 240 5% 15%;
+    --radius: 0.75rem;
+    
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 40% 98%;
+}
+*/
+
+/* ========================================
+   UTILITY CLASSES FOR THEME COLORS
+   Use these instead of hardcoding colors
+   ======================================== */
+
+/* Primary color utilities */
+.theme-primary {
+    color: hsl(var(--primary));
+}
+
+.theme-primary-bg {
+    background-color: hsl(var(--primary));
+}
+
+.theme-primary-bg-subtle {
+    background-color: hsl(var(--primary) / 0.1);
+}
+
+.theme-primary-bg-muted {
+    background-color: hsl(var(--primary) / 0.2);
+}
+
+.theme-primary-border {
+    border-color: hsl(var(--primary));
+}
+
+.theme-primary-border-subtle {
+    border-color: hsl(var(--primary) / 0.3);
+}
+
+/* Hover state utilities */
+.hover\:theme-primary-bg:hover {
+    background-color: hsl(var(--primary-hover));
+}
+
+/* Ring/focus utilities */
+.theme-ring {
+    --tw-ring-color: hsl(var(--ring));
+}
