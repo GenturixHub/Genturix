@@ -1983,9 +1983,9 @@ async def get_access_logs(
             "entry_type": "manual",
             "location": log.get("location", "Sin ubicación"),
             "timestamp": log.get("timestamp"),
-            "guard_name": log.get("guard_name"),
+            "guard_name": log.get("recorded_by_name"),
             "notes": log.get("notes"),
-            "source": "manual"
+            "source": log.get("source", "manual")
         })
     
     # Include visitor entries (actual check-ins)
