@@ -102,7 +102,7 @@ const ActivityItem = ({ activity }) => {
       case 'visitor_checkout':
         return <LogOut className="w-4 h-4 text-orange-400" />;
       case 'reservation_created':
-        return <Calendar className="w-4 h-4 text-purple-400" />;
+        return <Calendar className="w-4 h-4 text-cyan-400" />;
       case 'user_created':
         return <UserPlus className="w-4 h-4 text-blue-400" />;
       default:
