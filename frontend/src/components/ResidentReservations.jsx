@@ -230,6 +230,7 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
   const [availability, setAvailability] = useState(null);
   const [loadingAvailability, setLoadingAvailability] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedSlotIndex, setSelectedSlotIndex] = useState(null);
   
   // Reset form when area changes
   useEffect(() => {
