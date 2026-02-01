@@ -1354,7 +1354,7 @@ const AbsencesTab = () => {
 
   const typeLabels = {
     vacaciones: { label: 'Vacaciones', icon: '🏖️', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
-    permiso_medico: { label: 'Permiso Médico', icon: '🏥', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
+    permiso_medico: { label: 'Permiso Médico', icon: '🏥', color: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' },
     personal: { label: 'Personal', icon: '👤', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
     otro: { label: 'Otro', icon: '📋', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30' }
   };
@@ -1385,12 +1385,12 @@ const AbsencesTab = () => {
       <div className="p-3 bg-[#0A0A0F] border-b border-[#1E293B]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CalendarOff className="w-5 h-5 text-purple-400" />
+            <CalendarOff className="w-5 h-5 text-cyan-400" />
             <span className="font-semibold text-white">Mis Ausencias</span>
           </div>
           <Button 
             size="sm" 
-            className="bg-purple-600 hover:bg-purple-700"
+            className="bg-cyan-600 hover:bg-cyan-700"
             onClick={() => setShowCreateDialog(true)}
             data-testid="new-absence-request-btn"
           >
@@ -1408,7 +1408,7 @@ const AbsencesTab = () => {
             <p className="text-lg font-medium">Sin solicitudes</p>
             <p className="text-sm text-center">No tienes solicitudes de ausencia registradas</p>
             <Button 
-              className="mt-4 bg-purple-600 hover:bg-purple-700"
+              className="mt-4 bg-cyan-600 hover:bg-cyan-700"
               onClick={() => setShowCreateDialog(true)}
             >
               <CalendarPlus className="w-4 h-4 mr-2" />
