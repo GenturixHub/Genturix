@@ -289,6 +289,7 @@ class ApiService {
   getUsersByAdmin = (role = '') => {
     return this.get(`/admin/users${role ? `?role=${role}` : ''}`);
   };
+  resetUserPassword = (userId) => this.post(`/admin/users/${userId}/reset-password`, {});
   
   // Super Admin - Condo Admin Creation
   createCondoAdmin = (condoId, data) => this.post(`/super-admin/condominiums/${condoId}/admin`, data);
