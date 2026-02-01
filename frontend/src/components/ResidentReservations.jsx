@@ -396,7 +396,8 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
       });
       onClose();
     } catch (error) {
-      toast.error(error.message || 'Error al crear reservación');
+      const errorMessage = error?.message || (typeof error === 'string' ? error : 'Error al crear reservación');
+      toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }
