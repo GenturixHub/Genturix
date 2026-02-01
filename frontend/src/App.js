@@ -223,6 +223,38 @@ const PublicRoute = ({ children }) => {
   return children;
 };
 
+// Profile Page with Guard Redirect
+// Guards should NEVER access the global ProfilePage - they have embedded profile in GuardUI
+const ProfilePageOrRedirect = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const roles = user?.roles || [];
+  
+  // If user is a Guard (and ONLY a Guard), redirect to GuardUI with profile tab
+  // Guards have their own embedded profile and should never see the global ProfilePage
+  useEffect(() => {
+    if (roles.length === 1 && roles[0] === 'Guarda') {
+      // Redirect to guard panel - the guard can use the bottom nav to access profile
+      navigate('/guard?tab=profile', { replace: true });
+    }
+  }, [roles, navigate]);
+  
+  // If Guard, show loading while redirecting
+  if (roles.length === 1 && roles[0] === 'Guarda') {
+    return (
+      <div className="min-h-screen bg-[#05050A] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Redirigiendo al panel de guardia...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // For all other roles, show the normal ProfilePage
+  return <ProfilePage />;
+};
+
 function AppRoutes() {
   return (
     <Routes>
