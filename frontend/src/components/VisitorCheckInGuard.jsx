@@ -77,10 +77,10 @@ const COLOR_CONFIG = {
     label: 'TEMPORAL'
   },
   purple: { 
-    bg: 'bg-purple-500', 
-    light: 'bg-purple-500/20', 
-    border: 'border-purple-500', 
-    text: 'text-purple-400',
+    bg: 'bg-cyan-500', 
+    light: 'bg-cyan-500/20', 
+    border: 'border-cyan-500', 
+    text: 'text-cyan-400',
     label: 'EXTENDIDO'
   },
   gray: { 
