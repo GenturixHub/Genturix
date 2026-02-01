@@ -19,70 +19,8 @@ import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import OnboardingWizard from './pages/OnboardingWizard';
 import UserManagementPage from './pages/UserManagementPage';
 import ProfilePage from './pages/ProfilePage';
+import AlertSoundManager from './utils/AlertSoundManager';
 import './App.css';
-
-// ==================== PANIC SOUND UTILITY ====================
-// Create audio context and generate alert sound using Web Audio API
-let audioContext = null;
-let panicSoundInterval = null;
-
-const playPanicSound = () => {
-  try {
-    // Create audio context if not exists
-    if (!audioContext) {
-      audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    
-    // Resume context if suspended (browser autoplay policy)
-    if (audioContext.state === 'suspended') {
-      audioContext.resume();
-    }
-    
-    // Create oscillator for alert sound
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    // Alert-like sound pattern
-    oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5
-    oscillator.frequency.setValueAtTime(660, audioContext.currentTime + 0.15); // E5
-    oscillator.frequency.setValueAtTime(880, audioContext.currentTime + 0.3); // A5
-    oscillator.frequency.setValueAtTime(660, audioContext.currentTime + 0.45); // E5
-    
-    // Volume envelope
-    gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.6);
-    
-    oscillator.type = 'square';
-    oscillator.start(audioContext.currentTime);
-    oscillator.stop(audioContext.currentTime + 0.6);
-  } catch (e) {
-    console.warn('Could not play panic sound:', e);
-  }
-};
-
-// Start repeating panic sound
-const startPanicSoundLoop = () => {
-  if (panicSoundInterval) return; // Already playing
-  
-  playPanicSound(); // Play immediately
-  panicSoundInterval = setInterval(playPanicSound, 2000); // Repeat every 2 seconds
-};
-
-// Stop panic sound
-const stopPanicSound = () => {
-  if (panicSoundInterval) {
-    clearInterval(panicSoundInterval);
-    panicSoundInterval = null;
-  }
-};
-
-// Expose stop function globally for components to use
-if (typeof window !== 'undefined') {
-  window.stopPanicSound = stopPanicSound;
-}
 
 // Suppress PostHog errors in development
 if (typeof window !== 'undefined') {
