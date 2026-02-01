@@ -2407,7 +2407,7 @@ async def get_my_authorizations(
                 auth["status"] = "used"
                 auth["was_used"] = True
                 auth["used_at"] = entry_exists.get("entry_at")
-                auth["used_by_guard"] = entry_exists.get("guard_name")
+                auth["used_by_guard"] = entry_exists.get("entry_by_name") or entry_exists.get("guard_name")
             else:
                 auth["was_used"] = False
         else:
