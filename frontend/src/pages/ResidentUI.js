@@ -36,6 +36,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
 import api from '../services/api';
 import ProfileDirectory from '../components/ProfileDirectory';
 import EmbeddedProfile from '../components/EmbeddedProfile';
@@ -63,8 +71,13 @@ import {
   Trash2,
   History,
   Bell,
-  User
+  User,
+  Check,
+  CheckCheck,
+  RefreshCw,
+  UserCheck
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 // ============================================
 // EMERGENCY TYPE CONFIGURATION
