@@ -371,7 +371,8 @@ const AreaFormDialog = ({ open, onClose, area, onSave }) => {
       await onSave(form, area?.id);
       onClose();
     } catch (error) {
-      toast.error(error.message || 'Error al guardar');
+      const errorMessage = error?.message || (typeof error === 'string' ? error : 'Error al guardar');
+      toast.error(errorMessage);
     } finally {
       setIsSaving(false);
     }
