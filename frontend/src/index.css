@@ -7,6 +7,9 @@
 /* Theme System - Centralized Color Palette */
 @import './styles/theme.css';
 
+/* Emergency Button Styles */
+@import './styles/emergency-buttons.css';
+
 /* Mobile-specific styles */
 @import './styles/mobile.css';
 
