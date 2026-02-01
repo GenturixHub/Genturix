@@ -3840,7 +3840,15 @@ async def clock_in_out(
             }, {"_id": 0})
             
             if upcoming_shift:
-                shift_start = datetime.fromisoformat(upcoming_shift["start_time"].replace('Z', '+00:00'))
+                shift_start_str = upcoming_shift["start_time"]
+                # Ensure timezone-aware datetime
+                if 'Z' in shift_start_str:
+                    shift_start = datetime.fromisoformat(shift_start_str.replace('Z', '+00:00'))
+                elif '+' in shift_start_str or shift_start_str.endswith('-00:00'):
+                    shift_start = datetime.fromisoformat(shift_start_str)
+                else:
+                    shift_start = datetime.fromisoformat(shift_start_str).replace(tzinfo=timezone.utc)
+                
                 minutes_until = int((shift_start - now).total_seconds() / 60)
                 raise HTTPException(
                     status_code=400, 
