@@ -290,6 +290,10 @@ class ApiService {
   getEmployeeEvaluationSummary = (employeeId) => this.get(`/hr/evaluations/employee/${employeeId}/summary`);
   getEvaluableEmployees = () => this.get('/hr/evaluable-employees');
   
+  // HR Data Integrity
+  validateHRIntegrity = () => this.get('/hr/validate-integrity');
+  cleanupInvalidGuards = (dryRun = true) => this.post(`/hr/cleanup-invalid-guards?dry_run=${dryRun}`);
+  
   // Admin - User Management
   createUserByAdmin = (data) => this.post('/admin/users', data);
   getUsersByAdmin = (role = '') => {
