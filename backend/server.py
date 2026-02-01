@@ -2652,7 +2652,7 @@ async def fast_checkout(
         try:
             entry_time = datetime.fromisoformat(entry_at.replace('Z', '+00:00'))
             duration_minutes = int((now - entry_time).total_seconds() / 60)
-        except:
+        except ValueError:
             pass
     
     # Update entry
