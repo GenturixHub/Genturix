@@ -3068,6 +3068,151 @@ async def mark_all_notifications_read(
     
     return {"message": f"{result.modified_count} notificaciones marcadas como leídas"}
 
+
+# ============================================
+# GUARD/ADMIN NOTIFICATIONS ENDPOINTS
+# ============================================
+
+@api_router.get("/notifications")
+async def get_user_notifications(
+    unread_only: bool = False,
+    limit: int = 50,
+    current_user = Depends(get_current_user)
+):
+    """
+    Get notifications for current user (Admin, Guard, or Supervisor).
+    Returns notifications from guard_notifications collection.
+    """
+    user_id = current_user["id"]
+    roles = current_user.get("roles", [])
+    condo_id = current_user.get("condominium_id")
+    
+    # Build query based on user role
+    query = {}
+    
+    if "Guarda" in roles:
+        # Guards see notifications addressed to them specifically
+        query["$or"] = [
+            {"guard_user_id": user_id},
+            {"guard_id": user_id}
+        ]
+    elif "Administrador" in roles or "Supervisor" in roles:
+        # Admins/Supervisors see all notifications for their condo
+        if condo_id:
+            query["condominium_id"] = condo_id
+    elif "SuperAdmin" in roles:
+        # SuperAdmin sees all
+        pass
+    else:
+        # Other roles - return empty
+        return []
+    
+    if unread_only:
+        query["read"] = False
+    
+    notifications = await db.guard_notifications.find(
+        query, {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    return notifications
+
+@api_router.get("/notifications/unread-count")
+async def get_unread_notification_count(
+    current_user = Depends(get_current_user)
+):
+    """Get count of unread notifications for the current user"""
+    user_id = current_user["id"]
+    roles = current_user.get("roles", [])
+    condo_id = current_user.get("condominium_id")
+    
+    # Build query based on user role
+    query = {"read": False}
+    
+    if "Guarda" in roles:
+        query["$or"] = [
+            {"guard_user_id": user_id},
+            {"guard_id": user_id}
+        ]
+    elif "Administrador" in roles or "Supervisor" in roles:
+        if condo_id:
+            query["condominium_id"] = condo_id
+    elif "SuperAdmin" in roles:
+        pass
+    else:
+        return {"count": 0}
+    
+    count = await db.guard_notifications.count_documents(query)
+    return {"count": count}
+
+@api_router.put("/notifications/{notification_id}/read")
+async def mark_notification_as_read(
+    notification_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Mark a specific notification as read"""
+    user_id = current_user["id"]
+    roles = current_user.get("roles", [])
+    condo_id = current_user.get("condominium_id")
+    
+    # Build query to ensure user can only mark their own notifications
+    query = {"id": notification_id}
+    
+    if "Guarda" in roles:
+        query["$or"] = [
+            {"guard_user_id": user_id},
+            {"guard_id": user_id}
+        ]
+    elif "Administrador" in roles or "Supervisor" in roles:
+        if condo_id:
+            query["condominium_id"] = condo_id
+    elif "SuperAdmin" not in roles:
+        raise HTTPException(status_code=403, detail="No tienes permiso")
+    
+    result = await db.guard_notifications.update_one(
+        query,
+        {"$set": {"read": True, "read_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Notificación no encontrada")
+    
+    return {"message": "Notificación marcada como leída"}
+
+@api_router.put("/notifications/mark-all-read")
+async def mark_all_notifications_read(
+    current_user = Depends(get_current_user)
+):
+    """Mark all notifications as read for the current user"""
+    user_id = current_user["id"]
+    roles = current_user.get("roles", [])
+    condo_id = current_user.get("condominium_id")
+    
+    # Build query based on user role
+    query = {"read": False}
+    
+    if "Guarda" in roles:
+        query["$or"] = [
+            {"guard_user_id": user_id},
+            {"guard_id": user_id}
+        ]
+    elif "Administrador" in roles or "Supervisor" in roles:
+        if condo_id:
+            query["condominium_id"] = condo_id
+    elif "SuperAdmin" not in roles:
+        raise HTTPException(status_code=403, detail="No tienes permiso")
+    
+    result = await db.guard_notifications.update_many(
+        query,
+        {"$set": {"read": True, "read_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {
+        "message": f"{result.modified_count} notificaciones marcadas como leídas",
+        "count": result.modified_count
+    }
+
+
+
 # Endpoint for Guards to write to their logbook
 @api_router.get("/security/logbook")
 async def get_guard_logbook(current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
