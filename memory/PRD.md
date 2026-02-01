@@ -1,68 +1,43 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 1, 2026 (Session 38 - SaaS Billing Model Implementation)
+## Last Updated: February 1, 2026 (Session 39 - SuperAdmin Billing Dashboard UX Improvement)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
 
 ---
 
-## PLATFORM STATUS: ✅ PRODUCTION READY - SAAS BILLING IMPLEMENTED
+## PLATFORM STATUS: ✅ PRODUCTION READY - SAAS BILLING WITH EXECUTIVE DASHBOARD
 
-### Session 38 - SAAS SEAT-BASED BILLING MODEL (February 1, 2026) ⭐⭐⭐⭐⭐
+### Session 39 - UX IMPROVEMENT: SuperAdmin Billing Dashboard (February 1, 2026) ⭐⭐⭐⭐⭐
 
-#### 🟢 MAJOR FEATURE: SaaS Billing with Stripe Integration
+#### 🟢 UX IMPROVEMENT: Executive Billing Dashboard
 
-**What was implemented:**
+**Changes Implemented:**
 
-1. **Data Model Extensions:**
-   - `paid_seats` - Number of user seats paid for
-   - `active_users` - Real count of active users (excluding SuperAdmin)
-   - `remaining_seats` - Calculated: paid_seats - active_users
-   - `billing_status` - active, trialing, past_due, cancelled
-   - `stripe_customer_id`, `stripe_subscription_id`
+1. **Executive Summary at Top (Always Visible):**
+   - 4 gradient cards with key metrics:
+     - Condominios (blue)
+     - Usuarios X/Y (purple)
+     - MRR $X USD (emerald)
+     - Capacidad X% with progress bar (amber)
+   - No scroll needed to see critical metrics
 
-2. **User Creation Enforcement (CRITICAL):**
-   - Backend checks `active_users < paid_seats` before creating ANY user
-   - Returns HTTP 403 with clear message: "Límite de usuarios alcanzado"
-   - SuperAdmin NOT counted in active_users
-   - Inactive users do NOT count
+2. **Collapsible Condominium List:**
+   - Default: Shows only 3 condominiums
+   - "Mostrando X de Y" indicator
+   - "Ver más (N restantes)" button to expand
+   - "Ver menos" button to collapse
+   - Smooth animation on expand/collapse
+   - Each condo shows: name, revenue, status badge, users/seats, progress bar
 
-3. **Billing Endpoints:**
-   - `GET /api/billing/info` - Get billing info for current condominium
-   - `GET /api/billing/can-create-user` - Check if can create user
-   - `POST /api/billing/upgrade-seats` - Create Stripe checkout for upgrade
-   - `POST /api/webhook/stripe-subscription` - Handle Stripe events
-   - `GET /api/billing/history` - Transaction history
-   - `GET /api/super-admin/billing/overview` - All condos billing
-   - `PATCH /api/super-admin/condominiums/{id}/billing` - Update billing
+3. **Visual Hierarchy:**
+   - Summary metrics are prominent
+   - Detail section is secondary
+   - Consistent with dark theme
+   - Gradient cards for emphasis
 
-4. **Admin UI:**
-   - "Plan y Facturación" button in Quick Actions showing (X/Y) seats
-   - Billing dialog with paid_seats, active_users, progress bar
-   - Upgrade section with seat selector and cost calculator
-   - Warning banner when at seat limit
-   - Create User button disabled at limit with tooltip
-
-5. **SuperAdmin Dashboard:**
-   - Billing overview showing all condominiums
-   - Per-condo: paid_seats, active_users, progress bar, monthly revenue
-   - Totals: total condos, total users/seats, total MRR
-
-6. **Safety Features:**
-   - Cannot create users if billing_status not active/trialing
-   - Cannot downgrade paid_seats below active_users
-   - All billing changes logged in audit logs
-
-**Verification Results:**
-- ✅ Backend: 100% (9/9 tests passed)
-- ✅ Frontend: 100% (all UI tests passed)
-- ✅ User creation blocked at 403 when limit reached
-- ✅ User creation succeeds and updates count when seats available
-- ✅ Warning banner and disabled button at limit
-- ✅ SuperAdmin billing overview working
-
-**Test Report:** `/app/test_reports/iteration_44.json`
+**Test Report:** Visual verification completed - all features working
 
 ---
 
