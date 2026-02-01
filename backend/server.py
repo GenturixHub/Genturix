@@ -3179,7 +3179,7 @@ async def mark_notification_as_read(
     return {"message": "Notificación marcada como leída"}
 
 @api_router.put("/notifications/mark-all-read")
-async def mark_all_notifications_read(
+async def mark_all_guard_notifications_read(
     current_user = Depends(get_current_user)
 ):
     """Mark all notifications as read for the current user"""
