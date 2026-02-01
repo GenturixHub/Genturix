@@ -192,10 +192,44 @@ const MyReservationCard = ({ reservation, onCancel }) => {
   const statusConfig = STATUS_CONFIG[reservation.status] || STATUS_CONFIG.pending;
   const StatusIcon = statusConfig.icon;
   const AreaIcon = AREA_ICONS[reservation.area_type] || MoreHorizontal;
-  const canCancel = reservation.status === 'pending';
+  
+  // Check if cancellation is allowed based on business rules
+  const canCancel = (() => {
+    // Can only cancel pending or approved reservations
+    if (!['pending', 'approved'].includes(reservation.status)) return false;
+    
+    // Check if reservation has started
+    try {
+      const now = new Date();
+      const [year, month, day] = reservation.date.split('-').map(Number);
+      const [startHour, startMin] = reservation.start_time.split(':').map(Number);
+      const reservationStart = new Date(year, month - 1, day, startHour, startMin);
+      
+      // Cannot cancel if already started
+      if (now >= reservationStart) return false;
+    } catch (e) {
+      // If date parsing fails, allow cancellation (fail-safe)
+      return true;
+    }
+    
+    return true;
+  })();
+  
+  // Check if reservation is in progress or past
+  const isPastOrInProgress = (() => {
+    try {
+      const now = new Date();
+      const [year, month, day] = reservation.date.split('-').map(Number);
+      const [startHour, startMin] = reservation.start_time.split(':').map(Number);
+      const reservationStart = new Date(year, month - 1, day, startHour, startMin);
+      return now >= reservationStart;
+    } catch (e) {
+      return false;
+    }
+  })();
   
   return (
-    <Card className={`bg-[#0F111A] border-[#1E293B] ${canCancel ? '' : 'opacity-75'}`}>
+    <Card className={`bg-[#0F111A] border-[#1E293B] ${!canCancel && reservation.status !== 'cancelled' && reservation.status !== 'rejected' ? 'opacity-85' : ''}`}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -213,9 +247,23 @@ const MyReservationCard = ({ reservation, onCancel }) => {
                   <Clock className="w-3 h-3" />
                   {reservation.start_time}-{reservation.end_time}
                 </span>
+                {reservation.guests_count > 1 && (
+                  <span className="flex items-center gap-1">
+                    <Users className="w-3 h-3" />
+                    {reservation.guests_count}
+                  </span>
+                )}
               </div>
               {reservation.purpose && (
                 <p className="text-xs text-muted-foreground mt-1 truncate">{reservation.purpose}</p>
+              )}
+              {/* Show if in progress */}
+              {isPastOrInProgress && reservation.status === 'approved' && (
+                <p className="text-xs text-yellow-400 mt-1">En progreso o finalizada</p>
+              )}
+              {/* Show cancellation reason if cancelled by admin */}
+              {reservation.status === 'cancelled' && reservation.cancellation_reason && (
+                <p className="text-xs text-red-400 mt-1">Motivo: {reservation.cancellation_reason}</p>
               )}
             </div>
           </div>
@@ -229,11 +277,11 @@ const MyReservationCard = ({ reservation, onCancel }) => {
           <Button
             size="sm"
             variant="outline"
-            className="w-full mt-3 text-red-400 border-red-500/30 hover:bg-red-500/10"
+            className="w-full mt-3 text-red-400 border-red-500/30 hover:bg-red-500/10 active:scale-[0.98] transition-transform"
             onClick={() => onCancel(reservation)}
             data-testid={`cancel-reservation-${reservation.id}`}
           >
-            <XCircle className="w-3 h-3 mr-1" />
+            <XCircle className="w-3.5 h-3.5 mr-1.5" />
             Cancelar Reservación
           </Button>
         )}
