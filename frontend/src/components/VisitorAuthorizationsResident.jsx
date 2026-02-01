@@ -746,14 +746,14 @@ const VisitorAuthorizationsResident = () => {
             </Card>
           )}
 
-          {/* Active Authorizations */}
-          {activeAuths.length > 0 ? (
+          {/* Pending (Active, Not Used) Authorizations */}
+          {pendingAuths.length > 0 ? (
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-green-400" />
-                Autorizaciones Activas ({activeAuths.length})
+                Autorizaciones Pendientes ({pendingAuths.length})
               </h3>
-              {activeAuths.map((auth) => (
+              {pendingAuths.map((auth) => (
                 <AuthorizationCard 
                   key={auth.id} 
                   auth={auth}
@@ -765,10 +765,48 @@ const VisitorAuthorizationsResident = () => {
           ) : (
             <div className="text-center py-8">
               <Users className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-              <p className="text-muted-foreground">No tienes autorizaciones activas</p>
+              <p className="text-muted-foreground">No tienes autorizaciones pendientes</p>
               <p className="text-xs text-muted-foreground mt-1">
                 Crea una autorización para tus visitantes frecuentes
               </p>
+            </div>
+          )}
+
+          {/* Used Authorizations (Check-ins completed) */}
+          {usedAuths.length > 0 && (
+            <div className="space-y-3 pt-4 border-t border-[#1E293B]">
+              <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-blue-400" />
+                Utilizadas ({usedAuths.length})
+              </h3>
+              {usedAuths.slice(0, 5).map((auth) => (
+                <div 
+                  key={auth.id}
+                  className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/20"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-blue-400">{auth.visitor_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {auth.authorization_type === 'temporary' ? 'Temporal' : 
+                         auth.authorization_type === 'extended' ? 'Extendido' : 
+                         auth.authorization_type}
+                      </p>
+                    </div>
+                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                      ✓ Ingresó
+                    </Badge>
+                  </div>
+                  {auth.used_at && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Entrada: {new Date(auth.used_at).toLocaleString('es-ES', { 
+                        day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' 
+                      })}
+                      {auth.used_by_guard && ` • Guardia: ${auth.used_by_guard}`}
+                    </p>
+                  )}
+                </div>
+              ))}
             </div>
           )}
 
@@ -777,7 +815,7 @@ const VisitorAuthorizationsResident = () => {
             <div className="space-y-3 pt-4 border-t border-[#1E293B]">
               <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
                 <XCircle className="w-4 h-4 text-gray-400" />
-                Inactivas ({inactiveAuths.length})
+                Expiradas ({inactiveAuths.length})
               </h3>
               {inactiveAuths.slice(0, 3).map((auth) => (
                 <AuthorizationCard 
