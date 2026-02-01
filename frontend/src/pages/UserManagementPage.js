@@ -95,7 +95,7 @@ const ROLE_CONFIG = {
   },
   'Supervisor': { 
     icon: UserCheck, 
-    color: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+    color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
     description: 'Supervisión de guardias y monitoreo'
   },
   'Estudiante': { 
@@ -598,8 +598,8 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
 
       case 'Supervisor':
         return (
-          <div className="space-y-3 p-3 rounded-lg bg-purple-500/5 border border-purple-500/20">
-            <p className="text-xs font-medium text-purple-400 flex items-center gap-2">
+          <div className="space-y-3 p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
+            <p className="text-xs font-medium text-cyan-400 flex items-center gap-2">
               <UserCheck className="w-4 h-4" />
               Datos de Supervisor
             </p>
