@@ -697,15 +697,27 @@ const VisitorCheckInGuard = () => {
                   <CalendarCheck className="w-4 h-4" />
                   PRE-REGISTROS PENDIENTES ({todayPreregistrations.length})
                 </h3>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => fetchData(true)}
-                  disabled={isRefreshing}
-                  data-testid="refresh-preregistrations-btn"
-                >
-                  <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleCleanup}
+                    disabled={isRefreshing}
+                    title="Limpiar autorizaciones duplicadas"
+                    data-testid="cleanup-btn"
+                  >
+                    <Trash2 className={`w-4 h-4 text-orange-400 ${isRefreshing ? 'animate-pulse' : ''}`} />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => fetchData(true)}
+                    disabled={isRefreshing}
+                    data-testid="refresh-preregistrations-btn"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
               </div>
               
               {todayPreregistrations.length > 0 ? (
