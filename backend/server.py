@@ -4612,6 +4612,34 @@ async def create_user_by_admin(
     if user_data.role not in valid_roles:
         raise HTTPException(status_code=400, detail=f"Rol inválido. Use: {', '.join(valid_roles)}")
     
+    # Determine condominium_id early for billing check
+    is_super_admin = "SuperAdmin" in current_user.get("roles", [])
+    condominium_id = current_user.get("condominium_id")
+    
+    # If SuperAdmin without condo, use the one from the request
+    if is_super_admin and not condominium_id:
+        condominium_id = user_data.condominium_id
+    
+    if not condominium_id:
+        raise HTTPException(status_code=400, detail="Se requiere condominium_id para crear usuarios")
+    
+    # ==================== SAAS BILLING ENFORCEMENT ====================
+    # Check if we can create a new user based on paid seats
+    can_create, error_msg = await can_create_user(condominium_id)
+    if not can_create:
+        # Log the blocked attempt
+        await log_billing_event(
+            "user_creation_blocked",
+            condominium_id,
+            {"reason": error_msg, "attempted_role": user_data.role, "attempted_email": normalized_email},
+            current_user["id"]
+        )
+        raise HTTPException(status_code=403, detail=error_msg)
+    # ==================================================================
+    
+    # Role-specific validation
+    role_data = {}
+    
     # Role-specific validation
     role_data = {}
     
