@@ -1621,7 +1621,8 @@ const HistoryTab = () => {
 
   // Categorize history by type
   const alertHistory = guardHistory.filter(h => h.type === 'alert_resolved');
-  const visitHistory = guardHistory.filter(h => h.type === 'visit_completed');
+  const visitEntryHistory = guardHistory.filter(h => h.type === 'visit_entry');
+  const visitExitHistory = guardHistory.filter(h => h.type === 'visit_exit');
   const clockHistory = guardHistory.filter(h => h.type === 'clock_in' || h.type === 'clock_out');
   const shiftHistory = guardHistory.filter(h => h.type === 'shift_completed');
 
@@ -1644,6 +1645,64 @@ const HistoryTab = () => {
             {guardHistory.length} eventos
           </span>
         </div>
+
+        {/* Visitor Entries (Check-ins) */}
+        {visitEntryHistory.length > 0 && (
+          <div>
+            <h3 className="text-xs font-bold text-green-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <UserPlus className="w-4 h-4" />
+              Entradas Registradas ({visitEntryHistory.length})
+            </h3>
+            <div className="space-y-2">
+              {visitEntryHistory.map((entry) => (
+                <div key={entry.id} className="p-3 rounded-lg bg-[#0A0A0F] border border-green-500/30 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                    <UserPlus className="w-4 h-4 text-green-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{entry.visitor_name}</p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{entry.destination || 'Sin destino'}</span>
+                      {entry.vehicle_plate && <span className="font-mono">🚗 {entry.vehicle_plate}</span>}
+                    </div>
+                  </div>
+                  <div className="text-right text-xs">
+                    <p className="text-green-400">{formatTime(entry.timestamp)}</p>
+                    <Badge variant="outline" className={entry.is_authorized ? 'border-green-500/30 text-green-400' : 'border-yellow-500/30 text-yellow-400'}>
+                      {entry.is_authorized ? '✓ Auth' : 'Manual'}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Visitor Exits (Check-outs) */}
+        {visitExitHistory.length > 0 && (
+          <div>
+            <h3 className="text-xs font-bold text-orange-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <UserMinus className="w-4 h-4" />
+              Salidas Registradas ({visitExitHistory.length})
+            </h3>
+            <div className="space-y-2">
+              {visitExitHistory.map((exit) => (
+                <div key={exit.id} className="p-3 rounded-lg bg-[#0A0A0F] border border-orange-500/30 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center">
+                    <UserMinus className="w-4 h-4 text-orange-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{exit.visitor_name}</p>
+                    <p className="text-xs text-muted-foreground">{exit.destination || 'Sin destino'}</p>
+                  </div>
+                  <div className="text-right text-xs text-orange-400">
+                    <p>{formatTime(exit.timestamp)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Clock Events */}
         {clockHistory.length > 0 && (
