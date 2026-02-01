@@ -3204,7 +3204,16 @@ async def get_guard_my_shift(current_user = Depends(require_role("Guarda", "Admi
         logger.info(f"[my-shift] Guard CAN clock in - current shift found: {current_shift.get('id')}")
     elif next_shift:
         # Check if within 15 minute early window
-        shift_start = datetime.fromisoformat(next_shift["start_time"].replace('Z', '+00:00'))
+        shift_start_str = next_shift["start_time"]
+        # Ensure timezone-aware datetime
+        if 'Z' in shift_start_str:
+            shift_start = datetime.fromisoformat(shift_start_str.replace('Z', '+00:00'))
+        elif '+' in shift_start_str or shift_start_str.endswith('-00:00'):
+            shift_start = datetime.fromisoformat(shift_start_str)
+        else:
+            # Assume UTC if no timezone info
+            shift_start = datetime.fromisoformat(shift_start_str).replace(tzinfo=timezone.utc)
+        
         minutes_until = int((shift_start - now).total_seconds() / 60)
         if minutes_until <= 15:
             can_clock_in = True
