@@ -560,24 +560,51 @@ const VisitorCheckInGuard = () => {
     }
   }, [fetchData]);
 
-  // Diagnose authorization issues
+  // Diagnose authorization issues - enhanced version with more detail
   const handleDiagnose = useCallback(async () => {
+    setIsRefreshing(true);
     try {
       const result = await api.diagnoseAuthorizations();
-      console.log('Diagnose result:', result);
+      console.log('=== DIAGNÓSTICO DE AUTORIZACIONES ===');
+      console.log('Condo ID:', result.condo_id);
+      console.log('Total pendientes:', result.total_pending);
+      console.log('Detalle:');
+      result.authorizations?.forEach((a, i) => {
+        console.log(`  ${i+1}. ${a.visitor_name} (${a.authorization_type})`);
+        console.log(`     - Status en DB: ${a.status}`);
+        console.log(`     - checked_in_at: ${a.checked_in_at || 'null'}`);
+        console.log(`     - total_visits: ${a.total_visits}`);
+        console.log(`     - entries_count: ${a.entries_count}`);
+        console.log(`     - DEBERÍA ESTAR USADO: ${a.SHOULD_BE_USED ? '⚠️ SÍ' : '✓ NO'}`);
+        if (a.entries?.length > 0) {
+          console.log(`     - Entradas:`, a.entries);
+        }
+      });
+      console.log('=====================================');
       
       // Find authorizations that SHOULD be marked as used but aren't
       const problems = result.authorizations?.filter(a => a.SHOULD_BE_USED) || [];
       
       if (problems.length > 0) {
-        const names = problems.map(p => p.visitor_name).join(', ');
-        toast.error(`🔍 Encontrados ${problems.length} con problema: ${names}. Ver consola para detalles.`);
+        const names = problems.map(p => `${p.visitor_name} (${p.entries_count} entradas)`).join('\n• ');
+        toast.error(
+          <div>
+            <p className="font-bold">🔍 {problems.length} autorización(es) con problema:</p>
+            <p className="text-sm mt-1">• {names}</p>
+            <p className="text-xs mt-2 text-orange-300">Clic en 🗑️ para limpiar</p>
+          </div>,
+          { duration: 10000 }
+        );
+      } else if (result.total_pending === 0) {
+        toast.success('✓ No hay autorizaciones pendientes');
       } else {
-        toast.success(`✓ ${result.total_pending} pendientes, todos correctos`);
+        toast.success(`✓ ${result.total_pending} pendiente(s), todos correctos`);
       }
     } catch (error) {
       console.error('Diagnose error:', error);
       toast.error('Error al diagnosticar');
+    } finally {
+      setIsRefreshing(false);
     }
   }, []);
 
