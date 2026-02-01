@@ -766,8 +766,14 @@ const VisitorCheckInGuard = () => {
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                 DENTRO DEL CONDOMINIO ({visitorsInside.length})
               </h3>
-              <Button variant="ghost" size="sm" onClick={fetchData}>
-                <RefreshCw className="w-4 h-4" />
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => fetchData(true)}
+                disabled={isRefreshing}
+                data-testid="refresh-inside-btn"
+              >
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               </Button>
             </div>
             
