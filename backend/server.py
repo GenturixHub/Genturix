@@ -3144,7 +3144,21 @@ async def mark_all_notifications_read(
         {"$set": {"read": True}}
     )
     
-    return {"message": f"{result.modified_count} notificaciones marcadas como leídas"}
+    return {"message": f"{result.modified_count} notificaciones marcadas como leídas", "count": result.modified_count}
+
+
+@api_router.get("/resident/visitor-notifications/unread-count")
+async def get_resident_unread_notification_count(
+    current_user = Depends(get_current_user)
+):
+    """Get count of unread visitor notifications for resident"""
+    count = await db.resident_notifications.count_documents({
+        "user_id": current_user["id"],
+        "type": {"$in": ["visitor_arrival", "visitor_exit"]},
+        "read": False
+    })
+    
+    return {"count": count}
 
 
 # ============================================
