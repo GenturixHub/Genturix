@@ -2660,6 +2660,14 @@ async def fast_checkin(
             update_data
         )
         logger.info(f"[check-in] Update result: matched={result.matched_count}, modified={result.modified_count}")
+        
+        # VERIFICATION: Check if update actually worked
+        if auth_type_value in ["temporary", "extended"]:
+            verification = await db.visitor_authorizations.find_one(
+                {"id": checkin_data.authorization_id},
+                {"_id": 0, "status": 1, "authorization_type": 1, "visitor_name": 1}
+            )
+            logger.info(f"[check-in] VERIFICATION after update: {verification}")
     
     # Create notification for resident
     if resident_id:
