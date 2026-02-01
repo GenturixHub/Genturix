@@ -5403,18 +5403,51 @@ async def create_reservation(
     if reservation.guests_count > area.get("capacity", 10):
         raise HTTPException(status_code=400, detail=f"El área solo permite {area['capacity']} personas")
     
-    # Validate time is within area's available hours
+    # Validate time is within area's available hours (closing time)
     area_from = area.get("available_from", "06:00")
     area_until = area.get("available_until", "22:00")
     if reservation.start_time < area_from or reservation.end_time > area_until:
-        raise HTTPException(status_code=400, detail=f"El horario debe estar entre {area_from} y {area_until}")
+        raise HTTPException(status_code=400, detail=f"El horario debe estar entre {area_from} y {area_until}. Cierra a las {area_until}.")
+    
+    # ==================== VALIDATE DURATION BASED ON AREA MODE ====================
+    reservation_mode = area.get("reservation_mode", "flexible")
+    min_duration = area.get("min_duration_hours", 1)
+    max_duration = area.get("max_duration_hours", area.get("max_hours_per_reservation", 4))
+    
+    # Calculate reservation duration in hours
+    try:
+        start_parts = reservation.start_time.split(":")
+        end_parts = reservation.end_time.split(":")
+        start_minutes = int(start_parts[0]) * 60 + int(start_parts[1])
+        end_minutes = int(end_parts[0]) * 60 + int(end_parts[1])
+        duration_hours = (end_minutes - start_minutes) / 60
+        
+        if duration_hours < min_duration:
+            raise HTTPException(status_code=400, detail=f"La reservación debe ser de al menos {min_duration} hora(s)")
+        
+        if duration_hours > max_duration:
+            raise HTTPException(status_code=400, detail=f"La reservación no puede exceder {max_duration} hora(s)")
+        
+        # For "por_hora" mode (gym), enforce exactly 1 hour
+        if reservation_mode == "por_hora" and duration_hours != 1:
+            raise HTTPException(status_code=400, detail="Este tipo de área solo permite reservaciones de 1 hora")
+        
+        # For "bloque" mode (ranch), allow only full block
+        if reservation_mode == "bloque":
+            # Must be the full block from opening to closing
+            expected_duration = (int(area_until.split(":")[0]) - int(area_from.split(":")[0]))
+            if duration_hours != expected_duration:
+                raise HTTPException(status_code=400, detail=f"Este tipo de área requiere reservar el bloque completo ({area_from} - {area_until})")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de hora inválido. Use HH:MM")
+    # ==============================================================================
     
     # Validate day is allowed
     try:
         res_date = datetime.strptime(reservation.date, "%Y-%m-%d")
         day_name = DAY_NAMES.get(res_date.weekday())
         allowed_days = area.get("allowed_days", list(DAY_NAMES.values()))
-        if day_name not in allowed_days:
+        if allowed_days and len(allowed_days) > 0 and day_name not in allowed_days:
             raise HTTPException(status_code=400, detail=f"Esta área no está disponible los días {day_name}")
     except ValueError:
         raise HTTPException(status_code=400, detail="Formato de fecha inválido. Use YYYY-MM-DD")
