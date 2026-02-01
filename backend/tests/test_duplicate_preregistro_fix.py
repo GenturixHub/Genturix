@@ -293,7 +293,7 @@ class TestDuplicatePreregistroFix:
         }
         
         response = self.session.post(
-            f"{BASE_URL}/api/visitor-authorizations",
+            f"{BASE_URL}/api/authorizations",
             json=auth_data,
             headers={"Authorization": f"Bearer {self.resident_token}"}
         )
