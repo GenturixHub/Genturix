@@ -5997,18 +5997,58 @@ async def create_reservation(
     if daily_count >= max_per_day:
         raise HTTPException(status_code=400, detail=f"Se alcanzó el límite de {max_per_day} reservaciones para esta área en esta fecha")
     
-    # Check for overlapping reservations
-    existing = await db.reservations.find_one({
-        "area_id": reservation.area_id,
-        "date": reservation.date,
-        "status": {"$in": ["pending", "approved"]},
-        "$or": [
-            {"start_time": {"$lt": reservation.end_time}, "end_time": {"$gt": reservation.start_time}}
-        ]
-    })
+    # NEW: Check max reservations per user per day (Phase 1)
+    max_user_per_day = area.get("max_reservations_per_user_per_day")
+    if max_user_per_day:
+        user_daily_count = await db.reservations.count_documents({
+            "area_id": reservation.area_id,
+            "date": reservation.date,
+            "resident_id": current_user["id"],
+            "status": {"$in": ["pending", "approved"]}
+        })
+        if user_daily_count >= max_user_per_day:
+            raise HTTPException(status_code=400, detail=f"Has alcanzado el límite de {max_user_per_day} reservación(es) por día para esta área")
     
-    if existing:
-        raise HTTPException(status_code=409, detail="Ya existe una reservación en ese horario")
+    # Get reservation behavior (backward compatible)
+    behavior = area.get("reservation_behavior", "exclusive")
+    
+    # FREE_ACCESS areas cannot be reserved
+    if behavior == "free_access":
+        raise HTTPException(status_code=400, detail="Esta área es de acceso libre y no requiere reservación")
+    
+    # Check for overlapping reservations based on behavior type
+    if behavior == "capacity":
+        # CAPACITY: Check if there's room in the slot
+        max_capacity = area.get("max_capacity_per_slot") or area.get("capacity", 10)
+        
+        # Get all reservations that overlap with requested time
+        overlapping = await db.reservations.find({
+            "area_id": reservation.area_id,
+            "date": reservation.date,
+            "status": {"$in": ["pending", "approved"]},
+            "start_time": {"$lt": reservation.end_time},
+            "end_time": {"$gt": reservation.start_time}
+        }, {"_id": 0, "guests_count": 1}).to_list(100)
+        
+        current_count = sum(r.get("guests_count", 1) for r in overlapping)
+        if current_count + reservation.guests_count > max_capacity:
+            raise HTTPException(
+                status_code=409, 
+                detail=f"No hay suficiente capacidad. Disponible: {max(0, max_capacity - current_count)}, Solicitado: {reservation.guests_count}"
+            )
+    else:
+        # EXCLUSIVE or SLOT_BASED: Check for any overlap
+        existing = await db.reservations.find_one({
+            "area_id": reservation.area_id,
+            "date": reservation.date,
+            "status": {"$in": ["pending", "approved"]},
+            "$or": [
+                {"start_time": {"$lt": reservation.end_time}, "end_time": {"$gt": reservation.start_time}}
+            ]
+        })
+        
+        if existing:
+            raise HTTPException(status_code=409, detail="Ya existe una reservación en ese horario")
     
     reservation_id = str(uuid.uuid4())
     status = "pending" if area.get("requires_approval", False) else "approved"
