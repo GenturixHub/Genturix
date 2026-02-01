@@ -719,7 +719,8 @@ const ResidentReservations = () => {
       toast.success('Reservación cancelada');
       loadData();
     } catch (error) {
-      toast.error(error.message || 'Error al cancelar');
+      const errorMessage = error?.message || (typeof error === 'string' ? error : 'Error al cancelar');
+      toast.error(errorMessage);
     }
   };
   
