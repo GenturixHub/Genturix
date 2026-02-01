@@ -356,7 +356,7 @@ const RecentEntriesList = ({ entries, maxItems = 10 }) => {
       permanent: 'green',
       recurring: 'blue',
       temporary: 'yellow',
-      extended: 'purple',
+      extended: 'cyan',
       manual: 'gray'
     };
     return colors[type] || 'gray';
@@ -541,7 +541,7 @@ const GuardHistoryVisual = () => {
             value={totalEntries + totalExits}
             subtitle="movimientos"
             icon={Users}
-            color="purple"
+            color="cyan"
           />
         </div>
 
