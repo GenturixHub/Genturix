@@ -91,10 +91,10 @@ const AUTHORIZATION_TYPES = {
     label: 'Extendido',
     description: 'Rango de fechas + horario',
     icon: Calendar,
-    color: 'purple',
-    bgColor: 'bg-purple-500/20',
-    borderColor: 'border-purple-500/30',
-    textColor: 'text-purple-400'
+    color: 'cyan',
+    bgColor: 'bg-cyan-500/20',
+    borderColor: 'border-cyan-500/30',
+    textColor: 'text-cyan-400'
   }
 };
 
@@ -112,7 +112,8 @@ const COLOR_CONFIG = {
   green: { bg: 'bg-green-500', light: 'bg-green-500/20', border: 'border-green-500/30', text: 'text-green-400' },
   blue: { bg: 'bg-blue-500', light: 'bg-blue-500/20', border: 'border-blue-500/30', text: 'text-blue-400' },
   yellow: { bg: 'bg-yellow-500', light: 'bg-yellow-500/20', border: 'border-yellow-500/30', text: 'text-yellow-400' },
-  purple: { bg: 'bg-purple-500', light: 'bg-purple-500/20', border: 'border-purple-500/30', text: 'text-purple-400' },
+  cyan: { bg: 'bg-cyan-500', light: 'bg-cyan-500/20', border: 'border-cyan-500/30', text: 'text-cyan-400' },
+  purple: { bg: 'bg-cyan-500', light: 'bg-cyan-500/20', border: 'border-cyan-500/30', text: 'text-cyan-400' },
   gray: { bg: 'bg-gray-500', light: 'bg-gray-500/20', border: 'border-gray-500/30', text: 'text-gray-400' }
 };
 
