@@ -22,6 +22,9 @@ import ProfilePage from './pages/ProfilePage';
 import AlertSoundManager from './utils/AlertSoundManager';
 import './App.css';
 
+// Track auto-stop timeout to prevent multiple timeouts
+let panicSoundTimeout = null;
+
 // Suppress PostHog errors in development
 if (typeof window !== 'undefined') {
   const originalPostMessage = window.postMessage;
@@ -41,20 +44,38 @@ if (typeof window !== 'undefined') {
   navigator.serviceWorker?.addEventListener('message', (event) => {
     if (event.data?.type === 'PLAY_PANIC_SOUND') {
       console.log('[App] Received panic sound request from SW');
+      
+      // Clear any existing timeout to prevent duplicate stops
+      if (panicSoundTimeout) {
+        clearTimeout(panicSoundTimeout);
+        panicSoundTimeout = null;
+      }
+      
       AlertSoundManager.play();
       
       // Auto-stop after 30 seconds if not acknowledged (safety net)
-      setTimeout(() => AlertSoundManager.stop(), 30000);
+      panicSoundTimeout = setTimeout(() => {
+        AlertSoundManager.stop();
+        panicSoundTimeout = null;
+      }, 30000);
     }
     
     if (event.data?.type === 'PANIC_ALERT_CLICK') {
       console.log('[App] Received panic alert click from SW');
+      if (panicSoundTimeout) {
+        clearTimeout(panicSoundTimeout);
+        panicSoundTimeout = null;
+      }
       AlertSoundManager.stop();
     }
     
-    // New: Stop sound when alert is viewed/acknowledged
+    // Stop sound when alert is viewed/acknowledged
     if (event.data?.type === 'STOP_PANIC_SOUND') {
       console.log('[App] Received stop sound request');
+      if (panicSoundTimeout) {
+        clearTimeout(panicSoundTimeout);
+        panicSoundTimeout = null;
+      }
       AlertSoundManager.stop();
     }
   });
