@@ -3697,7 +3697,11 @@ async def create_guard(guard: GuardCreate, request: Request, current_user = Depe
     return guard_doc
 
 @api_router.get("/hr/guards")
-async def get_guards(current_user = Depends(require_role("Administrador", "Supervisor", "HR"))):
+async def get_guards(
+    include_invalid: bool = False,
+    current_user = Depends(require_role("Administrador", "Supervisor", "HR"))
+):
+    """Get guards/employees - filtered by condominium, optionally including invalid records"""
     query = {}
     # Filter by condominium for non-super-admins
     if "SuperAdmin" not in current_user.get("roles", []):
@@ -3705,8 +3709,216 @@ async def get_guards(current_user = Depends(require_role("Administrador", "Super
         if condo_id:
             query["condominium_id"] = condo_id
     
+    # By default, only return valid guards (with user_id and active)
+    if not include_invalid:
+        query["user_id"] = {"$ne": None, "$exists": True}
+        query["is_active"] = True
+    
     guards = await db.guards.find(query, {"_id": 0}).to_list(100)
-    return guards
+    
+    # Enrich with user data and validation status
+    enriched_guards = []
+    for guard in guards:
+        # Check if user exists
+        user_id = guard.get("user_id")
+        user_valid = False
+        user_data = None
+        
+        if user_id:
+            user = await db.users.find_one({"id": user_id}, {"_id": 0, "full_name": 1, "email": 1, "is_active": 1})
+            if user:
+                user_valid = True
+                user_data = user
+                # Update guard name from user if missing
+                if not guard.get("user_name") or not guard.get("full_name"):
+                    guard["user_name"] = user.get("full_name")
+                    guard["full_name"] = user.get("full_name")
+                    guard["email"] = user.get("email")
+        
+        guard["_is_evaluable"] = user_valid and guard.get("is_active", False)
+        guard["_validation_status"] = "valid" if user_valid else "invalid_user"
+        
+        enriched_guards.append(guard)
+    
+    return enriched_guards
+
+# ==================== HR DATA INTEGRITY VALIDATION ====================
+
+@api_router.get("/hr/validate-integrity")
+async def validate_hr_integrity(
+    current_user = Depends(require_role("Administrador", "SuperAdmin"))
+):
+    """
+    Validate HR data integrity - detect and report issues:
+    - Duplicate guards by user_id
+    - Guards without user_id
+    - Guards with non-existent users
+    - Orphan evaluations
+    """
+    issues = {
+        "duplicates": [],
+        "missing_user_id": [],
+        "invalid_user": [],
+        "orphan_evaluations": [],
+        "summary": {
+            "total_guards": 0,
+            "valid_guards": 0,
+            "invalid_guards": 0,
+            "total_evaluations": 0,
+            "orphan_evaluations": 0
+        }
+    }
+    
+    # Get all guards
+    guards = await db.guards.find({}, {"_id": 0}).to_list(500)
+    issues["summary"]["total_guards"] = len(guards)
+    
+    # 1. Check for duplicates by user_id
+    user_ids = [g.get("user_id") for g in guards if g.get("user_id")]
+    duplicate_uids = [uid for uid in set(user_ids) if user_ids.count(uid) > 1]
+    
+    for dup_uid in duplicate_uids:
+        dup_guards = [g for g in guards if g.get("user_id") == dup_uid]
+        issues["duplicates"].append({
+            "user_id": dup_uid,
+            "count": len(dup_guards),
+            "guard_ids": [g.get("id") for g in dup_guards],
+            "names": [g.get("user_name") or g.get("full_name") for g in dup_guards]
+        })
+    
+    # 2. Check for guards without user_id
+    for guard in guards:
+        if not guard.get("user_id"):
+            issues["missing_user_id"].append({
+                "guard_id": guard.get("id"),
+                "name": guard.get("user_name") or guard.get("full_name") or "Unknown",
+                "is_active": guard.get("is_active")
+            })
+    
+    # 3. Check for guards with non-existent users
+    valid_count = 0
+    for guard in guards:
+        user_id = guard.get("user_id")
+        if user_id:
+            user = await db.users.find_one({"id": user_id})
+            if user:
+                valid_count += 1
+            else:
+                issues["invalid_user"].append({
+                    "guard_id": guard.get("id"),
+                    "user_id": user_id,
+                    "name": guard.get("user_name") or guard.get("full_name") or "Unknown"
+                })
+    
+    issues["summary"]["valid_guards"] = valid_count
+    issues["summary"]["invalid_guards"] = len(guards) - valid_count
+    
+    # 4. Check for orphan evaluations
+    evaluations = await db.hr_evaluations.find({}, {"_id": 0}).to_list(500)
+    issues["summary"]["total_evaluations"] = len(evaluations)
+    
+    for eval in evaluations:
+        emp_id = eval.get("employee_id")
+        if emp_id:
+            # Check in guards first, then users
+            guard = await db.guards.find_one({"id": emp_id})
+            if not guard:
+                user = await db.users.find_one({"id": emp_id})
+                if not user:
+                    issues["orphan_evaluations"].append({
+                        "evaluation_id": eval.get("id"),
+                        "employee_id": emp_id,
+                        "employee_name": eval.get("employee_name"),
+                        "created_at": eval.get("created_at")
+                    })
+    
+    issues["summary"]["orphan_evaluations"] = len(issues["orphan_evaluations"])
+    
+    return issues
+
+@api_router.post("/hr/cleanup-invalid-guards")
+async def cleanup_invalid_guards(
+    dry_run: bool = True,
+    current_user = Depends(require_role("SuperAdmin"))
+):
+    """
+    Clean up invalid guard records:
+    - Deactivate guards without user_id
+    - Deactivate guards with non-existent users
+    - Remove duplicate guard records (keep the one with most evaluations)
+    
+    Set dry_run=false to actually perform cleanup
+    """
+    results = {
+        "dry_run": dry_run,
+        "deactivated": [],
+        "removed_duplicates": [],
+        "errors": []
+    }
+    
+    guards = await db.guards.find({}, {"_id": 0}).to_list(500)
+    
+    # 1. Handle guards without user_id
+    for guard in guards:
+        if not guard.get("user_id"):
+            if not dry_run:
+                await db.guards.update_one(
+                    {"id": guard.get("id")},
+                    {"$set": {"is_active": False, "deactivation_reason": "no_user_id"}}
+                )
+            results["deactivated"].append({
+                "guard_id": guard.get("id"),
+                "reason": "no_user_id",
+                "name": guard.get("user_name") or "Unknown"
+            })
+    
+    # 2. Handle guards with non-existent users
+    for guard in guards:
+        user_id = guard.get("user_id")
+        if user_id:
+            user = await db.users.find_one({"id": user_id})
+            if not user:
+                if not dry_run:
+                    await db.guards.update_one(
+                        {"id": guard.get("id")},
+                        {"$set": {"is_active": False, "deactivation_reason": "user_not_found"}}
+                    )
+                results["deactivated"].append({
+                    "guard_id": guard.get("id"),
+                    "reason": "user_not_found",
+                    "user_id": user_id
+                })
+    
+    # 3. Handle duplicates
+    user_ids = [g.get("user_id") for g in guards if g.get("user_id")]
+    duplicate_uids = [uid for uid in set(user_ids) if user_ids.count(uid) > 1]
+    
+    for dup_uid in duplicate_uids:
+        dup_guards = [g for g in guards if g.get("user_id") == dup_uid]
+        
+        # Get evaluation count for each duplicate
+        for dg in dup_guards:
+            eval_count = await db.hr_evaluations.count_documents({"employee_id": dg.get("id")})
+            dg["_eval_count"] = eval_count
+        
+        # Sort by evaluation count (keep the one with most evaluations)
+        dup_guards.sort(key=lambda x: x.get("_eval_count", 0), reverse=True)
+        
+        # Keep first (most evaluations), deactivate others
+        keep_guard = dup_guards[0]
+        for to_remove in dup_guards[1:]:
+            if not dry_run:
+                await db.guards.update_one(
+                    {"id": to_remove.get("id")},
+                    {"$set": {"is_active": False, "deactivation_reason": "duplicate"}}
+                )
+            results["removed_duplicates"].append({
+                "kept_guard_id": keep_guard.get("id"),
+                "deactivated_guard_id": to_remove.get("id"),
+                "user_id": dup_uid
+            })
+    
+    return results
 
 @api_router.get("/hr/guards/{guard_id}")
 async def get_guard(guard_id: str, current_user = Depends(require_role("Administrador", "Supervisor", "HR"))):
