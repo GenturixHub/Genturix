@@ -5560,6 +5560,298 @@ async def stripe_webhook(request: Request):
         logger.error(f"Webhook error: {e}")
         return {"status": "error", "message": str(e)}
 
+# ==================== SAAS BILLING ENDPOINTS ====================
+
+@api_router.get("/billing/info")
+async def get_condominium_billing_info(current_user = Depends(get_current_user)):
+    """Get billing information for the current user's condominium"""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="Usuario no asociado a un condominio")
+    
+    billing_info = await get_billing_info(condo_id)
+    if not billing_info:
+        raise HTTPException(status_code=404, detail="Condominio no encontrado")
+    
+    return billing_info
+
+@api_router.get("/billing/can-create-user")
+async def check_can_create_user(current_user = Depends(require_role("Administrador", "SuperAdmin"))):
+    """Check if the condominium can create a new user"""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="Usuario no asociado a un condominio")
+    
+    can_create, error_msg = await can_create_user(condo_id)
+    billing_info = await get_billing_info(condo_id)
+    
+    return {
+        "can_create": can_create,
+        "error_message": error_msg if not can_create else None,
+        "paid_seats": billing_info.get("paid_seats", 0),
+        "active_users": billing_info.get("active_users", 0),
+        "remaining_seats": billing_info.get("remaining_seats", 0),
+        "billing_status": billing_info.get("billing_status", "unknown")
+    }
+
+@api_router.post("/billing/upgrade-seats")
+async def upgrade_seats(
+    request: Request,
+    upgrade: SeatUpgradeRequest,
+    origin_url: str = "",
+    current_user = Depends(require_role("Administrador"))
+):
+    """Create a Stripe checkout session to upgrade seats"""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="Usuario no asociado a un condominio")
+    
+    condo = await db.condominiums.find_one({"id": condo_id}, {"_id": 0})
+    if not condo:
+        raise HTTPException(status_code=404, detail="Condominio no encontrado")
+    
+    stripe_api_key = os.environ.get('STRIPE_API_KEY')
+    if not stripe_api_key:
+        raise HTTPException(status_code=500, detail="Stripe no configurado")
+    
+    # Calculate new total and amount to charge
+    current_seats = condo.get("paid_seats", 10)
+    new_total_seats = current_seats + upgrade.additional_seats
+    upgrade_cost = upgrade.additional_seats * GENTURIX_PRICE_PER_USER
+    
+    host_url = origin_url.rstrip('/') if origin_url else str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe-subscription"
+    success_url = f"{host_url}/admin/dashboard?upgrade=success&seats={new_total_seats}"
+    cancel_url = f"{host_url}/admin/dashboard?upgrade=cancelled"
+    
+    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
+    
+    checkout_request = CheckoutSessionRequest(
+        amount=upgrade_cost,
+        currency="usd",
+        success_url=success_url,
+        cancel_url=cancel_url,
+        metadata={
+            "type": "seat_upgrade",
+            "condominium_id": condo_id,
+            "condominium_name": condo.get("name", ""),
+            "user_id": current_user["id"],
+            "user_email": current_user["email"],
+            "current_seats": str(current_seats),
+            "additional_seats": str(upgrade.additional_seats),
+            "new_total_seats": str(new_total_seats),
+            "price_per_seat": str(GENTURIX_PRICE_PER_USER)
+        }
+    )
+    
+    session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)
+    
+    # Create upgrade transaction record
+    transaction = {
+        "id": str(uuid.uuid4()),
+        "type": "seat_upgrade",
+        "session_id": session.session_id,
+        "condominium_id": condo_id,
+        "user_id": current_user["id"],
+        "user_email": current_user["email"],
+        "current_seats": current_seats,
+        "additional_seats": upgrade.additional_seats,
+        "new_total_seats": new_total_seats,
+        "amount": upgrade_cost,
+        "currency": "usd",
+        "payment_status": "pending",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.billing_transactions.insert_one(transaction)
+    
+    await log_billing_event(
+        "upgrade_initiated",
+        condo_id,
+        {
+            "current_seats": current_seats,
+            "additional_seats": upgrade.additional_seats,
+            "new_total_seats": new_total_seats,
+            "amount": upgrade_cost,
+            "session_id": session.session_id
+        },
+        current_user["id"]
+    )
+    
+    return {
+        "url": session.url,
+        "session_id": session.session_id,
+        "current_seats": current_seats,
+        "additional_seats": upgrade.additional_seats,
+        "new_total_seats": new_total_seats,
+        "amount": upgrade_cost
+    }
+
+@api_router.post("/webhook/stripe-subscription")
+async def stripe_subscription_webhook(request: Request):
+    """Handle Stripe webhook events for subscription updates"""
+    stripe_api_key = os.environ.get('STRIPE_API_KEY')
+    if not stripe_api_key:
+        return {"status": "error", "message": "Stripe not configured"}
+    
+    body = await request.body()
+    signature = request.headers.get("Stripe-Signature")
+    
+    host_url = str(request.base_url).rstrip('/')
+    webhook_url = f"{host_url}/api/webhook/stripe-subscription"
+    
+    stripe_checkout = StripeCheckout(api_key=stripe_api_key, webhook_url=webhook_url)
+    
+    try:
+        webhook_response = await stripe_checkout.handle_webhook(body, signature)
+        
+        if webhook_response.payment_status == "paid":
+            # Find the billing transaction
+            transaction = await db.billing_transactions.find_one({"session_id": webhook_response.session_id})
+            
+            if transaction and transaction.get("payment_status") != "completed":
+                condo_id = transaction.get("condominium_id")
+                new_total_seats = transaction.get("new_total_seats")
+                
+                # Update condominium paid_seats
+                await db.condominiums.update_one(
+                    {"id": condo_id},
+                    {
+                        "$set": {
+                            "paid_seats": new_total_seats,
+                            "billing_status": "active",
+                            "updated_at": datetime.now(timezone.utc).isoformat()
+                        }
+                    }
+                )
+                
+                # Update transaction status
+                await db.billing_transactions.update_one(
+                    {"session_id": webhook_response.session_id},
+                    {"$set": {"payment_status": "completed", "completed_at": datetime.now(timezone.utc).isoformat()}}
+                )
+                
+                # Log the upgrade completion
+                await log_billing_event(
+                    "upgrade_completed",
+                    condo_id,
+                    {
+                        "new_total_seats": new_total_seats,
+                        "session_id": webhook_response.session_id
+                    }
+                )
+                
+                logger.info(f"Seat upgrade completed for condo {condo_id}: {new_total_seats} seats")
+        
+        return {"status": "success"}
+    except Exception as e:
+        logger.error(f"Subscription webhook error: {e}")
+        return {"status": "error", "message": str(e)}
+
+@api_router.get("/billing/history")
+async def get_billing_history(current_user = Depends(require_role("Administrador"))):
+    """Get billing transaction history for the condominium"""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="Usuario no asociado a un condominio")
+    
+    transactions = await db.billing_transactions.find(
+        {"condominium_id": condo_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    return transactions
+
+@api_router.get("/super-admin/billing/overview")
+async def get_all_condominiums_billing(current_user = Depends(require_role("SuperAdmin"))):
+    """SuperAdmin: Get billing overview for all condominiums"""
+    condos = await db.condominiums.find({"is_active": True}, {"_id": 0}).to_list(1000)
+    
+    overview = []
+    total_revenue = 0
+    total_users = 0
+    total_seats = 0
+    
+    for condo in condos:
+        condo_id = condo.get("id")
+        active_users = await count_active_users(condo_id)
+        paid_seats = condo.get("paid_seats", 10)
+        monthly_revenue = paid_seats * GENTURIX_PRICE_PER_USER
+        
+        overview.append({
+            "condominium_id": condo_id,
+            "condominium_name": condo.get("name", ""),
+            "paid_seats": paid_seats,
+            "active_users": active_users,
+            "remaining_seats": max(0, paid_seats - active_users),
+            "billing_status": condo.get("billing_status", "active"),
+            "monthly_revenue": monthly_revenue,
+            "stripe_customer_id": condo.get("stripe_customer_id"),
+            "stripe_subscription_id": condo.get("stripe_subscription_id")
+        })
+        
+        total_revenue += monthly_revenue
+        total_users += active_users
+        total_seats += paid_seats
+    
+    return {
+        "condominiums": overview,
+        "totals": {
+            "total_condominiums": len(condos),
+            "total_paid_seats": total_seats,
+            "total_active_users": total_users,
+            "total_monthly_revenue": total_revenue
+        }
+    }
+
+@api_router.patch("/super-admin/condominiums/{condo_id}/billing")
+async def update_condominium_billing(
+    condo_id: str,
+    paid_seats: Optional[int] = None,
+    billing_status: Optional[str] = None,
+    stripe_customer_id: Optional[str] = None,
+    stripe_subscription_id: Optional[str] = None,
+    current_user = Depends(require_role("SuperAdmin"))
+):
+    """SuperAdmin: Update condominium billing settings"""
+    condo = await db.condominiums.find_one({"id": condo_id})
+    if not condo:
+        raise HTTPException(status_code=404, detail="Condominio no encontrado")
+    
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    if paid_seats is not None:
+        # Prevent downgrading below active users
+        active_users = await count_active_users(condo_id)
+        if paid_seats < active_users:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"No se puede reducir a {paid_seats} asientos. Hay {active_users} usuarios activos."
+            )
+        update_data["paid_seats"] = paid_seats
+    
+    if billing_status is not None:
+        if billing_status not in ["active", "past_due", "cancelled", "trialing"]:
+            raise HTTPException(status_code=400, detail="Estado de facturación inválido")
+        update_data["billing_status"] = billing_status
+    
+    if stripe_customer_id is not None:
+        update_data["stripe_customer_id"] = stripe_customer_id
+    
+    if stripe_subscription_id is not None:
+        update_data["stripe_subscription_id"] = stripe_subscription_id
+    
+    await db.condominiums.update_one({"id": condo_id}, {"$set": update_data})
+    
+    await log_billing_event(
+        "billing_updated_by_superadmin",
+        condo_id,
+        {"updates": update_data},
+        current_user["id"]
+    )
+    
+    return {"message": "Configuración de facturación actualizada", "updates": update_data}
+
 # ==================== AUDIT MODULE ====================
 @api_router.get("/audit/logs")
 async def get_audit_logs(
