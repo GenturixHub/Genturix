@@ -476,7 +476,7 @@ const ProfileTab = ({ user, onLogout }) => {
           <p className="text-[10px] text-muted-foreground">Certificados</p>
         </div>
         <div className="p-3 rounded-xl bg-[#0F111A] border border-[#1E293B] text-center">
-          <Star className="w-5 h-5 mx-auto mb-1 text-purple-400" />
+          <Star className="w-5 h-5 mx-auto mb-1 text-cyan-400" />
           <p className="text-lg font-bold text-white">85%</p>
           <p className="text-[10px] text-muted-foreground">Promedio</p>
         </div>
