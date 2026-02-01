@@ -1901,6 +1901,15 @@ async def resolve_panic(event_id: str, resolve_data: PanicResolveRequest, reques
 
 @api_router.post("/security/access-log")
 async def create_access_log(log: AccessLogCreate, request: Request, current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
+    # Determine role for source field
+    user_roles = current_user.get("roles", [])
+    if "Administrador" in user_roles:
+        source = "manual_admin"
+    elif "Supervisor" in user_roles:
+        source = "manual_supervisor"
+    else:
+        source = "manual_guard"
+    
     access_log = {
         "id": str(uuid.uuid4()),
         "person_name": log.person_name,
@@ -1908,7 +1917,10 @@ async def create_access_log(log: AccessLogCreate, request: Request, current_user
         "location": log.location,
         "notes": log.notes,
         "recorded_by": current_user["id"],
-        "recorded_by_name": current_user.get("full_name", "Guard"),
+        "recorded_by_name": current_user.get("full_name", "Usuario"),
+        "condominium_id": current_user.get("condominium_id"),
+        "source": source,
+        "status": "inside" if log.access_type == "entry" else "outside",
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
     
@@ -1920,11 +1932,20 @@ async def create_access_log(log: AccessLogCreate, request: Request, current_user
     # Use appropriate audit event type based on access type
     audit_event = AuditEventType.ACCESS_GRANTED if log.access_type == "entry" else AuditEventType.ACCESS_DENIED
     
+    # Log audit event with manual access action
     await log_audit_event(
         audit_event,
         current_user["id"],
         "access",
-        {"person": log.person_name, "type": log.access_type, "location": log.location, "guard": current_user.get("full_name")},
+        {
+            "action": "manual_access_created",
+            "person": log.person_name, 
+            "type": log.access_type, 
+            "location": log.location, 
+            "performed_by_role": source.replace("manual_", "").upper(),
+            "performed_by_name": current_user.get("full_name"),
+            "condominium_id": current_user.get("condominium_id")
+        },
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
     )
