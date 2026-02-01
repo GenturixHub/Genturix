@@ -3,7 +3,7 @@ import React from 'react';
 /**
  * Genturix Logo - Native SVG Vector Icon
  * A shield with eye, key, and building elements
- * Uses the app's purple color palette (#7C3AED primary)
+ * Uses the app's blue/teal color palette (based on logo)
  */
 const GenturixLogo = ({ className = '', size = 40 }) => {
   return (
@@ -18,7 +18,7 @@ const GenturixLogo = ({ className = '', size = 40 }) => {
       {/* Shield Outline */}
       <path
         d="M50 4 L92 20 L92 55 C92 80 72 100 50 116 C28 100 8 80 8 55 L8 20 Z"
-        stroke="url(#purpleGradient)"
+        stroke="url(#tealGradient)"
         strokeWidth="3"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -28,7 +28,7 @@ const GenturixLogo = ({ className = '', size = 40 }) => {
       {/* Inner Shield Accent Line */}
       <path
         d="M50 12 L84 25 L84 54 C84 74 67 91 50 104 C33 91 16 74 16 54 L16 25 Z"
-        stroke="#7C3AED"
+        stroke="#4A90A4"
         strokeWidth="1"
         strokeOpacity="0.3"
         fill="none"
@@ -40,7 +40,7 @@ const GenturixLogo = ({ className = '', size = 40 }) => {
         cy="42"
         rx="22"
         ry="14"
-        stroke="#7C3AED"
+        stroke="#4A90A4"
         strokeWidth="2.5"
         fill="none"
       />
@@ -50,7 +50,7 @@ const GenturixLogo = ({ className = '', size = 40 }) => {
         cx="50"
         cy="42"
         r="10"
-        stroke="#9333EA"
+        stroke="#80CBDC"
         strokeWidth="2"
         fill="none"
       />
@@ -60,7 +60,7 @@ const GenturixLogo = ({ className = '', size = 40 }) => {
         cx="50"
         cy="42"
         r="5"
-        fill="#7C3AED"
+        fill="#4A90A4"
       />
       
       {/* Eye - Highlight */}
@@ -86,13 +86,13 @@ const GenturixLogo = ({ className = '', size = 40 }) => {
       {/* Buildings - Left */}
       <g transform="translate(20, 68)">
         {/* Building 1 - Tall left */}
-        <rect x="0" y="8" width="12" height="30" stroke="#7C3AED" strokeWidth="2" fill="none" rx="1" />
+        <rect x="0" y="8" width="12" height="30" stroke="#4A90A4" strokeWidth="2" fill="none" rx="1" />
         {/* Window */}
         <rect x="4" y="14" width="4" height="4" fill="#94A3B8" fillOpacity="0.6" />
         <rect x="4" y="22" width="4" height="4" fill="#94A3B8" fillOpacity="0.6" />
         
         {/* Building 2 - Short */}
-        <rect x="14" y="20" width="10" height="18" stroke="#7C3AED" strokeWidth="2" fill="none" rx="1" />
+        <rect x="14" y="20" width="10" height="18" stroke="#4A90A4" strokeWidth="2" fill="none" rx="1" />
         {/* Window */}
         <rect x="17" y="26" width="4" height="4" fill="#94A3B8" fillOpacity="0.6" />
       </g>
@@ -100,25 +100,25 @@ const GenturixLogo = ({ className = '', size = 40 }) => {
       {/* Buildings - Right */}
       <g transform="translate(52, 68)">
         {/* Building 3 - Medium */}
-        <rect x="0" y="14" width="12" height="24" stroke="#7C3AED" strokeWidth="2" fill="none" rx="1" />
+        <rect x="0" y="14" width="12" height="24" stroke="#4A90A4" strokeWidth="2" fill="none" rx="1" />
         {/* Windows */}
         <rect x="3" y="20" width="3" height="3" fill="#94A3B8" fillOpacity="0.6" />
         <rect x="3" y="28" width="3" height="3" fill="#94A3B8" fillOpacity="0.6" />
         
         {/* Building 4 - Tall right */}
-        <rect x="14" y="4" width="14" height="34" stroke="#7C3AED" strokeWidth="2" fill="none" rx="1" />
+        <rect x="14" y="4" width="14" height="34" stroke="#4A90A4" strokeWidth="2" fill="none" rx="1" />
         {/* Windows */}
         <rect x="18" y="10" width="5" height="5" fill="#94A3B8" fillOpacity="0.6" />
         <rect x="18" y="20" width="5" height="5" fill="#94A3B8" fillOpacity="0.6" />
         <rect x="18" y="30" width="5" height="4" fill="#94A3B8" fillOpacity="0.6" />
       </g>
       
-      {/* Gradient Definition */}
+      {/* Gradient Definition - Teal/Blue based on logo */}
       <defs>
-        <linearGradient id="purpleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#9333EA" />
-          <stop offset="50%" stopColor="#7C3AED" />
-          <stop offset="100%" stopColor="#6D28D9" />
+        <linearGradient id="tealGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#80CBDC" />
+          <stop offset="50%" stopColor="#4A90A4" />
+          <stop offset="100%" stopColor="#3A7B97" />
         </linearGradient>
       </defs>
     </svg>
