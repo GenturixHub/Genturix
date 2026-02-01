@@ -615,20 +615,39 @@ const VisitorCheckInGuard = () => {
   };
 
   const handleCheckInSubmit = async (payload) => {
+    const authId = payload.authorization_id;
+    
+    // GUARD 1: Check if this authorization was recently processed (prevents double-click race condition)
+    if (authId && recentlyProcessed.has(authId)) {
+      console.log('[Guard] Blocked: authorization recently processed', authId);
+      toast.info('Esta autorización ya fue procesada');
+      return;
+    }
+    
+    // GUARD 2: Check if already processing
+    if (processingAuthId) {
+      console.log('[Guard] Blocked: already processing another authorization');
+      return;
+    }
+    
     // Set processing state to disable the button
-    setProcessingAuthId(payload.authorization_id);
+    setProcessingAuthId(authId);
+    
+    // IMMEDIATELY mark as recently processed to prevent any race conditions
+    if (authId) {
+      setRecentlyProcessed(prev => new Set([...prev, authId]));
+    }
+    
+    // IMMEDIATELY remove from local lists (optimistic update)
+    if (authId) {
+      setAuthorizations(prev => prev.filter(a => a.id !== authId));
+      setTodayPreregistrations(prev => prev.filter(a => a.id !== authId));
+    }
     
     try {
       const result = await api.guardCheckIn(payload);
       
       if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-      
-      // ALWAYS remove the authorization from the list after successful check-in
-      // This ensures the item disappears even if the backend response flag is incorrect
-      if (payload.authorization_id) {
-        setAuthorizations(prev => prev.filter(a => a.id !== payload.authorization_id));
-        setTodayPreregistrations(prev => prev.filter(a => a.id !== payload.authorization_id));
-      }
       
       toast.success(result.is_authorized ? '✅ Entrada autorizada registrada' : '⚠️ Entrada manual registrada');
       
@@ -639,17 +658,26 @@ const VisitorCheckInGuard = () => {
       // Handle 409 Conflict - authorization already used
       if (error.status === 409) {
         toast.error('🚫 ' + (error.message || 'Esta autorización ya fue utilizada'));
-        // Remove from local list since it's already used
-        if (payload.authorization_id) {
-          setAuthorizations(prev => prev.filter(a => a.id !== payload.authorization_id));
-          setTodayPreregistrations(prev => prev.filter(a => a.id !== payload.authorization_id));
-        }
+        // Keep removed from local list since it's already used
+        console.log('[Guard] 409 Conflict - authorization already used:', authId);
       } else {
         toast.error(error.message || 'Error al registrar entrada');
+        // On other errors, we might want to restore the item... but for safety, keep it removed
+        // The next fetchData will restore it if it should be there
       }
       throw error;
     } finally {
       setProcessingAuthId(null);
+      // Clear from recently processed after 5 seconds to allow retry if needed
+      if (authId) {
+        setTimeout(() => {
+          setRecentlyProcessed(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(authId);
+            return newSet;
+          });
+        }, 5000);
+      }
     }
   };
 
