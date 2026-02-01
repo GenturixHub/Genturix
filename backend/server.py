@@ -2585,6 +2585,9 @@ async def fast_checkin(
     if authorization:
         auth_type_value = authorization.get("authorization_type", "temporary")
         
+        # DEBUG LOG
+        logger.info(f"[check-in] Auth ID: {checkin_data.authorization_id[:8]}, Type: {auth_type_value}, Will mark as used: {auth_type_value in ['temporary', 'extended']}")
+        
         update_data = {
             "$inc": {"total_visits": 1},
             "$set": {
@@ -2600,11 +2603,13 @@ async def fast_checkin(
         # PERMANENT and RECURRING authorizations stay active (can be used multiple times)
         if auth_type_value in ["temporary", "extended"]:
             update_data["$set"]["status"] = "used"
+            logger.info(f"[check-in] Setting status=used for auth {checkin_data.authorization_id[:8]}")
         
-        await db.visitor_authorizations.update_one(
+        result = await db.visitor_authorizations.update_one(
             {"id": checkin_data.authorization_id},
             update_data
         )
+        logger.info(f"[check-in] Update result: matched={result.matched_count}, modified={result.modified_count}")
     
     # Create notification for resident
     if resident_id:
