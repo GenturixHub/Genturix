@@ -6329,6 +6329,76 @@ async def update_user_status(
     
     return {"message": f"Usuario {'activado' if status_data.is_active else 'desactivado'} exitosamente"}
 
+@api_router.post("/admin/users/{user_id}/reset-password")
+async def admin_reset_user_password(
+    user_id: str,
+    request: Request,
+    current_user = Depends(require_role("Administrador", "SuperAdmin"))
+):
+    """Admin resets a user's password and sends email with new temporary password"""
+    # Find user
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # Check permission: Admin can only reset users in their condominium
+    if "SuperAdmin" not in current_user.get("roles", []):
+        if user.get("condominium_id") != current_user.get("condominium_id"):
+            raise HTTPException(status_code=403, detail="No tienes permiso para modificar usuarios de otro condominio")
+    
+    # Generate new temporary password
+    import secrets
+    new_password = secrets.token_urlsafe(10)[:12]
+    
+    # Update password
+    await db.users.update_one(
+        {"id": user_id},
+        {
+            "$set": {
+                "hashed_password": hash_password(new_password),
+                "password_reset_required": True,
+                "password_reset_at": datetime.now(timezone.utc).isoformat(),
+                "password_reset_by": current_user["id"]
+            }
+        }
+    )
+    
+    # Get condominium name
+    condo = await db.condominiums.find_one({"id": user.get("condominium_id")})
+    condo_name = condo.get("name", "GENTURIX") if condo else "GENTURIX"
+    
+    # Get login URL from frontend
+    login_url = os.environ.get('FRONTEND_URL', 'https://localhost:3000') + '/login'
+    
+    # Send email with new password
+    email_result = await send_password_reset_email(
+        recipient_email=user["email"],
+        user_name=user.get("full_name", "Usuario"),
+        new_password=new_password,
+        login_url=login_url
+    )
+    
+    # Log audit event
+    await log_audit_event(
+        AuditEventType.USER_UPDATED,
+        current_user["id"],
+        "users",
+        {
+            "action": "password_reset",
+            "target_user_id": user_id,
+            "target_email": user["email"],
+            "email_sent": email_result.get("status") == "success"
+        },
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {
+        "message": "Contraseña restablecida exitosamente",
+        "email_status": email_result.get("status"),
+        "email_sent_to": user["email"] if email_result.get("status") == "success" else None
+    }
+
 @api_router.put("/users/{user_id}/status")
 async def update_user_status_legacy(user_id: str, is_active: bool, current_user = Depends(require_role("Administrador"))):
     """Legacy endpoint - use PATCH /admin/users/{user_id}/status instead"""
