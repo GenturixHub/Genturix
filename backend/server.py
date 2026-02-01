@@ -6554,18 +6554,93 @@ async def get_dashboard_stats(current_user = Depends(get_current_user)):
 
 @api_router.get("/dashboard/recent-activity")
 async def get_recent_activity(current_user = Depends(get_current_user)):
-    """Recent activity - scoped by condominium for Admin, global for SuperAdmin"""
+    """
+    Recent activity combining multiple sources:
+    - Audit logs (logins, user changes)
+    - Visitor entries (check-ins)
+    - Panic events
+    - Reservations
+    Scoped by condominium for Admin, global for SuperAdmin
+    """
     condo_id = current_user.get("condominium_id")
     roles = current_user.get("roles", [])
+    is_super_admin = "SuperAdmin" in roles
     
-    # SuperAdmin sees global activity
-    if "SuperAdmin" in roles:
-        activities = await db.audit_logs.find({}, {"_id": 0}).sort("timestamp", -1).to_list(20)
-    else:
-        # Admin/others see only their condominium activity
-        query = {"condominium_id": condo_id} if condo_id else {}
-        activities = await db.audit_logs.find(query, {"_id": 0}).sort("timestamp", -1).to_list(20)
-    return activities
+    activities = []
+    
+    # Build query for scoping
+    condo_query = {} if is_super_admin else ({"condominium_id": condo_id} if condo_id else {})
+    
+    # 1. Audit logs (logins, user actions)
+    audit_logs = await db.audit_logs.find(condo_query, {"_id": 0}).sort("timestamp", -1).to_list(10)
+    for log in audit_logs:
+        activities.append({
+            "id": log.get("id"),
+            "event_type": log.get("event_type"),
+            "module": log.get("module"),
+            "description": log.get("description") or log.get("event_type", "").replace("_", " ").title(),
+            "user_name": log.get("user_name") or log.get("email"),
+            "timestamp": log.get("timestamp"),
+            "source": "audit"
+        })
+    
+    # 2. Visitor entries (check-ins)
+    entries = await db.visitor_entries.find(condo_query, {"_id": 0}).sort("entry_at", -1).to_list(10)
+    for entry in entries:
+        activities.append({
+            "id": entry.get("id"),
+            "event_type": "visitor_checkin",
+            "module": "security",
+            "description": f"{entry.get('visitor_name')} - Entrada de visitante",
+            "user_name": entry.get("guard_name"),
+            "timestamp": entry.get("entry_at"),
+            "details": {
+                "visitor_name": entry.get("visitor_name"),
+                "authorization_type": entry.get("authorization_type"),
+                "destination": entry.get("destination")
+            },
+            "source": "visitor"
+        })
+    
+    # 3. Panic events (alerts)
+    panic_events = await db.panic_events.find(condo_query, {"_id": 0}).sort("created_at", -1).to_list(5)
+    for event in panic_events:
+        activities.append({
+            "id": event.get("id"),
+            "event_type": "panic_alert",
+            "module": "security",
+            "description": f"Alerta: {event.get('panic_type_label', event.get('panic_type', 'Emergencia'))}",
+            "user_name": event.get("user_name"),
+            "timestamp": event.get("created_at"),
+            "details": {
+                "location": event.get("location"),
+                "status": event.get("status")
+            },
+            "source": "panic"
+        })
+    
+    # 4. Reservations
+    reservations = await db.reservations.find(condo_query, {"_id": 0}).sort("created_at", -1).to_list(5)
+    for res in reservations:
+        activities.append({
+            "id": res.get("id"),
+            "event_type": "reservation_created",
+            "module": "reservations",
+            "description": f"Reservación: {res.get('area_name', 'Área común')}",
+            "user_name": res.get("resident_name"),
+            "timestamp": res.get("created_at"),
+            "details": {
+                "area_name": res.get("area_name"),
+                "date": res.get("date"),
+                "status": res.get("status")
+            },
+            "source": "reservation"
+        })
+    
+    # Sort all by timestamp (most recent first)
+    activities.sort(key=lambda x: x.get("timestamp") or "", reverse=True)
+    
+    return activities[:20]
 
 # ==================== USERS MANAGEMENT ====================
 @api_router.get("/users")
