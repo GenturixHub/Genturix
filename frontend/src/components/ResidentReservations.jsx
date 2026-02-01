@@ -766,7 +766,7 @@ const ResidentReservations = () => {
                     No tienes reservaciones
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Ve a "Áreas" para hacer tu primera reservación
+                    Ve a &quot;Áreas&quot; para hacer tu primera reservación
                   </p>
                   <Button 
                     variant="outline" 
