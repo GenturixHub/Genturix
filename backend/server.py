@@ -5995,6 +5995,18 @@ async def update_user_status(
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="No se pudo actualizar el usuario")
     
+    # ==================== UPDATE ACTIVE USER COUNT ====================
+    condo_id = target_user.get("condominium_id")
+    if condo_id:
+        await update_active_user_count(condo_id)
+        await log_billing_event(
+            "user_status_changed",
+            condo_id,
+            {"user_id": user_id, "new_status": "active" if status_data.is_active else "inactive"},
+            current_user["id"]
+        )
+    # ==================================================================
+    
     # Log audit event
     await log_audit_event(
         AuditEventType.USER_UPDATED,
