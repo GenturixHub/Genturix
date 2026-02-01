@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 1, 2026 (Session 41 - P0 Guard Profile UX Complete Fix)
+## Last Updated: February 1, 2026 (Session 41 - P0 Check-In Duplicate Prevention)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -9,7 +9,68 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
 
-### Session 41 - P0 CRITICAL FIX: Guard Double Profile View (February 1, 2026) ⭐⭐⭐⭐⭐
+### Session 41 - P0 CRITICAL FIX: Check-In Duplicate Prevention (February 1, 2026) ⭐⭐⭐⭐⭐
+
+#### 🔴 P0 BUG FIXED: Preregistros se reutilizan infinitamente
+
+**Problem:** Pre-registrations could be used infinite times:
+1. Guard clicks "Registrar Entrada"
+2. Entry is registered
+3. Pre-registration stays visible and clickable
+4. Multiple duplicate entries can be created
+
+**Root Cause:**
+1. Backend `authorization_marked_used` response only checked for `temporary`, not `extended`
+2. Frontend only removed item from list if `authorization_marked_used` was true
+3. Backend didn't verify against `visitor_entries` collection before allowing check-in
+
+**Complete Solution:**
+
+**1. Backend - Triple verification before check-in:**
+```python
+# Check 1: Status is "used"
+if auth_status == "used": raise 409
+
+# Check 2: checked_in_at is set  
+if authorization.get("checked_in_at"): raise 409
+
+# Check 3: Entry exists in visitor_entries
+if await db.visitor_entries.find_one({"authorization_id": auth_id}): raise 409
+```
+
+**2. Backend - Response includes extended:**
+```python
+"authorization_marked_used": auth_type in ["temporary", "extended"]
+```
+
+**3. Frontend - Always remove after success:**
+```javascript
+// ALWAYS remove after successful check-in, don't depend on flag
+if (payload.authorization_id) {
+    setTodayPreregistrations(prev => prev.filter(a => a.id !== payload.authorization_id));
+}
+```
+
+**4. Frontend - Processing state prevents double-click:**
+```javascript
+const [processingAuthId, setProcessingAuthId] = useState(null);
+// Button shows "PROCESANDO..." and is disabled during check-in
+```
+
+**Files Modified:**
+- `/app/backend/server.py` - Triple verification, response fix
+- `/app/frontend/src/components/VisitorCheckInGuard.jsx` - Always remove, disable button
+
+**Verification Results:**
+- ✅ First check-in: Success
+- ✅ Second check-in: HTTP 409 "Esta autorización ya fue utilizada"
+- ✅ Item disappears from list immediately
+- ✅ Button disabled during processing
+- ✅ PERMANENT authorizations can still be reused (correct behavior)
+
+---
+
+### Earlier P0 Fix: Guard Double Profile View
 
 #### 🔴 P0 BUG FIXED: Doble Interfaz de Perfil sin Retorno (COMPLETE FIX)
 
