@@ -2219,7 +2219,7 @@ const GuardUI = () => {
           </TabsContent>
 
           <TabsContent value="history" className="h-full m-0 data-[state=inactive]:hidden">
-            <HistoryTab />
+            <GuardHistoryVisual />
           </TabsContent>
           
           <TabsContent value="directory" className="h-full m-0 data-[state=inactive]:hidden">
