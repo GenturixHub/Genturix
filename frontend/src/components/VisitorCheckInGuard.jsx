@@ -665,16 +665,16 @@ const VisitorCheckInGuard = () => {
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-2">
                   <CalendarCheck className="w-4 h-4" />
-                  PRE-REGISTROS ACTIVOS HOY ({todayAuthorizations.length})
+                  PRE-REGISTROS PENDIENTES ({todayPreregistrations.length})
                 </h3>
                 <Button variant="ghost" size="sm" onClick={fetchData}>
                   <RefreshCw className="w-4 h-4" />
                 </Button>
               </div>
               
-              {todayAuthorizations.length > 0 ? (
+              {todayPreregistrations.length > 0 ? (
                 <div className="space-y-2">
-                  {todayAuthorizations.map((auth) => (
+                  {todayPreregistrations.map((auth) => (
                     <AuthorizationSearchCard 
                       key={auth.id}
                       auth={auth}
@@ -685,8 +685,59 @@ const VisitorCheckInGuard = () => {
               ) : (
                 <div className="text-center py-6 text-muted-foreground bg-[#0F111A] rounded-xl border border-dashed border-[#1E293B]">
                   <CalendarCheck className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">No hay pre-registros activos para hoy</p>
+                  <p className="text-sm">No hay pre-registros pendientes</p>
                   <p className="text-xs mt-1">Los residentes pueden crear autorizaciones</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Entries Today - Collapsible Section */}
+          {!search.trim() && entriesToday.length > 0 && (
+            <div>
+              <Button
+                variant="ghost"
+                className="w-full flex items-center justify-between mb-2 px-0 hover:bg-transparent"
+                onClick={() => setShowEntriesToday(!showEntriesToday)}
+              >
+                <h3 className="text-xs font-bold text-purple-400 uppercase tracking-wider flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4" />
+                  INGRESADOS HOY ({entriesToday.length})
+                </h3>
+                <ChevronRight className={`w-4 h-4 text-purple-400 transition-transform ${showEntriesToday ? 'rotate-90' : ''}`} />
+              </Button>
+              
+              {showEntriesToday && (
+                <div className="space-y-2 animate-in slide-in-from-top-2 duration-200">
+                  {entriesToday.slice(0, 10).map((entry) => (
+                    <div 
+                      key={entry.id}
+                      className="p-3 rounded-lg bg-purple-500/5 border border-purple-500/20"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium text-sm">{entry.visitor_name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {entry.resident_name && `→ ${entry.resident_name}`}
+                            {entry.resident_apartment && ` (${entry.resident_apartment})`}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <Badge variant="outline" className="text-purple-400 border-purple-400/30 text-xs">
+                            {new Date(entry.entry_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                          </Badge>
+                          {entry.is_authorized && (
+                            <CheckCircle className="w-3 h-3 text-green-400 mt-1 ml-auto" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {entriesToday.length > 10 && (
+                    <p className="text-xs text-center text-muted-foreground py-2">
+                      ... y {entriesToday.length - 10} más
+                    </p>
+                  )}
                 </div>
               )}
             </div>
