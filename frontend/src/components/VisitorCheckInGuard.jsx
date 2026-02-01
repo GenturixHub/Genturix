@@ -324,6 +324,12 @@ const ManualCheckInDialog = ({ open, onClose, authorization, onSubmit }) => {
   }, [authorization, open]);
 
   const handleSubmit = async () => {
+    // Prevent double-submit
+    if (isSubmitting) {
+      console.log('[Dialog] Blocked double-submit');
+      return;
+    }
+    
     if (!formData.visitor_name.trim() && !authorization) {
       toast.error('El nombre es requerido');
       return;
@@ -343,7 +349,11 @@ const ManualCheckInDialog = ({ open, onClose, authorization, onSubmit }) => {
       await onSubmit(payload);
       onClose();
     } catch (error) {
-      toast.error(error.message || 'Error al registrar entrada');
+      // Don't show error toast here - parent component handles it
+      // Just close the dialog on 409 (already used)
+      if (error.status === 409) {
+        onClose();
+      }
     } finally {
       setIsSubmitting(false);
     }
