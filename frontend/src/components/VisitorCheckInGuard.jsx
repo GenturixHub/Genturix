@@ -210,10 +210,20 @@ const AuthorizationSearchCard = ({ auth, onCheckIn, isProcessing }) => {
             : 'bg-yellow-600 hover:bg-yellow-700'
         }`}
         onClick={() => onCheckIn(auth)}
+        disabled={isProcessing}
         data-testid={`checkin-btn-${auth.id}`}
       >
-        <UserPlus className="w-6 h-6 mr-2" />
-        {isValid ? 'REGISTRAR ENTRADA' : 'ENTRADA MANUAL'}
+        {isProcessing ? (
+          <>
+            <Loader2 className="w-6 h-6 mr-2 animate-spin" />
+            PROCESANDO...
+          </>
+        ) : (
+          <>
+            <UserPlus className="w-6 h-6 mr-2" />
+            {isValid ? 'REGISTRAR ENTRADA' : 'ENTRADA MANUAL'}
+          </>
+        )}
       </Button>
     </div>
   );
