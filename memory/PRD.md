@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 1, 2026 (Session 47 - P0 Notification Badge Bug Fix VERIFIED)
+## Last Updated: February 1, 2026 (Session 48 - P0/P1 Admin & Residente Bugs VERIFIED)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,51 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
+
+### Session 48 - P0/P1 Bug Fixes VERIFIED (February 1, 2026) ⭐⭐⭐⭐⭐
+
+#### 🔴 P0 FIX: Admin "Registro de Accesos" Empty
+**Problem:** Módulo de Seguridad no mostraba información
+
+**Solution:**
+- Unified endpoint `/api/security/access-logs` combining:
+  - `access_logs` collection (manual entries)
+  - `visitor_entries` collection (guard check-ins)
+- Enhanced UI with entry type badges (Temporal, Extendido, Recurrente, Permanente)
+- Added authorization info (resident name, vehicle plate, guard name)
+
+#### 🔴 P0 FIX: Admin "Actividad Reciente" Empty
+**Problem:** Dashboard no mostraba actividad
+
+**Solution:**
+- Enhanced endpoint `/api/dashboard/recent-activity` combining:
+  - `audit_logs` (logins, user actions)
+  - `visitor_entries` (check-ins)
+  - `panic_events` (alerts)
+  - `reservations` (bookings)
+- ActivityItem component shows different icons and colors per event type
+- Relative timestamps (Ahora, 1m, 5h, etc.)
+
+#### 🟠 P1 FIX: Residente Pre-registros State
+**Problem:** Pre-registros no reflejaban estado después de check-in
+
+**Solution:**
+- Enhanced `/api/authorizations/my` with:
+  - `status: "used"` / `"pending"`
+  - `was_used: boolean`
+  - `used_at: timestamp`
+  - `used_by_guard: string`
+- Frontend separates authorizations into 3 sections:
+  - **Pendientes**: Active, not used
+  - **Utilizadas**: Check-in completed (blue badge "✓ Ingresó")
+  - **Expiradas**: Inactive, not used
+
+**Testing Agent Verification:**
+- Backend: 100% (16/16 tests)
+- Frontend: 100% (all UI tests)
+- **Test Report:** `/app/test_reports/iteration_48.json`
+
+---
 
 ### Session 47 - P0 BUG FIX: Campanita de Notificaciones Estática (February 1, 2026) ⭐⭐⭐⭐⭐
 
