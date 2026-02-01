@@ -4,6 +4,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme System - Centralized Color Palette */
+@import './styles/theme.css';
+
 /* Mobile-specific styles */
 @import './styles/mobile.css';
 
@@ -29,36 +32,9 @@ code, .mono {
 }
 
 /* ========================================
-   CSS Variables - Dark Theme
+   CSS Variables - Dark Theme Base
+   (Primary colors now in theme.css)
    ======================================== */
-
-@layer base {
-    :root {
-        --background: 240 10% 3.9%;
-        --foreground: 0 0% 98%;
-        --card: 240 6% 6%;
-        --card-foreground: 0 0% 98%;
-        --popover: 240 6% 6%;
-        --popover-foreground: 0 0% 98%;
-        --primary: 267 84% 58%;
-        --primary-foreground: 210 40% 98%;
-        --secondary: 217.2 91.2% 59.8%;
-        --secondary-foreground: 222.2 47.4% 11.2%;
-        --muted: 240 5% 12%;
-        --muted-foreground: 240 5% 55%;
-        --accent: 240 5% 15%;
-        --accent-foreground: 210 40% 98%;
-        --destructive: 0 72% 51%;
-        --destructive-foreground: 210 40% 98%;
-        --border: 240 5% 15%;
-        --input: 240 5% 15%;
-        --ring: 267 84% 58%;
-        --radius: 0.75rem;
-        --success: 142 76% 36%;
-        --warning: 38 92% 50%;
-        --info: 199 89% 48%;
-    }
-}
 
 @layer base {
     * {
