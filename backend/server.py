@@ -484,6 +484,11 @@ class AreaTypeEnum(str, Enum):
     PLAYGROUND = "playground"
     OTHER = "other"
 
+class ReservationModeEnum(str, Enum):
+    BY_HOUR = "por_hora"      # Gym: 1 hour slots
+    BLOCK = "bloque"          # Ranch: Full block reservation
+    FLEXIBLE = "flexible"     # Pool: Configurable duration
+
 class ReservationStatusEnum(str, Enum):
     PENDING = "pending"
     APPROVED = "approved"
@@ -497,11 +502,14 @@ class AreaCreate(BaseModel):
     capacity: int = Field(..., gt=0)
     description: Optional[str] = None
     rules: Optional[str] = None
-    available_from: str = "06:00"  # Time string HH:MM
-    available_until: str = "22:00"
+    available_from: str = "06:00"  # Opening time HH:MM
+    available_until: str = "22:00"  # Closing time HH:MM
     requires_approval: bool = False
-    max_hours_per_reservation: int = 2
+    reservation_mode: str = "flexible"  # por_hora | bloque | flexible
+    min_duration_hours: int = 1  # Minimum reservation duration
+    max_duration_hours: int = 4  # Maximum reservation duration (renamed from max_hours_per_reservation)
     max_reservations_per_day: int = 10
+    slot_duration_minutes: int = 60  # Duration of each slot (for visual display)
     allowed_days: List[str] = Field(default=["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"])
     is_active: bool = True
     condominium_id: Optional[str] = None  # For SuperAdmin to specify condo
@@ -515,8 +523,11 @@ class AreaUpdate(BaseModel):
     available_from: Optional[str] = None
     available_until: Optional[str] = None
     requires_approval: Optional[bool] = None
-    max_hours_per_reservation: Optional[int] = None
+    reservation_mode: Optional[str] = None
+    min_duration_hours: Optional[int] = None
+    max_duration_hours: Optional[int] = None
     max_reservations_per_day: Optional[int] = None
+    slot_duration_minutes: Optional[int] = None
     allowed_days: Optional[List[str]] = None
     is_active: Optional[bool] = None
 
