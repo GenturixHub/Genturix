@@ -6322,6 +6322,39 @@ async def create_reservation(
     
     await db.reservations.insert_one(reservation_doc)
     
+    # If auto-approved, send notification to resident
+    if status == "approved":
+        await create_and_send_notification(
+            user_id=current_user["id"],
+            condominium_id=condo_id,
+            notification_type="reservation_approved",
+            title="✅ Reservación confirmada",
+            message=f"{area['name']} el {reservation.date} de {reservation.start_time} a {reservation.end_time}",
+            data={
+                "reservation_id": reservation_id,
+                "area_name": area["name"],
+                "date": reservation.date,
+                "start_time": reservation.start_time,
+                "end_time": reservation.end_time
+            },
+            send_push=True,
+            url="/resident?tab=reservations"
+        )
+    else:
+        # Notify admins about pending reservation
+        await send_push_to_admins(condo_id, {
+            "title": "📅 Nueva reservación pendiente",
+            "body": f"{current_user.get('full_name', 'Residente')} solicitó {area['name']} para {reservation.date}",
+            "icon": "/logo192.png",
+            "badge": "/logo192.png",
+            "tag": f"reservation-pending-{reservation_id[:8]}",
+            "data": {
+                "type": "reservation_pending",
+                "reservation_id": reservation_id,
+                "url": "/admin/reservations"
+            }
+        })
+    
     await log_audit_event(
         AuditEventType.ACCESS_GRANTED,
         current_user["id"],
