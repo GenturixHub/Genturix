@@ -664,8 +664,8 @@ const OverviewTab = ({ stats, billingOverview, isLoading, onRefresh, onNavigateT
         <Card className="bg-[#0F111A] border-[#1E293B]">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                <Users className="w-6 h-6 text-purple-400" />
+              <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center">
+                <Users className="w-6 h-6 text-cyan-400" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-white">{billingOverview?.totals?.total_active_users || stats?.users?.total || 0}</p>
