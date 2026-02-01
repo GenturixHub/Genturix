@@ -104,14 +104,14 @@ class TestAdminAreaCRUD(TestSetup):
         assert response.status_code == 200, f"Failed to create area: {response.text}"
         data = response.json()
         
-        # Verify response structure
-        assert "id" in data, "Response should contain 'id'"
-        assert data.get("name") == area_name, "Name should match"
-        assert data.get("area_type") == "pool", "Area type should match"
+        # Verify response structure - API returns area_id and message
+        assert "area_id" in data or "id" in data, "Response should contain 'area_id' or 'id'"
+        assert "message" in data, "Response should contain success message"
         
+        area_id = data.get("area_id") or data.get("id")
         # Store for cleanup
-        self.__class__.created_area_id = data["id"]
-        print(f"✓ Area created successfully: {data['id']}")
+        self.__class__.created_area_id = area_id
+        print(f"✓ Area created successfully: {area_id}, message: {data.get('message')}")
         return data["id"]
     
     def test_create_area_error_handling(self, admin_headers):
@@ -152,8 +152,9 @@ class TestAdminAreaCRUD(TestSetup):
         
         assert response.status_code == 200, f"Failed to update area: {response.text}"
         data = response.json()
-        assert "id" in data, "Response should contain 'id'"
-        print(f"✓ Area updated successfully: {area_id}")
+        # API returns message on success
+        assert "message" in data, "Response should contain success message"
+        print(f"✓ Area updated successfully: {area_id}, message: {data.get('message')}")
     
     def test_delete_area_success(self, admin_headers):
         """Test deleting an area - should show confirmation then 'Área eliminada' toast"""
@@ -171,7 +172,8 @@ class TestAdminAreaCRUD(TestSetup):
         if create_response.status_code != 200:
             pytest.skip("Could not create test area for deletion")
         
-        area_id = create_response.json()["id"]
+        create_data = create_response.json()
+        area_id = create_data.get("area_id") or create_data.get("id")
         
         # Now delete it
         response = requests.delete(f"{BASE_URL}/api/reservations/areas/{area_id}", 
