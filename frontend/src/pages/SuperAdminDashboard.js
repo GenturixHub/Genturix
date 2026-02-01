@@ -2140,7 +2140,7 @@ const ContentTab = () => {
           </Card>
           <Card className="bg-[#0F111A] border-[#1E293B]">
             <CardContent className="p-4 text-center">
-              <Activity className="w-8 h-8 text-purple-400 mx-auto mb-2" />
+              <Activity className="w-8 h-8 text-cyan-400 mx-auto mb-2" />
               <p className="font-medium">Certificaciones</p>
               <p className="text-2xl font-bold text-white mt-1">0</p>
             </CardContent>
