@@ -117,24 +117,30 @@ self.addEventListener('push', (event) => {
       ? [500, 200, 500, 200, 500, 200, 500] // Longer urgent pattern for panic
       : [200, 100, 200, 100, 200],
     data: data.data,
-    // Silent property controls native sound - we want sound for panics
-    silent: false,
+    // Silent for panic alerts - we control sound via AlertSoundManager
+    // This prevents duplicate sounds from native notification + our custom sound
+    silent: isPanicAlert ? true : false,
     actions: isPanicAlert ? [
       { action: 'open', title: 'Ver Alerta' },
       { action: 'dismiss', title: 'Cerrar' }
     ] : []
   };
 
-  // For panic alerts, send message to all clients to play sound
+  // For panic alerts, send message to ONE client to play sound
+  // AlertSoundManager uses localStorage lock to prevent duplicates across tabs
   if (isPanicAlert) {
     self.clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        clientList.forEach((client) => {
-          client.postMessage({
+        // Only send to first visible client to avoid duplicate sounds
+        // The AlertSoundManager will handle cross-tab coordination
+        if (clientList.length > 0) {
+          // Prefer focused/visible clients
+          const visibleClient = clientList.find(c => c.visibilityState === 'visible') || clientList[0];
+          visibleClient.postMessage({
             type: 'PLAY_PANIC_SOUND',
             data: data.data
           });
-        });
+        }
       });
   }
 
