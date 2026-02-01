@@ -46,6 +46,7 @@ import api from '../services/api';
 import AlertSoundManager from '../utils/AlertSoundManager';
 import pushManager from '../utils/PushNotificationManager';
 import PushNotificationBanner from '../components/PushNotificationBanner';
+import PushPermissionBanner from '../components/PushPermissionBanner';
 import VisitorCheckInGuard from '../components/VisitorCheckInGuard';
 import GuardHistoryVisual from '../components/GuardHistoryVisual';
 import { 
