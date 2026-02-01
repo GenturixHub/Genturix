@@ -394,7 +394,7 @@ const SecurityModule = () => {
           <Card className="grid-card">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center">
                   <Eye className="w-6 h-6" />
                 </div>
                 <div>
@@ -626,7 +626,7 @@ const SecurityModule = () => {
                                   log.entry_type === 'permanent' ? 'bg-green-500/20 text-green-400' :
                                   log.entry_type === 'temporary' ? 'bg-yellow-500/20 text-yellow-400' :
                                   log.entry_type === 'recurring' ? 'bg-blue-500/20 text-blue-400' :
-                                  'bg-purple-500/20 text-purple-400'
+                                  'bg-cyan-500/20 text-cyan-400'
                                 }`}
                               >
                                 {log.entry_type === 'permanent' ? 'Permanente' :
@@ -683,7 +683,7 @@ const SecurityModule = () => {
         <Card className="grid-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Eye className="w-5 h-5 text-purple-400" />
+              <Eye className="w-5 h-5 text-cyan-400" />
               Centro de Monitoreo
             </CardTitle>
             <CardDescription>Feeds de cámaras y monitoreo en tiempo real</CardDescription>
