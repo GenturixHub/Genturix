@@ -966,6 +966,72 @@ const ResidentReservations = () => {
         area={selectedArea}
         onSave={handleCreateReservation}
       />
+      
+      {/* Cancel Confirmation Dialog */}
+      <Dialog open={showCancelDialog} onOpenChange={closeCancelDialog}>
+        <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-sm mx-4">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-400">
+              <AlertCircle className="w-5 h-5" />
+              Cancelar Reservación
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              ¿Estás seguro que deseas cancelar esta reservación?
+            </DialogDescription>
+          </DialogHeader>
+          
+          {reservationToCancel && (
+            <div className="p-3 rounded-lg bg-[#0A0A0F] border border-[#1E293B] space-y-2">
+              <p className="text-sm font-medium text-white">{reservationToCancel.area_name}</p>
+              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <CalendarDays className="w-3 h-3" />
+                  {reservationToCancel.date}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  {reservationToCancel.start_time} - {reservationToCancel.end_time}
+                </span>
+              </div>
+            </div>
+          )}
+          
+          <p className="text-xs text-yellow-400 flex items-start gap-2">
+            <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            Al cancelar, el espacio quedará disponible para otros residentes.
+          </p>
+          
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={closeCancelDialog}
+              disabled={isCancelling}
+              className="w-full sm:w-auto"
+            >
+              No, mantener
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={confirmCancelReservation}
+              disabled={isCancelling}
+              className="w-full sm:w-auto"
+              data-testid="confirm-cancel-reservation"
+            >
+              {isCancelling ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Cancelando...
+                </>
+              ) : (
+                <>
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Sí, cancelar
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
