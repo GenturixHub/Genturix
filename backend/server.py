@@ -2263,6 +2263,31 @@ async def create_visitor_preregistration(
     
     await db.visitors.insert_one(visitor_doc)
     
+    # Notify guards about the new pre-registration
+    condo_id = current_user.get("condominium_id")
+    if condo_id:
+        resident_name = current_user.get("full_name", "Un residente")
+        resident_apt = current_user.get("apartment", "")
+        apt_text = f" ({resident_apt})" if resident_apt else ""
+        
+        push_payload = {
+            "title": "📋 Nuevo visitante preregistrado",
+            "body": f"{visitor.full_name} para {resident_name}{apt_text}",
+            "icon": "/logo192.png",
+            "badge": "/logo192.png",
+            "tag": f"preregister-{visitor_id[:8]}",
+            "data": {
+                "type": "visitor_preregistration",
+                "visitor_id": visitor_id,
+                "visitor_name": visitor.full_name,
+                "resident_name": resident_name,
+                "expected_date": visitor.expected_date,
+                "expected_time": visitor.expected_time,
+                "url": "/guard?tab=visits"
+            }
+        }
+        await send_push_to_guards(condo_id, push_payload)
+    
     await log_audit_event(
         AuditEventType.ACCESS_GRANTED,
         current_user["id"],
