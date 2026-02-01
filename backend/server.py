@@ -6782,6 +6782,48 @@ async def update_reservation_status(
     
     await db.reservations.update_one({"id": reservation_id}, {"$set": update_fields})
     
+    # Send push notification to resident based on new status
+    resident_id = reservation.get("resident_id")
+    area_id = reservation.get("area_id")
+    area = await db.reservation_areas.find_one({"id": area_id}, {"_id": 0, "name": 1})
+    area_name = area.get("name", "Área común") if area else "Área común"
+    
+    if resident_id and is_admin:
+        if update.status == ReservationStatusEnum.APPROVED:
+            await create_and_send_notification(
+                user_id=resident_id,
+                condominium_id=condo_id,
+                notification_type="reservation_approved",
+                title="✅ Reservación aprobada",
+                message=f"Tu reservación de {area_name} para el {reservation.get('date')} de {reservation.get('start_time')} a {reservation.get('end_time')} fue aprobada",
+                data={
+                    "reservation_id": reservation_id,
+                    "area_name": area_name,
+                    "date": reservation.get("date"),
+                    "start_time": reservation.get("start_time"),
+                    "end_time": reservation.get("end_time")
+                },
+                send_push=True,
+                url="/resident?tab=reservations"
+            )
+        elif update.status == ReservationStatusEnum.REJECTED:
+            reason = update.admin_notes or "Sin motivo especificado"
+            await create_and_send_notification(
+                user_id=resident_id,
+                condominium_id=condo_id,
+                notification_type="reservation_rejected",
+                title="❌ Reservación rechazada",
+                message=f"Tu reservación de {area_name} fue rechazada. Motivo: {reason}",
+                data={
+                    "reservation_id": reservation_id,
+                    "area_name": area_name,
+                    "date": reservation.get("date"),
+                    "reason": reason
+                },
+                send_push=True,
+                url="/resident?tab=reservations"
+            )
+    
     await log_audit_event(
         AuditEventType.ACCESS_GRANTED,
         current_user["id"],
