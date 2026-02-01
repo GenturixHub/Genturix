@@ -167,7 +167,7 @@ const SuperAdminMobileNav = ({ activeTab, onTabChange }) => {
 const MODULES = [
   { id: 'security', name: 'Seguridad', description: 'Botón de pánico, alertas', icon: Shield, color: 'text-red-400' },
   { id: 'visits', name: 'Visitas', description: 'Control de visitantes', icon: Users, color: 'text-blue-400' },
-  { id: 'hr', name: 'RRHH', description: 'Recursos humanos, turnos', icon: Building, color: 'text-purple-400' },
+  { id: 'hr', name: 'RRHH', description: 'Recursos humanos, turnos', icon: Building, color: 'text-cyan-400' },
   { id: 'school', name: 'Escuela', description: 'Cursos y certificaciones', icon: GraduationCap, color: 'text-cyan-400' },
   { id: 'payments', name: 'Pagos', description: 'Facturación y cobros', icon: CreditCard, color: 'text-green-400' },
   { id: 'audit', name: 'Auditoría', description: 'Logs y trazabilidad', icon: Activity, color: 'text-orange-400' },
