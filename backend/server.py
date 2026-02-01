@@ -2709,7 +2709,7 @@ async def fast_checkin(
         "entry": entry_doc,
         "is_authorized": is_authorized,
         "message": "Entrada registrada" if is_authorized else "Entrada registrada (sin autorización válida)",
-        "authorization_marked_used": authorization is not None and authorization.get("authorization_type") == "temporary"
+        "authorization_marked_used": authorization is not None and authorization.get("authorization_type") in ["temporary", "extended"]
     }
 
 @api_router.get("/guard/entries-today")
