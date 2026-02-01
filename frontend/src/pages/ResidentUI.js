@@ -729,6 +729,94 @@ const ResidentUI = () => {
   // Emergency state
   const [sendingType, setSendingType] = useState(null);
   const [sentAlert, setSentAlert] = useState(null);
+  
+  // Notifications state
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isRefreshingNotifications, setIsRefreshingNotifications] = useState(false);
+
+  // Fetch notifications
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const [notifData, countData] = await Promise.all([
+        api.getVisitorNotifications(false),
+        api.getResidentUnreadNotificationCount()
+      ]);
+      
+      setNotifications(Array.isArray(notifData) ? notifData.slice(0, 20) : []);
+      setUnreadCount(countData?.count || 0);
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+      setNotifications([]);
+      setUnreadCount(0);
+    }
+  }, []);
+
+  // Initial fetch and polling for notifications
+  useEffect(() => {
+    fetchNotifications();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
+
+  // Mark single notification as read
+  const handleMarkNotificationRead = async (notificationId, e) => {
+    e?.stopPropagation();
+    try {
+      await api.markNotificationRead(notificationId);
+      setNotifications(prev => prev.map(n => 
+        n.id === notificationId ? {...n, read: true} : n
+      ));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Error marking notification read:', error);
+    }
+  };
+
+  // Mark all as read when dropdown is open for a while
+  const handleNotificationsDropdownOpenChange = async (open) => {
+    setIsNotificationsOpen(open);
+    
+    if (open && unreadCount > 0) {
+      // Mark as read after 2 seconds of viewing
+      setTimeout(async () => {
+        try {
+          const result = await api.markAllNotificationsRead();
+          setNotifications(prev => prev.map(n => ({...n, read: true})));
+          setUnreadCount(0);
+        } catch (error) {
+          console.error('Error marking all as read:', error);
+        }
+      }, 2000);
+    }
+  };
+
+  // Manual refresh notifications
+  const handleRefreshNotifications = async (e) => {
+    e?.stopPropagation();
+    setIsRefreshingNotifications(true);
+    await fetchNotifications();
+    setIsRefreshingNotifications(false);
+    toast.success('Notificaciones actualizadas');
+  };
+
+  // Manual mark all as read
+  const handleMarkAllRead = async (e) => {
+    e?.stopPropagation();
+    if (unreadCount === 0) return;
+    
+    try {
+      const result = await api.markAllNotificationsRead();
+      setNotifications(prev => prev.map(n => ({...n, read: true})));
+      setUnreadCount(0);
+      toast.success('Notificaciones marcadas como leídas');
+    } catch (error) {
+      toast.error('Error al marcar notificaciones');
+    }
+  };
 
   // GPS Location tracking
   useEffect(() => {
