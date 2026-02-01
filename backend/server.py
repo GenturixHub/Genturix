@@ -5487,28 +5487,87 @@ async def get_area_availability(
     }, {"_id": 0, "start_time": 1, "end_time": 1, "status": 1}).to_list(50)
     
     # Check if day is allowed
+    is_day_allowed = True
+    day_name = None
     try:
         res_date = datetime.strptime(date, "%Y-%m-%d")
         day_name = DAY_NAMES.get(res_date.weekday())
-        allowed_days = area.get("allowed_days", list(DAY_NAMES.values()))
-        is_day_allowed = day_name in allowed_days
+        allowed_days = area.get("allowed_days", [])
+        
+        # If no allowed_days configured, all days are allowed
+        if allowed_days and len(allowed_days) > 0:
+            is_day_allowed = day_name in allowed_days
+        else:
+            is_day_allowed = True  # No restrictions = all days allowed
+            
+        # Also check if date is not in the past
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        if res_date < today:
+            is_day_allowed = False
     except ValueError:
         is_day_allowed = False
     
-    # Check max reservations
+    # Check max reservations per day
     max_per_day = area.get("max_reservations_per_day", 10)
     reservations_count = len([r for r in existing if r.get("status") == "approved"])
+    slots_remaining = max(0, max_per_day - reservations_count)
+    
+    # Calculate if area is available for reservation
+    # Available if: day is allowed AND there are slots remaining
+    is_available = is_day_allowed and slots_remaining > 0
+    
+    # Get operating hours
+    available_from = area.get("available_from", "06:00")
+    available_until = area.get("available_until", "22:00")
+    
+    # Generate time slots for the day
+    time_slots = []
+    try:
+        start_hour = int(available_from.split(":")[0])
+        end_hour = int(available_until.split(":")[0])
+        
+        for hour in range(start_hour, end_hour):
+            slot_start = f"{str(hour).zfill(2)}:00"
+            slot_end = f"{str(hour + 1).zfill(2)}:00"
+            
+            # Check if this slot is occupied
+            slot_occupied = False
+            for res in existing:
+                res_start = res.get("start_time", "")
+                res_end = res.get("end_time", "")
+                # Check overlap
+                if res_start <= slot_start < res_end or res_start < slot_end <= res_end:
+                    slot_occupied = True
+                    break
+                if slot_start <= res_start < slot_end:
+                    slot_occupied = True
+                    break
+            
+            time_slots.append({
+                "start_time": slot_start,
+                "end_time": slot_end,
+                "status": "occupied" if slot_occupied else "available"
+            })
+    except:
+        pass  # If time parsing fails, return empty slots
     
     return {
         "area_id": area_id,
         "date": date,
+        "day_name": day_name,
         "is_day_allowed": is_day_allowed,
-        "available_from": area.get("available_from", "06:00"),
-        "available_until": area.get("available_until", "22:00"),
+        "is_available": is_available,  # Main flag for frontend
+        "available_from": available_from,
+        "available_until": available_until,
         "max_reservations_per_day": max_per_day,
         "current_reservations": reservations_count,
-        "slots_remaining": max(0, max_per_day - reservations_count),
-        "occupied_slots": existing
+        "slots_remaining": slots_remaining,
+        "reserved_slots": existing,  # Changed from occupied_slots
+        "time_slots": time_slots,  # New: visual availability
+        "message": None if is_available else (
+            "Fecha no disponible (día no permitido)" if not is_day_allowed else
+            "No hay espacios disponibles para esta fecha"
+        )
     }
 
 @api_router.patch("/reservations/{reservation_id}")
