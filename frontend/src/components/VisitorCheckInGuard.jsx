@@ -515,14 +515,21 @@ const VisitorCheckInGuard = () => {
     setIsRefreshing(true);
     try {
       const result = await api.cleanupAuthorizations();
+      console.log('Cleanup result:', result);
+      
       if (result.fixed_count > 0) {
         toast.success(`🧹 Se limpiaron ${result.fixed_count} autorizaciones duplicadas`);
         // Refresh data after cleanup
         await fetchData();
       } else {
-        toast.info('✓ No hay autorizaciones para limpiar');
+        // Show more info if nothing was fixed
+        const msg = result.total_all_pending > 0 
+          ? `No hay duplicados. Hay ${result.total_all_pending} pendientes (pueden ser permanentes/recurrentes)`
+          : '✓ No hay autorizaciones para limpiar';
+        toast.info(msg);
       }
     } catch (error) {
+      console.error('Cleanup error:', error);
       toast.error('Error al limpiar autorizaciones');
     } finally {
       setIsRefreshing(false);
