@@ -93,13 +93,33 @@ const ActivityItem = ({ activity }) => {
       case 'login_failure':
         return <XCircle className="w-4 h-4 text-red-400" />;
       case 'panic_button':
+      case 'panic_alert':
         return <AlertTriangle className="w-4 h-4 text-red-400" />;
+      case 'visitor_checkin':
+        return <UserPlus className="w-4 h-4 text-green-400" />;
+      case 'visitor_checkout':
+        return <LogOut className="w-4 h-4 text-orange-400" />;
+      case 'reservation_created':
+        return <Calendar className="w-4 h-4 text-purple-400" />;
+      case 'user_created':
+        return <UserPlus className="w-4 h-4 text-blue-400" />;
       default:
         return <Activity className="w-4 h-4 text-blue-400" />;
     }
   };
 
+  const getModuleColor = (module) => {
+    switch (module) {
+      case 'security': return 'text-red-400';
+      case 'reservations': return 'text-purple-400';
+      case 'auth': return 'text-green-400';
+      case 'visitor': return 'text-blue-400';
+      default: return 'text-muted-foreground';
+    }
+  };
+
   const formatTime = (timestamp) => {
+    if (!timestamp) return '';
     const date = new Date(timestamp);
     const now = new Date();
     const diffMs = now - date;
@@ -111,14 +131,32 @@ const ActivityItem = ({ activity }) => {
     return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
   };
 
+  const getEventLabel = (type) => {
+    const labels = {
+      'login_success': 'Inicio de sesión',
+      'login_failure': 'Intento fallido',
+      'logout': 'Cerró sesión',
+      'panic_alert': 'Alerta de pánico',
+      'visitor_checkin': 'Check-in visitante',
+      'visitor_checkout': 'Check-out visitante',
+      'reservation_created': 'Nueva reservación',
+      'user_created': 'Usuario creado'
+    };
+    return labels[type] || type?.replace(/_/g, ' ');
+  };
+
   return (
     <div className="flex items-center gap-3 py-3 border-b border-[#1E293B] last:border-0">
       <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
         {getIcon(activity.event_type)}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm truncate">{activity.event_type.replace(/_/g, ' ')}</p>
-        <p className="text-xs text-muted-foreground">{activity.module}</p>
+        <p className="text-sm truncate">
+          {activity.description || getEventLabel(activity.event_type)}
+        </p>
+        <p className={`text-xs ${getModuleColor(activity.module)}`}>
+          {activity.user_name || activity.module}
+        </p>
       </div>
       <span className="text-xs text-muted-foreground whitespace-nowrap">
         {formatTime(activity.timestamp)}
