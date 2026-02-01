@@ -496,7 +496,7 @@ const AusenciasSubmodule = ({ employees, onRefresh }) => {
 
   const typeLabels = {
     vacaciones: { label: 'Vacaciones', color: 'bg-blue-500/10 text-blue-400' },
-    permiso_medico: { label: 'Permiso Médico', color: 'bg-purple-500/10 text-purple-400' },
+    permiso_medico: { label: 'Permiso Médico', color: 'bg-cyan-500/10 text-cyan-400' },
     personal: { label: 'Personal', color: 'bg-yellow-500/10 text-yellow-400' },
     otro: { label: 'Otro', color: 'bg-gray-500/10 text-gray-400' }
   };
