@@ -2373,29 +2373,57 @@ async def create_visitor_authorization(
 
 @api_router.get("/authorizations/my")
 async def get_my_authorizations(
-    status: Optional[str] = None,  # active, expired, all
+    status: Optional[str] = None,  # active, expired, all, used
     current_user = Depends(get_current_user)
 ):
-    """Resident gets their own visitor authorizations"""
+    """Resident gets their own visitor authorizations with usage status"""
     query = {"created_by": current_user["id"]}
     
     if status == "active":
         query["is_active"] = True
+        query["status"] = {"$ne": "used"}  # Exclude used authorizations from active
     elif status == "expired":
         query["is_active"] = False
+    elif status == "used":
+        query["status"] = "used"
     
     authorizations = await db.visitor_authorizations.find(
         query, {"_id": 0}
     ).sort("created_at", -1).to_list(100)
     
-    # Enrich with validity status
+    # Enrich with validity status and usage info
     for auth in authorizations:
         validity = check_authorization_validity(auth)
         auth["validity_status"] = validity["status"]
         auth["validity_message"] = validity["message"]
         auth["is_currently_valid"] = validity["is_valid"]
+        
+        # Check if authorization has been used (has entry record)
+        auth_type = auth.get("authorization_type")
+        if auth_type in ["temporary", "extended"]:
+            # For one-time use authorizations, check if already used
+            entry_exists = await db.visitor_entries.find_one({"authorization_id": auth.get("id")})
+            if entry_exists:
+                auth["status"] = "used"
+                auth["was_used"] = True
+                auth["used_at"] = entry_exists.get("entry_at")
+                auth["used_by_guard"] = entry_exists.get("guard_name")
+            else:
+                auth["was_used"] = False
+        else:
+            # For permanent/recurring, check last usage
+            last_entry = await db.visitor_entries.find_one(
+                {"authorization_id": auth.get("id")},
+                sort=[("entry_at", -1)]
+            )
+            if last_entry:
+                auth["last_used_at"] = last_entry.get("entry_at")
+                auth["total_uses"] = await db.visitor_entries.count_documents({"authorization_id": auth.get("id")})
+            else:
+                auth["total_uses"] = 0
     
     return authorizations
+
 
 # ===================== AUDIT & HISTORY (must be before {auth_id} routes) =====================
 
