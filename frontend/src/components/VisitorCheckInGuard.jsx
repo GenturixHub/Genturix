@@ -730,6 +730,16 @@ const VisitorCheckInGuard = () => {
                   <Button 
                     variant="ghost" 
                     size="sm" 
+                    onClick={handleDiagnose}
+                    disabled={isRefreshing}
+                    title="Diagnosticar problemas"
+                    data-testid="diagnose-btn"
+                  >
+                    <Bug className="w-4 h-4 text-yellow-400" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
                     onClick={handleCleanup}
                     disabled={isRefreshing}
                     title="Limpiar autorizaciones duplicadas"
