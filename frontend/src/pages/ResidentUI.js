@@ -335,33 +335,39 @@ const SuccessScreen = ({ alert, onDismiss }) => {
 };
 
 // ============================================
-// EMERGENCY TAB (Panic Buttons)
+// EMERGENCY TAB (Premium Hero Layout)
 // ============================================
 const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, sendingType }) => (
-  <div className="flex-1 flex flex-col p-4 gap-3 overflow-y-auto">
-    {/* GPS Status - Compact on mobile */}
-    <div className="flex justify-center pt-1 pb-2 sticky top-0 bg-[#05050A]/95 backdrop-blur-sm z-10">
+  <div className="emergency-action-layout">
+    {/* GPS Status - Compact */}
+    <div className="flex justify-center">
       <GPSStatus location={location} isLoading={locationLoading} error={locationError} />
     </div>
     
-    {/* Instruction text - Smaller on mobile */}
-    <p className="text-center text-xs sm:text-sm text-muted-foreground">
-      Presiona el botón de emergencia
-    </p>
+    {/* HERO BUTTON - Emergencia General (50-60% of space) */}
+    <HeroEmergencyButton
+      config={EMERGENCY_TYPES.emergencia_general}
+      onPress={onEmergency}
+      disabled={!!sendingType}
+      isLoading={sendingType === 'emergencia_general'}
+    />
     
-    {/* Emergency Buttons - Optimized for mobile visibility */}
-    <div className="flex flex-col gap-3 max-w-lg mx-auto w-full pb-4">
-      {Object.values(EMERGENCY_TYPES)
-        .sort((a, b) => a.priority - b.priority)
-        .map((config) => (
-          <EmergencyButton
-            key={config.id}
-            config={config}
-            onPress={onEmergency}
-            disabled={!!sendingType}
-            isLoading={sendingType === config.id}
-          />
-        ))}
+    {/* SECONDARY BUTTONS - Grid layout */}
+    <div className="emergency-secondary-grid">
+      <SecondaryEmergencyButton
+        config={EMERGENCY_TYPES.emergencia_medica}
+        variant="medical"
+        onPress={onEmergency}
+        disabled={!!sendingType}
+        isLoading={sendingType === 'emergencia_medica'}
+      />
+      <SecondaryEmergencyButton
+        config={EMERGENCY_TYPES.actividad_sospechosa}
+        variant="suspicious"
+        onPress={onEmergency}
+        disabled={!!sendingType}
+        isLoading={sendingType === 'actividad_sospechosa'}
+      />
     </div>
   </div>
 );
