@@ -463,6 +463,7 @@ class ApiService {
   guardCheckOut = (entryId, notes = '') => this.post(`/guard/checkout/${entryId}`, { notes });
   getEntriesToday = () => this.get('/guard/entries-today');
   getVisitorsInside = () => this.get('/guard/visitors-inside');
+  cleanupAuthorizations = () => this.post('/guard/cleanup-authorizations', {}); // Fix legacy used authorizations
   
   // Audit & History
   getAuthorizationHistory = (params = {}) => {
