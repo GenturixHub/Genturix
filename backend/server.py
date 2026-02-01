@@ -2176,6 +2176,7 @@ async def create_visitor_authorization(
         "notes": auth_data.notes,
         "color_code": color_code,
         "is_active": True,
+        "status": "pending",  # Status for tracking: pending -> used
         "created_by": current_user["id"],
         "created_by_name": current_user.get("full_name", "Residente"),
         "resident_apartment": current_user.get("role_data", {}).get("apartment_number", "N/A"),
@@ -2183,7 +2184,10 @@ async def create_visitor_authorization(
         "created_at": now,
         "updated_at": now,
         "total_visits": 0,
-        "last_visit": None
+        "last_visit": None,
+        "checked_in_at": None,
+        "checked_in_by": None,
+        "checked_in_by_name": None
     }
     
     await db.visitor_authorizations.insert_one(auth_doc)
