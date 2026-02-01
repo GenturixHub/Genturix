@@ -1920,7 +1920,7 @@ async def create_access_log(log: AccessLogCreate, request: Request, current_user
 async def get_access_logs(
     include_visitor_entries: bool = True,
     limit: int = 100,
-    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
+    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda", "SuperAdmin"))
 ):
     """
     Get unified access logs combining:
