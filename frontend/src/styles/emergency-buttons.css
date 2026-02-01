@@ -166,39 +166,54 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  width: 3.5rem;
+  height: 3.5rem;
 }
 
-/* Icon background circle */
+@media (min-width: 640px) {
+  .emergency-icon-container {
+    width: 4rem;
+    height: 4rem;
+  }
+}
+
+/* Icon background circle - frosted glass effect */
 .emergency-icon-bg {
   position: absolute;
-  inset: -8px;
+  inset: 0;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 
+    inset 0 1px 2px rgba(255, 255, 255, 0.1),
+    0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* Icon subtle float animation */
-.emergency-btn:not(:disabled) .emergency-icon {
+.emergency-btn:not(:disabled):not(.is-loading) .emergency-icon {
   animation: emergencyIconFloat 2.5s ease-in-out infinite;
 }
 
 /* Icon sizing */
 .emergency-icon {
-  width: 2.5rem;
-  height: 2.5rem;
+  position: relative;
+  z-index: 1;
+  width: 1.75rem;
+  height: 1.75rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 @media (min-width: 640px) {
   .emergency-icon {
-    width: 3rem;
-    height: 3rem;
+    width: 2rem;
+    height: 2rem;
   }
 }
 
 @media (min-width: 768px) {
   .emergency-icon {
-    width: 3.5rem;
-    height: 3.5rem;
+    width: 2.25rem;
+    height: 2.25rem;
   }
 }
 
