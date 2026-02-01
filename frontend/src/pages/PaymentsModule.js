@@ -441,7 +441,7 @@ const PaymentsModule = () => {
                 <span className="text-sm text-muted-foreground">Mastercard</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-12 h-8 bg-purple-600 rounded flex items-center justify-center text-white font-bold text-xs">
+                <div className="w-12 h-8 bg-cyan-600 rounded flex items-center justify-center text-white font-bold text-xs">
                   AMEX
                 </div>
                 <span className="text-sm text-muted-foreground">American Express</span>
