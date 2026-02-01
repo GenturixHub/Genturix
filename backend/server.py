@@ -484,6 +484,13 @@ class AreaTypeEnum(str, Enum):
     PLAYGROUND = "playground"
     OTHER = "other"
 
+# NEW: Reservation behavior types (Phase 1)
+class ReservationBehaviorEnum(str, Enum):
+    EXCLUSIVE = "exclusive"      # 1 reserva bloquea el área (Rancho, Salón) - DEFAULT/LEGACY
+    CAPACITY = "capacity"        # Múltiples reservas hasta max_capacity (Gimnasio, Piscina)
+    SLOT_BASED = "slot_based"    # Slots fijos, 1 reserva = 1 slot (Canchas)
+    FREE_ACCESS = "free_access"  # No se permiten reservas (áreas abiertas)
+
 class ReservationModeEnum(str, Enum):
     BY_HOUR = "por_hora"      # Gym: 1 hour slots
     BLOCK = "bloque"          # Ranch: Full block reservation
@@ -513,6 +520,10 @@ class AreaCreate(BaseModel):
     allowed_days: List[str] = Field(default=["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"])
     is_active: bool = True
     condominium_id: Optional[str] = None  # For SuperAdmin to specify condo
+    # NEW: Phase 1 fields with backward-compatible defaults
+    reservation_behavior: Optional[str] = "exclusive"  # exclusive | capacity | slot_based | free_access
+    max_capacity_per_slot: Optional[int] = None  # For CAPACITY type: max people per time slot
+    max_reservations_per_user_per_day: Optional[int] = None  # Limit per user per day
 
 class AreaUpdate(BaseModel):
     name: Optional[str] = None
@@ -530,6 +541,10 @@ class AreaUpdate(BaseModel):
     slot_duration_minutes: Optional[int] = None
     allowed_days: Optional[List[str]] = None
     is_active: Optional[bool] = None
+    # NEW: Phase 1 fields
+    reservation_behavior: Optional[str] = None
+    max_capacity_per_slot: Optional[int] = None
+    max_reservations_per_user_per_day: Optional[int] = None
 
 class ReservationCreate(BaseModel):
     area_id: str
