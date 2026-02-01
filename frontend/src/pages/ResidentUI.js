@@ -1254,6 +1254,9 @@ const ResidentUI = () => {
           centerIndex={0}
         />
       )}
+      
+      {/* Push Permission Banner */}
+      <PushPermissionBanner onSubscribed={() => console.log('Push notifications enabled!')} />
     </div>
   );
 };
