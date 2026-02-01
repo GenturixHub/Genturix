@@ -39,7 +39,10 @@ import {
   XCircle,
   Loader2,
   ChevronRight,
-  UserPlus
+  UserPlus,
+  Wallet,
+  AlertCircle,
+  ArrowUpRight
 } from 'lucide-react';
 
 const StatCard = ({ title, value, icon: Icon, trend, color = 'primary', onClick }) => {
