@@ -464,6 +464,7 @@ class ApiService {
   getEntriesToday = () => this.get('/guard/entries-today');
   getVisitorsInside = () => this.get('/guard/visitors-inside');
   cleanupAuthorizations = () => this.post('/guard/cleanup-authorizations', {}); // Fix legacy used authorizations
+  diagnoseAuthorizations = () => this.get('/guard/diagnose-authorizations'); // Debug authorization state
   
   // Audit & History
   getAuthorizationHistory = (params = {}) => {
