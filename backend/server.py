@@ -2438,15 +2438,22 @@ async def deactivate_authorization(
 @api_router.get("/guard/authorizations")
 async def get_authorizations_for_guard(
     search: Optional[str] = None,
+    include_used: bool = False,
     current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
 ):
     """
     Guard gets list of active authorizations for validation.
     Supports search by visitor name, ID, or vehicle plate.
+    By default, only returns PENDING authorizations (not yet used).
     """
     condo_id = current_user.get("condominium_id")
     
     query = {"is_active": True}
+    
+    # By default, only show pending authorizations (not used yet)
+    if not include_used:
+        query["status"] = {"$in": ["pending", None]}  # Include None for backwards compatibility
+    
     if "SuperAdmin" not in current_user.get("roles", []):
         if condo_id:
             query["condominium_id"] = condo_id
