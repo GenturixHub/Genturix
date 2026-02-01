@@ -95,12 +95,15 @@ import {
   Calendar,
   Video,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   UserPlus,
   Copy,
   AlertOctagon,
   ShieldAlert,
   LayoutDashboard,
-  User
+  User,
+  TrendingUp
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Mail, MailX } from 'lucide-react';
