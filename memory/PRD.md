@@ -54,12 +54,39 @@ onClick={() => isMobile ? setActiveTab('profile') : navigate('/profile')}
 - `/app/backend/server.py` (lines 3096-3195)
 - `/app/frontend/src/pages/GuardUI.js` (HistoryTab component)
 
+#### 🔴 P0 BUG #3 FIXED: Pre-registros EXTENDED no desaparecen después de check-in
+
+**Problem:** After checking in a visitor with an EXTENDED authorization, the pre-registration remained visible in "PRE-REGISTROS PENDIENTES".
+
+**Root Cause:**
+Only TEMPORARY authorizations were being marked as `status: "used"` after check-in. EXTENDED authorizations kept `status: "pending"`.
+
+**Solution Implemented:**
+1. Modified check-in logic to mark EXTENDED authorizations as "used" after check-in
+2. Updated reuse blocking to include EXTENDED authorizations
+3. PERMANENT and RECURRING authorizations still allow multiple uses (as intended)
+
+**Code Change:**
+```python
+# Before: only temporary was marked
+if auth_type_value == "temporary":
+    update_data["$set"]["status"] = "used"
+
+# After: temporary AND extended are marked
+if auth_type_value in ["temporary", "extended"]:
+    update_data["$set"]["status"] = "used"
+```
+
+**Files Modified:**
+- `/app/backend/server.py` (lines 2528-2538, 2598-2602)
+
 **Verification Results:**
 - ✅ Avatar click stays on `/guard` (desktop + mobile)
 - ✅ Profile button stays on `/guard`
 - ✅ "Volver al Panel" button visible and functional
-- ✅ History now shows 22 events (visitor entries)
-- ✅ History displays: Entradas Registradas, Salidas, Alertas, Fichajes, Turnos
+- ✅ History now shows 22+ events (visitor entries)
+- ✅ EXTENDED authorization marked as "used" after check-in
+- ✅ Authorization removed from pending list after check-in
 
 ---
 
