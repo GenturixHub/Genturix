@@ -421,29 +421,46 @@ const GuardHistoryVisual = () => {
   const [refreshing, setRefreshing] = useState(false);
   const currentHour = new Date().getHours();
 
-  const fetchHistory = async (showToast = false) => {
-    if (showToast) setRefreshing(true);
-    else setLoading(true);
-    
+  useEffect(() => {
+    const fetchHistory = async () => {
+      setLoading(true);
+      
+      try {
+        const data = await api.getGuardHistory();
+        
+        // Filter by date range
+        const now = new Date();
+        const filterDate = filter === 'today' 
+          ? new Date(now.getFullYear(), now.getMonth(), now.getDate())
+          : filter === 'week'
+            ? new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+            : new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+        const filteredHistory = data.filter(h => new Date(h.timestamp) >= filterDate);
+        setHistory(filteredHistory);
+      } catch (error) {
+        console.error('Error fetching history:', error);
+        setHistory([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHistory();
+  }, [filter]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
     try {
       const data = await api.getGuardHistory();
-      
-      // Filter by date range
       const now = new Date();
       const filterDate = filter === 'today' 
         ? new Date(now.getFullYear(), now.getMonth(), now.getDate())
         : filter === 'week'
           ? new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
           : new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
       const filteredHistory = data.filter(h => new Date(h.timestamp) >= filterDate);
       setHistory(filteredHistory);
-      
-      if (showToast) {
-        const entries = filteredHistory.filter(h => h.type === 'visit_entry').length;
-        const exits = filteredHistory.filter(h => h.type === 'visit_exit').length;
-        // toast.success(`✓ ${entries} entradas, ${exits} salidas`);
-      }
     } catch (error) {
       console.error('Error fetching history:', error);
       setHistory([]);
