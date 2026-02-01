@@ -488,6 +488,7 @@ const VisitorCheckInGuard = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [showCheckInDialog, setShowCheckInDialog] = useState(false);
   const [selectedAuth, setSelectedAuth] = useState(null);
+  const [processingAuthId, setProcessingAuthId] = useState(null); // Track which auth is being processed
   const [processingCheckout, setProcessingCheckout] = useState(null);
   const [showEntriesToday, setShowEntriesToday] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false); // Track refresh state
