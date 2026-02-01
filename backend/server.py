@@ -4669,7 +4669,7 @@ async def create_user_by_admin(
             "name": user_data.full_name,
             "badge": user_data.badge_number,
             "phone": user_data.phone,
-            "condominium_id": current_user.get("condominium_id"),
+            "condominium_id": condominium_id,  # Use the already-determined condominium_id
             "status": "active",
             "is_active": True,
             "location": user_data.main_location or "Entrada Principal",
@@ -4698,17 +4698,6 @@ async def create_user_by_admin(
             "supervised_area": user_data.supervised_area or "General",
             "guard_assignments": user_data.guard_assignments or []
         }
-    
-    # Determine condominium_id: use from request if SuperAdmin without condo, otherwise use current user's
-    is_super_admin = "SuperAdmin" in current_user.get("roles", [])
-    condominium_id = current_user.get("condominium_id")
-    
-    # If SuperAdmin without condo, use the one from the request
-    if is_super_admin and not condominium_id:
-        condominium_id = user_data.condominium_id
-    
-    if not condominium_id:
-        raise HTTPException(status_code=400, detail="Se requiere condominium_id para crear usuarios")
     
     # Get condominium name for email
     condo = await db.condominiums.find_one({"id": condominium_id}, {"_id": 0, "name": 1})
