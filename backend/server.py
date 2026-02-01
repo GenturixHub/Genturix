@@ -5784,6 +5784,10 @@ async def create_area(
         "slot_duration_minutes": area_data.slot_duration_minutes,
         "allowed_days": area_data.allowed_days,
         "is_active": area_data.is_active,
+        # NEW: Phase 1 fields (backward compatible defaults)
+        "reservation_behavior": area_data.reservation_behavior or "exclusive",
+        "max_capacity_per_slot": area_data.max_capacity_per_slot,
+        "max_reservations_per_user_per_day": area_data.max_reservations_per_user_per_day,
         "created_by": current_user["id"],
         "created_at": datetime.now(timezone.utc).isoformat()
     }
