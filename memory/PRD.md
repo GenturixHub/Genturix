@@ -1,43 +1,52 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 1, 2026 (Session 39 - SuperAdmin Billing Dashboard UX Improvement)
+## Last Updated: February 1, 2026 (Session 40 - P0 Guard Check-In Duplicate Fix)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
 
 ---
 
-## PLATFORM STATUS: ✅ PRODUCTION READY - SAAS BILLING WITH EXECUTIVE DASHBOARD
+## PLATFORM STATUS: ✅ PRODUCTION READY
 
-### Session 39 - UX IMPROVEMENT: SuperAdmin Billing Dashboard (February 1, 2026) ⭐⭐⭐⭐⭐
+### Session 40 - P0 BUG FIX: Guard Check-In Duplicates (February 1, 2026) ⭐⭐⭐⭐⭐
 
-#### 🟢 UX IMPROVEMENT: Executive Billing Dashboard
+#### 🔴 P0 BUG FIXED: Pre-registros Duplicados en Guard Check-In
 
-**Changes Implemented:**
+**Problem:** Pre-registration remained visible after check-in, allowing infinite reuse of the same authorization.
 
-1. **Executive Summary at Top (Always Visible):**
-   - 4 gradient cards with key metrics:
-     - Condominios (blue)
-     - Usuarios X/Y (purple)
-     - MRR $X USD (emerald)
-     - Capacidad X% with progress bar (amber)
-   - No scroll needed to see critical metrics
+**Root Cause:**
+- Authorizations had no `status` field to track usage
+- `/guard/authorizations` returned all active auths without filtering used ones
+- Check-in endpoint didn't block reuse
 
-2. **Collapsible Condominium List:**
-   - Default: Shows only 3 condominiums
-   - "Mostrando X de Y" indicator
-   - "Ver más (N restantes)" button to expand
-   - "Ver menos" button to collapse
-   - Smooth animation on expand/collapse
-   - Each condo shows: name, revenue, status badge, users/seats, progress bar
+**Solution Implemented:**
 
-3. **Visual Hierarchy:**
-   - Summary metrics are prominent
-   - Detail section is secondary
-   - Consistent with dark theme
-   - Gradient cards for emphasis
+1. **Authorization Status Tracking:**
+   - Added `status` field: "pending" → "used"
+   - Added `checked_in_at`, `checked_in_by`, `checked_in_by_name` fields
 
-**Test Report:** Visual verification completed - all features working
+2. **Backend Enforcement:**
+   - `GET /guard/authorizations` filters `status="pending"` by default
+   - `POST /guard/checkin` returns HTTP 409 if auth already used
+   - Only TEMPORARY authorizations are marked as "used"
+   - PERMANENT authorizations can be used multiple times
+
+3. **New Endpoint:**
+   - `GET /guard/entries-today` - Returns today's check-ins
+
+4. **Frontend Updates:**
+   - `handleCheckInSubmit` removes auth from list immediately
+   - Handles 409 error with toast and removes auth from list
+   - New "INGRESADOS HOY" collapsible section
+
+**Verification Results:**
+- ✅ Backend: 100% (13/13 tests passed)
+- ✅ Frontend: 100% (all UI tests passed)
+- ✅ Second check-in blocked with 409
+- ✅ Auth removed from list after check-in
+
+**Test Report:** `/app/test_reports/iteration_45.json`
 
 ---
 
