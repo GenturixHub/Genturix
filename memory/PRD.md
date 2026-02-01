@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 1, 2026 (Session 51 - Reservations System Extended)
+## Last Updated: February 1, 2026 (Session 52 - Admin Manual Access Fix)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,59 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
+
+### Session 52 - P0 BUG FIX: Registro Manual Admin No Persistía (February 1, 2026) ⭐⭐⭐⭐⭐
+
+**Problem:**
+El formulario de "Registro Manual de Accesos" existía en la UI del Administrador pero NO persistía el registro al enviarlo:
+- ❌ No se creaba ningún access_log real en backend
+- ❌ No había feedback claro (éxito o error)
+- ❌ El registro no aparecía inmediatamente en la lista
+- ✅ El flujo funcionaba desde el rol Guardia
+
+**Root Cause:**
+- Backend no guardaba `condominium_id` → rompía multi-tenant
+- Backend no identificaba la fuente (`source`) del registro
+- Frontend no mostraba toast de confirmación
+- Frontend no refrescaba la lista después de crear
+
+**Solution Implemented:**
+
+**1. Backend - POST /api/security/access-log:**
+```python
+# Ahora guarda campos adicionales críticos:
+access_log = {
+    "condominium_id": current_user.get("condominium_id"),  # Multi-tenant
+    "source": "manual_admin" | "manual_supervisor" | "manual_guard",  # Auditoría
+    "status": "inside" | "outside",  # Estado del acceso
+    "recorded_by_name": current_user.get("full_name")  # Quien registró
+}
+
+# Audit log mejorado:
+{
+    "action": "manual_access_created",
+    "performed_by_role": "ADMIN",
+    "condominium_id": "..."
+}
+```
+
+**2. Frontend - SecurityModule.js:**
+```javascript
+// handleCreateAccessLog ahora:
+- Muestra toast.success('✅ Registro creado correctamente')
+- Muestra toast.error() en caso de fallo
+- Llama fetchData() para refrescar lista inmediatamente
+- Estado de loading con spinner
+```
+
+**Testing Agent Verification:**
+- Backend: 100% (12/12 tests)
+- Frontend: 100% (Admin flow verified via Playwright)
+- Multi-tenant: ✅ Guard ve registros de Admin en mismo condo
+- Auditoría: ✅ audit_logs con action='manual_access_created'
+- **Test Report:** `/app/test_reports/iteration_51.json`
+
+---
 
 ### Session 51 - RESERVATIONS SYSTEM EXTENDED (February 1, 2026) ⭐⭐⭐⭐⭐
 
