@@ -1619,13 +1619,13 @@ async def subscribe_to_push(
     request: PushSubscriptionRequest,
     current_user = Depends(get_current_user)
 ):
-    """Subscribe to push notifications"""
+    """Subscribe to push notifications - Available for Guards, Admins, and Residents"""
     user_roles = current_user.get("roles", [])
     
-    # Only guards/security personnel can subscribe to push notifications
-    allowed_roles = ["Guardia", "Guarda", "Administrador", "SuperAdmin", "Supervisor"]
+    # Allow guards, admins, supervisors and residents to subscribe
+    allowed_roles = ["Guardia", "Guarda", "Administrador", "SuperAdmin", "Supervisor", "Residente"]
     if not any(role in user_roles for role in allowed_roles):
-        raise HTTPException(status_code=403, detail="Solo personal de seguridad puede suscribirse a notificaciones push")
+        raise HTTPException(status_code=403, detail="No tienes permiso para suscribirte a notificaciones push")
     
     subscription = request.subscription
     
