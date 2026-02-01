@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 1, 2026 (Session 50 - P0 Alert Sound Bug VERIFIED)
+## Last Updated: February 1, 2026 (Session 51 - Reservations System Extended)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,60 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
+
+### Session 51 - RESERVATIONS SYSTEM EXTENDED (February 1, 2026) ⭐⭐⭐⭐⭐
+
+**Feature: Extensión del Sistema de Reservas por Tipo de Área**
+
+Implementación incremental del sistema de reservas con lógica por tipo de área, sin romper flujos existentes.
+
+**Fases Implementadas:**
+
+**FASE 1 - Modelo de Datos (Backend):**
+```python
+# Nuevos campos en AreaCreate/AreaUpdate (backward compatible)
+reservation_behavior: "exclusive" | "capacity" | "slot_based" | "free_access"
+max_capacity_per_slot: int | null
+max_reservations_per_user_per_day: int | null
+```
+
+**FASE 2 - Lógica por Tipo de Área:**
+- **EXCLUSIVE** (default): 1 reserva bloquea área (Rancho, Salón)
+- **CAPACITY**: Múltiples reservas hasta max_capacity (Gimnasio, Piscina)
+- **SLOT_BASED**: Slots fijos, 1 reserva = 1 slot (Canchas)
+- **FREE_ACCESS**: No permite reservas, acceso libre
+
+**FASE 3 - Backend:**
+- `GET /api/reservations/smart-availability/{area_id}?date=YYYY-MM-DD`
+- Retorna slots con `remaining_slots`, `total_capacity`, `status`
+- Validación de capacidad para tipo CAPACITY
+- Validación de límite por usuario
+
+**FASE 4 - Frontend:**
+- Slots clickeables con colores: verde (disponible), amarillo (pocos cupos), rojo (lleno)
+- Badge de tipo de área: Exclusivo, Por cupo, Por turno, Acceso libre
+- Muestra cupos restantes para áreas tipo CAPACITY
+- FREE_ACCESS: Oculta botón "Reservar"
+
+**Archivos Modificados:**
+- `/app/backend/server.py` - Nuevos campos y endpoint smart-availability
+- `/app/frontend/src/services/api.js` - Método getSmartAvailability
+- `/app/frontend/src/components/ResidentReservations.jsx` - UI actualizada
+
+**Testing:** PENDIENTE USER VERIFICATION
+
+---
+
+### Session 51 - Campanita Residente IMPLEMENTADA
+
+**Implementación completa del sistema de notificaciones para residentes:**
+- Badge dinámico con conteo de no leídas
+- Dropdown con lista real de notificaciones
+- Marca automáticamente como leídas después de 2 segundos
+- Sincronización con backend cada 30 segundos
+- Endpoint: `GET /api/resident/visitor-notifications/unread-count`
+
+---
 
 ### Session 50 - P0 BUG FIX: Sonido de Alerta Continúa (February 1, 2026) ⭐⭐⭐⭐⭐
 
