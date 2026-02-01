@@ -245,7 +245,16 @@ class AlertSoundManagerClass {
     this._stopInternal();
     this._releaseLock();
     
-    // Also clear lock from localStorage to signal other tabs
+    // Broadcast stop to all other tabs via BroadcastChannel
+    if (this.broadcastChannel) {
+      try {
+        this.broadcastChannel.postMessage({ type: 'STOP_ALL_SOUNDS' });
+      } catch (e) {
+        // Ignore
+      }
+    }
+    
+    // Also clear lock from localStorage to signal other tabs (fallback)
     try {
       localStorage.removeItem(SOUND_LOCK_KEY);
     } catch (e) {
