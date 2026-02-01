@@ -2648,8 +2648,35 @@ async def fast_checkin(
         "success": True,
         "entry": entry_doc,
         "is_authorized": is_authorized,
-        "message": "Entrada registrada" if is_authorized else "Entrada registrada (sin autorización válida)"
+        "message": "Entrada registrada" if is_authorized else "Entrada registrada (sin autorización válida)",
+        "authorization_marked_used": authorization is not None and authorization.get("authorization_type") == "temporary"
     }
+
+@api_router.get("/guard/entries-today")
+async def get_entries_today(
+    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
+):
+    """
+    Get all visitor entries for today.
+    Returns list of visitors who have checked in today, for guard reference.
+    """
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        return []
+    
+    # Get start of today in UTC
+    now = datetime.now(timezone.utc)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    
+    entries = await db.visitor_entries.find(
+        {
+            "condominium_id": condo_id,
+            "entry_at": {"$gte": today_start}
+        },
+        {"_id": 0}
+    ).sort("entry_at", -1).to_list(100)
+    
+    return entries
 
 @api_router.post("/guard/checkout/{entry_id}")
 async def fast_checkout(
