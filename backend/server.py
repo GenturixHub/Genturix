@@ -5565,19 +5565,33 @@ async def get_area_availability(
     except:
         pass  # If time parsing fails, return empty slots
     
+    # Get area configuration for frontend
+    reservation_mode = area.get("reservation_mode", "flexible")
+    min_duration = area.get("min_duration_hours", 1)
+    max_duration = area.get("max_duration_hours", area.get("max_hours_per_reservation", 4))
+    slot_duration = area.get("slot_duration_minutes", 60)
+    
     return {
         "area_id": area_id,
+        "area_name": area.get("name"),
+        "area_type": area.get("area_type"),
         "date": date,
         "day_name": day_name,
         "is_day_allowed": is_day_allowed,
-        "is_available": is_available,  # Main flag for frontend
+        "is_available": is_available,
         "available_from": available_from,
         "available_until": available_until,
+        "capacity": area.get("capacity", 10),
         "max_reservations_per_day": max_per_day,
         "current_reservations": reservations_count,
         "slots_remaining": slots_remaining,
-        "reserved_slots": existing,  # Changed from occupied_slots
-        "time_slots": time_slots,  # New: visual availability
+        "reserved_slots": existing,
+        "time_slots": time_slots,
+        # New: Area configuration for UI
+        "reservation_mode": reservation_mode,
+        "min_duration_hours": min_duration,
+        "max_duration_hours": max_duration,
+        "slot_duration_minutes": slot_duration,
         "message": None if is_available else (
             "Fecha no disponible (día no permitido)" if not is_day_allowed else
             "No hay espacios disponibles para esta fecha"
