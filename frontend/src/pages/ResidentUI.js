@@ -892,75 +892,42 @@ const ResidentUI = () => {
   useEffect(() => {
     const subscribeToPushNotifications = async () => {
       try {
-        // Check if service worker and push are supported
-        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-          console.log('Push notifications not supported');
+        // Use PushNotificationManager for clean subscription
+        const { PushNotificationManager } = await import('../utils/PushNotificationManager');
+        
+        if (!PushNotificationManager.isSupported()) {
+          console.log('[Resident] Push notifications not supported');
           return;
         }
         
-        // Check notification permission
-        if (Notification.permission === 'denied') {
-          console.log('Notification permission denied');
+        // Request permission
+        const permission = await pushManager.requestPermission();
+        if (permission !== 'granted') {
+          console.log('[Resident] Push permission not granted:', permission);
           return;
         }
         
-        // Request permission if needed
-        if (Notification.permission !== 'granted') {
-          const permission = await Notification.requestPermission();
-          if (permission !== 'granted') {
-            console.log('Notification permission not granted');
-            return;
-          }
-        }
-        
-        // Get VAPID public key from server
+        // Get VAPID key from server
         const vapidResponse = await api.getVapidPublicKey();
         if (!vapidResponse?.publicKey) {
-          console.log('No VAPID key available');
+          console.log('[Resident] No VAPID key from server');
           return;
         }
         
-        // Get service worker registration
-        const registration = await navigator.serviceWorker.ready;
+        // Subscribe to push
+        const subscriptionData = await pushManager.subscribe(vapidResponse.publicKey);
         
-        // Check if already subscribed
-        let subscription = await registration.pushManager.getSubscription();
+        // Send subscription to server
+        await api.subscribeToPush(subscriptionData);
+        console.log('[Resident] Successfully subscribed to push notifications');
         
-        if (!subscription) {
-          // Convert VAPID key
-          const urlBase64ToUint8Array = (base64String) => {
-            const padding = '='.repeat((4 - base64String.length % 4) % 4);
-            const base64 = (base64String + padding)
-              .replace(/-/g, '+')
-              .replace(/_/g, '/');
-            const rawData = window.atob(base64);
-            return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
-          };
-          
-          // Subscribe to push
-          subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(vapidResponse.publicKey)
-          });
-          
-          // Send subscription to server
-          await api.subscribeToPush({
-            endpoint: subscription.endpoint,
-            keys: {
-              p256dh: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('p256dh')))),
-              auth: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('auth'))))
-            }
-          });
-          
-          console.log('Successfully subscribed to push notifications');
-        }
       } catch (error) {
-        console.error('Error subscribing to push:', error);
+        console.error('[Resident] Error subscribing to push:', error);
       }
     };
     
-    // Delay subscription to not interfere with initial load
-    const timer = setTimeout(subscribeToPushNotifications, 3000);
+    // Delay to not interfere with initial load
+    const timer = setTimeout(subscribeToPushNotifications, 2000);
     return () => clearTimeout(timer);
   }, []);
 
