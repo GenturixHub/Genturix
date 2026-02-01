@@ -812,14 +812,20 @@ const ReservationsModule = () => {
   
   // Handlers
   const handleSaveArea = async (formData, areaId) => {
-    if (areaId) {
-      await api.updateReservationArea(areaId, formData);
-      toast.success('Área actualizada');
-    } else {
-      await api.createReservationArea(formData);
-      toast.success('Área creada');
+    try {
+      if (areaId) {
+        await api.updateReservationArea(areaId, formData);
+        toast.success('Área actualizada');
+      } else {
+        await api.createReservationArea(formData);
+        toast.success('Área creada');
+      }
+      fetchData();
+    } catch (error) {
+      const errorMessage = error?.message || (typeof error === 'string' ? error : 'Error al guardar área');
+      toast.error(errorMessage);
+      throw error; // Re-throw to let the dialog know
     }
-    fetchData();
   };
   
   const handleDeleteArea = async () => {
@@ -836,15 +842,26 @@ const ReservationsModule = () => {
   };
   
   const handleCreateReservation = async (formData) => {
-    await api.createReservation(formData);
-    toast.success('Reservación creada');
-    fetchData();
+    try {
+      await api.createReservation(formData);
+      toast.success('Reservación creada');
+      fetchData();
+    } catch (error) {
+      const errorMessage = error?.message || (typeof error === 'string' ? error : 'Error al crear reservación');
+      toast.error(errorMessage);
+      throw error; // Re-throw to let the dialog know
+    }
   };
   
   const handleUpdateReservation = async (reservationId, status, notes = null) => {
-    await api.updateReservationStatus(reservationId, { status, admin_notes: notes });
-    toast.success(`Reservación ${status === 'approved' ? 'aprobada' : status === 'rejected' ? 'rechazada' : 'cancelada'}`);
-    fetchData();
+    try {
+      await api.updateReservationStatus(reservationId, { status, admin_notes: notes });
+      toast.success(`Reservación ${status === 'approved' ? 'aprobada' : status === 'rejected' ? 'rechazada' : 'cancelada'}`);
+      fetchData();
+    } catch (error) {
+      const errorMessage = error?.message || (typeof error === 'string' ? error : 'Error al actualizar reservación');
+      toast.error(errorMessage);
+    }
   };
   
   const openEditArea = (area) => {
