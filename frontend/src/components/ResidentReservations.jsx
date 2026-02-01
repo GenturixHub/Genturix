@@ -248,7 +248,7 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
     }
   }, [area, open]);
   
-  // Load availability when date changes
+  // Load availability when date changes - Use smart availability for behavior-based logic
   useEffect(() => {
     const loadAvailability = async () => {
       if (!area?.id || !form.date) return;
@@ -256,10 +256,18 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
       setLoadingAvailability(true);
       setSelectedSlotIndex(null); // Reset slot selection when date changes
       try {
-        const data = await api.getReservationAvailability(area.id, form.date);
+        // Use smart availability which handles different area behaviors
+        const data = await api.getSmartAvailability(area.id, form.date);
         setAvailability(data);
       } catch (error) {
         console.error('Error loading availability:', error);
+        // Fallback to legacy endpoint if smart availability fails
+        try {
+          const legacyData = await api.getReservationAvailability(area.id, form.date);
+          setAvailability(legacyData);
+        } catch (e) {
+          console.error('Error loading legacy availability:', e);
+        }
       } finally {
         setLoadingAvailability(false);
       }
