@@ -40,16 +40,22 @@ if (typeof window !== 'undefined') {
   // Listen for service worker messages
   navigator.serviceWorker?.addEventListener('message', (event) => {
     if (event.data?.type === 'PLAY_PANIC_SOUND') {
-      console.log('[App] Received panic sound request');
-      startPanicSoundLoop();
+      console.log('[App] Received panic sound request from SW');
+      AlertSoundManager.play();
       
-      // Auto-stop after 30 seconds if not acknowledged
-      setTimeout(stopPanicSound, 30000);
+      // Auto-stop after 30 seconds if not acknowledged (safety net)
+      setTimeout(() => AlertSoundManager.stop(), 30000);
     }
     
     if (event.data?.type === 'PANIC_ALERT_CLICK') {
-      console.log('[App] Received panic alert click');
-      stopPanicSound();
+      console.log('[App] Received panic alert click from SW');
+      AlertSoundManager.stop();
+    }
+    
+    // New: Stop sound when alert is viewed/acknowledged
+    if (event.data?.type === 'STOP_PANIC_SOUND') {
+      console.log('[App] Received stop sound request');
+      AlertSoundManager.stop();
     }
   });
 }
