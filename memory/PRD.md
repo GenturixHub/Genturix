@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 1, 2026 (Session 40 - P0 Guard Check-In Duplicate Fix)
+## Last Updated: February 1, 2026 (Session 41 - P0 Guard Profile UX Fix)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,47 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
+
+### Session 41 - P0 UX FIX: Guard Profile Navigation (February 1, 2026) ⭐⭐⭐⭐⭐
+
+#### 🔴 P0 BUG FIXED: Perfil Duplicado en Guard UI
+
+**Problem:** For Guard role, clicking on the avatar in the header navigated to `/profile` (a separate ProfilePage with DashboardLayout), creating:
+- Duplicate profile views (ProfilePage.js vs embedded EmbeddedProfile.jsx)
+- Navigation without a clear "back" button
+- Inconsistent UX between mobile (used embedded) and desktop (navigated away)
+
+**Root Cause:**
+In `GuardUI.js` lines 1976 and 1988:
+```javascript
+onClick={() => isMobile ? setActiveTab('profile') : navigate('/profile')}
+```
+This caused desktop users to navigate away from the Guard panel to a separate `/profile` route.
+
+**Solution Implemented:**
+
+1. **Unified Navigation:**
+   - Changed avatar click handler to always use `setActiveTab('profile')` (not conditional)
+   - Now mobile AND desktop both use the embedded profile tab
+   - No navigation away from `/guard`
+
+2. **Back Button Confirmed Working:**
+   - `EmbeddedProfile` already has `onBack={() => setActiveTab('alerts')}`
+   - "Volver al Panel" button is visible and functional
+
+3. **Desktop Profile Button Fixed:**
+   - Line 2021: Changed from `navigate('/profile')` to `setActiveTab('profile')`
+
+**Files Modified:**
+- `/app/frontend/src/pages/GuardUI.js` (lines 1973-1992, 2015-2027)
+
+**Verification Results:**
+- ✅ Avatar click stays on `/guard`
+- ✅ Profile tab shows embedded EmbeddedProfile.jsx
+- ✅ "Volver al Panel" button visible and works
+- ✅ Returns to Alerts tab correctly
+
+---
 
 ### Session 40 - P0 BUG FIX: Guard Check-In Duplicates (February 1, 2026) ⭐⭐⭐⭐⭐
 
