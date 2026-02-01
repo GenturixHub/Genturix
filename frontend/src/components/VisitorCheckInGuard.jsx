@@ -469,25 +469,29 @@ const ManualCheckInDialog = ({ open, onClose, authorization, onSubmit }) => {
 const VisitorCheckInGuard = () => {
   const [search, setSearch] = useState('');
   const [authorizations, setAuthorizations] = useState([]);
-  const [todayAuthorizations, setTodayAuthorizations] = useState([]); // New: auto-loaded
+  const [todayPreregistrations, setTodayPreregistrations] = useState([]); // Pending pre-registrations for today
+  const [entriesToday, setEntriesToday] = useState([]); // Visitors who have already checked in today
   const [visitorsInside, setVisitorsInside] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [showCheckInDialog, setShowCheckInDialog] = useState(false);
   const [selectedAuth, setSelectedAuth] = useState(null);
   const [processingCheckout, setProcessingCheckout] = useState(null);
+  const [showEntriesToday, setShowEntriesToday] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
-      const [inside, allAuths] = await Promise.all([
+      const [inside, allAuths, todayEntries] = await Promise.all([
         api.getVisitorsInside(),
-        api.getAuthorizationsForGuard('') // Load all authorizations
+        api.getAuthorizationsForGuard(''), // Only returns pending authorizations by default
+        api.getEntriesToday().catch(() => []) // Get today's entries
       ]);
       setVisitorsInside(inside);
+      setEntriesToday(todayEntries);
       
       // Filter only currently valid authorizations for today's list
       const validToday = allAuths.filter(auth => auth.is_currently_valid);
-      setTodayAuthorizations(validToday);
+      setTodayPreregistrations(validToday);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
