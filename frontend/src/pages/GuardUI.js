@@ -2384,6 +2384,9 @@ const GuardUI = () => {
           centerIndex={2}
         />
       )}
+      
+      {/* Push Permission Banner */}
+      <PushPermissionBanner onSubscribed={() => console.log('Guard push enabled!')} />
     </div>
   );
 };
