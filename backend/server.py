@@ -1917,15 +1917,65 @@ async def create_access_log(log: AccessLogCreate, request: Request, current_user
     return access_log
 
 @api_router.get("/security/access-logs")
-async def get_access_logs(current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
-    """Get access logs - scoped by condominium"""
+async def get_access_logs(
+    include_visitor_entries: bool = True,
+    limit: int = 100,
+    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
+):
+    """
+    Get unified access logs combining:
+    - Manual access_logs entries
+    - visitor_entries (check-ins from guards)
+    Scoped by condominium for non-SuperAdmin users
+    """
     query = {}
     if "SuperAdmin" not in current_user.get("roles", []):
         condo_id = current_user.get("condominium_id")
         if condo_id:
             query["condominium_id"] = condo_id
-    logs = await db.access_logs.find(query, {"_id": 0}).sort("timestamp", -1).to_list(100)
-    return logs
+    
+    # Get manual access logs
+    manual_logs = await db.access_logs.find(query, {"_id": 0}).sort("timestamp", -1).to_list(limit // 2)
+    
+    # Convert to unified format
+    unified_logs = []
+    for log in manual_logs:
+        unified_logs.append({
+            "id": log.get("id"),
+            "person_name": log.get("person_name"),
+            "access_type": log.get("access_type", "entry"),
+            "entry_type": "manual",
+            "location": log.get("location", "Sin ubicación"),
+            "timestamp": log.get("timestamp"),
+            "guard_name": log.get("guard_name"),
+            "notes": log.get("notes"),
+            "source": "manual"
+        })
+    
+    # Include visitor entries (actual check-ins)
+    if include_visitor_entries:
+        entries = await db.visitor_entries.find(query, {"_id": 0}).sort("entry_at", -1).to_list(limit)
+        
+        for entry in entries:
+            unified_logs.append({
+                "id": entry.get("id"),
+                "person_name": entry.get("visitor_name", "Visitante"),
+                "access_type": "entry" if entry.get("entry_at") else "exit",
+                "entry_type": entry.get("authorization_type", "visitor"),
+                "location": entry.get("destination", "Sin destino"),
+                "timestamp": entry.get("entry_at") or entry.get("exit_at"),
+                "exit_timestamp": entry.get("exit_at"),
+                "guard_name": entry.get("guard_name"),
+                "vehicle_plate": entry.get("vehicle_plate"),
+                "is_authorized": entry.get("is_authorized", True),
+                "resident_name": entry.get("authorized_by_name"),
+                "source": "check_in"
+            })
+    
+    # Sort all by timestamp (most recent first)
+    unified_logs.sort(key=lambda x: x.get("timestamp") or "", reverse=True)
+    
+    return unified_logs[:limit]
 
 # Endpoint for Residents to see their visitor notifications
 @api_router.get("/resident/notifications")
