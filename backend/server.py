@@ -2466,6 +2466,29 @@ async def get_authorizations_for_guard(
     
     authorizations = await db.visitor_authorizations.find(query, {"_id": 0}).to_list(500)
     
+    # ==================== FILTER OUT ALREADY CHECKED-IN (for temporary/extended) ====================
+    # This handles legacy data where status wasn't set to 'used' but checked_in_at exists
+    filtered_authorizations = []
+    for auth in authorizations:
+        auth_type = auth.get("authorization_type", "temporary")
+        checked_in_at = auth.get("checked_in_at")
+        
+        # If it's temporary or extended AND already has a check-in, skip it
+        if auth_type in ["temporary", "extended"] and checked_in_at:
+            # Also update the status in DB asynchronously (fix legacy data)
+            await db.visitor_authorizations.update_one(
+                {"id": auth.get("id"), "status": {"$in": ["pending", None]}},
+                {"$set": {"status": "used"}}
+            )
+            logger.info(f"[guard/authorizations] Auto-fixed legacy auth {auth.get('id')[:8]} to status=used")
+            if not include_used:
+                continue  # Skip this authorization
+        
+        filtered_authorizations.append(auth)
+    
+    authorizations = filtered_authorizations
+    # ================================================================================================
+    
     # Enrich with validity status
     for auth in authorizations:
         validity = check_authorization_validity(auth)
