@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../ui/button';
@@ -7,7 +7,10 @@ import {
   Menu, 
   Search,
   AlertTriangle,
-  User
+  User,
+  Check,
+  CheckCheck,
+  RefreshCw
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -18,53 +21,116 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import { Input } from '../ui/input';
+import { toast } from 'sonner';
 import api from '../../services/api';
 
 const Header = ({ onMenuClick, title }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Fetch real notifications/alerts for admins and guards
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      if (!user) return;
-      const roles = user.roles || [];
-      
-      // Only fetch for roles that handle alerts
-      if (roles.includes('Administrador') || roles.includes('Supervisor') || roles.includes('Guarda')) {
-        setLoadingNotifications(true);
-        try {
-          const events = await api.get('/security/panic-events');
-          const activeAlerts = Array.isArray(events) 
-            ? events.filter(e => e.status === 'active').slice(0, 5)
-            : [];
-          setNotifications(activeAlerts.map(e => ({
-            id: e.id,
-            title: e.panic_type_label || 'Alerta de Pánico',
-            message: `${e.user_name} - ${e.location || 'Sin ubicación'}`,
-            type: 'alert'
-          })));
-        } catch (err) {
-          console.error('Error fetching notifications:', err);
-          setNotifications([]);
-        } finally {
-          setLoadingNotifications(false);
-        }
-      }
-    };
+  // Fetch notifications and unread count
+  const fetchNotifications = useCallback(async () => {
+    if (!user) return;
+    const roles = user.roles || [];
     
+    // Only fetch for roles that handle notifications
+    if (roles.includes('Administrador') || roles.includes('Supervisor') || roles.includes('Guarda') || roles.includes('SuperAdmin')) {
+      try {
+        const [notifData, countData] = await Promise.all([
+          api.getNotifications(false),  // Get all notifications
+          api.getUnreadNotificationCount()  // Get unread count
+        ]);
+        
+        setNotifications(Array.isArray(notifData) ? notifData.slice(0, 10) : []);
+        setUnreadCount(countData?.count || 0);
+      } catch (err) {
+        console.error('Error fetching notifications:', err);
+        // Fallback to empty
+        setNotifications([]);
+        setUnreadCount(0);
+      }
+    }
+  }, [user]);
+
+  // Initial fetch and polling
+  useEffect(() => {
     fetchNotifications();
     // Refresh every 30 seconds
     const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, [fetchNotifications]);
+
+  // Mark single notification as read
+  const handleMarkRead = async (notificationId, e) => {
+    e?.stopPropagation();
+    try {
+      await api.markNotificationAsRead(notificationId);
+      setNotifications(prev => prev.map(n => 
+        n.id === notificationId ? {...n, read: true} : n
+      ));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Error marking notification read:', error);
+    }
+  };
+
+  // Mark all as read when opening dropdown
+  const handleDropdownOpenChange = async (open) => {
+    setIsDropdownOpen(open);
+    
+    // When opening the dropdown, mark visible unread notifications as read
+    if (open && unreadCount > 0) {
+      // Small delay to let user see notifications first
+      setTimeout(async () => {
+        try {
+          await api.markAllNotificationsAsRead();
+          setNotifications(prev => prev.map(n => ({...n, read: true})));
+          setUnreadCount(0);
+        } catch (error) {
+          console.error('Error marking all as read:', error);
+        }
+      }, 2000); // Mark as read after 2 seconds of viewing
+    }
+  };
+
+  // Manual refresh
+  const handleRefresh = async (e) => {
+    e?.stopPropagation();
+    setIsRefreshing(true);
+    await fetchNotifications();
+    setIsRefreshing(false);
+    toast.success('Notificaciones actualizadas');
+  };
+
+  // Manual mark all as read
+  const handleMarkAllRead = async (e) => {
+    e?.stopPropagation();
+    if (unreadCount === 0) return;
+    
+    try {
+      const result = await api.markAllNotificationsAsRead();
+      setNotifications(prev => prev.map(n => ({...n, read: true})));
+      setUnreadCount(0);
+      toast.success(`${result.count || 'Todas las'} notificaciones marcadas como leídas`);
+    } catch (error) {
+      toast.error('Error al marcar notificaciones');
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
+
+  // Check if user has notification-enabled role
+  const hasNotifications = user?.roles?.some(r => 
+    ['Administrador', 'Supervisor', 'Guarda', 'SuperAdmin'].includes(r)
+  );
 
   return (
     <header className="sticky top-0 z-30 h-16 bg-[#0F111A] border-b border-[#1E293B] px-4 flex items-center gap-4">
@@ -96,9 +162,9 @@ const Header = ({ onMenuClick, title }) => {
         </div>
       </div>
 
-      {/* Notifications - Only for Admin/Guard roles with real data */}
-      {(user?.roles?.includes('Administrador') || user?.roles?.includes('Supervisor') || user?.roles?.includes('Guarda')) && (
-        <DropdownMenu>
+      {/* Notifications - Dynamic badge based on unread count */}
+      {hasNotifications && (
+        <DropdownMenu open={isDropdownOpen} onOpenChange={handleDropdownOpenChange}>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
@@ -107,37 +173,90 @@ const Header = ({ onMenuClick, title }) => {
               data-testid="notifications-btn"
             >
               <Bell className="w-5 h-5" />
-              {notifications.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-[10px] font-bold flex items-center justify-center animate-pulse">
-                  {notifications.length}
+              {unreadCount > 0 && (
+                <span 
+                  className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-[10px] font-bold flex items-center justify-center animate-pulse"
+                  data-testid="notification-badge"
+                >
+                  {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-80 bg-[#0F111A] border-[#1E293B]">
             <DropdownMenuLabel className="flex items-center justify-between">
-              <span>Alertas Activas</span>
-              <span className="text-xs text-muted-foreground">
-                {notifications.length > 0 ? `${notifications.length} activas` : 'Sin alertas'}
-              </span>
+              <span>Notificaciones</span>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-6 px-2"
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                >
+                  <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+                </Button>
+                {unreadCount > 0 && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 px-2 text-primary"
+                    onClick={handleMarkAllRead}
+                    title="Marcar todas como leídas"
+                  >
+                    <CheckCheck className="w-3 h-3" />
+                  </Button>
+                )}
+                <span className="text-xs text-muted-foreground">
+                  {unreadCount > 0 ? `${unreadCount} sin leer` : 'Al día'}
+                </span>
+              </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-[#1E293B]" />
             {notifications.length === 0 ? (
               <div className="p-4 text-center text-sm text-muted-foreground">
-                No hay alertas activas
+                No hay notificaciones
               </div>
             ) : (
-              notifications.map((notif) => (
-                <DropdownMenuItem key={notif.id} className="flex items-start gap-3 py-3 cursor-pointer">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-red-500/20 text-red-400">
-                    <AlertTriangle className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{notif.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{notif.message}</p>
-                  </div>
-                </DropdownMenuItem>
-              ))
+              <div className="max-h-80 overflow-y-auto">
+                {notifications.map((notif) => (
+                  <DropdownMenuItem 
+                    key={notif.id} 
+                    className={`flex items-start gap-3 py-3 cursor-pointer ${!notif.read ? 'bg-primary/5' : ''}`}
+                    onClick={() => navigate('/security')}
+                  >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      notif.read ? 'bg-gray-500/20 text-gray-400' : 'bg-red-500/20 text-red-400'
+                    }`}>
+                      <AlertTriangle className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm ${notif.read ? 'text-muted-foreground' : 'font-medium'}`}>
+                        {notif.panic_type_label || 'Alerta'}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {notif.resident_name} - {notif.location || 'Sin ubicación'}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        {new Date(notif.created_at).toLocaleString('es-ES', { 
+                          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                    {!notif.read && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 flex-shrink-0"
+                        onClick={(e) => handleMarkRead(notif.id, e)}
+                        title="Marcar como leída"
+                      >
+                        <Check className="w-3 h-3" />
+                      </Button>
+                    )}
+                  </DropdownMenuItem>
+                ))}
+              </div>
             )}
             {notifications.length > 0 && (
               <>
