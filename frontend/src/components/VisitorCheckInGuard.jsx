@@ -47,7 +47,8 @@ import {
   Infinity as InfinityIcon,
   Repeat,
   Eye,
-  Trash2
+  Trash2,
+  Bug
 } from 'lucide-react';
 
 // ============================================
