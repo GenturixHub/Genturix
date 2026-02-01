@@ -208,10 +208,14 @@
 
 /* MEDICAL - Red/Urgent */
 .emergency-btn--medical {
-  --glow-idle: 0 4px 30px rgba(239, 68, 68, 0.35), 0 8px 40px rgba(185, 28, 28, 0.25);
-  --glow-breathing: 0 4px 40px rgba(239, 68, 68, 0.5), 0 8px 50px rgba(185, 28, 28, 0.35);
-  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 50%, #991b1b 100%);
-  border: 2px solid rgba(248, 113, 113, 0.5);
+  --glow-idle: 
+    0 8px 32px rgba(220, 38, 38, 0.4), 
+    0 4px 16px rgba(185, 28, 28, 0.3);
+  --glow-breathing: 
+    0 12px 40px rgba(220, 38, 38, 0.5), 
+    0 6px 24px rgba(185, 28, 28, 0.4);
+  background: linear-gradient(145deg, #ef4444 0%, #dc2626 40%, #b91c1c 100%);
+  border: 2px solid rgba(248, 113, 113, 0.6);
 }
 
 .emergency-btn--medical::after {
@@ -220,17 +224,22 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 50%;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), transparent);
+  height: 45%;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.15), transparent);
   pointer-events: none;
+  border-radius: 1.25rem 1.25rem 0 0;
 }
 
 /* SUSPICIOUS - Amber/Alert */
 .emergency-btn--suspicious {
-  --glow-idle: 0 4px 30px rgba(245, 158, 11, 0.35), 0 8px 40px rgba(217, 119, 6, 0.25);
-  --glow-breathing: 0 4px 40px rgba(245, 158, 11, 0.5), 0 8px 50px rgba(217, 119, 6, 0.35);
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
-  border: 2px solid rgba(252, 211, 77, 0.5);
+  --glow-idle: 
+    0 8px 32px rgba(245, 158, 11, 0.4), 
+    0 4px 16px rgba(217, 119, 6, 0.3);
+  --glow-breathing: 
+    0 12px 40px rgba(245, 158, 11, 0.5), 
+    0 6px 24px rgba(217, 119, 6, 0.4);
+  background: linear-gradient(145deg, #fbbf24 0%, #f59e0b 40%, #d97706 100%);
+  border: 2px solid rgba(252, 211, 77, 0.6);
 }
 
 .emergency-btn--suspicious::after {
@@ -239,24 +248,29 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 50%;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.15), transparent);
+  height: 45%;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.2), transparent);
   pointer-events: none;
+  border-radius: 1.25rem 1.25rem 0 0;
 }
 
 /* GENERAL - Orange/Dominant (Most prominent) */
 .emergency-btn--general {
-  --glow-idle: 0 4px 35px rgba(249, 115, 22, 0.4), 0 8px 45px rgba(234, 88, 12, 0.3);
-  --glow-breathing: 0 4px 50px rgba(249, 115, 22, 0.55), 0 8px 60px rgba(234, 88, 12, 0.4);
-  background: linear-gradient(135deg, #f97316 0%, #ea580c 50%, #c2410c 100%);
-  border: 2px solid rgba(251, 146, 60, 0.6);
-  /* Slightly larger for dominance */
-  min-height: 110px;
+  --glow-idle: 
+    0 10px 40px rgba(249, 115, 22, 0.45), 
+    0 5px 20px rgba(234, 88, 12, 0.35);
+  --glow-breathing: 
+    0 14px 50px rgba(249, 115, 22, 0.6), 
+    0 8px 30px rgba(234, 88, 12, 0.45);
+  background: linear-gradient(145deg, #fb923c 0%, #f97316 40%, #ea580c 100%);
+  border: 3px solid rgba(251, 146, 60, 0.7);
+  /* Larger for visual dominance */
+  min-height: 105px;
 }
 
 @media (min-width: 640px) {
   .emergency-btn--general {
-    min-height: 130px;
+    min-height: 125px;
   }
 }
 
@@ -266,9 +280,10 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 50%;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.12), transparent);
+  height: 45%;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.18), transparent);
   pointer-events: none;
+  border-radius: 1.1rem 1.1rem 0 0;
 }
 
 /* ========================================
