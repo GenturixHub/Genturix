@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 1, 2026 (Session 41 - P0 Guard Profile + History Fix)
+## Last Updated: February 1, 2026 (Session 41 - P0 Guard Profile UX Complete Fix)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -9,31 +9,48 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
 
-### Session 41 - P0 FIXES: Guard Profile Navigation + History (February 1, 2026) ⭐⭐⭐⭐⭐
+### Session 41 - P0 CRITICAL FIX: Guard Double Profile View (February 1, 2026) ⭐⭐⭐⭐⭐
 
-#### 🔴 P0 BUG #1 FIXED: Perfil Duplicado en Guard UI
+#### 🔴 P0 BUG FIXED: Doble Interfaz de Perfil sin Retorno (COMPLETE FIX)
 
-**Problem:** For Guard role, clicking on the avatar in the header navigated to `/profile` (a separate ProfilePage with DashboardLayout), creating:
-- Duplicate profile views (ProfilePage.js vs embedded EmbeddedProfile.jsx)
-- Navigation without a clear "back" button
-- Inconsistent UX between mobile (used embedded) and desktop (navigated away)
+**Problem:** Guard role had TWO different profile views:
+1. ✅ Integrated profile via bottom "Perfil" tab (correct)
+2. ❌ Isolated profile via top avatar → `/profile` route (incorrect - no navigation, trapped user)
 
 **Root Cause:**
-In `GuardUI.js` the avatar and profile button used conditional navigation:
-```javascript
-onClick={() => isMobile ? setActiveTab('profile') : navigate('/profile')}
-```
+1. Avatar click handlers in `GuardUI.js` navigated to `/profile`
+2. The `/profile` route in `App.js` was available to ALL authenticated users
+3. Guards could access ProfilePage which has DashboardLayout (wrong layout for guards)
 
-**Solution Implemented:**
-1. Changed all profile navigation to always use `setActiveTab('profile')`
-2. Both mobile AND desktop now use the embedded profile tab
-3. No navigation away from `/guard`
-4. "Volver al Panel" button works correctly
+**Complete Solution:**
+
+**1. GuardUI.js - Click handlers fixed (earlier)**
+- Avatar and profile button now use `setActiveTab('profile')` instead of `navigate('/profile')`
+
+**2. App.js - Route-level protection (NEW)**
+- Created `ProfilePageOrRedirect` component
+- If user role is ONLY "Guarda", redirects to `/guard?tab=profile`
+- Other roles continue to use normal ProfilePage
+
+**3. GuardUI.js - URL parameter handling (NEW)**
+- Added support for `?tab=profile` URL parameter
+- When redirected from `/profile`, automatically opens the Profile tab
 
 **Files Modified:**
-- `/app/frontend/src/pages/GuardUI.js` (lines 1973-1992, 2015-2027)
+- `/app/frontend/src/App.js` - Added ProfilePageOrRedirect component
+- `/app/frontend/src/pages/GuardUI.js` - Added tab URL parameter handling
 
-#### 🔴 P0 BUG #2 FIXED: Historial Vacío (No registraba entradas/salidas/alertas)
+**Verification Results:**
+- ✅ Avatar click stays on `/guard` (embedded profile)
+- ✅ Direct navigation to `/profile` redirects to `/guard?tab=profile`
+- ✅ Profile tab shows EmbeddedProfile with "Volver al Panel" button
+- ✅ Bottom navigation always visible
+- ✅ Works on desktop AND mobile
+- ✅ Guard can NEVER get trapped in an isolated view
+
+---
+
+### Earlier Fixes in this Session:
 
 **Problem:** The History tab showed 0 events even though there were check-ins and alerts.
 
