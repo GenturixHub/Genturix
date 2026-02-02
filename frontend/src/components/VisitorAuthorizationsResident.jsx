@@ -197,11 +197,16 @@ const AuthorizationCard = ({ auth, onEdit, onDelete }) => {
   const typeConfig = AUTHORIZATION_TYPES[auth.authorization_type] || AUTHORIZATION_TYPES.temporary;
   const colorConfig = COLOR_CONFIG[auth.color_code] || COLOR_CONFIG.yellow;
   const IconComponent = typeConfig.icon;
+  const visitorTypeConfig = VISITOR_TYPES[auth.visitor_type] || VISITOR_TYPES.visitor;
+  const VisitorTypeIcon = visitorTypeConfig.icon;
   
   // P0 FIX: Check if visitor is currently inside (cannot delete)
   const hasVisitorInside = auth.has_visitor_inside === true;
   // Can delete if NOT inside and authorization is active
   const canDelete = !hasVisitorInside;
+  
+  // Check if this is a service type (not regular visitor)
+  const isServiceType = auth.visitor_type && auth.visitor_type !== 'visitor';
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
@@ -214,14 +219,34 @@ const AuthorizationCard = ({ auth, onEdit, onDelete }) => {
         {/* Header */}
         <div className="flex items-start justify-between gap-2 mb-3">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-lg ${colorConfig.bg} flex items-center justify-center`}>
-              <IconComponent className="w-5 h-5 text-white" />
+            <div className={`w-10 h-10 rounded-lg ${isServiceType ? visitorTypeConfig.bgColor?.replace('/20', '') : colorConfig.bg} flex items-center justify-center`}
+                 style={isServiceType ? {
+                   backgroundColor: auth.visitor_type === 'delivery' ? '#eab308' : 
+                                   auth.visitor_type === 'maintenance' ? '#3b82f6' :
+                                   auth.visitor_type === 'technical' ? '#a855f7' :
+                                   auth.visitor_type === 'cleaning' ? '#22c55e' :
+                                   auth.visitor_type === 'other' ? '#f97316' : undefined
+                 } : {}}>
+              {isServiceType ? (
+                <VisitorTypeIcon className="w-5 h-5 text-white" />
+              ) : (
+                <IconComponent className="w-5 h-5 text-white" />
+              )}
             </div>
             <div>
               <p className="font-bold text-white">{auth.visitor_name}</p>
-              <Badge className={`${colorConfig.light} ${colorConfig.text} border ${colorConfig.border}`}>
-                {typeConfig.label}
-              </Badge>
+              <div className="flex flex-wrap gap-1">
+                {/* Visitor Type Badge */}
+                {isServiceType && (
+                  <Badge className={`${visitorTypeConfig.bgColor} ${visitorTypeConfig.textColor} border ${visitorTypeConfig.borderColor} text-[10px]`}>
+                    {visitorTypeConfig.label}
+                  </Badge>
+                )}
+                {/* Authorization Type Badge */}
+                <Badge className={`${colorConfig.light} ${colorConfig.text} border ${colorConfig.border} text-[10px]`}>
+                  {typeConfig.label}
+                </Badge>
+              </div>
             </div>
           </div>
           
