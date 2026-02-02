@@ -331,6 +331,123 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
           </div>
         </DialogContent>
       </Dialog>
+      
+      {/* Embedded Profile Modal - Shows profile without navigation */}
+      <Dialog open={profileModalOpen} onOpenChange={closeProfileModal}>
+        <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-md max-h-[85vh] overflow-y-auto p-0">
+          <DialogHeader className="p-4 border-b border-[#1E293B] sticky top-0 bg-[#0F111A] z-10">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={closeProfileModal}
+                data-testid="profile-modal-back"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <div>
+                <DialogTitle className="text-base">Perfil</DialogTitle>
+                <DialogDescription className="text-xs">
+                  Información de contacto
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          
+          {profileModalUser && (
+            <div className="p-4 space-y-4">
+              {/* Profile Header */}
+              <div className="flex flex-col items-center text-center">
+                <Avatar className="w-24 h-24 border-4 border-[#1E293B]">
+                  <AvatarImage src={profileModalUser.profile_photo} />
+                  <AvatarFallback className="text-2xl font-bold bg-primary/10 text-primary">
+                    {profileModalUser.full_name?.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <h2 className="text-xl font-semibold mt-3">{profileModalUser.full_name}</h2>
+                
+                {/* Roles */}
+                <div className="flex flex-wrap justify-center gap-2 mt-2">
+                  {(profileModalUser.roles || [profileModalUser.role]).filter(Boolean).map((role, index) => {
+                    const config = ROLE_CONFIG[role] || { color: 'bg-gray-500/10 text-gray-400 border-gray-500/30', label: role };
+                    return (
+                      <Badge key={index} className={config.color}>
+                        {role}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              {/* Contact Info */}
+              <Card className="bg-[#0A0A0F] border-[#1E293B]">
+                <CardContent className="p-4 space-y-3">
+                  {profileModalUser.phone && (
+                    <a 
+                      href={`tel:${profileModalUser.phone}`}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#1E293B]/50 transition-colors"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
+                        <Phone className="w-5 h-5 text-green-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Teléfono</p>
+                        <p className="font-medium">{profileModalUser.phone}</p>
+                      </div>
+                    </a>
+                  )}
+                  
+                  {profileModalUser.email && (
+                    <a 
+                      href={`mailto:${profileModalUser.email}`}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#1E293B]/50 transition-colors"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                        <Mail className="w-5 h-5 text-blue-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Email</p>
+                        <p className="font-medium text-sm truncate">{profileModalUser.email}</p>
+                      </div>
+                    </a>
+                  )}
+                  
+                  {profileModalUser.unit_number && (
+                    <div className="flex items-center gap-3 p-2">
+                      <div className="w-10 h-10 rounded-full bg-cyan-500/10 flex items-center justify-center">
+                        <MapPin className="w-5 h-5 text-cyan-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Unidad</p>
+                        <p className="font-medium">{profileModalUser.unit_number}</p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              
+              {/* Description */}
+              {profileModalUser.public_description && (
+                <Card className="bg-[#0A0A0F] border-[#1E293B]">
+                  <CardContent className="p-4">
+                    <p className="text-xs text-muted-foreground mb-2">Descripción</p>
+                    <p className="text-sm">{profileModalUser.public_description}</p>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Loading indicator */}
+              {loadingProfile && (
+                <div className="flex items-center justify-center py-2">
+                  <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground ml-2">Cargando más información...</span>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
