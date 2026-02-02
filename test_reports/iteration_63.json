@@ -1,0 +1,104 @@
+{
+  "summary": "P0 REGRESSION FIX VERIFIED - Alert Sound Duplication + Missing Map. All 7 test requirements passed. Sound control is centralized in GuardUI.js with proper refs to prevent duplicates. Map displays correctly for alerts with coordinates.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_results": {
+    "alert_modal_functionality": {
+      "test_modal_opens_on_click": "PASS - Alert modal opens correctly when clicking alert card",
+      "test_modal_shows_resident_info": "PASS - Modal displays resident name, apartment, alert type, date/time",
+      "test_modal_shows_notes": "PASS - Resident notes displayed in yellow highlighted section"
+    },
+    "map_display_with_coordinates": {
+      "test_general_alert_has_map": "PASS - GENERAL alert (coords: 10.4806, -66.9036) shows embedded OpenStreetMap",
+      "test_map_iframe_present": "PASS - iframe[title='Ubicación de la alerta'] found in modal",
+      "test_coordinates_displayed": "PASS - Coordinates shown: 10.4806, -66.9036",
+      "test_abrir_en_maps_button": "PASS - 'Abrir en Maps' button visible",
+      "test_ir_a_ubicacion_button": "PASS - 'IR A UBICACIÓN' navigation button visible"
+    },
+    "map_not_displayed_without_coordinates": {
+      "test_medica_alert_no_map": "PASS - MÉDICA alert (null lat/lng) does NOT show map section",
+      "test_no_gps_button_for_null_coords": "PASS - No 'IR A UBICACIÓN' button for alerts without coordinates"
+    },
+    "gps_badge_on_cards": {
+      "test_gps_badge_visible": "PASS - GPS badge visible on GENERAL alert card (has coordinates)",
+      "test_no_gps_badge_for_null_coords": "PASS - No GPS badge on MÉDICA alert card (null coordinates)"
+    },
+    "sound_control_logic": {
+      "test_sound_stops_on_tab_navigation": "PASS - stopAlertSound() called in handleTabChange when navigating to 'alerts' tab",
+      "test_sound_stops_on_alert_click": "PASS - AlertSoundManager.stop() called in handleOpenAlert when clicking alert card",
+      "test_sound_stops_on_resolve": "PASS - AlertSoundManager.stop() called in handleResolve when resolving alert",
+      "test_centralized_sound_control": "PASS - Sound control centralized in GuardUI.js with soundAcknowledgedRef and soundTimeoutRef",
+      "test_service_worker_single_client": "PASS - Service worker sends PLAY_PANIC_SOUND to only ONE client (line 154-169)"
+    },
+    "resolve_button_functionality": {
+      "test_resolve_button_visible": "PASS - 'MARCAR COMO ATENDIDA' button visible in active alert modal",
+      "test_resolution_notes_input": "PASS - Resolution notes textarea accepts input",
+      "test_resolve_success": "PASS - Alert resolved successfully, modal closes, success toast displayed",
+      "test_alert_moves_to_resolved": "PASS - Alert moves from 'REQUIEREN ATENCIÓN' to 'ATENDIDAS RECIENTEMENTE'"
+    },
+    "mobile_view": {
+      "test_mobile_alerts_view": "PASS - Alerts tab loads correctly on mobile (390x844)",
+      "test_mobile_bottom_nav": "PASS - Mobile bottom navigation visible with all tabs",
+      "test_mobile_alert_modal": "PASS - Alert modal opens and displays correctly on mobile",
+      "test_mobile_map_display": "PASS - Map displays correctly in modal on mobile for GENERAL alert"
+    }
+  },
+  "code_review": {
+    "sound_control_implementation": {
+      "file": "/app/frontend/src/pages/GuardUI.js",
+      "lines": "2113-2232",
+      "findings": [
+        "GOOD: soundAcknowledgedRef prevents duplicate sound plays",
+        "GOOD: soundTimeoutRef provides 30-second auto-stop safety net",
+        "GOOD: stopAlertSound() is centralized and called from multiple places",
+        "GOOD: Service worker message listener handles PLAY_PANIC_SOUND, STOP_PANIC_SOUND, NOTIFICATION_CLICKED, NOTIFICATION_CLOSED",
+        "GOOD: Global event listener for 'panicAlertAcknowledged' ensures sound stops when alert is opened"
+      ]
+    },
+    "service_worker_implementation": {
+      "file": "/app/frontend/public/service-worker.js",
+      "lines": "154-169",
+      "findings": [
+        "GOOD: Only sends PLAY_PANIC_SOUND to ONE client (focused > visible > first)",
+        "GOOD: Prevents duplicate sound by selecting single target client"
+      ]
+    },
+    "alert_sound_manager": {
+      "file": "/app/frontend/src/utils/AlertSoundManager.js",
+      "findings": [
+        "GOOD: Cross-tab coordination using BroadcastChannel and localStorage",
+        "GOOD: Lock mechanism prevents multiple tabs playing sound",
+        "GOOD: getIsPlaying() method allows checking if sound is already playing"
+      ]
+    }
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "N/A (frontend only testing)",
+    "frontend": "100% (24/24 tests passed)"
+  },
+  "test_credentials": {
+    "guard": {
+      "email": "guarda1@genturix.com",
+      "password": "Guard123!"
+    }
+  },
+  "seed_data_creation": "Resolved MÉDICA alert during testing to verify resolve button functionality",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "P0 regression fix verified. Alert sound duplication fixed by: 1) Removing sound listeners from App.js, 2) Centralizing sound control in GuardUI.js with refs, 3) Service worker sends to single client. Map displays correctly for alerts with coordinates (GENERAL: 10.4806, -66.9036). MÉDICA alert has null coordinates so no map is expected.",
+  "mocked_api": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": []
+  }
+}
