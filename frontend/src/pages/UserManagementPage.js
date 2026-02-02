@@ -2,6 +2,11 @@
  * GENTURIX - User Management Page
  * Condominium Admin can create and manage all user roles
  * P0 CRITICAL - Required for production release
+ * 
+ * Features:
+ * - User creation and management
+ * - Access requests (pending approvals from invitation links)
+ * - Invitation links management
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -16,6 +21,8 @@ import { Badge } from '../components/ui/badge';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { ScrollArea } from '../components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Textarea } from '../components/ui/textarea';
 import {
   Dialog,
   DialogContent,
