@@ -478,6 +478,7 @@ class ApiService {
   guardCheckOut = (entryId, notes = '') => this.post(`/guard/checkout/${entryId}`, { notes });
   getEntriesToday = () => this.get('/guard/entries-today');
   getVisitorsInside = () => this.get('/guard/visitors-inside');
+  getVisitsSummary = () => this.get('/guard/visits-summary'); // For Visitas tab - READ-ONLY view
   cleanupAuthorizations = () => this.post('/guard/cleanup-authorizations', {}); // Fix legacy used authorizations
   diagnoseAuthorizations = () => this.get('/guard/diagnose-authorizations'); // Debug authorization state
   
