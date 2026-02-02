@@ -230,27 +230,27 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
                   
                   {/* Users Grid */}
                   <div className="grid gap-2">
-                    {filteredUsers.map((user) => (
+                    {filteredUsers.map((dirUser) => (
                       <Card 
-                        key={user.id}
+                        key={dirUser.id}
                         className="bg-[#0F111A] border-[#1E293B] hover:border-primary/50 transition-colors cursor-pointer group"
-                        onClick={() => handleViewProfile(user.id)}
-                        data-testid={`user-card-${user.id}`}
+                        onClick={() => handleViewProfile(dirUser.id, dirUser)}
+                        data-testid={`user-card-${dirUser.id}`}
                       >
                         <CardContent className="p-3">
                           <div className="flex items-center gap-3">
                             {/* Avatar */}
                             <div 
                               className="relative cursor-pointer"
-                              onClick={(e) => handlePhotoClick(user, e)}
+                              onClick={(e) => handlePhotoClick(dirUser, e)}
                             >
                               <Avatar className="w-12 h-12 border-2 border-[#1E293B] group-hover:border-primary/50 transition-colors">
-                                <AvatarImage src={user.profile_photo} />
+                                <AvatarImage src={dirUser.profile_photo} />
                                 <AvatarFallback className={`${config.color} text-sm font-bold`}>
-                                  {user.full_name?.charAt(0).toUpperCase()}
+                                  {dirUser.full_name?.charAt(0).toUpperCase()}
                                 </AvatarFallback>
                               </Avatar>
-                              {user.profile_photo && (
+                              {dirUser.profile_photo && (
                                 <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                   <ZoomIn className="w-4 h-4 text-white" />
                                 </div>
@@ -259,21 +259,21 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
                             
                             {/* Info */}
                             <div className="flex-1 min-w-0">
-                              <h3 className="font-medium truncate">{user.full_name}</h3>
+                              <h3 className="font-medium truncate">{dirUser.full_name}</h3>
                               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                 <Badge className={`${config.color} text-[10px] px-1.5 py-0`}>
                                   {role}
                                 </Badge>
-                                {user.phone && (
+                                {dirUser.phone && (
                                   <span className="flex items-center gap-1">
                                     <Phone className="w-3 h-3" />
-                                    {user.phone}
+                                    {dirUser.phone}
                                   </span>
                                 )}
                               </div>
-                              {user.public_description && (
+                              {dirUser.public_description && (
                                 <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                                  {user.public_description}
+                                  {dirUser.public_description}
                                 </p>
                               )}
                             </div>
