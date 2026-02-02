@@ -168,14 +168,16 @@
     overflow-x: hidden;
   }
   
-  /* Only prevent horizontal scroll on main content, NOT on modals */
+  /* Only prevent horizontal scroll on main content, NOT on modals or scroll containers */
   body:not(:has([data-state="open"])) {
     overflow-x: hidden;
   }
 
-  .overflow-x-auto:not([role="dialog"] *) {
-    overflow-x: hidden;
-  }
+  /* REMOVED: This rule was breaking horizontal scroll on tabs
+   * .overflow-x-auto:not([role="dialog"] *) {
+   *   overflow-x: hidden;
+   * }
+   */
 
   /* Force tables to not overflow */
   table {
