@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 2, 2026 (Session 62 - UX Fix: Remove Useless Hamburger Menu in Admin Mobile)
+## Last Updated: February 2, 2026 (Session 62 - UX Fixes: Mobile Scroll & Hamburger Menu)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,26 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
+
+### Session 62 - UX FIX: Mobile Scroll Enhancement (February 2, 2026) ⭐⭐⭐⭐
+
+**Issue Reported:**
+- Contenido vertical potencialmente cortado en Admin/RRHH móvil
+- Necesidad de asegurar scroll completo
+
+**Solution:**
+- Refactored DashboardLayout mobile to use flex layout with explicit overflow-y-auto
+- Header: sticky fixed at top (flex-shrink-0)
+- Content: flex-1 overflow-y-auto (scrollable area)
+- BottomNav: fixed at bottom (flex-shrink-0)
+
+**Testing Results:**
+- ✅ RRHH page: scrollHeight 1024, scrolls correctly
+- ✅ Dashboard page: scrollHeight 1354, full scroll
+- ✅ Users page: scrollHeight 6304, scroll to 5460 (full content)
+- ✅ Desktop: No regressions
+
+---
 
 ### Session 62 - UX FIX: Remove Useless Hamburger Menu in Admin Mobile (February 2, 2026) ⭐⭐⭐
 
@@ -21,11 +41,11 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 - Desktop no afectado
 
 **Files Modified:**
-- `/app/frontend/src/components/layout/DashboardLayout.js` - Removed hamburger button from mobile header
+- `/app/frontend/src/components/layout/DashboardLayout.js` - Removed hamburger button, improved flex layout for mobile
 
 **Testing Status:**
-- ✅ Verificado visualmente en mobile (sin ícono)
-- ✅ Verificado desktop (sin regresiones)
+- ✅ Verificado móvil scroll en Dashboard, RRHH, Users
+- ✅ Verificado desktop sin regresiones
 
 ---
 
