@@ -225,9 +225,15 @@ export const AuthProvider = ({ children }) => {
           profile_photo: profileData.profile_photo,
           public_description: profileData.public_description,
           role_data: profileData.role_data,
+          language: profileData.language,
         };
         setUser(updatedUser);
         sessionStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        // Sync language with i18n
+        if (profileData.language && ['es', 'en'].includes(profileData.language)) {
+          await changeLanguage(profileData.language);
+        }
       }
     } catch (error) {
       console.error('Error refreshing user:', error);
