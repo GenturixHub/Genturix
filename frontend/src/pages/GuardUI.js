@@ -2020,8 +2020,8 @@ const HistoryTab = () => {
 const GUARD_MOBILE_NAV = [
   { id: 'alerts', label: 'Alertas', icon: AlertTriangle },
   { id: 'checkin', label: 'Check-In', icon: ScanLine },
+  { id: 'visits', label: 'Visitas', icon: Users },
   { id: 'panic', label: 'Pánico', icon: Siren, bgColor: 'bg-red-600', glowColor: 'shadow-red-500/50' },
-  { id: 'myshift', label: 'Mi Turno', icon: Briefcase },
   { id: 'profile', label: 'Perfil', icon: User },
 ];
 
