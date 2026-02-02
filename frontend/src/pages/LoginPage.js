@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -21,6 +22,7 @@ import api from '../services/api';
 
 // Password Change Dialog Component
 const PasswordChangeDialog = ({ open, onClose, onSuccess, tempPassword }) => {
+  const { t } = useTranslation();
   const { changePassword } = useAuth();
   const [currentPassword, setCurrentPassword] = useState(tempPassword || '');
   const [newPassword, setNewPassword] = useState('');
@@ -30,10 +32,10 @@ const PasswordChangeDialog = ({ open, onClose, onSuccess, tempPassword }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const validatePassword = (pwd) => {
-    if (pwd.length < 8) return 'La contraseña debe tener al menos 8 caracteres';
-    if (!/[A-Z]/.test(pwd)) return 'Debe incluir al menos una mayúscula';
-    if (!/[a-z]/.test(pwd)) return 'Debe incluir al menos una minúscula';
-    if (!/[0-9]/.test(pwd)) return 'Debe incluir al menos un número';
+    if (pwd.length < 8) return t('auth.passwordMinLength', 'Password must be at least 8 characters');
+    if (!/[A-Z]/.test(pwd)) return t('auth.passwordUppercase', 'Must include at least one uppercase letter');
+    if (!/[a-z]/.test(pwd)) return t('auth.passwordLowercase', 'Must include at least one lowercase letter');
+    if (!/[0-9]/.test(pwd)) return t('auth.passwordNumber', 'Must include at least one number');
     return null;
   };
   
@@ -49,12 +51,12 @@ const PasswordChangeDialog = ({ open, onClose, onSuccess, tempPassword }) => {
     }
     
     if (newPassword !== confirmPassword) {
-      setError('Las contraseñas no coinciden');
+      setError(t('auth.passwordsNoMatch', 'Passwords do not match'));
       return;
     }
     
     if (currentPassword === newPassword) {
-      setError('La nueva contraseña debe ser diferente a la temporal');
+      setError(t('auth.passwordMustBeDifferent', 'New password must be different from temporary'));
       return;
     }
     
@@ -63,7 +65,7 @@ const PasswordChangeDialog = ({ open, onClose, onSuccess, tempPassword }) => {
       await changePassword(currentPassword, newPassword);
       onSuccess();
     } catch (err) {
-      setError(err.message || 'Error al cambiar la contraseña');
+      setError(err.message || t('auth.changePasswordError', 'Error changing password'));
     } finally {
       setIsSubmitting(false);
     }
@@ -75,10 +77,10 @@ const PasswordChangeDialog = ({ open, onClose, onSuccess, tempPassword }) => {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-primary" />
-            Cambio de Contraseña Requerido
+            {t('auth.passwordChangeRequired', 'Password Change Required')}
           </DialogTitle>
           <DialogDescription>
-            Por seguridad, debes establecer una nueva contraseña antes de continuar.
+            {t('auth.passwordChangeDescription', 'For security, you must set a new password before continuing.')}
           </DialogDescription>
         </DialogHeader>
         
@@ -93,44 +95,44 @@ const PasswordChangeDialog = ({ open, onClose, onSuccess, tempPassword }) => {
           <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
             <p className="text-xs text-yellow-400 flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              Tu contraseña temporal expirará después de este cambio. Guarda tu nueva contraseña en un lugar seguro.
+              {t('auth.tempPasswordWarning', 'Your temporary password will expire after this change. Save your new password in a safe place.')}
             </p>
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="currentPassword">Contraseña Temporal</Label>
+            <Label htmlFor="currentPassword">{t('auth.tempPassword', 'Temporary Password')}</Label>
             <Input
               id="currentPassword"
               type={showPasswords ? 'text' : 'password'}
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              placeholder="Contraseña recibida por email"
+              placeholder={t('auth.tempPasswordPlaceholder', 'Password received by email')}
               required
               className="bg-[#0A0A0F] border-[#1E293B]"
             />
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="newPassword">Nueva Contraseña</Label>
+            <Label htmlFor="newPassword">{t('auth.newPassword')}</Label>
             <Input
               id="newPassword"
               type={showPasswords ? 'text' : 'password'}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Mínimo 8 caracteres"
+              placeholder={t('auth.minChars', 'Minimum 8 characters')}
               required
               className="bg-[#0A0A0F] border-[#1E293B]"
             />
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirmar Nueva Contraseña</Label>
+            <Label htmlFor="confirmPassword">{t('auth.confirmPassword')}</Label>
             <Input
               id="confirmPassword"
               type={showPasswords ? 'text' : 'password'}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Repite la nueva contraseña"
+              placeholder={t('auth.repeatPassword', 'Repeat new password')}
               required
               className="bg-[#0A0A0F] border-[#1E293B]"
             />
@@ -143,17 +145,17 @@ const PasswordChangeDialog = ({ open, onClose, onSuccess, tempPassword }) => {
               onCheckedChange={setShowPasswords}
             />
             <Label htmlFor="showPwd" className="text-sm text-muted-foreground cursor-pointer">
-              Mostrar contraseñas
+              {t('auth.showPasswords', 'Show passwords')}
             </Label>
           </div>
           
           <div className="text-xs text-muted-foreground space-y-1">
-            <p>La contraseña debe tener:</p>
+            <p>{t('auth.passwordMustHave', 'Password must have')}:</p>
             <ul className="list-disc list-inside pl-2">
-              <li className={newPassword.length >= 8 ? 'text-green-400' : ''}>Al menos 8 caracteres</li>
-              <li className={/[A-Z]/.test(newPassword) ? 'text-green-400' : ''}>Una letra mayúscula</li>
-              <li className={/[a-z]/.test(newPassword) ? 'text-green-400' : ''}>Una letra minúscula</li>
-              <li className={/[0-9]/.test(newPassword) ? 'text-green-400' : ''}>Un número</li>
+              <li className={newPassword.length >= 8 ? 'text-green-400' : ''}>{t('auth.atLeast8Chars', 'At least 8 characters')}</li>
+              <li className={/[A-Z]/.test(newPassword) ? 'text-green-400' : ''}>{t('auth.oneUppercase', 'One uppercase letter')}</li>
+              <li className={/[a-z]/.test(newPassword) ? 'text-green-400' : ''}>{t('auth.oneLowercase', 'One lowercase letter')}</li>
+              <li className={/[0-9]/.test(newPassword) ? 'text-green-400' : ''}>{t('auth.oneNumber', 'One number')}</li>
             </ul>
           </div>
           
@@ -162,12 +164,12 @@ const PasswordChangeDialog = ({ open, onClose, onSuccess, tempPassword }) => {
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Cambiando...
+                  {t('auth.changing', 'Changing...')}
                 </>
               ) : (
                 <>
                   <CheckCircle className="w-4 h-4 mr-2" />
-                  Establecer Nueva Contraseña
+                  {t('auth.setNewPassword', 'Set New Password')}
                 </>
               )}
             </Button>
@@ -179,6 +181,7 @@ const PasswordChangeDialog = ({ open, onClose, onSuccess, tempPassword }) => {
 };
 
 const LoginPage = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { login, user, passwordResetRequired, isAuthenticated } = useAuth();
   const [email, setEmail] = useState('');
