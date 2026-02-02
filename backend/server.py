@@ -429,6 +429,10 @@ class VisitorAuthorizationCreate(BaseModel):
     allowed_hours_from: Optional[str] = None  # HH:MM
     allowed_hours_to: Optional[str] = None    # HH:MM
     notes: Optional[str] = None
+    # Visitor type fields (Delivery, Maintenance, Technical, Cleaning, Other)
+    visitor_type: Optional[str] = "visitor"
+    company: Optional[str] = None
+    service_type: Optional[str] = None
 
 class VisitorAuthorizationUpdate(BaseModel):
     visitor_name: Optional[str] = None
@@ -442,6 +446,10 @@ class VisitorAuthorizationUpdate(BaseModel):
     allowed_hours_to: Optional[str] = None
     notes: Optional[str] = None
     is_active: Optional[bool] = None
+    # Visitor type fields
+    visitor_type: Optional[str] = None
+    company: Optional[str] = None
+    service_type: Optional[str] = None
 
 # Fast Check-in by Guard
 class FastCheckInRequest(BaseModel):
