@@ -357,6 +357,16 @@ class ApiService {
     });
   };
 
+  // ==================== CONDOMINIUM SETTINGS ====================
+  // Admin: Get condominium settings
+  getCondominiumSettings = () => this.get('/admin/condominium-settings');
+  
+  // Admin: Update condominium settings
+  updateCondominiumSettings = (settings) => this.put('/admin/condominium-settings', settings);
+  
+  // Public: Get settings for current user's condominium (read-only)
+  getPublicCondominiumSettings = () => this.get('/condominium-settings/public');
+
   // ==================== SAAS BILLING ====================
   // Get billing info for current condominium
   getBillingInfo = () => this.get('/billing/info');
