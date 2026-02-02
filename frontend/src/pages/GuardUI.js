@@ -786,7 +786,7 @@ const VisitorCard = ({ visitor, status, onAction, isProcessing }) => {
 // ============================================
 // TAB 3: MANUAL ENTRY (Walk-ins)
 // ============================================
-const ManualEntryTab = () => {
+const ManualEntryTab = ({ onRefresh }) => {
   const [form, setForm] = useState({
     full_name: '',
     national_id: '',
@@ -799,22 +799,30 @@ const ManualEntryTab = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.full_name.trim()) return;
+    if (!form.full_name.trim()) {
+      toast.error('El nombre del visitante es requerido');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
-      await api.createAccessLog({
-        person_name: form.full_name,
-        access_type: 'entry',
-        location: form.destination || 'Entrada Principal',
-        notes: [
-          form.national_id && `Cédula: ${form.national_id}`,
-          form.vehicle_plate && `Placa: ${form.vehicle_plate}`,
-          form.reason && `Motivo: ${form.reason}`
-        ].filter(Boolean).join(' | ')
+      // Use the correct endpoint: /guard/checkin
+      // This creates a proper visitor_entries record that:
+      // - Marks visitor as "inside"
+      // - Appears in history
+      // - Allows checkout later
+      const result = await api.guardCheckIn({
+        visitor_name: form.full_name.trim(),
+        identification_number: form.national_id?.trim() || null,
+        vehicle_plate: form.vehicle_plate?.trim().toUpperCase() || null,
+        destination: form.destination?.trim() || 'Entrada Principal',
+        notes: form.reason?.trim() || null
+        // authorization_id is NOT sent for manual entries
       });
 
       if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+      
+      toast.success(`✓ ${form.full_name} registrado como ADENTRO`);
       
       setLastEntry({
         name: form.full_name,
@@ -822,9 +830,14 @@ const ManualEntryTab = () => {
       });
 
       setForm({ full_name: '', national_id: '', vehicle_plate: '', destination: '', reason: '' });
+      
+      // Refresh parent component to update visitors inside count
+      if (onRefresh) onRefresh();
+      
     } catch (error) {
-      console.error('Error:', error);
-      alert('Error al registrar entrada');
+      console.error('Error registering manual entry:', error);
+      const errorMessage = error?.message || 'Error al registrar entrada';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
