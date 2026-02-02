@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 2, 2026 (Session 58 - P0 Resident Delete Authorization When Inside Fix)
+## Last Updated: February 2, 2026 (Session 59 - P1 Guard UI Enhancement: Group Pre-registrations by Resident)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,74 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
+
+### Session 59 - P1 UI ENHANCEMENT: Guard Pre-registrations Grouped by Resident (February 2, 2026) ⭐⭐⭐⭐⭐
+
+**Feature Requested:**
+- Agrupar los pre-registros pendientes en la UI del guardia por residente
+- Reducir el desorden visual cuando hay muchas autorizaciones
+- Mejorar la operatividad del guardia
+
+**Implementation:**
+- Utiliza componente Accordion de Shadcn para crear grupos colapsables
+- Autorizaciones agrupadas por `created_by` (ID del residente) usando `Array.reduce()`
+- Cada grupo muestra: nombre del residente, apartamento, badge con conteo de visitantes
+- Grupos expandidos por defecto (`defaultValue={residentKeys}`)
+- Búsqueda sigue mostrando resultados en lista plana
+
+**Code Changes:**
+
+```jsx
+// VisitorCheckInGuard.jsx - Grouping logic
+const groupedByResident = todayPreregistrations.reduce((acc, auth) => {
+  const residentKey = auth.created_by || 'unknown';
+  if (!acc[residentKey]) {
+    acc[residentKey] = {
+      resident_name: auth.created_by_name || 'Residente',
+      resident_apartment: auth.resident_apartment || '',
+      authorizations: []
+    };
+  }
+  acc[residentKey].authorizations.push(auth);
+  return acc;
+}, {});
+
+// Render with Accordion
+<Accordion type="multiple" defaultValue={residentKeys}>
+  {residentKeys.map((residentKey) => (
+    <AccordionItem key={residentKey} value={residentKey}>
+      <AccordionTrigger>
+        {group.resident_name} - {group.authorizations.length} visitantes
+      </AccordionTrigger>
+      <AccordionContent>
+        {group.authorizations.map(auth => <AuthorizationSearchCard ... />)}
+      </AccordionContent>
+    </AccordionItem>
+  ))}
+</Accordion>
+```
+
+**Testing Results:**
+
+| Test | Result |
+|------|--------|
+| Accordion groups by resident | ✅ PASS |
+| Shows resident name | ✅ PASS |
+| Shows visitor count badge | ✅ PASS |
+| Accordion expand/collapse | ✅ PASS |
+| Default expanded | ✅ PASS |
+| REGISTRAR ENTRADA button works | ✅ PASS |
+| Search shows flat list | ✅ PASS |
+| Clear search restores accordion | ✅ PASS |
+
+**Files Modified:**
+- `/app/frontend/src/components/VisitorCheckInGuard.jsx` - Added Accordion import, grouping logic
+
+**Testing Status:**
+- ✅ 100% frontend tests passed (15/15)
+- ✅ Test report: `/app/test_reports/iteration_58.json`
+
+---
 
 ### Session 58 - P0 CRITICAL: Resident Cannot Delete Authorization When Visitor Inside (February 2, 2026) ⭐⭐⭐⭐⭐
 
