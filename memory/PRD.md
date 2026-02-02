@@ -1,9 +1,31 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 2, 2026 (P1 Feature: i18n Multi-language System)
+## Last Updated: February 2, 2026 (P1 Enhancement: Reservations Module UX Improvement)
 
 ## Changelog
 ### 2025-02-02 (Session 66)
+- **P1 Enhancement:** Improved Reservations Module UX
+  - **Admin Area Configuration:**
+    - Added `reservation_behavior` field: EXCLUSIVE, CAPACITY, SLOT_BASED, FREE_ACCESS
+    - Added `max_capacity_per_slot` for CAPACITY type areas
+    - Added `slot_duration_minutes` configuration
+    - Added `max_reservations_per_user_per_day` limit
+    - Visual selector for behavior types in area form
+    - Conditional configuration panels based on behavior
+  - **Resident Reservation UX:**
+    - Visual slot grid with color coding (🟢 available, 🟡 limited, 🔴 occupied)
+    - Click-to-select slots (no manual time input required)
+    - Read-only time display after selection with "Cambiar" option
+    - Always-visible rules and conditions panel
+    - Behavior-specific messaging (exclusive, capacity, slot-based)
+    - Remaining capacity display for CAPACITY areas
+  - **Backend Validations:**
+    - CAPACITY: Check guests_count against remaining slots
+    - EXCLUSIVE: Check for overlapping reservations
+    - SLOT_BASED: Exact slot matching
+    - FREE_ACCESS: Prevent reservations
+    - Clear error messages in Spanish
+
 - **P1 Feature:** Implemented i18n Multi-language System
   - Backend: Added `language` field to user model and `PATCH /api/profile/language` endpoint
   - Frontend: Installed and configured `react-i18next`
@@ -15,15 +37,7 @@
   - Default language: Spanish (es)
 
 - **P0 Bug Fix:** Fixed horizontal scroll on RRHH tabs in mobile view
-  - Replaced `ScrollArea` component with native CSS scroll container
-  - Added `.scrollbar-hide` and `.mobile-scroll-tabs` utility classes
-  - All 8 tabs now accessible via swipe
-  - Desktop view remains unaffected
-
 - **P0 Bug Fix:** Fixed vertical scroll on RRHH module in mobile view
-  - Fixed flexbox scroll issue in DashboardLayout
-  - Removed problematic overflow rules in mobile.css
-  - All content now scrollable on mobile devices
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
