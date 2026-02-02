@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useIsMobile } from './BottomNav';
 import { useAuth } from '../../contexts/AuthContext';
 import Sidebar from './Sidebar';
@@ -20,14 +21,15 @@ import { cn } from '../../lib/utils';
 
 // HR-specific Mobile Navigation
 const HRMobileNav = ({ activeRoute }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   
   const items = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/rrhh' },
-    { id: 'shifts', label: 'Turnos', icon: Clock, href: '/rrhh?tab=turnos' },
-    { id: 'absences', label: 'Ausencias', icon: CalendarOff, href: '/rrhh?tab=ausencias' },
-    { id: 'people', label: 'Personas', icon: Users, href: '/rrhh?tab=directory' },
-    { id: 'profile', label: 'Perfil', icon: User, href: '/rrhh?tab=profile' },
+    { id: 'dashboard', labelKey: 'nav.dashboard', icon: LayoutDashboard, href: '/rrhh' },
+    { id: 'shifts', labelKey: 'rrhh.shiftPlanning', icon: Clock, href: '/rrhh?tab=turnos' },
+    { id: 'absences', labelKey: 'rrhh.absences', icon: CalendarOff, href: '/rrhh?tab=ausencias' },
+    { id: 'people', labelKey: 'rrhh.people', icon: Users, href: '/rrhh?tab=directory' },
+    { id: 'profile', labelKey: 'nav.profile', icon: User, href: '/rrhh?tab=profile' },
   ];
 
   return (
@@ -55,7 +57,7 @@ const HRMobileNav = ({ activeRoute }) => {
               )}>
                 <Icon className={cn('w-5 h-5', isActive ? 'text-primary' : '')} />
               </div>
-              <span className="text-[10px] font-medium">{item.label}</span>
+              <span className="text-[10px] font-medium">{t(item.labelKey)}</span>
             </button>
           );
         })}
@@ -66,14 +68,15 @@ const HRMobileNav = ({ activeRoute }) => {
 
 // Admin-specific Mobile Navigation
 const AdminMobileNav = ({ activeRoute }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   
   const items = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard' },
-    { id: 'users', label: 'Usuarios', icon: Users, href: '/admin/users' },
-    { id: 'rrhh', label: 'RRHH', icon: Briefcase, href: '/rrhh' },
-    { id: 'reservations', label: 'Reservas', icon: Calendar, href: '/reservations' },
-    { id: 'settings', label: 'Config', icon: Settings, href: '/admin/settings' },
+    { id: 'dashboard', labelKey: 'nav.dashboard', icon: LayoutDashboard, href: '/dashboard' },
+    { id: 'users', labelKey: 'nav.users', icon: Users, href: '/admin/users' },
+    { id: 'rrhh', labelKey: 'nav.rrhhShort', icon: Briefcase, href: '/rrhh' },
+    { id: 'reservations', labelKey: 'nav.reservationsShort', icon: Calendar, href: '/reservations' },
+    { id: 'settings', labelKey: 'nav.settingsShort', icon: Settings, href: '/admin/settings' },
   ];
 
   return (
@@ -101,7 +104,7 @@ const AdminMobileNav = ({ activeRoute }) => {
               )}>
                 <Icon className={cn('w-5 h-5', isActive ? 'text-primary' : '')} />
               </div>
-              <span className="text-[10px] font-medium">{item.label}</span>
+              <span className="text-[10px] font-medium">{t(item.labelKey)}</span>
             </button>
           );
         })}
