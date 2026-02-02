@@ -9422,6 +9422,18 @@ async def fix_orphan_users(
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.condominiums.insert_one(demo_condo)
+        
+        # Create default settings for demo condo
+        existing_settings = await db.condominium_settings.find_one({"condominium_id": demo_condo["id"]})
+        if not existing_settings:
+            settings_doc = {
+                "condominium_id": demo_condo["id"],
+                "condominium_name": demo_condo["name"],
+                **get_default_condominium_settings(),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.condominium_settings.insert_one(settings_doc)
     
     demo_condo_id = demo_condo["id"]
     
