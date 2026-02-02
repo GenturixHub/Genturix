@@ -25,6 +25,7 @@ import {
 } from './ui/dialog';
 import api from '../services/api';
 import { PushNotificationToggle } from './PushNotificationBanner';
+import LanguageSelector from './LanguageSelector';
 import { 
   User,
   Mail,
