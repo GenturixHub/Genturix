@@ -73,6 +73,7 @@ import {
   Calendar,
   CalendarOff,
   CalendarPlus,
+  CalendarDays,
   User,
   Home,
   FileText,
