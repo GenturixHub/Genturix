@@ -984,7 +984,7 @@ const InvitationsSection = ({ onInviteCreated }) => {
                       </span>
                       {inv.notes && (
                         <span className="text-muted-foreground/70 truncate max-w-[150px]">
-                          "{inv.notes}"
+                          &ldquo;{inv.notes}&rdquo;
                         </span>
                       )}
                     </div>
