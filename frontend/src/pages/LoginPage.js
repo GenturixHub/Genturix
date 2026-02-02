@@ -261,7 +261,7 @@ const LoginPage = () => {
       setIsLoading(false);
       navigateBasedOnRole(result.user);
     } catch (err) {
-      setError(err.message || 'Email o contraseña incorrectos');
+      setError(err.message || t('auth.loginError'));
       setIsLoading(false);
     }
   };
@@ -279,10 +279,10 @@ const LoginPage = () => {
     try {
       await api.seedDemoData();
       setError(null);
-      alert('✅ Datos de demo creados!\n\nAdmin: admin@genturix.com / Admin123!\nGuarda: guarda1@genturix.com / Guard123!\nResidente: residente@genturix.com / Resi123!');
+      alert('✅ Demo data created!\n\nAdmin: admin@genturix.com / Admin123!\nGuard: guarda1@genturix.com / Guard123!\nResident: residente@genturix.com / Resi123!');
     } catch (err) {
       if (err.message.includes('already exists')) {
-        alert('Los datos de demo ya existen.\n\nPuedes usar:\nadmin@genturix.com / Admin123!');
+        alert('Demo data already exists.\n\nYou can use:\nadmin@genturix.com / Admin123!');
       } else {
         setError(err.message);
       }
@@ -319,15 +319,15 @@ const LoginPage = () => {
           <div className="flex flex-col items-center text-center">
             <GenturixLogo size={100} className="mb-4" />
             <h1 className="text-3xl md:text-4xl font-bold font-['Outfit'] text-white">GENTURIX</h1>
-            <p className="text-sm text-muted-foreground mt-1">Plataforma de Seguridad y Emergencias</p>
+            <p className="text-sm text-muted-foreground mt-1">{t('auth.platformTagline', 'Security & Emergency Platform')}</p>
           </div>
 
           {/* Login Card */}
           <Card className="bg-[#0F111A]/90 backdrop-blur-xl border-[#1E293B]">
             <CardHeader className="space-y-1 text-center pb-4">
-              <CardTitle className="text-xl font-['Outfit']">Iniciar Sesión</CardTitle>
+              <CardTitle className="text-xl font-['Outfit']">{t('auth.login')}</CardTitle>
               <CardDescription className="text-sm">
-                Ingresa tus credenciales
+                {t('auth.enterCredentials')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -339,11 +339,11 @@ const LoginPage = () => {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Correo Electrónico</Label>
+                  <Label htmlFor="email">{t('auth.email')}</Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="tu@email.com"
+                    placeholder={t('auth.emailPlaceholder', 'your@email.com')}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     disabled={isLoading}
@@ -355,7 +355,7 @@ const LoginPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password">Contraseña</Label>
+                  <Label htmlFor="password">{t('auth.password')}</Label>
                   <div className="relative">
                     <Input
                       id="password"
@@ -388,7 +388,7 @@ const LoginPage = () => {
                     data-testid="remember-me-checkbox"
                   />
                   <Label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer">
-                    Recordar sesión
+                    {t('auth.rememberMe')}
                   </Label>
                 </div>
 
@@ -401,10 +401,10 @@ const LoginPage = () => {
                   {isLoading ? (
                     <>
                       <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Ingresando...
+                      {t('auth.loggingIn', 'Logging in...')}
                     </>
                   ) : (
-                    'Ingresar'
+                    t('auth.loginButton', 'Sign In')
                   )}
                 </Button>
               </form>
@@ -422,14 +422,14 @@ const LoginPage = () => {
                   {isSeeding ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Creando datos...
+                      {t('auth.creatingData', 'Creating data...')}
                     </>
                   ) : (
-                    'Crear Datos de Demo'
+                    t('auth.createDemoData', 'Create Demo Data')
                   )}
                 </Button>
                 <p className="text-xs text-center text-muted-foreground mt-2">
-                  Crea usuarios de prueba para explorar
+                  {t('auth.demoDescription', 'Create test users to explore')}
                 </p>
               </div>
             </CardContent>
@@ -438,10 +438,10 @@ const LoginPage = () => {
           {/* Footer */}
           <div className="text-center space-y-2">
             <p className="text-xs text-muted-foreground">
-              GENTURIX v1.0 • $1/usuario/mes
+              GENTURIX v1.0 • $1/{t('auth.userMonth', 'user/month')}
             </p>
             <p className="text-[10px] text-muted-foreground">
-              Plataforma de Seguridad Enterprise
+              {t('auth.enterprisePlatform', 'Enterprise Security Platform')}
             </p>
           </div>
         </div>
