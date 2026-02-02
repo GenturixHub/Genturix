@@ -548,6 +548,104 @@ const AreaFormDialog = ({ open, onClose, area, onSave }) => {
             </div>
           </div>
           
+          {/* NEW: Reservation Behavior Selection */}
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold">Tipo de Reservación</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {BEHAVIOR_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setForm({ ...form, reservation_behavior: opt.value })}
+                  className={`p-2.5 rounded-lg border text-left transition-all ${
+                    form.reservation_behavior === opt.value
+                      ? 'bg-primary/20 border-primary text-white'
+                      : 'bg-[#0A0A0F] border-[#1E293B] text-gray-400 hover:border-primary/50'
+                  }`}
+                  data-testid={`behavior-${opt.value}`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{opt.icon}</span>
+                    <span className="text-xs font-medium">{opt.label}</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1 leading-tight">{opt.description}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* Conditional fields based on behavior */}
+          {form.reservation_behavior === 'capacity' && (
+            <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30 space-y-3">
+              <p className="text-xs text-blue-400 font-medium">⚙️ Configuración de Capacidad por Horario</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Cupos por horario</Label>
+                  <Input
+                    type="number"
+                    value={form.max_capacity_per_slot || form.capacity}
+                    onChange={(e) => setForm({ ...form, max_capacity_per_slot: parseInt(e.target.value) || null })}
+                    min={1}
+                    placeholder={form.capacity}
+                    className="bg-[#0A0A0F] border-[#1E293B] h-9"
+                    data-testid="area-form-capacity-per-slot"
+                  />
+                  <p className="text-[10px] text-muted-foreground">Máximo de personas por franja horaria</p>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Duración slot (min)</Label>
+                  <Select 
+                    value={String(form.slot_duration_minutes || 60)} 
+                    onValueChange={(v) => setForm({ ...form, slot_duration_minutes: parseInt(v) })}
+                  >
+                    <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B] h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="30">30 minutos</SelectItem>
+                      <SelectItem value="60">1 hora</SelectItem>
+                      <SelectItem value="90">1.5 horas</SelectItem>
+                      <SelectItem value="120">2 horas</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {form.reservation_behavior === 'slot_based' && (
+            <div className="p-3 rounded-lg bg-teal-500/10 border border-teal-500/30 space-y-3">
+              <p className="text-xs text-teal-400 font-medium">⚙️ Configuración de Turnos</p>
+              <div className="space-y-1">
+                <Label className="text-xs">Duración de cada turno</Label>
+                <Select 
+                  value={String(form.slot_duration_minutes || 60)} 
+                  onValueChange={(v) => setForm({ ...form, slot_duration_minutes: parseInt(v) })}
+                >
+                  <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B] h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="30">30 minutos</SelectItem>
+                    <SelectItem value="60">1 hora</SelectItem>
+                    <SelectItem value="90">1.5 horas</SelectItem>
+                    <SelectItem value="120">2 horas</SelectItem>
+                    <SelectItem value="180">3 horas</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground">Los residentes reservan turnos completos de esta duración</p>
+              </div>
+            </div>
+          )}
+          
+          {form.reservation_behavior === 'free_access' && (
+            <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+              <p className="text-xs text-green-400">
+                ℹ️ Esta área no requerirá reservaciones. Los residentes podrán acceder libremente durante el horario de operación.
+              </p>
+            </div>
+          )}
+          
           {/* Limits */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
