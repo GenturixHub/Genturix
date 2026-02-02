@@ -1,5 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { useModules } from '../../contexts/ModulesContext';
 import { 
@@ -33,6 +34,7 @@ import GenturixLogo from '../GenturixLogo';
  */
 
 const Sidebar = ({ collapsed, onToggle }) => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { user, logout, hasAnyRole } = useAuth();
   const { isModuleEnabled } = useModules();
@@ -48,87 +50,80 @@ const Sidebar = ({ collapsed, onToggle }) => {
     navigate('/select-panel');
   };
 
-  // Navigation items - TURNOS REMOVIDO como módulo independiente
-  // Each item can have a moduleId to check if enabled for the condominium
+  // Navigation items with i18n keys
   const navItems = [
     {
-      title: 'Dashboard',
+      titleKey: 'nav.dashboard',
       icon: LayoutDashboard,
       href: '/dashboard',
       roles: ['Administrador', 'Supervisor', 'Guarda', 'Residente', 'Estudiante'],
-      // Dashboard is always available
     },
     {
-      title: 'Usuarios',
+      titleKey: 'nav.users',
       icon: Users,
       href: '/admin/users',
       roles: ['Administrador'],
-      description: 'Crear y gestionar usuarios'
-      // User management is always available for admins
+      descriptionKey: 'nav.usersDescription'
     },
     {
-      title: 'Seguridad',
+      titleKey: 'nav.security',
       icon: AlertTriangle,
       href: '/security',
       roles: ['Administrador', 'Supervisor', 'Guarda'],
-      description: 'Emergencias, accesos, monitoreo',
+      descriptionKey: 'nav.securityDescription',
       moduleId: 'security'
     },
-    // RRHH - Módulo central único (incluye Turnos)
     {
-      title: 'Recursos Humanos',
+      titleKey: 'nav.rrhh',
       icon: Briefcase,
       href: '/rrhh',
       roles: ['Administrador', 'Supervisor', 'Guarda', 'HR'],
-      description: 'Personal, turnos, ausencias',
+      descriptionKey: 'nav.rrhhDescription',
       moduleId: 'hr'
     },
     {
-      title: 'Genturix School',
+      titleKey: 'nav.school',
       icon: GraduationCap,
       href: '/school',
       roles: ['Administrador', 'Estudiante', 'Guarda'],
       moduleId: 'school'
     },
     {
-      title: 'Pagos',
+      titleKey: 'nav.payments',
       icon: CreditCard,
       href: '/payments',
       roles: ['Administrador', 'Residente', 'Estudiante'],
       moduleId: 'payments'
     },
     {
-      title: 'Reservaciones',
+      titleKey: 'nav.reservations',
       icon: Calendar,
       href: '/reservations',
       roles: ['Administrador', 'Residente', 'Guarda'],
-      description: 'Áreas comunes',
+      descriptionKey: 'nav.reservationsDescription',
       moduleId: 'reservations'
     },
     {
-      title: 'Auditoría',
+      titleKey: 'nav.audit',
       icon: FileText,
       href: '/audit',
       roles: ['Administrador'],
       moduleId: 'audit'
     },
     {
-      title: 'Configuración',
+      titleKey: 'nav.settings',
       icon: Settings,
       href: '/admin/settings',
       roles: ['Administrador'],
-      description: 'Configuración del condominio'
-      // Settings is always available for admins
+      descriptionKey: 'nav.settingsDescription'
     },
   ];
 
   // Filter by role AND by module availability
   const filteredNavItems = navItems.filter(item => {
-    // First check role permission
     const hasRolePermission = item.roles.includes(activeRole) || hasAnyRole(...item.roles);
     if (!hasRolePermission) return false;
     
-    // Then check if module is enabled (if moduleId is specified)
     if (item.moduleId) {
       return isModuleEnabled(item.moduleId);
     }
@@ -205,6 +200,8 @@ const Sidebar = ({ collapsed, onToggle }) => {
           <nav className="space-y-1 px-2">
             {filteredNavItems.map((item) => {
               const IconComponent = item.icon;
+              const title = t(item.titleKey);
+              const description = item.descriptionKey ? t(item.descriptionKey) : undefined;
               return (
                 <NavLink
                   key={item.href}
@@ -213,15 +210,15 @@ const Sidebar = ({ collapsed, onToggle }) => {
                     `sidebar-item ${isActive ? 'active' : ''} ${collapsed ? 'justify-center px-2' : ''}`
                   }
                   data-testid={`nav-${item.href.replace('/', '')}`}
-                  title={collapsed ? item.title : undefined}
+                  title={collapsed ? title : undefined}
                 >
                   <IconComponent className="w-5 h-5 flex-shrink-0" />
                   {!collapsed && (
                     <div className="flex-1 min-w-0">
-                      <span className="block">{item.title}</span>
-                      {item.description && (
+                      <span className="block">{title}</span>
+                      {description && (
                         <span className="text-[10px] text-muted-foreground block truncate">
-                          {item.description}
+                          {description}
                         </span>
                       )}
                     </div>
@@ -242,7 +239,7 @@ const Sidebar = ({ collapsed, onToggle }) => {
               data-testid="switch-panel-btn"
             >
               <Building2 className="w-5 h-5 flex-shrink-0" />
-              {!collapsed && <span className="ml-3">Cambiar Panel</span>}
+              {!collapsed && <span className="ml-3">{t('nav.switchPanel', 'Switch Panel')}</span>}
             </Button>
           )}
           <Button
@@ -252,7 +249,7 @@ const Sidebar = ({ collapsed, onToggle }) => {
             data-testid="sidebar-logout-btn"
           >
             <LogOut className="w-5 h-5 flex-shrink-0" />
-            {!collapsed && <span className="ml-3">Cerrar Sesión</span>}
+            {!collapsed && <span className="ml-3">{t('auth.logout')}</span>}
           </Button>
         </div>
       </div>
