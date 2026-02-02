@@ -649,48 +649,100 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
             </div>
           )}
           
-          {/* Time Selection */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Hora Inicio {selectedSlotIndex !== null && <Badge variant="outline" className="ml-1 text-[9px] py-0">Auto-llenado</Badge>}</Label>
-              <Input
-                type="time"
-                value={form.start_time}
-                onChange={(e) => { setForm({ ...form, start_time: e.target.value }); setSelectedSlotIndex(null); }}
-                min={area.available_from}
-                max={area.available_until}
-                className="bg-[#0A0A0F] border-[#1E293B] h-10"
-                data-testid="reservation-start-time"
-              />
+          {/* Time Selection - READ ONLY when slot is selected to avoid human errors */}
+          {selectedSlotIndex !== null ? (
+            // Slot selected - show read-only summary
+            <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium text-primary">Horario seleccionado</span>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setSelectedSlotIndex(null)}
+                  className="text-xs h-7 text-muted-foreground hover:text-white"
+                >
+                  Cambiar
+                </Button>
+              </div>
+              <p className="text-lg font-bold text-white mt-1">
+                {form.start_time} - {form.end_time}
+              </p>
+              {availability?.reservation_behavior === 'capacity' && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Cupos disponibles en este horario
+                </p>
+              )}
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Hora Fin {selectedSlotIndex !== null && <Badge variant="outline" className="ml-1 text-[9px] py-0">Auto-llenado</Badge>}</Label>
-              <Input
-                type="time"
-                value={form.end_time}
-                onChange={(e) => { setForm({ ...form, end_time: e.target.value }); setSelectedSlotIndex(null); }}
-                min={form.start_time}
-                max={area.available_until}
-                className="bg-[#0A0A0F] border-[#1E293B] h-10"
-                data-testid="reservation-end-time"
-              />
+          ) : (
+            // No slot selected - show manual inputs (fallback)
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs text-yellow-400 mb-2">
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span>Selecciona un horario arriba o ingresa manualmente:</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Hora Inicio</Label>
+                  <Input
+                    type="time"
+                    value={form.start_time}
+                    onChange={(e) => setForm({ ...form, start_time: e.target.value })}
+                    min={area.available_from}
+                    max={area.available_until}
+                    className="bg-[#0A0A0F] border-[#1E293B] h-10"
+                    data-testid="reservation-start-time"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Hora Fin</Label>
+                  <Input
+                    type="time"
+                    value={form.end_time}
+                    onChange={(e) => setForm({ ...form, end_time: e.target.value })}
+                    min={form.start_time}
+                    max={area.available_until}
+                    className="bg-[#0A0A0F] border-[#1E293B] h-10"
+                    data-testid="reservation-end-time"
+                  />
+                </div>
+              </div>
             </div>
-          </div>
+          )}
           
-          {/* Guests */}
-          <div className="space-y-1.5">
-            <Label className="text-xs">Número de Invitados</Label>
-            <Input
-              type="number"
-              value={form.guests_count}
-              onChange={(e) => setForm({ ...form, guests_count: Math.min(parseInt(e.target.value) || 1, area.capacity) })}
-              min={1}
-              max={area.capacity}
-              className="bg-[#0A0A0F] border-[#1E293B] h-10"
-              data-testid="reservation-guests"
-            />
-            <p className="text-[10px] text-muted-foreground">Máximo: {area.capacity} personas</p>
-          </div>
+          {/* Guests - Only show for CAPACITY behavior or when area capacity > 1 */}
+          {(availability?.reservation_behavior === 'capacity' || (!availability?.reservation_behavior && area.capacity > 1)) && (
+            <div className="space-y-1.5">
+              <Label className="text-xs">Número de Personas</Label>
+              <div className="flex items-center gap-3">
+                <Input
+                  type="number"
+                  value={form.guests_count}
+                  onChange={(e) => setForm({ ...form, guests_count: Math.max(1, Math.min(parseInt(e.target.value) || 1, 
+                    availability?.reservation_behavior === 'capacity' 
+                      ? (availability?.max_capacity_per_slot || area.capacity)
+                      : area.capacity
+                  )) })}
+                  min={1}
+                  max={availability?.reservation_behavior === 'capacity' 
+                    ? (availability?.max_capacity_per_slot || area.capacity)
+                    : area.capacity}
+                  className="bg-[#0A0A0F] border-[#1E293B] h-10 w-24"
+                  data-testid="reservation-guests"
+                />
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Users className="w-3.5 h-3.5" />
+                  <span>
+                    {availability?.reservation_behavior === 'capacity' 
+                      ? `Máx: ${availability?.max_capacity_per_slot || area.capacity} por horario`
+                      : `Máx: ${area.capacity} personas`}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* Purpose */}
           <div className="space-y-1.5">
