@@ -742,6 +742,68 @@ class AccessRequestAction(BaseModel):
     message: Optional[str] = None  # Rejection reason or welcome message
     send_email: bool = True  # Send notification email to requestor
 
+# ==================== CONDOMINIUM SETTINGS MODELS ====================
+class WorkingHours(BaseModel):
+    start: str = "06:00"
+    end: str = "22:00"
+
+class GeneralSettings(BaseModel):
+    timezone: str = "America/Mexico_City"
+    working_hours: WorkingHours = WorkingHours()
+    condominium_name_display: Optional[str] = None  # Override display name
+
+class ReservationSettings(BaseModel):
+    enabled: bool = True
+    max_active_per_user: int = Field(default=3, ge=1, le=20)
+    allow_same_day: bool = True
+    approval_required_by_default: bool = False
+    min_hours_advance: int = Field(default=1, ge=0, le=72)  # Minimum hours in advance to reserve
+    max_days_advance: int = Field(default=30, ge=1, le=365)  # Maximum days in advance to reserve
+
+class VisitSettings(BaseModel):
+    allow_resident_preregistration: bool = True
+    allow_recurrent_visits: bool = True
+    allow_permanent_visits: bool = False
+    require_id_photo: bool = False
+    max_preregistrations_per_day: int = Field(default=10, ge=1, le=50)
+
+class NotificationSettings(BaseModel):
+    panic_sound_enabled: bool = True
+    push_enabled: bool = True
+    email_notifications_enabled: bool = True
+
+class CondominiumSettingsModel(BaseModel):
+    general: GeneralSettings = GeneralSettings()
+    reservations: ReservationSettings = ReservationSettings()
+    visits: VisitSettings = VisitSettings()
+    notifications: NotificationSettings = NotificationSettings()
+
+class CondominiumSettingsUpdate(BaseModel):
+    general: Optional[GeneralSettings] = None
+    reservations: Optional[ReservationSettings] = None
+    visits: Optional[VisitSettings] = None
+    notifications: Optional[NotificationSettings] = None
+
+class CondominiumSettingsResponse(BaseModel):
+    condominium_id: str
+    condominium_name: str
+    general: GeneralSettings
+    reservations: ReservationSettings
+    visits: VisitSettings
+    notifications: NotificationSettings
+    updated_at: str
+    created_at: str
+
+# Helper function to get default settings
+def get_default_condominium_settings() -> dict:
+    """Get default condominium settings as dict"""
+    return {
+        "general": GeneralSettings().model_dump(),
+        "reservations": ReservationSettings().model_dump(),
+        "visits": VisitSettings().model_dump(),
+        "notifications": NotificationSettings().model_dump()
+    }
+
 # ==================== HELPER FUNCTIONS ====================
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
