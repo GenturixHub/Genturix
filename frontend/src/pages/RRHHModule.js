@@ -2136,7 +2136,10 @@ const RRHHModule = () => {
         {/* Submodule Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           {/* Mobile-friendly horizontal scroll container */}
-          <div className="w-full overflow-x-auto overflow-y-hidden scrollbar-hide -webkit-overflow-scrolling-touch pb-2" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div 
+            className="w-full overflow-x-auto overflow-y-hidden scrollbar-hide mobile-scroll-tabs pb-2" 
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
             <TabsList className="inline-flex w-max bg-[#0F111A] border border-[#1E293B] p-1">
               {availableSubmodules.map(submodule => {
                 const Icon = submodule.icon;
