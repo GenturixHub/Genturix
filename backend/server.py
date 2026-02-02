@@ -679,6 +679,69 @@ class PushNotificationPayload(BaseModel):
     requireInteraction: bool = True
     urgency: str = "high"
 
+# ==================== INVITATION & ACCESS REQUEST MODELS ====================
+class InvitationUsageLimitEnum(str, Enum):
+    SINGLE = "single"           # 1 uso (default)
+    UNLIMITED = "unlimited"     # Ilimitado hasta expirar
+    FIXED = "fixed"             # Número fijo de usos
+
+class InvitationCreate(BaseModel):
+    expiration_days: int = Field(default=7, ge=1, le=365)  # 7, 30, o custom
+    expiration_date: Optional[str] = None  # Custom date override (ISO format)
+    usage_limit_type: InvitationUsageLimitEnum = InvitationUsageLimitEnum.SINGLE
+    max_uses: int = Field(default=1, ge=1, le=1000)  # Only used if usage_limit_type is FIXED
+    notes: Optional[str] = None  # Admin notes for this invitation
+
+class InvitationResponse(BaseModel):
+    id: str
+    token: str
+    condominium_id: str
+    condominium_name: str
+    created_by_id: str
+    created_by_name: str
+    expires_at: str
+    usage_limit_type: str
+    max_uses: int
+    current_uses: int
+    is_active: bool
+    is_expired: bool
+    notes: Optional[str] = None
+    created_at: str
+    invite_url: str
+
+class AccessRequestCreate(BaseModel):
+    full_name: str = Field(..., min_length=2, max_length=100)
+    email: EmailStr
+    phone: Optional[str] = None
+    apartment_number: str = Field(..., min_length=1, max_length=50)
+    tower_block: Optional[str] = None
+    resident_type: str = Field(default="owner")  # owner, tenant
+    notes: Optional[str] = None  # Message from requestor
+
+class AccessRequestResponse(BaseModel):
+    id: str
+    invitation_id: str
+    condominium_id: str
+    condominium_name: str
+    full_name: str
+    email: str
+    phone: Optional[str] = None
+    apartment_number: str
+    tower_block: Optional[str] = None
+    resident_type: str
+    notes: Optional[str] = None
+    status: str  # pending_approval, approved, rejected
+    status_message: Optional[str] = None  # Rejection reason or welcome message
+    created_at: str
+    processed_at: Optional[str] = None
+    processed_by_id: Optional[str] = None
+    processed_by_name: Optional[str] = None
+
+class AccessRequestAction(BaseModel):
+    action: str  # approve, reject
+    message: Optional[str] = None  # Rejection reason or welcome message
+    send_email: bool = True  # Send notification email to requestor
+
 # ==================== HELPER FUNCTIONS ====================
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
