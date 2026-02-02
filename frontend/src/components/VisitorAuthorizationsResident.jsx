@@ -346,7 +346,11 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
     allowed_days: [],
     allowed_hours_from: '08:00',
     allowed_hours_to: '20:00',
-    notes: ''
+    notes: '',
+    // New visitor type fields
+    visitor_type: 'visitor',
+    company: '',
+    service_type: ''
   });
 
   useEffect(() => {
@@ -361,7 +365,10 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
         allowed_days: authorization.allowed_days || [],
         allowed_hours_from: authorization.allowed_hours_from || '08:00',
         allowed_hours_to: authorization.allowed_hours_to || '20:00',
-        notes: authorization.notes || ''
+        notes: authorization.notes || '',
+        visitor_type: authorization.visitor_type || 'visitor',
+        company: authorization.company || '',
+        service_type: authorization.service_type || ''
       });
     } else {
       setFormData({
@@ -374,7 +381,10 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
         allowed_days: [],
         allowed_hours_from: '08:00',
         allowed_hours_to: '20:00',
-        notes: ''
+        notes: '',
+        visitor_type: 'visitor',
+        company: '',
+        service_type: ''
       });
     }
   }, [authorization, open]);
@@ -388,9 +398,31 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
     }));
   };
 
+  // Get the required name field label based on visitor type
+  const getNameFieldLabel = () => {
+    switch (formData.visitor_type) {
+      case 'delivery': return 'Nombre del Repartidor';
+      case 'maintenance':
+      case 'technical': return 'Nombre del Técnico';
+      case 'cleaning': return 'Nombre del Personal';
+      default: return 'Nombre del Visitante';
+    }
+  };
+
+  // Validation for required fields
+  const getRequiredFieldsMissing = () => {
+    // For service types, company is required
+    if (['delivery', 'maintenance', 'technical', 'cleaning'].includes(formData.visitor_type)) {
+      if (!formData.company.trim()) return true;
+    }
+    // Visitor name is always required
+    if (!formData.visitor_name.trim()) return true;
+    return false;
+  };
+
   const handleSubmit = async () => {
-    if (!formData.visitor_name.trim()) {
-      toast.error('El nombre del visitante es requerido');
+    if (getRequiredFieldsMissing()) {
+      toast.error('Completa los campos requeridos');
       return;
     }
 
@@ -401,7 +433,11 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
         identification_number: formData.identification_number.trim() || null,
         vehicle_plate: formData.vehicle_plate.trim().toUpperCase() || null,
         authorization_type: formData.authorization_type,
-        notes: formData.notes.trim() || null
+        notes: formData.notes.trim() || null,
+        // New visitor type fields
+        visitor_type: formData.visitor_type,
+        company: formData.company.trim() || null,
+        service_type: formData.service_type || null
       };
 
       // Add type-specific fields
@@ -435,13 +471,15 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
   };
 
   const typeConfig = AUTHORIZATION_TYPES[formData.authorization_type];
+  const visitorTypeConfig = VISITOR_TYPES[formData.visitor_type];
+  const VisitorTypeIcon = visitorTypeConfig?.icon || Users;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="bg-[#0A0A0F] border-[#1E293B] max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <UserPlus className="w-5 h-5 text-primary" />
+            <VisitorTypeIcon className={`w-5 h-5 ${visitorTypeConfig?.textColor || 'text-primary'}`} />
             {isEdit ? 'Editar Autorización' : 'Nueva Autorización'}
           </DialogTitle>
           <DialogDescription>
@@ -450,9 +488,64 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Visitor Type Selector */}
+          <div>
+            <Label className="text-sm text-muted-foreground mb-2 block">Tipo de Persona</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {Object.entries(VISITOR_TYPES).map(([key, config]) => {
+                const Icon = config.icon;
+                const isSelected = formData.visitor_type === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setFormData({...formData, visitor_type: key, company: '', service_type: ''})}
+                    className={`p-2.5 rounded-lg border-2 transition-all flex flex-col items-center gap-1 ${
+                      isSelected 
+                        ? `${config.bgColor} ${config.borderColor} ${config.textColor}` 
+                        : 'bg-[#0F111A] border-[#1E293B] text-muted-foreground hover:border-[#2E3B4B]'
+                    }`}
+                    data-testid={`visitor-type-${key}`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="text-xs font-medium">{config.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Company Field - For service types */}
+          {['delivery', 'maintenance', 'technical', 'cleaning'].includes(formData.visitor_type) && (
+            <div>
+              <Label className="text-sm text-muted-foreground">
+                {formData.visitor_type === 'delivery' ? 'Empresa de Delivery *' : 'Empresa / Proveedor *'}
+              </Label>
+              {formData.visitor_type === 'delivery' ? (
+                <Select value={formData.company} onValueChange={(v) => setFormData({...formData, company: v})}>
+                  <SelectTrigger className="bg-[#0F111A] border-[#1E293B] mt-1">
+                    <SelectValue placeholder="Selecciona empresa" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0F111A] border-[#1E293B]">
+                    {DELIVERY_COMPANIES.map(c => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  placeholder="Nombre de la empresa"
+                  value={formData.company}
+                  onChange={(e) => setFormData({...formData, company: e.target.value})}
+                  className="bg-[#0F111A] border-[#1E293B] mt-1"
+                />
+              )}
+            </div>
+          )}
+
           {/* Visitor Name */}
           <div>
-            <Label className="text-sm text-muted-foreground">Nombre del Visitante *</Label>
+            <Label className="text-sm text-muted-foreground">{getNameFieldLabel()} *</Label>
             <Input
               placeholder="Nombre completo"
               value={formData.visitor_name}
@@ -461,6 +554,24 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
               data-testid="auth-visitor-name"
             />
           </div>
+
+          {/* Service Type - For service types */}
+          {['delivery', 'maintenance', 'technical', 'cleaning'].includes(formData.visitor_type) && 
+           SERVICE_TYPES[formData.visitor_type] && (
+            <div>
+              <Label className="text-sm text-muted-foreground">Tipo de Servicio</Label>
+              <Select value={formData.service_type} onValueChange={(v) => setFormData({...formData, service_type: v})}>
+                <SelectTrigger className="bg-[#0F111A] border-[#1E293B] mt-1">
+                  <SelectValue placeholder="Selecciona tipo" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0F111A] border-[#1E293B]">
+                  {SERVICE_TYPES[formData.visitor_type].map(t => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* ID and Vehicle */}
           <div className="grid grid-cols-2 gap-3">
