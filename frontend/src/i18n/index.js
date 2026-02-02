@@ -1,6 +1,5 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
 
 import es from './es.json';
 import en from './en.json';
@@ -19,33 +18,25 @@ const getSavedLanguage = () => {
 };
 
 i18n
-  .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources: {
       es: { translation: es },
       en: { translation: en }
     },
-    lng: getSavedLanguage(), // Use saved language
+    lng: getSavedLanguage(), // Use saved language - NO browser detector override
     fallbackLng: 'es', // Fallback to Spanish
     debug: false,
     
     interpolation: {
       escapeValue: false // React already escapes values
     },
-    
-    detection: {
-      // Order of language detection methods
-      order: ['localStorage', 'navigator'],
-      // Keys to store language in localStorage
-      lookupLocalStorage: 'userLanguage',
-      // Cache user language on localStorage
-      caches: ['localStorage']
-    },
 
     // React options
     react: {
-      useSuspense: false // Disable suspense to avoid loading issues
+      useSuspense: false, // Disable suspense to avoid loading issues
+      bindI18n: 'languageChanged loaded', // Re-render on language change
+      bindI18nStore: 'added removed' // Re-render on store changes
     }
   });
 
@@ -54,6 +45,8 @@ export const changeLanguage = async (lang) => {
   try {
     localStorage.setItem('userLanguage', lang);
     await i18n.changeLanguage(lang);
+    // Force document lang attribute update
+    document.documentElement.lang = lang;
     return true;
   } catch (error) {
     console.error('Error changing language:', error);
