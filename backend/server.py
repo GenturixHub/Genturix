@@ -9664,6 +9664,16 @@ async def onboarding_create_condominium(
         
         await db.condominiums.insert_one(condo_doc)
         
+        # Create default condominium settings
+        settings_doc = {
+            "condominium_id": condo_id,
+            "condominium_name": wizard_data.condominium.name,
+            **get_default_condominium_settings(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.condominium_settings.insert_one(settings_doc)
+        
         # === STEP 2: Create Admin User ===
         admin_doc = {
             "id": admin_user_id,
