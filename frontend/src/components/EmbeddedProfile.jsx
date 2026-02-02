@@ -261,10 +261,11 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
                 {isOwnProfile && <p className="text-sm text-muted-foreground">{profile?.email}</p>}
                 <div className="flex items-center gap-1 mt-1 flex-wrap">
                   {profile?.roles?.map((role, index) => {
-                    const config = ROLE_CONFIG[role] || { color: 'bg-gray-500/10 text-gray-400', label: role };
+                    const config = ROLE_CONFIG[role] || { color: 'bg-gray-500/10 text-gray-400', key: 'other' };
+                    const roleLabel = t(`roles.${config.key}`, role);
                     return (
                       <Badge key={index} className={`${config.color} text-xs`}>
-                        {config.label}
+                        {roleLabel}
                       </Badge>
                     );
                   })}
