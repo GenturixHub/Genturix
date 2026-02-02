@@ -90,7 +90,11 @@
     "languageUpdated": "Language updated successfully",
     "contact": "Contact",
     "notSpecified": "Not specified",
-    "memberSince": "Member since"
+    "memberSince": "Member since",
+    "about": "About",
+    "publicDescriptionPlaceholder": "Write a brief description about yourself...",
+    "noDescription": "No description",
+    "alertNotificationsHint": "Receive panic alerts in real time"
   },
   "settings": {
     "title": "Settings",
@@ -342,7 +346,9 @@
     "supervisor": "Supervisor",
     "guard": "Guard",
     "resident": "Resident",
-    "hr": "Human Resources"
+    "hr": "Human Resources",
+    "student": "Student",
+    "other": "Other"
   },
   "time": {
     "today": "Today",
