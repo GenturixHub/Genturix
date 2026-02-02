@@ -9,6 +9,83 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
 
+### Session 58 - P0 CRITICAL: Resident Cannot Delete Authorization When Visitor Inside (February 2, 2026) ⭐⭐⭐⭐⭐
+
+**Critical Bug Reported:**
+- Residente podía eliminar autorizaciones incluso cuando la persona YA ESTABA DENTRO del condominio
+- Esto causaba que el guarda perdiera el control de quién está adentro
+
+**Business Rules Implemented:**
+
+| Visitor Status | Residente Puede Eliminar? |
+|----------------|---------------------------|
+| PENDING | ✅ SÍ |
+| EXITED | ✅ SÍ |
+| **INSIDE** | ❌ **NO** |
+
+**Backend Implementation:**
+
+```python
+# GET /api/authorizations/my - Added has_visitor_inside field
+active_inside = await db.visitor_entries.find_one({
+    "authorization_id": auth.get("id"),
+    "status": "inside"
+}, {"_id": 0, "id": 1})
+auth["has_visitor_inside"] = active_inside is not None
+
+# DELETE /api/authorizations/{auth_id} - Block when inside
+if is_resident:
+    active_entry = await db.visitor_entries.find_one({
+        "authorization_id": auth_id,
+        "status": "inside"
+    })
+    if active_entry:
+        raise HTTPException(
+            status_code=403, 
+            detail="No puedes eliminar esta autorización mientras la persona esté dentro del condominio. Contacta al guarda para registrar su salida primero."
+        )
+```
+
+**Frontend Implementation:**
+
+```jsx
+// VisitorAuthorizationsResident.jsx
+const canDelete = !auth.has_visitor_inside;
+
+{canDelete ? (
+  <Button onClick={() => onDelete(auth)}>
+    <Trash2 className="w-4 h-4" />
+  </Button>
+) : (
+  <div className="text-yellow-400 bg-yellow-500/10">
+    <Shield className="w-3.5 h-3.5 mr-1.5" />
+    Dentro
+  </div>
+)}
+```
+
+**Testing Results:**
+
+| Test | Result |
+|------|--------|
+| Backend: has_visitor_inside in response | ✅ PASS |
+| Backend: DELETE returns 403 when inside | ✅ PASS |
+| Backend: DELETE works when PENDING | ✅ PASS |
+| Frontend: Shows "Dentro" indicator | ✅ PASS |
+| Frontend: Shows delete button when not inside | ✅ PASS |
+| Guard: Can see visitors inside | ✅ PASS |
+
+**Files Modified:**
+- `/app/backend/server.py` - GET /api/authorizations/my + DELETE endpoint
+- `/app/frontend/src/components/VisitorAuthorizationsResident.jsx` - Conditional delete
+
+**Testing Status:**
+- ✅ 100% backend tests passed (9/9)
+- ✅ 100% frontend tests passed
+- ✅ Test report: `/app/test_reports/iteration_57.json`
+
+---
+
 ### Session 57 - P0 UX Fix: Resident Profile Directory Modal (February 2, 2026) ⭐⭐⭐⭐⭐
 
 **Reported Issue:**
