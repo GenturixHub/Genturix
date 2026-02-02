@@ -571,69 +571,44 @@ const AlertCard = ({ alert, onClick, isResolving, resolved, isHighlighted }) => 
 // TAB 2: VISITS (Pre-registered)
 // ============================================
 const VisitsTab = ({ onRefresh }) => {
-  const [visitors, setVisitors] = useState([]);
+  const [data, setData] = useState({ pending: [], inside: [], exits: [] });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [processingId, setProcessingId] = useState(null);
+  const [activeSection, setActiveSection] = useState('inside'); // inside, pending, exits
 
-  const fetchVisitors = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
-      const data = await api.getPendingVisitors();
-      setVisitors(data);
+      const result = await api.getVisitsSummary();
+      setData(result);
     } catch (error) {
-      console.error('Error fetching visitors:', error);
+      console.error('Error fetching visits summary:', error);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchVisitors();
-    const interval = setInterval(fetchVisitors, 15000);
+    fetchData();
+    const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
-  }, [fetchVisitors]);
+  }, [fetchData]);
 
-  const handleEntry = async (id) => {
-    setProcessingId(id);
-    try {
-      await api.registerVisitorEntry(id, '');
-      if (navigator.vibrate) navigator.vibrate(100);
-      toast.success('Entrada registrada');
-      fetchVisitors();
-    } catch (error) {
-      const errorMessage = error?.message || 'Error al registrar entrada';
-      toast.error(errorMessage);
-    } finally {
-      setProcessingId(null);
-    }
+  // Filter all sections by search
+  const filterBySearch = (items) => {
+    if (!search) return items;
+    const searchLower = search.toLowerCase();
+    return items.filter(item => 
+      (item.visitor_name || item.full_name || '').toLowerCase().includes(searchLower) ||
+      (item.identification_number || item.national_id || '').toLowerCase().includes(searchLower) ||
+      (item.vehicle_plate || '').toLowerCase().includes(searchLower) ||
+      (item.created_by_name || item.resident_name || '').toLowerCase().includes(searchLower) ||
+      (item.company || '').toLowerCase().includes(searchLower)
+    );
   };
 
-  const handleExit = async (id) => {
-    setProcessingId(id);
-    try {
-      await api.registerVisitorExit(id, '');
-      if (navigator.vibrate) navigator.vibrate(100);
-      toast.success('Salida registrada');
-      fetchVisitors();
-    } catch (error) {
-      const errorMessage = error?.message || 'Error al registrar salida';
-      toast.error(errorMessage);
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  const filteredVisitors = search
-    ? visitors.filter(v => 
-        v.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-        v.vehicle_plate?.toLowerCase().includes(search.toLowerCase()) ||
-        v.national_id?.toLowerCase().includes(search.toLowerCase()) ||
-        v.created_by_name?.toLowerCase().includes(search.toLowerCase())
-      )
-    : visitors;
-
-  const pending = filteredVisitors.filter(v => v.status === 'pending');
-  const inside = filteredVisitors.filter(v => v.status === 'entry_registered');
+  const filteredInside = filterBySearch(data.inside || []);
+  const filteredPending = filterBySearch(data.pending || []);
+  const filteredExits = filterBySearch(data.exits || []);
 
   if (loading) {
     return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
@@ -641,81 +616,277 @@ const VisitsTab = ({ onRefresh }) => {
 
   return (
     <div className="h-full flex flex-col">
-      {/* Search Bar */}
+      {/* Header with Search */}
       <div className="p-3 border-b border-[#1E293B]">
-        <div className="relative">
+        <div className="relative mb-3">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nombre, placa, cédula..."
+            placeholder="Buscar visitante, placa, empresa..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 h-11 bg-[#0A0A0F] border-[#1E293B] text-base"
+            data-testid="visits-search"
           />
         </div>
-        {/* Helpful tip */}
+        
+        {/* Section Tabs */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveSection('inside')}
+            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+              activeSection === 'inside' 
+                ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                : 'bg-[#0F111A] text-muted-foreground border border-[#1E293B]'
+            }`}
+            data-testid="visits-tab-inside"
+          >
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            Dentro ({data.inside?.length || 0})
+          </button>
+          <button
+            onClick={() => setActiveSection('pending')}
+            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+              activeSection === 'pending' 
+                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' 
+                : 'bg-[#0F111A] text-muted-foreground border border-[#1E293B]'
+            }`}
+            data-testid="visits-tab-pending"
+          >
+            <CalendarDays className="w-4 h-4" />
+            Pendientes ({data.pending?.length || 0})
+          </button>
+          <button
+            onClick={() => setActiveSection('exits')}
+            className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+              activeSection === 'exits' 
+                ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' 
+                : 'bg-[#0F111A] text-muted-foreground border border-[#1E293B]'
+            }`}
+            data-testid="visits-tab-exits"
+          >
+            <UserMinus className="w-4 h-4" />
+            Salidas ({data.exits?.length || 0})
+          </button>
+        </div>
+        
         <p className="text-[10px] text-muted-foreground mt-2 text-center">
-          💡 Aquí ves pre-registros. Para entrada manual sin pre-registro, usa la pestaña <span className="text-primary font-medium">Check-In</span>
+          👁️ Vista de solo lectura. Para registrar entradas/salidas usa <span className="text-primary font-medium">Check-In</span>
         </p>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-auto p-3 space-y-4">
-        {/* Inside - Need Exit */}
-        {inside.length > 0 && (
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <h3 className="text-xs font-bold text-green-400 uppercase tracking-wider">
-                DENTRO ({inside.length}) — Registrar Salida
-              </h3>
-            </div>
+      {/* Content based on active section */}
+      <div className="flex-1 overflow-auto p-3 space-y-3">
+        {/* INSIDE Section */}
+        {activeSection === 'inside' && (
+          filteredInside.length > 0 ? (
             <div className="grid gap-2 sm:grid-cols-2">
-              {inside.map((visitor) => (
-                <VisitorCard 
-                  key={visitor.id} 
-                  visitor={visitor} 
-                  status="inside"
-                  onAction={() => handleExit(visitor.id)}
-                  isProcessing={processingId === visitor.id}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Pending - Need Entry */}
-        <div>
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-2 h-2 rounded-full bg-yellow-500" />
-            <h3 className="text-xs font-bold text-yellow-400 uppercase tracking-wider">
-              ESPERADOS ({pending.length}) — Registrar Entrada
-            </h3>
-          </div>
-          {pending.length > 0 ? (
-            <div className="grid gap-2 sm:grid-cols-2">
-              {pending.map((visitor) => (
-                <VisitorCard 
-                  key={visitor.id} 
-                  visitor={visitor} 
-                  status="pending"
-                  onAction={() => handleEntry(visitor.id)}
-                  isProcessing={processingId === visitor.id}
-                />
+              {filteredInside.map((entry) => (
+                <VisitCard key={entry.id} item={entry} type="inside" />
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-32 text-muted-foreground bg-[#0A0A0F] rounded-xl border border-dashed border-[#1E293B]">
-              <Users className="w-10 h-10 mb-2 opacity-30" />
-              <p className="text-sm">Sin visitas pre-registradas</p>
-              <p className="text-[10px] mt-1">Para entrada manual, ve a Check-In</p>
+            <EmptyState icon={Users} message="No hay visitantes dentro" subMessage="Aparecerán aquí cuando entren" />
+          )
+        )}
+
+        {/* PENDING Section */}
+        {activeSection === 'pending' && (
+          filteredPending.length > 0 ? (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {filteredPending.map((auth) => (
+                <VisitCard key={auth.id} item={auth} type="pending" />
+              ))}
             </div>
-          )}
-        </div>
+          ) : (
+            <EmptyState icon={CalendarDays} message="No hay pre-registros pendientes" subMessage="Los residentes pueden crear autorizaciones" />
+          )
+        )}
+
+        {/* EXITS Section */}
+        {activeSection === 'exits' && (
+          filteredExits.length > 0 ? (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {filteredExits.map((entry) => (
+                <VisitCard key={entry.id} item={entry} type="exit" />
+              ))}
+            </div>
+          ) : (
+            <EmptyState icon={UserMinus} message="No hay salidas registradas hoy" subMessage="Aparecerán aquí al registrar salidas" />
+          )
+        )}
       </div>
     </div>
   );
 };
 
+// Empty state component
+const EmptyState = ({ icon: Icon, message, subMessage }) => (
+  <div className="flex flex-col items-center justify-center h-48 text-muted-foreground bg-[#0A0A0F] rounded-xl border border-dashed border-[#1E293B]">
+    <Icon className="w-12 h-12 mb-3 opacity-30" />
+    <p className="text-sm font-medium">{message}</p>
+    <p className="text-xs mt-1">{subMessage}</p>
+  </div>
+);
+
+// READ-ONLY visit card for Visitas tab
+const VisitCard = ({ item, type }) => {
+  const getTypeConfig = () => {
+    switch (type) {
+      case 'inside':
+        return { 
+          bgColor: 'bg-green-500/10', 
+          borderColor: 'border-green-500/30',
+          badge: { bg: 'bg-green-600', text: 'DENTRO' },
+          icon: Users
+        };
+      case 'pending':
+        return { 
+          bgColor: 'bg-blue-500/10', 
+          borderColor: 'border-blue-500/30',
+          badge: { bg: 'bg-blue-600', text: 'PENDIENTE' },
+          icon: CalendarDays
+        };
+      case 'exit':
+        return { 
+          bgColor: 'bg-gray-500/10', 
+          borderColor: 'border-gray-500/30',
+          badge: { bg: 'bg-gray-600', text: 'SALIÓ' },
+          icon: UserMinus
+        };
+      default:
+        return { bgColor: 'bg-[#0F111A]', borderColor: 'border-[#1E293B]', badge: { bg: 'bg-gray-600', text: '?' }, icon: Users };
+    }
+  };
+
+  const config = getTypeConfig();
+  const Icon = config.icon;
+  
+  // Get visitor type badge if exists
+  const visitorType = item.visitor_type;
+  const visitorTypeLabels = {
+    visitor: null,
+    delivery: { label: 'Delivery', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
+    maintenance: { label: 'Manten.', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+    technical: { label: 'Técnico', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
+    cleaning: { label: 'Limpieza', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
+    other: { label: 'Otro', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30' }
+  };
+  const typeLabel = visitorTypeLabels[visitorType];
+  
+  // Get authorization type badge
+  const authType = item.authorization_type;
+  const authTypeLabels = {
+    permanent: { label: 'Permanente', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
+    recurring: { label: 'Recurrente', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+    temporary: { label: 'Temporal', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
+    extended: { label: 'Extendido', color: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' },
+    manual: { label: 'Manual', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30' }
+  };
+  const authLabel = authTypeLabels[authType];
+
+  const visitorName = item.visitor_name || item.full_name || 'Visitante';
+  const residentName = item.resident_name || item.created_by_name || '';
+
+  return (
+    <div className={`p-3 rounded-xl border-2 ${config.bgColor} ${config.borderColor}`} data-testid={`visit-card-${item.id}`}>
+      {/* Header */}
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div className={`w-8 h-8 rounded-lg ${config.badge.bg} flex items-center justify-center flex-shrink-0`}>
+            <Icon className="w-4 h-4 text-white" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-white truncate">{visitorName}</p>
+            {residentName && (
+              <p className="text-[10px] text-muted-foreground truncate flex items-center gap-1">
+                <Home className="w-3 h-3" /> {residentName}
+              </p>
+            )}
+          </div>
+        </div>
+        <Badge className={`${config.badge.bg} text-[10px] flex-shrink-0`}>
+          {config.badge.text}
+        </Badge>
+      </div>
+
+      {/* Badges row */}
+      <div className="flex flex-wrap gap-1 mb-2">
+        {typeLabel && (
+          <Badge className={`${typeLabel.color} text-[9px] border`}>
+            {typeLabel.label}
+          </Badge>
+        )}
+        {authLabel && (
+          <Badge className={`${authLabel.color} text-[9px] border`}>
+            {authLabel.label}
+          </Badge>
+        )}
+      </div>
+
+      {/* Details */}
+      <div className="grid grid-cols-2 gap-1 text-[11px] text-muted-foreground">
+        {(item.identification_number || item.national_id) && (
+          <div className="flex items-center gap-1">
+            <User className="w-3 h-3" />
+            <span>{item.identification_number || item.national_id}</span>
+          </div>
+        )}
+        {item.vehicle_plate && (
+          <div className="flex items-center gap-1">
+            <Car className="w-3 h-3" />
+            <span className="font-mono">{item.vehicle_plate}</span>
+          </div>
+        )}
+        {item.company && (
+          <div className="flex items-center gap-1 col-span-2">
+            <span className="font-medium">{item.company}</span>
+          </div>
+        )}
+        {item.destination && (
+          <div className="flex items-center gap-1">
+            <Home className="w-3 h-3" />
+            <span className="truncate">{item.destination}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Timestamps */}
+      <div className="mt-2 pt-2 border-t border-[#1E293B]/50 text-[10px] text-muted-foreground">
+        {type === 'inside' && item.entry_at && (
+          <div className="flex items-center gap-1 text-green-400">
+            <Clock className="w-3 h-3" />
+            Entrada: {new Date(item.entry_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+          </div>
+        )}
+        {type === 'exit' && (
+          <>
+            {item.entry_at && (
+              <div className="flex items-center gap-1">
+                <UserPlus className="w-3 h-3" />
+                Entrada: {new Date(item.entry_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            )}
+            {item.exit_at && (
+              <div className="flex items-center gap-1 text-orange-400">
+                <UserMinus className="w-3 h-3" />
+                Salida: {new Date(item.exit_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                {item.duration_minutes && <span className="ml-1">({item.duration_minutes} min)</span>}
+              </div>
+            )}
+          </>
+        )}
+        {type === 'pending' && item.created_at && (
+          <div className="flex items-center gap-1">
+            <Calendar className="w-3 h-3" />
+            Creado: {new Date(item.created_at).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Keep the old VisitorCard for backwards compatibility (used elsewhere)
 const VisitorCard = ({ visitor, status, onAction, isProcessing }) => {
   const isInside = status === 'inside';
   
