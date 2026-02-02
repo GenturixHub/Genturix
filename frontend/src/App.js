@@ -19,6 +19,7 @@ import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import OnboardingWizard from './pages/OnboardingWizard';
 import UserManagementPage from './pages/UserManagementPage';
 import ProfilePage from './pages/ProfilePage';
+import JoinPage from './pages/JoinPage';
 import AlertSoundManager from './utils/AlertSoundManager';
 import './App.css';
 
