@@ -108,9 +108,13 @@ const AreaCard = ({ area, onReserve }) => {
   const AreaIcon = AREA_ICONS[area.area_type] || MoreHorizontal;
   const behavior = area.reservation_behavior || 'exclusive';
   const behaviorConfig = BEHAVIOR_LABELS[behavior] || BEHAVIOR_LABELS.exclusive;
+  const [showRules, setShowRules] = useState(false);
   
   // Don't render reserve button for FREE_ACCESS areas
   const isFreeAccess = behavior === 'free_access';
+  
+  // Check if area has rules
+  const hasRules = area.rules && area.rules.trim().length > 0;
   
   return (
     <Card className="bg-[#0F111A] border-[#1E293B] hover:border-primary/30 transition-all">
@@ -166,6 +170,29 @@ const AreaCard = ({ area, onReserve }) => {
             </div>
           </div>
         </div>
+        
+        {/* Rules Section */}
+        {hasRules && (
+          <div className="mt-3">
+            <button
+              onClick={() => setShowRules(!showRules)}
+              className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors w-full"
+              data-testid={`toggle-rules-${area.id}`}
+            >
+              <ScrollText className="w-3.5 h-3.5" />
+              <span className="font-medium">Reglas del área</span>
+              <ChevronRight className={`w-3.5 h-3.5 ml-auto transition-transform ${showRules ? 'rotate-90' : ''}`} />
+            </button>
+            
+            {showRules && (
+              <div className="mt-2 p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs text-blue-200/90">
+                <div className="max-h-24 overflow-y-auto custom-scrollbar">
+                  <p className="whitespace-pre-wrap leading-relaxed">{area.rules}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         
         {isFreeAccess ? (
           <div className="mt-3 p-2 rounded bg-green-500/10 border border-green-500/20 text-center">
