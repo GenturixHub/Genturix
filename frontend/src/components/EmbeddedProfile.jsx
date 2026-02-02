@@ -277,15 +277,15 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
                   {editMode ? (
                     <>
                       <Button size="sm" variant="outline" onClick={() => setEditMode(false)}>
-                        Cancelar
+                        {t('common.cancel')}
                       </Button>
                       <Button size="sm" onClick={handleSave} disabled={isSaving}>
-                        {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-3 h-3 mr-1" />Guardar</>}
+                        {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-3 h-3 mr-1" />{t('common.save')}</>}
                       </Button>
                     </>
                   ) : (
                     <Button size="sm" onClick={() => setEditMode(true)} data-testid="embedded-edit-btn">
-                      Editar
+                      {t('common.edit')}
                     </Button>
                   )}
                 </div>
