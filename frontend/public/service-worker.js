@@ -233,6 +233,12 @@ self.addEventListener('notificationclick', (event) => {
       })
       .then((clients) => {
         clients.forEach((client) => {
+          // Send STOP_PANIC_SOUND to stop the alarm when notification is clicked
+          client.postMessage({
+            type: 'STOP_PANIC_SOUND',
+            data: notificationData
+          });
+          // Also send the original notification clicked event
           client.postMessage({
             type: 'NOTIFICATION_CLICKED',
             data: notificationData
