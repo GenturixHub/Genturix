@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 2, 2026 (Session 60 - P1 Visitor Types for Resident Authorizations)
+## Last Updated: February 2, 2026 (Session 61 - P1 Area Rules Visibility for Residents)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,46 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
+
+### Session 61 - P1 FEATURE: Area Rules Visibility for Residents (February 2, 2026) ⭐⭐⭐⭐⭐
+
+**Feature Requested:**
+- Mostrar las reglas de áreas comunes definidas por el admin a los residentes
+- Reglas visibles en tarjetas de área y formulario de reserva
+- Reglas de solo lectura para residentes
+
+**Implementation:**
+
+**1. AreaCard Component Updated:**
+- Added expandable "Reglas del área" toggle with chevron rotation
+- Blue panel with multiline rules when expanded
+- Only shows toggle if area has rules defined
+
+**2. ReservationFormDialog Updated:**
+- Blue panel with "📌 Reglas del área" header before confirm button
+- Multiline formatting preserved with scroll for long rules
+- Gray panel with "Este espacio no tiene reglas adicionales" for areas without rules
+
+**Testing Results:**
+
+| Test | Result |
+|------|--------|
+| Toggle visible in card | ✅ PASS |
+| Rules expand/collapse | ✅ PASS |
+| Multiline preserved | ✅ PASS |
+| Rules in form | ✅ PASS |
+| No rules message | ✅ PASS |
+| Read-only for residents | ✅ PASS |
+
+**Files Modified:**
+- `/app/frontend/src/components/ResidentReservations.jsx` - AreaCard, ReservationFormDialog
+
+**Testing Status:**
+- ✅ Frontend: 100% (11/11)
+- ✅ Backend: 100% (2/2)
+- ✅ Test report: `/app/test_reports/iteration_61.json`
+
+---
 
 ### Session 60 - P1 FEATURE: Visitor Types for Resident Authorizations (February 2, 2026) ⭐⭐⭐⭐⭐
 
