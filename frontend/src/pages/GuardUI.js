@@ -2112,6 +2112,21 @@ const GuardUI = () => {
   
   // Highlighted alert from push notification
   const [highlightedAlertId, setHighlightedAlertId] = useState(null);
+  
+  // Track if sound has been acknowledged for current alert batch
+  const soundAcknowledgedRef = React.useRef(false);
+  const soundTimeoutRef = React.useRef(null);
+
+  // CENTRALIZED sound stop function
+  const stopAlertSound = useCallback(() => {
+    console.log('[GuardUI] Stopping alert sound');
+    soundAcknowledgedRef.current = true;
+    if (soundTimeoutRef.current) {
+      clearTimeout(soundTimeoutRef.current);
+      soundTimeoutRef.current = null;
+    }
+    AlertSoundManager.stop();
+  }, []);
 
   // Handle URL parameters (alert from push notification, tab from redirect)
   useEffect(() => {
@@ -2120,7 +2135,7 @@ const GuardUI = () => {
     
     if (alertId) {
       // Stop sound when navigating to alerts via URL param
-      AlertSoundManager.stop();
+      stopAlertSound();
       setActiveTab('alerts');
       setHighlightedAlertId(alertId);
       // Clear highlight after animation
@@ -2135,35 +2150,86 @@ const GuardUI = () => {
       if (validTabs.includes(tabParam)) {
         // Stop sound if navigating to alerts
         if (tabParam === 'alerts') {
-          AlertSoundManager.stop();
+          stopAlertSound();
         }
         setActiveTab(tabParam);
       }
       // Clean URL
       navigate('/guard', { replace: true });
     }
-  }, [searchParams, navigate]);
+  }, [searchParams, navigate, stopAlertSound]);
 
-  // Listen for messages from service worker (push notification clicks)
+  // SINGLE service worker listener for ALL sound-related messages
   useEffect(() => {
     const handleServiceWorkerMessage = (event) => {
-      if (event.data?.type === 'PANIC_ALERT_CLICK') {
-        // Stop sound immediately when clicking push notification
-        AlertSoundManager.stop();
-        const data = event.data.data;
-        setActiveTab('alerts');
-        if (data.event_id) {
-          setHighlightedAlertId(data.event_id);
-          setTimeout(() => setHighlightedAlertId(null), 5000);
+      const messageType = event.data?.type;
+      
+      // Handle sound play request - ONLY play if not already acknowledged
+      if (messageType === 'PLAY_PANIC_SOUND') {
+        console.log('[GuardUI] Received PLAY_PANIC_SOUND from SW');
+        
+        // Don't play if user has already acknowledged
+        if (soundAcknowledgedRef.current) {
+          console.log('[GuardUI] Sound already acknowledged, ignoring');
+          return;
+        }
+        
+        // Don't play if already playing
+        if (AlertSoundManager.getIsPlaying()) {
+          console.log('[GuardUI] Sound already playing, ignoring duplicate');
+          return;
+        }
+        
+        AlertSoundManager.play();
+        
+        // Auto-stop after 30 seconds as safety net
+        if (soundTimeoutRef.current) {
+          clearTimeout(soundTimeoutRef.current);
+        }
+        soundTimeoutRef.current = setTimeout(() => {
+          AlertSoundManager.stop();
+          soundTimeoutRef.current = null;
+        }, 30000);
+      }
+      
+      // Handle all stop requests
+      if (messageType === 'PANIC_ALERT_CLICK' || 
+          messageType === 'STOP_PANIC_SOUND' || 
+          messageType === 'NOTIFICATION_CLICKED' ||
+          messageType === 'NOTIFICATION_CLOSED') {
+        console.log(`[GuardUI] Received ${messageType}, stopping sound`);
+        stopAlertSound();
+        
+        // Handle navigation for PANIC_ALERT_CLICK
+        if (messageType === 'PANIC_ALERT_CLICK') {
+          const data = event.data.data;
+          setActiveTab('alerts');
+          if (data?.event_id) {
+            setHighlightedAlertId(data.event_id);
+            setTimeout(() => setHighlightedAlertId(null), 5000);
+          }
         }
       }
     };
 
+    // Listen for global acknowledgement events from AlertsTab modal
+    const handleGlobalAcknowledge = () => {
+      console.log('[GuardUI] Global acknowledge event received');
+      stopAlertSound();
+    };
+
     navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
+    window.addEventListener('panicAlertAcknowledged', handleGlobalAcknowledge);
+    
     return () => {
       navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
+      window.removeEventListener('panicAlertAcknowledged', handleGlobalAcknowledge);
+      // Cleanup timeout on unmount
+      if (soundTimeoutRef.current) {
+        clearTimeout(soundTimeoutRef.current);
+      }
     };
-  }, []);
+  }, [stopAlertSound]);
 
   // Auto-subscribe to push notifications for guards
   useEffect(() => {
