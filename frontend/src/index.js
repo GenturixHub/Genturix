@@ -3,6 +3,9 @@ import ReactDOM from "react-dom/client";
 import "@/index.css";
 import App from "@/App";
 
+// Initialize i18n
+import './i18n';
+
 // ==================== SERVICE WORKER REGISTRATION ====================
 const registerServiceWorker = async () => {
   if ('serviceWorker' in navigator) {
