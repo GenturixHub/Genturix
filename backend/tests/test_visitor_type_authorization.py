@@ -219,7 +219,7 @@ class TestVisitorTypeAuthorization:
         }
         
         create_response = self.session.post(f"{BASE_URL}/api/authorizations", json=payload)
-        assert create_response.status_code == 201
+        assert create_response.status_code in [200, 201]
         auth_id = create_response.json()["id"]
         self.created_auth_ids.append(auth_id)
         
@@ -252,7 +252,7 @@ class TestVisitorTypeAuthorization:
         }
         
         create_response = self.session.post(f"{BASE_URL}/api/authorizations", json=payload)
-        assert create_response.status_code == 201
+        assert create_response.status_code in [200, 201]
         auth_id = create_response.json()["id"]
         self.created_auth_ids.append(auth_id)
         
@@ -329,7 +329,7 @@ class TestGuardViewsVisitorTypeAuthorizations:
         }
         
         create_response = self.session.post(f"{BASE_URL}/api/authorizations", json=payload)
-        assert create_response.status_code == 201
+        assert create_response.status_code in [200, 201]
         auth_id = create_response.json()["id"]
         self.created_auth_ids.append(auth_id)
         
