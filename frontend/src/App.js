@@ -239,6 +239,12 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
 
+      <Route path="/admin/settings" element={
+        <ProtectedRoute allowedRoles={['Administrador']}>
+          <CondominiumSettingsPage />
+        </ProtectedRoute>
+      } />
+
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <DashboardPage />
