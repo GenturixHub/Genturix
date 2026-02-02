@@ -3428,6 +3428,63 @@ async def get_visitors_inside(
     entries = await db.visitor_entries.find(query, {"_id": 0}).sort("entry_at", -1).to_list(200)
     return entries
 
+@api_router.get("/guard/visits-summary")
+async def get_visits_summary(
+    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
+):
+    """
+    Get complete visits summary for Guard 'Visitas' tab (READ-ONLY view)
+    Returns: pending authorizations, visitors inside, today's exits
+    """
+    condo_id = current_user.get("condominium_id")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    base_query = {}
+    if "SuperAdmin" not in current_user.get("roles", []):
+        if condo_id:
+            base_query["condominium_id"] = condo_id
+        else:
+            return {"pending": [], "inside": [], "exits": []}
+    
+    # 1. Get pending authorizations for today (not yet used)
+    pending_query = {
+        **base_query,
+        "is_active": True,
+        "status": "pending"
+    }
+    pending_auths = await db.visitor_authorizations.find(pending_query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    # Filter and enrich pending authorizations with validity
+    enriched_pending = []
+    for auth in pending_auths:
+        validity = check_authorization_validity(auth)
+        if validity.get("is_valid"):
+            auth["validity_status"] = validity["status"]
+            auth["validity_message"] = validity["message"]
+            auth["is_currently_valid"] = True
+            enriched_pending.append(auth)
+    
+    # 2. Get visitors currently inside
+    inside_query = {
+        **base_query,
+        "status": "inside"
+    }
+    inside_entries = await db.visitor_entries.find(inside_query, {"_id": 0}).sort("entry_at", -1).to_list(200)
+    
+    # 3. Get today's exits (completed visits)
+    exits_query = {
+        **base_query,
+        "status": "exited",
+        "exit_at": {"$gte": f"{today}T00:00:00"}
+    }
+    today_exits = await db.visitor_entries.find(exits_query, {"_id": 0}).sort("exit_at", -1).to_list(100)
+    
+    return {
+        "pending": enriched_pending,
+        "inside": inside_entries,
+        "exits": today_exits
+    }
+
 # ===================== RESIDENT NOTIFICATIONS =====================
 
 @api_router.get("/resident/visitor-notifications")
