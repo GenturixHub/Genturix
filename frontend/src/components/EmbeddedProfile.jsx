@@ -375,6 +375,11 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
           </Card>
         )}
 
+        {/* Language Selector - Available for all users on their own profile */}
+        {isOwnProfile && (
+          <LanguageSelector />
+        )}
+
         {/* Photo Modal */}
         <Dialog open={photoModalOpen} onOpenChange={setPhotoModalOpen}>
           <DialogContent className="max-w-2xl bg-black/95 border-[#1E293B] p-0 overflow-hidden">
