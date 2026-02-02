@@ -28,7 +28,7 @@ class TestVisitorTypeAuthorization:
         # Cleanup created authorizations
         for auth_id in self.created_auth_ids:
             try:
-                self.session.delete(f"{BASE_URL}/api/visitor-authorizations/{auth_id}")
+                self.session.delete(f"{BASE_URL}/api/authorizations/{auth_id}")
             except:
                 pass
     
@@ -70,7 +70,7 @@ class TestVisitorTypeAuthorization:
             "valid_to": "2026-02-02"
         }
         
-        response = self.session.post(f"{BASE_URL}/api/visitor-authorizations", json=payload)
+        response = self.session.post(f"{BASE_URL}/api/authorizations", json=payload)
         assert response.status_code == 201, f"Failed to create delivery auth: {response.text}"
         
         data = response.json()
@@ -97,7 +97,7 @@ class TestVisitorTypeAuthorization:
             "valid_to": "2026-02-03"
         }
         
-        response = self.session.post(f"{BASE_URL}/api/visitor-authorizations", json=payload)
+        response = self.session.post(f"{BASE_URL}/api/authorizations", json=payload)
         assert response.status_code == 201, f"Failed to create maintenance auth: {response.text}"
         
         data = response.json()
@@ -122,7 +122,7 @@ class TestVisitorTypeAuthorization:
             "valid_to": "2026-02-02"
         }
         
-        response = self.session.post(f"{BASE_URL}/api/visitor-authorizations", json=payload)
+        response = self.session.post(f"{BASE_URL}/api/authorizations", json=payload)
         assert response.status_code == 201, f"Failed to create technical auth: {response.text}"
         
         data = response.json()
@@ -146,7 +146,7 @@ class TestVisitorTypeAuthorization:
             "allowed_days": ["Lunes", "Miércoles", "Viernes"]
         }
         
-        response = self.session.post(f"{BASE_URL}/api/visitor-authorizations", json=payload)
+        response = self.session.post(f"{BASE_URL}/api/authorizations", json=payload)
         assert response.status_code == 201, f"Failed to create cleaning auth: {response.text}"
         
         data = response.json()
@@ -172,7 +172,7 @@ class TestVisitorTypeAuthorization:
             "valid_to": "2026-02-02"
         }
         
-        response = self.session.post(f"{BASE_URL}/api/visitor-authorizations", json=payload)
+        response = self.session.post(f"{BASE_URL}/api/authorizations", json=payload)
         assert response.status_code == 201, f"Failed to create other auth: {response.text}"
         
         data = response.json()
@@ -193,7 +193,7 @@ class TestVisitorTypeAuthorization:
             "valid_to": "2026-02-02"
         }
         
-        response = self.session.post(f"{BASE_URL}/api/visitor-authorizations", json=payload)
+        response = self.session.post(f"{BASE_URL}/api/authorizations", json=payload)
         assert response.status_code == 201, f"Failed to create visitor auth: {response.text}"
         
         data = response.json()
@@ -218,13 +218,13 @@ class TestVisitorTypeAuthorization:
             "valid_to": "2026-02-02"
         }
         
-        create_response = self.session.post(f"{BASE_URL}/api/visitor-authorizations", json=payload)
+        create_response = self.session.post(f"{BASE_URL}/api/authorizations", json=payload)
         assert create_response.status_code == 201
         auth_id = create_response.json()["id"]
         self.created_auth_ids.append(auth_id)
         
         # Get my authorizations
-        get_response = self.session.get(f"{BASE_URL}/api/visitor-authorizations/my")
+        get_response = self.session.get(f"{BASE_URL}/api/authorizations/my")
         assert get_response.status_code == 200
         
         authorizations = get_response.json()
@@ -251,7 +251,7 @@ class TestVisitorTypeAuthorization:
             "valid_to": "2026-02-02"
         }
         
-        create_response = self.session.post(f"{BASE_URL}/api/visitor-authorizations", json=payload)
+        create_response = self.session.post(f"{BASE_URL}/api/authorizations", json=payload)
         assert create_response.status_code == 201
         auth_id = create_response.json()["id"]
         self.created_auth_ids.append(auth_id)
@@ -263,7 +263,7 @@ class TestVisitorTypeAuthorization:
             "service_type": "Electricidad"
         }
         
-        update_response = self.session.put(f"{BASE_URL}/api/visitor-authorizations/{auth_id}", json=update_payload)
+        update_response = self.session.put(f"{BASE_URL}/api/authorizations/{auth_id}", json=update_payload)
         assert update_response.status_code == 200, f"Failed to update auth: {update_response.text}"
         
         updated_data = update_response.json()
@@ -287,7 +287,7 @@ class TestGuardViewsVisitorTypeAuthorizations:
         self.login_as_resident()
         for auth_id in self.created_auth_ids:
             try:
-                self.session.delete(f"{BASE_URL}/api/visitor-authorizations/{auth_id}")
+                self.session.delete(f"{BASE_URL}/api/authorizations/{auth_id}")
             except:
                 pass
     
@@ -328,7 +328,7 @@ class TestGuardViewsVisitorTypeAuthorizations:
             "valid_to": "2026-02-05"
         }
         
-        create_response = self.session.post(f"{BASE_URL}/api/visitor-authorizations", json=payload)
+        create_response = self.session.post(f"{BASE_URL}/api/authorizations", json=payload)
         assert create_response.status_code == 201
         auth_id = create_response.json()["id"]
         self.created_auth_ids.append(auth_id)
@@ -337,7 +337,7 @@ class TestGuardViewsVisitorTypeAuthorizations:
         self.login_as_guard()
         
         # Get all authorizations (guard view)
-        guard_response = self.session.get(f"{BASE_URL}/api/visitor-authorizations")
+        guard_response = self.session.get(f"{BASE_URL}/api/authorizations")
         assert guard_response.status_code == 200
         
         authorizations = guard_response.json()
