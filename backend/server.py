@@ -451,6 +451,12 @@ class FastCheckInRequest(BaseModel):
     vehicle_plate: Optional[str] = None
     destination: Optional[str] = None       # Apartment/House visiting
     notes: Optional[str] = None
+    # New fields for visitor types (Delivery, Maintenance, etc.)
+    visitor_type: Optional[str] = "visitor"  # visitor, delivery, maintenance, technical, cleaning, other
+    company: Optional[str] = None            # Company name for delivery/maintenance/technical/cleaning
+    service_type: Optional[str] = None       # Type of service (package, food, repair, etc.)
+    authorized_by: Optional[str] = None      # Who authorized: resident, admin, guard
+    estimated_time: Optional[str] = None     # Estimated time for cleaning
 
 # Check-out by Guard  
 class FastCheckOutRequest(BaseModel):
