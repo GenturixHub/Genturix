@@ -263,7 +263,7 @@ class TestVisitorTypeAuthorization:
             "service_type": "Electricidad"
         }
         
-        update_response = self.session.put(f"{BASE_URL}/api/authorizations/{auth_id}", json=update_payload)
+        update_response = self.session.patch(f"{BASE_URL}/api/authorizations/{auth_id}", json=update_payload)
         assert update_response.status_code == 200, f"Failed to update auth: {update_response.text}"
         
         updated_data = update_response.json()
@@ -337,7 +337,7 @@ class TestGuardViewsVisitorTypeAuthorizations:
         self.login_as_guard()
         
         # Get all authorizations (guard view)
-        guard_response = self.session.get(f"{BASE_URL}/api/authorizations")
+        guard_response = self.session.get(f"{BASE_URL}/api/guard/authorizations")
         assert guard_response.status_code == 200
         
         authorizations = guard_response.json()
