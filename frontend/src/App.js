@@ -78,6 +78,16 @@ if (typeof window !== 'undefined') {
       }
       AlertSoundManager.stop();
     }
+    
+    // Also handle NOTIFICATION_CLICKED and NOTIFICATION_CLOSED as backup
+    if (event.data?.type === 'NOTIFICATION_CLICKED' || event.data?.type === 'NOTIFICATION_CLOSED') {
+      console.log('[App] Notification clicked/closed, stopping sound');
+      if (panicSoundTimeout) {
+        clearTimeout(panicSoundTimeout);
+        panicSoundTimeout = null;
+      }
+      AlertSoundManager.stop();
+    }
   });
 }
 
