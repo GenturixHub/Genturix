@@ -1883,6 +1883,44 @@ const UserManagementPage = () => {
             )}
           </CardContent>
         </Card>
+          </TabsContent>
+
+          {/* Access Requests Tab */}
+          <TabsContent value="requests" className="mt-6">
+            <Card className="bg-[#0F111A] border-[#1E293B]">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-yellow-400" />
+                  Solicitudes de Acceso
+                </CardTitle>
+                <CardDescription>
+                  Revisa y procesa solicitudes de residentes que quieren unirse al condominio
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AccessRequestsTab />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Invitations Tab */}
+          <TabsContent value="invitations" className="mt-6">
+            <Card className="bg-[#0F111A] border-[#1E293B]">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Link2 className="w-5 h-5 text-primary" />
+                  Invitaciones
+                </CardTitle>
+                <CardDescription>
+                  Genera y administra links de invitación para nuevos residentes
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <InvitationsSection onInviteCreated={fetchPendingCount} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Create User Dialog */}
