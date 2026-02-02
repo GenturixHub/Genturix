@@ -212,6 +212,10 @@ class ProfileUpdate(BaseModel):
     profile_photo: Optional[str] = None
     public_description: Optional[str] = None
 
+# Language Model
+class LanguageUpdate(BaseModel):
+    language: str = Field(..., pattern="^(es|en)$", description="Language code: 'es' or 'en'")
+
 # Security Module Models
 class PanicType(str, Enum):
     MEDICAL_EMERGENCY = "emergencia_medica"
