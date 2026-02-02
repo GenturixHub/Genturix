@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 2, 2026 (Session 63 - P0 REGRESSION FIX: Alert Sound Duplication + Map)
+## Last Updated: February 2, 2026 (Session 64 - P1 Feature: Admin Onboarding via Invite Link/QR)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,60 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
+
+### Session 64 - P1 FEATURE: Admin Onboarding via Invite Link/QR (February 2, 2026) ⭐⭐⭐⭐⭐
+
+**Feature Request:**
+Implement a secure onboarding flow where condominium administrators can invite residents via link or QR, and approve or reject access requests.
+
+**Implementation:**
+
+**1. Backend Endpoints (New):**
+- `POST /api/invitations` - Create invitation link (Admin)
+- `GET /api/invitations` - List invitations (Admin)
+- `DELETE /api/invitations/{id}` - Revoke invitation (Admin)
+- `GET /api/invitations/{token}/info` - Get condo info (Public)
+- `POST /api/invitations/{token}/request` - Submit access request (Public)
+- `GET /api/invitations/{token}/request-status` - Check request status (Public)
+- `GET /api/access-requests` - List access requests (Admin)
+- `GET /api/access-requests/count` - Get pending count (Admin)
+- `POST /api/access-requests/{id}/action` - Approve/Reject request (Admin)
+
+**2. Database Collections (New):**
+- `invitations`: token, condominium_id, expires_at, usage_limit_type (single/unlimited/fixed), max_uses, current_uses, is_active
+- `access_requests`: invitation_id, condominium_id, full_name, email, apartment_number, status (pending_approval/approved/rejected)
+
+**3. Frontend Components (New/Modified):**
+- **UserManagementPage.js** - Added 3 tabs:
+  - Usuarios (existing users table)
+  - Solicitudes (access requests with badge count)
+  - Invitaciones (invitation link management)
+- **JoinPage.js** - New public page at `/join/{token}` for access requests
+- **App.js** - Added public route for JoinPage
+
+**4. Key Features:**
+- ✅ Configurable expiration: 7 / 30 / 90 / 365 days
+- ✅ Configurable usage limits: Single use / Unlimited / Fixed number
+- ✅ QR code generation (qrcode.react library)
+- ✅ Copy link to clipboard
+- ✅ Email notifications on approve/reject (via Resend)
+- ✅ Temporary password generation on approval
+- ✅ Public status check for requestors
+- ✅ Full audit logging
+
+**Testing Results:**
+- Backend: 100% (18/18 tests passed)
+- Frontend: 100% (all UI flows verified)
+- Test report: `/app/test_reports/iteration_64.json`
+
+**Files Modified:**
+- `/app/backend/server.py` - Added invitation & access request models/endpoints
+- `/app/frontend/src/services/api.js` - Added API methods
+- `/app/frontend/src/pages/UserManagementPage.js` - Added InvitationsSection, AccessRequestsTab
+- `/app/frontend/src/pages/JoinPage.js` - New public page
+- `/app/frontend/src/App.js` - Added JoinPage route
+
+---
 
 ### Session 63 - P0 REGRESSION FIX: Alert Sound Duplication + Map Verification (February 2, 2026) ⭐⭐⭐⭐⭐
 
