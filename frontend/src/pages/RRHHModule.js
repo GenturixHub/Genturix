@@ -2195,7 +2195,7 @@ const RRHHModule = () => {
             </TabsContent>
 
             <TabsContent value="personas">
-              <ProfileDirectory embedded={false} maxHeight="calc(100vh - 300px)" />
+              <ProfileDirectory embedded={false} maxHeight="auto" />
             </TabsContent>
 
             <TabsContent value="mi_perfil">
