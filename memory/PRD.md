@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 2, 2026 (Session 64 - P1 Feature: Admin Onboarding via Invite Link/QR)
+## Last Updated: February 2, 2026 (Session 65 - P1 Feature: Condominium Settings Module)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,79 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
+
+### Session 65 - P1 FEATURE: Condominium Settings Module (February 2, 2026) ⭐⭐⭐⭐⭐
+
+**Feature Request:**
+Crear un módulo de configuración centralizado para el Administrador que permita definir reglas globales del condominio, consumidas por otros módulos (reservas, visitas, notificaciones).
+
+**Implementation:**
+
+**1. Backend:**
+- New collection: `condominium_settings`
+- Endpoints:
+  - `GET /api/admin/condominium-settings` - Get settings (Admin only)
+  - `PUT /api/admin/condominium-settings` - Update settings (Admin only)
+  - `GET /api/condominium-settings/public` - Read-only for all authenticated users
+- Auto-creation of default settings when condominium is created
+
+**2. Data Model:**
+```json
+{
+  "condominium_id": "...",
+  "general": {
+    "timezone": "America/Mexico_City",
+    "working_hours": { "start": "06:00", "end": "22:00" }
+  },
+  "reservations": {
+    "enabled": true,
+    "max_active_per_user": 3,
+    "allow_same_day": true,
+    "approval_required_by_default": false,
+    "min_hours_advance": 1,
+    "max_days_advance": 30
+  },
+  "visits": {
+    "allow_resident_preregistration": true,
+    "allow_recurrent_visits": true,
+    "allow_permanent_visits": false,
+    "require_id_photo": false,
+    "max_preregistrations_per_day": 10
+  },
+  "notifications": {
+    "panic_sound_enabled": true,
+    "push_enabled": true,
+    "email_notifications_enabled": true
+  }
+}
+```
+
+**3. Frontend:**
+- New page: `/admin/settings` (`CondominiumSettingsPage.js`)
+- 4 tabs: General | Reservaciones | Visitas | Notificaciones
+- Change detection with "unsaved changes" warning
+- Save/Discard buttons
+- Mobile-friendly responsive design
+
+**4. Access Control:**
+- Only Administrador role can view and modify settings
+- Guards and Residents cannot see "Configuración" in sidebar
+- Non-admin users redirected if they try to access URL directly
+
+**Testing Results:**
+- Backend: 100% (14/14 tests passed)
+- Frontend: 100% (all UI flows verified)
+- Test report: `/app/test_reports/iteration_65.json`
+
+**Files Created/Modified:**
+- `/app/backend/server.py` - Models + endpoints
+- `/app/frontend/src/pages/CondominiumSettingsPage.js` - New page
+- `/app/frontend/src/services/api.js` - API methods
+- `/app/frontend/src/App.js` - Route added
+- `/app/frontend/src/components/layout/Sidebar.js` - Link updated
+- `/app/frontend/src/components/layout/DashboardLayout.js` - Mobile nav updated
+
+---
 
 ### Session 64 - P1 FEATURE: Admin Onboarding via Invite Link/QR (February 2, 2026) ⭐⭐⭐⭐⭐
 
