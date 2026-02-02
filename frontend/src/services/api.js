@@ -304,6 +304,59 @@ class ApiService {
   // Super Admin - Condo Admin Creation
   createCondoAdmin = (condoId, data) => this.post(`/super-admin/condominiums/${condoId}/admin`, data);
 
+  // ==================== INVITATION & ACCESS REQUESTS ====================
+  // Admin: Create invitation link
+  createInvitation = (data) => this.post('/invitations', data);
+  
+  // Admin: Get all invitations
+  getInvitations = () => this.get('/invitations');
+  
+  // Admin: Revoke invitation
+  revokeInvitation = (invitationId) => this.delete(`/invitations/${invitationId}`);
+  
+  // Public: Get invitation info (no auth)
+  getInvitationInfo = async (token) => {
+    const response = await apiRequest(`${API_URL}/api/invitations/${token}/info`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    return response.json();
+  };
+  
+  // Public: Submit access request (no auth)
+  submitAccessRequest = async (token, data) => {
+    const response = await apiRequest(`${API_URL}/api/invitations/${token}/request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return response.json();
+  };
+  
+  // Public: Check request status (no auth)
+  getAccessRequestStatus = async (token, email) => {
+    const response = await apiRequest(`${API_URL}/api/invitations/${token}/request-status?email=${encodeURIComponent(email)}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    return response.json();
+  };
+  
+  // Admin: Get access requests
+  getAccessRequests = (status = 'all') => this.get(`/access-requests${status !== 'all' ? `?status=${status}` : ''}`);
+  
+  // Admin: Get pending count
+  getAccessRequestsCount = () => this.get('/access-requests/count');
+  
+  // Admin: Approve or reject request
+  processAccessRequest = (requestId, action, message = '', sendEmail = true) => {
+    return this.post(`/access-requests/${requestId}/action`, {
+      action,
+      message,
+      send_email: sendEmail
+    });
+  };
+
   // ==================== SAAS BILLING ====================
   // Get billing info for current condominium
   getBillingInfo = () => this.get('/billing/info');
