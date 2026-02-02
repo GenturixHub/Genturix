@@ -194,6 +194,7 @@ class ProfileResponse(BaseModel):
     profile_photo: Optional[str] = None
     public_description: Optional[str] = None
     role_data: Optional[Dict[str, Any]] = None
+    language: str = "es"  # User's preferred language
 
 class PublicProfileResponse(BaseModel):
     """Public profile visible to other users in same condominium"""
