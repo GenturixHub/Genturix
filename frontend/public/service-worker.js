@@ -149,16 +149,17 @@ self.addEventListener('push', (event) => {
       .then(() => {
         console.log('[SW] Notification shown:', notification.title);
         
-        // For panic alerts, also notify the app
+        // For panic alerts, also notify the app to play sound
         if (isPanic) {
           return self.clients.matchAll({ type: 'window', includeUncontrolled: true })
             .then((clients) => {
               if (clients.length > 0) {
-                // Send to first visible client
-                const targetClient = clients.find(c => c.visibilityState === 'visible') || clients[0];
-                targetClient.postMessage({
-                  type: 'PANIC_ALERT_RECEIVED',
-                  data: notification.data
+                // Send to all clients to play sound
+                clients.forEach(client => {
+                  client.postMessage({
+                    type: 'PLAY_PANIC_SOUND',
+                    data: notification.data
+                  });
                 });
               }
             });
