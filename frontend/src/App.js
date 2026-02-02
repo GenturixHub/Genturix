@@ -187,6 +187,9 @@ function AppRoutes() {
           <LoginPage />
         </PublicRoute>
       } />
+      
+      {/* Public Join/Access Request Page */}
+      <Route path="/join/:token" element={<JoinPage />} />
 
       {/* Role-based entry point */}
       <Route path="/" element={<RoleBasedRedirect />} />
