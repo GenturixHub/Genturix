@@ -1541,6 +1541,18 @@ const UserManagementPage = () => {
   const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('users');
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+
+  // Fetch pending requests count
+  const fetchPendingCount = useCallback(async () => {
+    try {
+      const data = await api.getAccessRequestsCount();
+      setPendingRequestsCount(data.pending || 0);
+    } catch (err) {
+      console.error('Error fetching pending count:', err);
+    }
+  }, []);
 
   // Fetch users
   const fetchUsers = useCallback(async () => {
@@ -1558,7 +1570,8 @@ const UserManagementPage = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, [fetchUsers]);
+    fetchPendingCount();
+  }, [fetchUsers, fetchPendingCount]);
 
   // Filter users by search
   const filteredUsers = users.filter(u => {
