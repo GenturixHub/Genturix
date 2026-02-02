@@ -268,6 +268,14 @@ const AuthorizationCard = ({ auth, onEdit, onDelete }) => {
 
         {/* Details */}
         <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+          {/* Company info for service types */}
+          {auth.company && (
+            <div className="flex items-center gap-1 text-muted-foreground col-span-2">
+              <VisitorTypeIcon className="w-3 h-3" />
+              <span className="font-medium">{auth.company}</span>
+              {auth.service_type && <span className="text-xs">• {auth.service_type}</span>}
+            </div>
+          )}
           {auth.identification_number && (
             <div className="flex items-center gap-1 text-muted-foreground">
               <Shield className="w-3 h-3" />
