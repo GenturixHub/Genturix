@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { changeLanguage } from '../i18n';
 
 const AuthContext = createContext(undefined);
 
