@@ -40,10 +40,19 @@ if (typeof window !== 'undefined') {
     }
   };
   
+  // Track if user has manually acknowledged the alert
+  let userAcknowledged = false;
+  
   // Listen for service worker messages
   navigator.serviceWorker?.addEventListener('message', (event) => {
     if (event.data?.type === 'PLAY_PANIC_SOUND') {
       console.log('[App] Received panic sound request from SW');
+      
+      // Don't restart sound if user has already acknowledged
+      if (userAcknowledged) {
+        console.log('[App] User already acknowledged alert, ignoring new sound request');
+        return;
+      }
       
       // Clear any existing timeout to prevent duplicate stops
       if (panicSoundTimeout) {
@@ -62,6 +71,7 @@ if (typeof window !== 'undefined') {
     
     if (event.data?.type === 'PANIC_ALERT_CLICK') {
       console.log('[App] Received panic alert click from SW');
+      userAcknowledged = true;  // Mark as acknowledged
       if (panicSoundTimeout) {
         clearTimeout(panicSoundTimeout);
         panicSoundTimeout = null;
@@ -72,6 +82,7 @@ if (typeof window !== 'undefined') {
     // Stop sound when alert is viewed/acknowledged
     if (event.data?.type === 'STOP_PANIC_SOUND') {
       console.log('[App] Received stop sound request');
+      userAcknowledged = true;  // Mark as acknowledged
       if (panicSoundTimeout) {
         clearTimeout(panicSoundTimeout);
         panicSoundTimeout = null;
@@ -82,6 +93,7 @@ if (typeof window !== 'undefined') {
     // Also handle NOTIFICATION_CLICKED and NOTIFICATION_CLOSED as backup
     if (event.data?.type === 'NOTIFICATION_CLICKED' || event.data?.type === 'NOTIFICATION_CLOSED') {
       console.log('[App] Notification clicked/closed, stopping sound');
+      userAcknowledged = true;  // Mark as acknowledged
       if (panicSoundTimeout) {
         clearTimeout(panicSoundTimeout);
         panicSoundTimeout = null;
@@ -89,6 +101,15 @@ if (typeof window !== 'undefined') {
       AlertSoundManager.stop();
     }
   });
+  
+  // Reset acknowledgement flag when a new alert comes in (after some time)
+  // This allows new alerts to play sound again after the current one is resolved
+  setInterval(() => {
+    if (userAcknowledged && !AlertSoundManager.isPlaying) {
+      // Check if there are no more active alerts, reset flag
+      userAcknowledged = false;
+    }
+  }, 60000);  // Check every minute
 }
 
 // Role-based redirect component
