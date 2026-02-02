@@ -633,15 +633,28 @@ const VisitorsTab = ({ user }) => {
                       )}
                     </div>
 
-                    {visitor.status === 'pending' && (
+                    {/* Delete button - only when NOT inside */}
+                    {(visitor.status === 'pending' || visitor.status === 'exited') && (
                       <Button
                         size="icon"
                         variant="ghost"
                         className="h-8 w-8 text-red-400 hover:bg-red-500/10"
                         onClick={() => handleCancel(visitor.id)}
+                        data-testid={`delete-visitor-${visitor.id}`}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
+                    )}
+                    
+                    {/* Info when inside - cannot delete */}
+                    {visitor.status === 'inside' && (
+                      <div 
+                        className="h-8 px-2 flex items-center rounded text-[10px] text-yellow-400 bg-yellow-500/10 border border-yellow-500/20"
+                        title="No puedes eliminar mientras la persona está dentro"
+                      >
+                        <Shield className="w-3 h-3 mr-1" />
+                        Dentro
+                      </div>
                     )}
                   </div>
                 </CardContent>
