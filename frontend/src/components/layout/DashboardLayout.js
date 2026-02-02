@@ -122,24 +122,26 @@ const DashboardLayout = ({ children, title = 'Dashboard', variant = 'admin' }) =
   // Mobile layout
   if (isMobile) {
     return (
-      <div className="min-h-screen bg-[#05050A] pb-20">
-        {/* Mobile Header - Clean without useless hamburger menu */}
-        <header className="sticky top-0 z-40 bg-[#0F111A] border-b border-[#1E293B] px-4 h-14 flex items-center justify-between safe-area-top">
+      <div className="min-h-screen bg-[#05050A] flex flex-col">
+        {/* Mobile Header - Fixed at top */}
+        <header className="sticky top-0 z-40 bg-[#0F111A] border-b border-[#1E293B] px-4 h-14 flex items-center justify-between safe-area-top flex-shrink-0">
           <h1 className="text-lg font-semibold font-['Outfit']">{title}</h1>
           {/* Hamburger menu removed - navigation is at the bottom */}
         </header>
         
-        {/* Content */}
-        <main className="p-4">
+        {/* Content - Scrollable area */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-24">
           {children}
         </main>
         
-        {/* Bottom Navigation - HR vs Admin */}
-        {isHRUser || variant === 'hr' ? (
-          <HRMobileNav activeRoute={location.pathname + location.search} />
-        ) : (
-          <AdminMobileNav activeRoute={location.pathname} />
-        )}
+        {/* Bottom Navigation - Fixed at bottom */}
+        <div className="flex-shrink-0">
+          {isHRUser || variant === 'hr' ? (
+            <HRMobileNav activeRoute={location.pathname + location.search} />
+          ) : (
+            <AdminMobileNav activeRoute={location.pathname} />
+          )}
+        </div>
       </div>
     );
   }
