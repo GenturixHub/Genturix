@@ -123,12 +123,10 @@ const DashboardLayout = ({ children, title = 'Dashboard', variant = 'admin' }) =
   if (isMobile) {
     return (
       <div className="min-h-screen bg-[#05050A] pb-20">
-        {/* Mobile Header */}
+        {/* Mobile Header - Clean without useless hamburger menu */}
         <header className="sticky top-0 z-40 bg-[#0F111A] border-b border-[#1E293B] px-4 h-14 flex items-center justify-between safe-area-top">
           <h1 className="text-lg font-semibold font-['Outfit']">{title}</h1>
-          <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-            <Menu className="w-5 h-5" />
-          </Button>
+          {/* Hamburger menu removed - navigation is at the bottom */}
         </header>
         
         {/* Content */}
