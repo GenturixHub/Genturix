@@ -30,6 +30,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from './ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
 import { toast } from 'sonner';
 import api from '../services/api';
 import { 
@@ -54,7 +61,12 @@ import {
   Repeat,
   Eye,
   Trash2,
-  Bug
+  Bug,
+  Package,
+  Wrench,
+  Cpu,
+  Sparkles,
+  MoreHorizontal
 } from 'lucide-react';
 
 // ============================================
