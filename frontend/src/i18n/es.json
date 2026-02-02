@@ -90,7 +90,11 @@
     "languageUpdated": "Idioma actualizado correctamente",
     "contact": "Contacto",
     "notSpecified": "No especificado",
-    "memberSince": "Miembro desde"
+    "memberSince": "Miembro desde",
+    "about": "Acerca de",
+    "publicDescriptionPlaceholder": "Escribe una breve descripción sobre ti...",
+    "noDescription": "Sin descripción",
+    "alertNotificationsHint": "Recibe alertas de pánico en tiempo real"
   },
   "settings": {
     "title": "Configuración",
@@ -342,7 +346,9 @@
     "supervisor": "Supervisor",
     "guard": "Guardia",
     "resident": "Residente",
-    "hr": "Recursos Humanos"
+    "hr": "Recursos Humanos",
+    "student": "Estudiante",
+    "other": "Otro"
   },
   "time": {
     "today": "Hoy",
