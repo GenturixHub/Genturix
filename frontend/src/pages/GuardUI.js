@@ -210,6 +210,10 @@ const AlertsTab = ({ alerts, onResolve, resolvingId, onRefresh, isRefreshing, hi
     if (!selectedAlert) return;
     // CRITICAL: Stop sound when resolving alert
     AlertSoundManager.stop();
+    
+    // Also dispatch a global event to stop sound from any source
+    window.dispatchEvent(new CustomEvent('panicAlertAcknowledged', { detail: selectedAlert }));
+    
     setIsResolving(true);
     try {
       await onResolve(selectedAlert.id, resolutionNotes);
