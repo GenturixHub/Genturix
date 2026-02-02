@@ -9,6 +9,72 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
 
+### Session 57 - P0 UX Fix: Resident Profile Directory Modal (February 2, 2026) ⭐⭐⭐⭐⭐
+
+**Reported Issue:**
+- Rol RESIDENTE: Al hacer clic en un perfil del directorio → vista aislada sin navegación
+- Usuario quedaba "atrapado" y debía cerrar sesión para salir
+
+**Root Cause:**
+- `ProfileDirectory` navegaba a `/profile/{id}` cuando `embedded=true`
+- La página `/profile/{id}` no tiene navegación del rol
+
+**Solution Implemented:**
+Cuando `embedded=true`, los perfiles ahora se muestran en un **MODAL** en lugar de navegar a página separada.
+
+**Code Changes:**
+
+```jsx
+// ProfileDirectory.jsx - NEW handleViewProfile logic
+const handleViewProfile = async (userId, userBasicInfo) => {
+  if (onViewProfile) {
+    onViewProfile(userId);  // Parent handler
+  } else if (embedded) {
+    // EMBEDDED MODE: Show profile in modal (no navigation)
+    setProfileModalUser(userBasicInfo);
+    setProfileModalOpen(true);
+    // Optionally fetch full profile data
+    const fullProfile = await api.getPublicProfile(userId);
+    setProfileModalUser(prev => ({ ...prev, ...fullProfile }));
+  } else {
+    navigate(`/profile/${userId}`);  // Non-embedded: normal navigation
+  }
+};
+```
+
+**Modal Features:**
+- ✅ Botón volver (←) - data-testid="profile-modal-back"
+- ✅ Botón cerrar (X)
+- ✅ Avatar con inicial o foto
+- ✅ Nombre y badges de rol
+- ✅ Teléfono (clickable para llamar)
+- ✅ Email (clickable para enviar correo)
+- ✅ Unidad/apartamento
+- ✅ Descripción pública
+
+**Testing Results:**
+
+| Test | Desktop | Mobile |
+|------|---------|--------|
+| Click perfil abre modal | ✅ PASS | ✅ PASS |
+| URL permanece en /resident | ✅ PASS | ✅ PASS |
+| Modal tiene botón volver | ✅ PASS | ✅ PASS |
+| Navegación visible después de cerrar | ✅ PASS | ✅ PASS |
+| Bottom nav visible (mobile) | N/A | ✅ PASS |
+| Ver múltiples perfiles sin quedar atrapado | ✅ PASS | ✅ PASS |
+| Reload mantiene en /resident | ✅ PASS | ✅ PASS |
+
+**Files Modified:**
+- `/app/frontend/src/components/ProfileDirectory.jsx` - Modal para perfiles embedded
+
+**Testing Status:**
+- ✅ 100% frontend tests passed
+- ✅ Test report: `/app/test_reports/iteration_56.json`
+
+**Note:** Este fix también beneficia al rol GUARDIA que usa el mismo componente `ProfileDirectory` con `embedded={true}`.
+
+---
+
 ### Session 56 - P0 Bug [object Object] al crear 4ta área: VERIFIED FIXED (February 2, 2026)
 
 **Reported Issue:**
