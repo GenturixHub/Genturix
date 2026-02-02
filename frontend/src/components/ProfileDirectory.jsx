@@ -2,6 +2,9 @@
  * GENTURIX - Profile Directory Component
  * Shows all users in the same condominium grouped by role
  * Can be embedded in any role's UI (Guard, Resident, Admin, HR)
+ * 
+ * When embedded=true, clicking a profile shows it in a modal (no navigation)
+ * This prevents users from getting stuck in isolated profile pages
  */
 
 import React, { useState, useEffect } from 'react';
@@ -16,6 +19,9 @@ import { ScrollArea } from './ui/scroll-area';
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
 } from './ui/dialog';
 import api from '../services/api';
 import {
@@ -33,7 +39,10 @@ import {
   X,
   ZoomIn,
   ChevronRight,
-  Building2
+  Building2,
+  ArrowLeft,
+  MapPin,
+  Calendar
 } from 'lucide-react';
 
 // Role configuration
