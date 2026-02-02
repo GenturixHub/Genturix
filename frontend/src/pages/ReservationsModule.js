@@ -370,9 +370,42 @@ const AreaFormDialog = ({ open, onClose, area, onSave }) => {
     requires_approval: false,
     max_hours_per_reservation: 2,
     max_reservations_per_day: 10,
-    allowed_days: DAYS_OF_WEEK.map(d => d.key)
+    allowed_days: DAYS_OF_WEEK.map(d => d.key),
+    // NEW: Reservation behavior fields
+    reservation_behavior: 'exclusive',
+    max_capacity_per_slot: null,
+    slot_duration_minutes: 60,
+    max_reservations_per_user_per_day: null
   });
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Behavior descriptions for admin
+  const BEHAVIOR_OPTIONS = [
+    { 
+      value: 'exclusive', 
+      label: 'Exclusivo', 
+      description: 'Un residente bloquea todo el espacio (Salón, Rancho)',
+      icon: '🔒'
+    },
+    { 
+      value: 'capacity', 
+      label: 'Por Capacidad', 
+      description: 'Múltiples reservas hasta llenar capacidad (Gimnasio, Piscina)',
+      icon: '👥'
+    },
+    { 
+      value: 'slot_based', 
+      label: 'Por Turnos', 
+      description: 'Slots fijos, 1 reserva por slot (Canchas, BBQ)',
+      icon: '⏰'
+    },
+    { 
+      value: 'free_access', 
+      label: 'Acceso Libre', 
+      description: 'No requiere reservación (Áreas abiertas)',
+      icon: '🚪'
+    }
+  ];
   
   useEffect(() => {
     if (area) {
@@ -385,9 +418,14 @@ const AreaFormDialog = ({ open, onClose, area, onSave }) => {
         available_from: area.available_from || '06:00',
         available_until: area.available_until || '22:00',
         requires_approval: area.requires_approval || false,
-        max_hours_per_reservation: area.max_hours_per_reservation || 2,
+        max_hours_per_reservation: area.max_hours_per_reservation || area.max_duration_hours || 2,
         max_reservations_per_day: area.max_reservations_per_day || 10,
-        allowed_days: area.allowed_days || DAYS_OF_WEEK.map(d => d.key)
+        allowed_days: area.allowed_days || DAYS_OF_WEEK.map(d => d.key),
+        // NEW fields
+        reservation_behavior: area.reservation_behavior || 'exclusive',
+        max_capacity_per_slot: area.max_capacity_per_slot || null,
+        slot_duration_minutes: area.slot_duration_minutes || 60,
+        max_reservations_per_user_per_day: area.max_reservations_per_user_per_day || null
       });
     } else {
       setForm({
@@ -401,7 +439,11 @@ const AreaFormDialog = ({ open, onClose, area, onSave }) => {
         requires_approval: false,
         max_hours_per_reservation: 2,
         max_reservations_per_day: 10,
-        allowed_days: DAYS_OF_WEEK.map(d => d.key)
+        allowed_days: DAYS_OF_WEEK.map(d => d.key),
+        reservation_behavior: 'exclusive',
+        max_capacity_per_slot: null,
+        slot_duration_minutes: 60,
+        max_reservations_per_user_per_day: null
       });
     }
   }, [area, open]);
