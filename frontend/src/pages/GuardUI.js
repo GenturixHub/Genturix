@@ -696,14 +696,66 @@ const VisitsTab = ({ onRefresh }) => {
           )
         )}
 
-        {/* PENDING Section */}
+        {/* PENDING Section - Grouped by Resident */}
         {activeSection === 'pending' && (
           filteredPending.length > 0 ? (
-            <div className="grid gap-2 sm:grid-cols-2">
-              {filteredPending.map((auth) => (
-                <VisitCard key={auth.id} item={auth} type="pending" />
-              ))}
-            </div>
+            (() => {
+              // Group authorizations by resident
+              const groupedByResident = filteredPending.reduce((acc, auth) => {
+                const residentKey = auth.created_by || 'unknown';
+                if (!acc[residentKey]) {
+                  acc[residentKey] = {
+                    resident_name: auth.created_by_name || 'Residente',
+                    resident_apartment: auth.resident_apartment || '',
+                    authorizations: []
+                  };
+                }
+                acc[residentKey].authorizations.push(auth);
+                return acc;
+              }, {});
+              
+              const residentKeys = Object.keys(groupedByResident);
+              
+              return (
+                <Accordion type="multiple" defaultValue={residentKeys} className="space-y-2">
+                  {residentKeys.map((residentKey) => {
+                    const group = groupedByResident[residentKey];
+                    return (
+                      <AccordionItem 
+                        key={residentKey} 
+                        value={residentKey}
+                        className="border border-[#1E293B] rounded-xl bg-[#0F111A]/50 overflow-hidden"
+                        data-testid={`pending-resident-${residentKey}`}
+                      >
+                        <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-[#1E293B]/30">
+                          <div className="flex items-center gap-3 w-full">
+                            <div className="w-10 h-10 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center flex-shrink-0">
+                              <Home className="w-5 h-5 text-blue-400" />
+                            </div>
+                            <div className="flex-1 text-left">
+                              <p className="font-semibold text-white text-sm">{group.resident_name}</p>
+                              {group.resident_apartment && (
+                                <p className="text-xs text-muted-foreground">{group.resident_apartment}</p>
+                              )}
+                            </div>
+                            <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30 mr-2">
+                              {group.authorizations.length} visitante{group.authorizations.length !== 1 ? 's' : ''}
+                            </Badge>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-3 pb-3">
+                          <div className="grid gap-2 pt-1">
+                            {group.authorizations.map((auth) => (
+                              <VisitCard key={auth.id} item={auth} type="pending" />
+                            ))}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    );
+                  })}
+                </Accordion>
+              );
+            })()
           ) : (
             <EmptyState icon={CalendarDays} message="No hay pre-registros pendientes" subMessage="Los residentes pueden crear autorizaciones" />
           )
