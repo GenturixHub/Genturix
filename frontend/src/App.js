@@ -43,6 +43,17 @@ if (typeof window !== 'undefined') {
   // Track if user has manually acknowledged the alert
   let userAcknowledged = false;
   
+  // Listen for global acknowledgement event from GuardUI components
+  window.addEventListener('panicAlertAcknowledged', () => {
+    console.log('[App] Panic alert acknowledged by user (global event)');
+    userAcknowledged = true;
+    if (panicSoundTimeout) {
+      clearTimeout(panicSoundTimeout);
+      panicSoundTimeout = null;
+    }
+    AlertSoundManager.stop();
+  });
+  
   // Listen for service worker messages
   navigator.serviceWorker?.addEventListener('message', (event) => {
     if (event.data?.type === 'PLAY_PANIC_SOUND') {
