@@ -1631,18 +1631,44 @@ const UserManagementPage = () => {
               Crea y administra usuarios de tu condominio
             </p>
           </div>
-          <Button 
-            onClick={() => setShowCreateDialog(true)}
-            className="gap-2"
-            data-testid="create-user-btn"
-          >
-            <UserPlus className="w-4 h-4" />
-            Crear Usuario
-          </Button>
+          {activeTab === 'users' && (
+            <Button 
+              onClick={() => setShowCreateDialog(true)}
+              className="gap-2"
+              data-testid="create-user-btn"
+            >
+              <UserPlus className="w-4 h-4" />
+              Crear Usuario
+            </Button>
+          )}
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        {/* Tabs Navigation */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 bg-[#0F111A] border border-[#1E293B]">
+            <TabsTrigger value="users" className="data-[state=active]:bg-primary/20" data-testid="tab-users">
+              <Users className="w-4 h-4 mr-2" />
+              Usuarios
+            </TabsTrigger>
+            <TabsTrigger value="requests" className="data-[state=active]:bg-primary/20 relative" data-testid="tab-requests">
+              <Clock className="w-4 h-4 mr-2" />
+              Solicitudes
+              {pendingRequestsCount > 0 && (
+                <Badge className="ml-2 bg-yellow-500 text-black text-xs px-1.5 py-0 min-w-[20px]">
+                  {pendingRequestsCount}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="invitations" className="data-[state=active]:bg-primary/20" data-testid="tab-invitations">
+              <Link2 className="w-4 h-4 mr-2" />
+              Invitaciones
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Users Tab Content */}
+          <TabsContent value="users" className="mt-6">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
           <Card className="bg-[#0F111A] border-[#1E293B]">
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
