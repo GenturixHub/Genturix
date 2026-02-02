@@ -105,7 +105,7 @@ if (typeof window !== 'undefined') {
   // Reset acknowledgement flag when a new alert comes in (after some time)
   // This allows new alerts to play sound again after the current one is resolved
   setInterval(() => {
-    if (userAcknowledged && !AlertSoundManager.isPlaying) {
+    if (userAcknowledged && !AlertSoundManager.getIsPlaying()) {
       // Check if there are no more active alerts, reset flag
       userAcknowledged = false;
     }
