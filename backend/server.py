@@ -2864,6 +2864,13 @@ async def update_authorization(
         update_fields["notes"] = auth_data.notes
     if auth_data.is_active is not None:
         update_fields["is_active"] = auth_data.is_active
+    # Visitor type fields
+    if auth_data.visitor_type is not None:
+        update_fields["visitor_type"] = auth_data.visitor_type
+    if auth_data.company is not None:
+        update_fields["company"] = auth_data.company
+    if auth_data.service_type is not None:
+        update_fields["service_type"] = auth_data.service_type
     
     await db.visitor_authorizations.update_one(
         {"id": auth_id},
