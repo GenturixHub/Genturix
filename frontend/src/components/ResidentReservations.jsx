@@ -703,6 +703,28 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
               data-testid="reservation-purpose"
             />
           </div>
+          
+          {/* Area Rules Section - Shown before confirming */}
+          {area.rules && area.rules.trim().length > 0 ? (
+            <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30" data-testid="area-rules-panel">
+              <div className="flex items-start gap-2">
+                <ScrollText className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-blue-400 mb-1.5">📌 Reglas del área</p>
+                  <div className="max-h-32 overflow-y-auto custom-scrollbar">
+                    <p className="text-xs text-blue-200/90 whitespace-pre-wrap leading-relaxed">{area.rules}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="p-3 rounded-lg bg-gray-500/10 border border-gray-500/20">
+              <div className="flex items-center gap-2">
+                <Info className="w-4 h-4 text-gray-400" />
+                <p className="text-xs text-gray-400">Este espacio no tiene reglas adicionales definidas por la administración.</p>
+              </div>
+            </div>
+          )}
         </div>
         
         <DialogFooter className="flex-col sm:flex-row gap-2">
