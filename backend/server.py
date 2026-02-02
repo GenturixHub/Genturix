@@ -9881,6 +9881,16 @@ async def seed_demo_data():
             "created_at": datetime.now(timezone.utc).isoformat()
         }
         await db.condominiums.insert_one(demo_condo)
+        
+        # Create default settings for demo condo
+        settings_doc = {
+            "condominium_id": demo_condo["id"],
+            "condominium_name": demo_condo["name"],
+            **get_default_condominium_settings(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.condominium_settings.insert_one(settings_doc)
     
     demo_condo_id = demo_condo["id"]
     
