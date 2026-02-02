@@ -64,6 +64,24 @@ export const AuthProvider = ({ children }) => {
     setUser(data.user);
     setPasswordResetRequired(data.password_reset_required || false);
 
+    // Load user's language preference after login
+    try {
+      const profileResponse = await fetch(`${API_URL}/api/profile`, {
+        headers: {
+          'Authorization': `Bearer ${data.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json();
+        if (profileData.language && ['es', 'en'].includes(profileData.language)) {
+          await changeLanguage(profileData.language);
+        }
+      }
+    } catch (langError) {
+      console.warn('Could not load user language preference:', langError);
+    }
+
     return { user: data.user, passwordResetRequired: data.password_reset_required };
   };
 
