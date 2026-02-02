@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 2, 2026 (Session 62 - UX Fixes: Mobile Scroll & Hamburger Menu)
+## Last Updated: February 2, 2026 (Session 62 - P0 Bug Fix: Guard Visitas Tab Empty)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,59 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
+
+### Session 62 - P0 BUG FIX: Guard Visitas Tab Was Empty (February 2, 2026) ⭐⭐⭐⭐⭐
+
+**Bug Reported:**
+- Módulo "Visitas" del guardia estaba vacío
+- No mostraba pre-registros, entradas activas, ni salidas
+- Todo aparecía solo en Check-In
+
+**Solution:**
+
+**1. New Backend Endpoint:**
+```python
+@api_router.get("/guard/visits-summary")
+# Returns: {pending: [], inside: [], exits: []}
+# - pending: Valid authorizations not yet used
+# - inside: Visitors currently inside (from visitor_entries)
+# - exits: Today's exits with duration
+```
+
+**2. Rewritten VisitsTab Component:**
+- 3 section tabs: Dentro, Pendientes, Salidas
+- READ-ONLY mode (no action buttons)
+- Message directing users to Check-In for actions
+- Search/filter functionality
+- VisitCard component with badges for visitor type
+
+**3. Mobile Navigation Updated:**
+- Added "Visitas" to GUARD_MOBILE_NAV
+
+**Testing Results:**
+
+| Test | Result |
+|------|--------|
+| 3 sections visible | ✅ PASS |
+| Dentro badges & time | ✅ PASS |
+| Visitor type badges | ✅ PASS |
+| Company/destination shown | ✅ PASS |
+| NO action buttons (READ-ONLY) | ✅ PASS |
+| Search filters correctly | ✅ PASS |
+| Mobile nav works | ✅ PASS |
+| Check-In → Visitas integration | ✅ PASS |
+
+**Files Modified:**
+- `/app/backend/server.py` - Added `/guard/visits-summary` endpoint
+- `/app/frontend/src/services/api.js` - Added `getVisitsSummary()`
+- `/app/frontend/src/pages/GuardUI.js` - Rewritten VisitsTab, VisitCard, EmptyState, GUARD_MOBILE_NAV
+
+**Testing Status:**
+- ✅ Backend: 100% (2/2)
+- ✅ Frontend: 100% (14/14)
+- ✅ Test report: `/app/test_reports/iteration_62.json`
+
+---
 
 ### Session 62 - UX FIX: Mobile Scroll Enhancement (February 2, 2026) ⭐⭐⭐⭐
 
