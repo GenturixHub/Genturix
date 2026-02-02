@@ -9,6 +9,51 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
 
+### Session 55 - P0 Bug Investigation: Guard Visitas Module (February 2, 2026) ⭐⭐⭐⭐⭐
+
+**Reported Issue:**
+- "El módulo carga correctamente, el formulario permite ingresar datos, pero NO se crea ningún registro real"
+
+**Investigation Results:**
+
+| Test | Result |
+|------|--------|
+| Backend POST /api/guard/checkin | ✅ Works - Creates record in visitor_entries |
+| Visitor appears in history | ✅ Works - Shows in GET /api/guard/history |
+| Visitor appears in "inside" | ✅ Works - Shows in GET /api/guard/visitors-inside |
+| Checkout flow | ✅ Works - POST /api/guard/checkout/{id} |
+
+**Root Cause Analysis:**
+The issue was **NOT a bug**, but **user confusion** between two tabs:
+
+| Tab | Purpose | Has Manual Entry? |
+|-----|---------|-------------------|
+| **Visitas** | Shows pre-registered visitors (authorizations) | ❌ No - only shows existing pre-registrations |
+| **Check-In** | Search visitors, manual entry, visitors inside | ✅ Yes - "Entrada Manual (Sin Autorización)" button |
+
+**UX Improvement Implemented:**
+Added helpful message in "Visitas" tab:
+> "💡 Aquí ves pre-registros. Para entrada manual sin pre-registro, usa la pestaña **Check-In**"
+
+**Correct Manual Entry Flow:**
+1. Guard logs in
+2. Navigate to **Check-In** tab
+3. Click **"Entrada Manual (Sin Autorización)"** button
+4. Fill visitor name (required) and optional fields
+5. Click **"REGISTRAR ENTRADA"**
+6. Toast: "⚠️ Entrada manual registrada" appears
+7. Visitor appears in "DENTRO DEL CONDOMINIO" section
+
+**Testing Status:**
+- ✅ 100% backend tests passed
+- ✅ 100% frontend UI tests passed
+- ✅ Test report: `/app/test_reports/iteration_54.json`
+
+**Files Modified:**
+- `/app/frontend/src/pages/GuardUI.js` - Added UX hint in VisitsTab, improved error toasts
+
+---
+
 ### Session 54 - P0 FEATURE: Sistema de Cancelación de Reservaciones (February 1, 2026) ⭐⭐⭐⭐⭐
 
 **Feature Implemented:**
