@@ -57,6 +57,8 @@ import {
   AlertDialogTitle,
 } from '../components/ui/alert-dialog';
 import api from '../services/api';
+import { toast } from 'sonner';
+import { QRCodeSVG } from 'qrcode.react';
 import { 
   Users, 
   UserPlus, 
@@ -78,7 +80,15 @@ import {
   Lock,
   Unlock,
   RefreshCw,
-  Mail
+  Mail,
+  Link2,
+  QrCode,
+  Clock,
+  Trash2,
+  UserX,
+  Building,
+  Calendar,
+  ExternalLink
 } from 'lucide-react';
 
 // ============================================
