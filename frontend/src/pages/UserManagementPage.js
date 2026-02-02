@@ -846,6 +846,686 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
 };
 
 // ============================================
+// INVITATIONS MANAGEMENT COMPONENT
+// ============================================
+const InvitationsSection = ({ onInviteCreated }) => {
+  const [invitations, setInvitations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showQRDialog, setShowQRDialog] = useState(false);
+  const [selectedInvite, setSelectedInvite] = useState(null);
+  
+  // Form state
+  const [form, setForm] = useState({
+    expiration_days: 7,
+    usage_limit_type: 'single',
+    max_uses: 1,
+    notes: ''
+  });
+  
+  const fetchInvitations = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await api.getInvitations();
+      setInvitations(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error fetching invitations:', err);
+      toast.error('Error al cargar invitaciones');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  
+  useEffect(() => {
+    fetchInvitations();
+  }, [fetchInvitations]);
+  
+  const handleCreate = async () => {
+    setCreating(true);
+    try {
+      const result = await api.createInvitation({
+        expiration_days: parseInt(form.expiration_days),
+        usage_limit_type: form.usage_limit_type,
+        max_uses: form.usage_limit_type === 'fixed' ? parseInt(form.max_uses) : 1,
+        notes: form.notes || null
+      });
+      toast.success('Invitación creada exitosamente');
+      setShowCreateDialog(false);
+      setForm({ expiration_days: 7, usage_limit_type: 'single', max_uses: 1, notes: '' });
+      fetchInvitations();
+      if (onInviteCreated) onInviteCreated();
+    } catch (err) {
+      toast.error(err.message || 'Error al crear invitación');
+    } finally {
+      setCreating(false);
+    }
+  };
+  
+  const handleRevoke = async (invitationId) => {
+    try {
+      await api.revokeInvitation(invitationId);
+      toast.success('Invitación revocada');
+      fetchInvitations();
+    } catch (err) {
+      toast.error('Error al revocar invitación');
+    }
+  };
+  
+  const copyToClipboard = async (url) => {
+    await navigator.clipboard.writeText(url);
+    toast.success('Link copiado al portapapeles');
+  };
+  
+  const baseUrl = window.location.origin;
+  
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div>
+          <h3 className="text-lg font-semibold text-white">Links de Invitación</h3>
+          <p className="text-sm text-muted-foreground">Genera links o códigos QR para que nuevos residentes soliciten acceso</p>
+        </div>
+        <Button onClick={() => setShowCreateDialog(true)} data-testid="create-invite-btn">
+          <Link2 className="w-4 h-4 mr-2" />
+          Nueva Invitación
+        </Button>
+      </div>
+      
+      {/* Invitations List */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : invitations.length === 0 ? (
+        <div className="text-center py-12 border border-dashed border-[#1E293B] rounded-lg">
+          <Link2 className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-50" />
+          <p className="text-muted-foreground">No hay invitaciones activas</p>
+          <p className="text-sm text-muted-foreground/70">Crea una invitación para compartir con residentes potenciales</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {invitations.map((inv) => {
+            const inviteUrl = `${baseUrl}/join/${inv.token}`;
+            const isExpired = inv.is_expired;
+            const isRevoked = !inv.is_active;
+            const usageFull = inv.usage_limit_type !== 'unlimited' && inv.current_uses >= inv.max_uses;
+            
+            return (
+              <div 
+                key={inv.id}
+                className={`p-4 rounded-lg border ${
+                  isRevoked || isExpired || usageFull
+                    ? 'bg-[#0A0A0F]/50 border-[#1E293B]/50 opacity-60'
+                    : 'bg-[#0A0A0F] border-[#1E293B]'
+                }`}
+                data-testid={`invite-row-${inv.id}`}
+              >
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <code className="text-xs text-primary bg-primary/10 px-2 py-1 rounded truncate max-w-[200px]">
+                        {inv.token.substring(0, 16)}...
+                      </code>
+                      {isRevoked && <Badge variant="destructive" className="text-xs">Revocada</Badge>}
+                      {isExpired && !isRevoked && <Badge variant="secondary" className="text-xs">Expirada</Badge>}
+                      {usageFull && !isExpired && !isRevoked && <Badge variant="secondary" className="text-xs">Límite alcanzado</Badge>}
+                      {!isRevoked && !isExpired && !usageFull && <Badge className="text-xs bg-green-500/10 text-green-400">Activa</Badge>}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        Expira: {new Date(inv.expires_at).toLocaleDateString('es-MX')}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Users className="w-3 h-3" />
+                        Usos: {inv.current_uses}/{inv.usage_limit_type === 'unlimited' ? '∞' : inv.max_uses}
+                      </span>
+                      {inv.notes && (
+                        <span className="text-muted-foreground/70 truncate max-w-[150px]">
+                          "{inv.notes}"
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {!isRevoked && !isExpired && !usageFull && (
+                      <>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => copyToClipboard(inviteUrl)}
+                          data-testid={`copy-invite-${inv.id}`}
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedInvite({ ...inv, url: inviteUrl });
+                            setShowQRDialog(true);
+                          }}
+                          data-testid={`qr-invite-${inv.id}`}
+                        >
+                          <QrCode className="w-4 h-4" />
+                        </Button>
+                      </>
+                    )}
+                    {inv.is_active && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                        onClick={() => handleRevoke(inv.id)}
+                        data-testid={`revoke-invite-${inv.id}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      
+      {/* Create Invitation Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="bg-[#0F111A] border-[#1E293B]">
+          <DialogHeader>
+            <DialogTitle>Nueva Invitación</DialogTitle>
+            <DialogDescription>
+              Crea un link de invitación para que nuevos residentes soliciten acceso
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Expiración</Label>
+              <Select 
+                value={String(form.expiration_days)} 
+                onValueChange={(v) => setForm({...form, expiration_days: parseInt(v)})}
+              >
+                <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0F111A] border-[#1E293B]">
+                  <SelectItem value="7">7 días</SelectItem>
+                  <SelectItem value="30">30 días</SelectItem>
+                  <SelectItem value="90">90 días</SelectItem>
+                  <SelectItem value="365">1 año</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Límite de Uso</Label>
+              <Select 
+                value={form.usage_limit_type} 
+                onValueChange={(v) => setForm({...form, usage_limit_type: v})}
+              >
+                <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0F111A] border-[#1E293B]">
+                  <SelectItem value="single">Un solo uso</SelectItem>
+                  <SelectItem value="unlimited">Ilimitado hasta expirar</SelectItem>
+                  <SelectItem value="fixed">Número fijo de usos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {form.usage_limit_type === 'fixed' && (
+              <div className="space-y-2">
+                <Label>Número máximo de usos</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  max="1000"
+                  value={form.max_uses}
+                  onChange={(e) => setForm({...form, max_uses: parseInt(e.target.value) || 1})}
+                  className="bg-[#0A0A0F] border-[#1E293B]"
+                />
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <Label>Notas (opcional)</Label>
+              <Textarea
+                value={form.notes}
+                onChange={(e) => setForm({...form, notes: e.target.value})}
+                placeholder="Ej: Para residentes Torre A"
+                className="bg-[#0A0A0F] border-[#1E293B]"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleCreate} disabled={creating}>
+              {creating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Link2 className="w-4 h-4 mr-2" />}
+              Crear Invitación
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* QR Code Dialog */}
+      <Dialog open={showQRDialog} onOpenChange={setShowQRDialog}>
+        <DialogContent className="bg-[#0F111A] border-[#1E293B]">
+          <DialogHeader>
+            <DialogTitle>Código QR de Invitación</DialogTitle>
+            <DialogDescription>
+              Escanea este código para acceder al formulario de solicitud
+            </DialogDescription>
+          </DialogHeader>
+          {selectedInvite && (
+            <div className="flex flex-col items-center space-y-4">
+              <div className="p-4 bg-white rounded-xl">
+                <QRCodeSVG 
+                  value={selectedInvite.url} 
+                  size={200}
+                  level="M"
+                />
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground mb-2">O comparte este link:</p>
+                <code className="text-xs text-primary bg-primary/10 px-3 py-2 rounded block max-w-full overflow-x-auto">
+                  {selectedInvite.url}
+                </code>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => copyToClipboard(selectedInvite.url)}
+                >
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copiar Link
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => window.open(selectedInvite.url, '_blank')}
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Abrir
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+// ============================================
+// ACCESS REQUESTS TAB COMPONENT
+// ============================================
+const AccessRequestsTab = () => {
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(null);
+  const [showActionDialog, setShowActionDialog] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [actionType, setActionType] = useState(null);
+  const [actionMessage, setActionMessage] = useState('');
+  const [sendEmail, setSendEmail] = useState(true);
+  const [createdCredentials, setCreatedCredentials] = useState(null);
+  const [showCredentialsDialog, setShowCredentialsDialog] = useState(false);
+  
+  const fetchRequests = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await api.getAccessRequests('all');
+      setRequests(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error fetching access requests:', err);
+      toast.error('Error al cargar solicitudes');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  
+  useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
+  
+  const handleAction = async () => {
+    if (!selectedRequest || !actionType) return;
+    
+    setProcessing(selectedRequest.id);
+    try {
+      const result = await api.processAccessRequest(
+        selectedRequest.id,
+        actionType,
+        actionMessage,
+        sendEmail
+      );
+      
+      if (actionType === 'approve') {
+        toast.success('Solicitud aprobada. Usuario creado exitosamente.');
+        // If email wasn't sent, show credentials
+        if (!sendEmail && result.credentials?.password) {
+          setCreatedCredentials({
+            email: result.credentials.email,
+            password: result.credentials.password,
+            name: selectedRequest.full_name
+          });
+          setShowCredentialsDialog(true);
+        }
+      } else {
+        toast.success('Solicitud rechazada.');
+      }
+      
+      setShowActionDialog(false);
+      setSelectedRequest(null);
+      setActionType(null);
+      setActionMessage('');
+      fetchRequests();
+    } catch (err) {
+      toast.error(err.message || 'Error al procesar solicitud');
+    } finally {
+      setProcessing(null);
+    }
+  };
+  
+  const pendingCount = requests.filter(r => r.status === 'pending_approval').length;
+  
+  return (
+    <div className="space-y-4">
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+          <div className="flex items-center gap-2 mb-1">
+            <Clock className="w-4 h-4 text-yellow-400" />
+            <span className="text-2xl font-bold text-yellow-400">{pendingCount}</span>
+          </div>
+          <p className="text-xs text-muted-foreground">Pendientes</p>
+        </div>
+        <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+          <div className="flex items-center gap-2 mb-1">
+            <CheckCircle className="w-4 h-4 text-green-400" />
+            <span className="text-2xl font-bold text-green-400">
+              {requests.filter(r => r.status === 'approved').length}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">Aprobadas</p>
+        </div>
+        <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
+          <div className="flex items-center gap-2 mb-1">
+            <XCircle className="w-4 h-4 text-red-400" />
+            <span className="text-2xl font-bold text-red-400">
+              {requests.filter(r => r.status === 'rejected').length}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">Rechazadas</p>
+        </div>
+      </div>
+      
+      {/* Requests List */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : requests.length === 0 ? (
+        <div className="text-center py-12 border border-dashed border-[#1E293B] rounded-lg">
+          <Users className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-50" />
+          <p className="text-muted-foreground">No hay solicitudes de acceso</p>
+          <p className="text-sm text-muted-foreground/70">Las solicitudes aparecerán cuando los residentes usen un link de invitación</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {requests.map((req) => {
+            const isPending = req.status === 'pending_approval';
+            const isApproved = req.status === 'approved';
+            const isRejected = req.status === 'rejected';
+            
+            return (
+              <div 
+                key={req.id}
+                className={`p-4 rounded-lg border ${
+                  isPending 
+                    ? 'bg-[#0A0A0F] border-yellow-500/30' 
+                    : 'bg-[#0A0A0F]/50 border-[#1E293B]'
+                }`}
+                data-testid={`request-row-${req.id}`}
+              >
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-white">{req.full_name}</span>
+                      {isPending && (
+                        <Badge className="text-xs bg-yellow-500/10 text-yellow-400 border-yellow-500/20">
+                          <Clock className="w-3 h-3 mr-1" />
+                          Pendiente
+                        </Badge>
+                      )}
+                      {isApproved && (
+                        <Badge className="text-xs bg-green-500/10 text-green-400 border-green-500/20">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Aprobada
+                        </Badge>
+                      )}
+                      {isRejected && (
+                        <Badge className="text-xs bg-red-500/10 text-red-400 border-red-500/20">
+                          <XCircle className="w-3 h-3 mr-1" />
+                          Rechazada
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Mail className="w-3 h-3" />
+                        {req.email}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Building className="w-3 h-3" />
+                        {req.tower_block ? `${req.tower_block} - ` : ''}{req.apartment_number}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {new Date(req.created_at).toLocaleDateString('es-MX')}
+                      </span>
+                    </div>
+                    {req.notes && (
+                      <p className="mt-2 text-xs text-muted-foreground/70 italic">
+                        "{req.notes}"
+                      </p>
+                    )}
+                    {req.status_message && !isPending && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        <strong>Mensaje:</strong> {req.status_message}
+                      </p>
+                    )}
+                  </div>
+                  
+                  {isPending && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700"
+                        onClick={() => {
+                          setSelectedRequest(req);
+                          setActionType('approve');
+                          setActionMessage('');
+                          setShowActionDialog(true);
+                        }}
+                        disabled={processing === req.id}
+                        data-testid={`approve-request-${req.id}`}
+                      >
+                        {processing === req.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Aprobar
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => {
+                          setSelectedRequest(req);
+                          setActionType('reject');
+                          setActionMessage('');
+                          setShowActionDialog(true);
+                        }}
+                        disabled={processing === req.id}
+                        data-testid={`reject-request-${req.id}`}
+                      >
+                        <XCircle className="w-4 h-4 mr-1" />
+                        Rechazar
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      
+      {/* Action Confirmation Dialog */}
+      <Dialog open={showActionDialog} onOpenChange={setShowActionDialog}>
+        <DialogContent className="bg-[#0F111A] border-[#1E293B]">
+          <DialogHeader>
+            <DialogTitle>
+              {actionType === 'approve' ? 'Aprobar Solicitud' : 'Rechazar Solicitud'}
+            </DialogTitle>
+            <DialogDescription>
+              {actionType === 'approve' 
+                ? `Se creará una cuenta para ${selectedRequest?.full_name} con rol de Residente.`
+                : `Se rechazará la solicitud de ${selectedRequest?.full_name}.`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Request Details */}
+            <div className="p-3 rounded-lg bg-[#0A0A0F] border border-[#1E293B]">
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Email:</span>
+                  <p className="text-white">{selectedRequest?.email}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Unidad:</span>
+                  <p className="text-white">
+                    {selectedRequest?.tower_block ? `${selectedRequest.tower_block} - ` : ''}
+                    {selectedRequest?.apartment_number}
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Message */}
+            <div className="space-y-2">
+              <Label>
+                {actionType === 'approve' ? 'Mensaje de bienvenida (opcional)' : 'Motivo de rechazo (opcional)'}
+              </Label>
+              <Textarea
+                value={actionMessage}
+                onChange={(e) => setActionMessage(e.target.value)}
+                placeholder={actionType === 'approve' 
+                  ? '¡Bienvenido a la comunidad!'
+                  : 'Ej: No se pudo verificar la información proporcionada.'
+                }
+                className="bg-[#0A0A0F] border-[#1E293B]"
+              />
+            </div>
+            
+            {/* Email notification */}
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="sendEmail"
+                checked={sendEmail}
+                onChange={(e) => setSendEmail(e.target.checked)}
+                className="rounded border-[#1E293B]"
+              />
+              <Label htmlFor="sendEmail" className="text-sm cursor-pointer">
+                Enviar notificación por email al solicitante
+              </Label>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowActionDialog(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleAction}
+              disabled={processing}
+              className={actionType === 'approve' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
+            >
+              {processing ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : actionType === 'approve' ? (
+                <CheckCircle className="w-4 h-4 mr-2" />
+              ) : (
+                <XCircle className="w-4 h-4 mr-2" />
+              )}
+              {actionType === 'approve' ? 'Aprobar y Crear Usuario' : 'Rechazar Solicitud'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Credentials Dialog (when email not sent) */}
+      <Dialog open={showCredentialsDialog} onOpenChange={setShowCredentialsDialog}>
+        <DialogContent className="bg-[#0F111A] border-[#1E293B]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-green-400">
+              <CheckCircle className="w-5 h-5" />
+              Usuario Creado
+            </DialogTitle>
+            <DialogDescription>
+              Comparte estas credenciales con {createdCredentials?.name}
+            </DialogDescription>
+          </DialogHeader>
+          {createdCredentials && (
+            <div className="space-y-4">
+              <div className="p-4 rounded-lg bg-[#0A0A0F] border border-[#1E293B]">
+                <div className="space-y-3">
+                  <div>
+                    <span className="text-xs text-muted-foreground">Email</span>
+                    <p className="text-white font-mono">{createdCredentials.email}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">Contraseña Temporal</span>
+                    <p className="text-green-400 font-mono text-lg">{createdCredentials.password}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                <p className="text-xs text-yellow-400">
+                  ⚠️ El usuario deberá cambiar su contraseña en el primer inicio de sesión.
+                </p>
+              </div>
+              <Button
+                className="w-full"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(
+                    `Email: ${createdCredentials.email}\nContraseña: ${createdCredentials.password}`
+                  );
+                  toast.success('Credenciales copiadas');
+                }}
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Copiar Credenciales
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+// ============================================
 // MAIN PAGE COMPONENT
 // ============================================
 const UserManagementPage = () => {
