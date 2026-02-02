@@ -2624,7 +2624,11 @@ async def create_visitor_authorization(
         "last_visit": None,
         "checked_in_at": None,
         "checked_in_by": None,
-        "checked_in_by_name": None
+        "checked_in_by_name": None,
+        # Visitor type fields
+        "visitor_type": auth_data.visitor_type or "visitor",
+        "company": auth_data.company,
+        "service_type": auth_data.service_type
     }
     
     await db.visitor_authorizations.insert_one(auth_doc)
