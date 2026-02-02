@@ -3,20 +3,32 @@
  * Allows users to change their preferred language
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Button } from './ui/button';
-import { Badge } from './ui/badge';
 import { Loader2, Globe, Check } from 'lucide-react';
-import { changeLanguage, availableLanguages, getCurrentLanguage } from '../i18n';
+import { changeLanguage, availableLanguages } from '../i18n';
 import api from '../services/api';
 import { toast } from 'sonner';
 
 const LanguageSelector = ({ onLanguageChange }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [isUpdating, setIsUpdating] = useState(false);
-  const [currentLang, setCurrentLang] = useState(getCurrentLanguage());
+  // Use i18n.language directly to ensure reactivity
+  const currentLang = i18n.language;
+
+  // Listen for language changes from i18n
+  useEffect(() => {
+    const handleLanguageChanged = (lng) => {
+      console.log('Language changed to:', lng);
+    };
+    
+    i18n.on('languageChanged', handleLanguageChanged);
+    return () => {
+      i18n.off('languageChanged', handleLanguageChanged);
+    };
+  }, [i18n]);
 
   const handleLanguageChange = async (langCode) => {
     if (langCode === currentLang) return;
@@ -24,19 +36,22 @@ const LanguageSelector = ({ onLanguageChange }) => {
     setIsUpdating(true);
     
     try {
-      // Update in backend
+      // Update in backend first
       await api.updateLanguage(langCode);
       
-      // Update in frontend (i18n + localStorage)
-      await changeLanguage(langCode);
-      setCurrentLang(langCode);
+      // Update in frontend (i18n + localStorage) - this triggers re-render
+      const success = await changeLanguage(langCode);
       
-      // Notify parent component if callback provided
-      if (onLanguageChange) {
-        onLanguageChange(langCode);
+      if (success) {
+        // Notify parent component if callback provided
+        if (onLanguageChange) {
+          onLanguageChange(langCode);
+        }
+        
+        // Use the new language for the toast
+        const message = langCode === 'en' ? 'Language updated successfully' : 'Idioma actualizado correctamente';
+        toast.success(message);
       }
-      
-      toast.success(t('profile.languageUpdated'));
     } catch (error) {
       console.error('Error updating language:', error);
       toast.error(t('errors.generic'));
