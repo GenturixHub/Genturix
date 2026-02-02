@@ -130,8 +130,8 @@ const DashboardLayout = ({ children, title = 'Dashboard', variant = 'admin' }) =
           {/* Hamburger menu removed - navigation is at the bottom */}
         </header>
         
-        {/* Content - Scrollable area */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-24">
+        {/* Content - Scrollable area with proper height */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-28" style={{ minHeight: 0 }}>
           {children}
         </main>
         
