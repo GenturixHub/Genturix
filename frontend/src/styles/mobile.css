@@ -310,9 +310,10 @@
     gap: 1rem;
   }
 
-  /* Mobile scroll area height */
+  /* Mobile scroll area height - use auto for natural content flow */
   .mobile-scroll-area {
-    height: calc(100vh - 160px) !important;
+    min-height: auto;
+    max-height: none;
   }
 
   /* Mobile alert card - larger touch area */
