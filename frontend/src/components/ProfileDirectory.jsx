@@ -64,6 +64,11 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
+  
+  // NEW: State for embedded profile modal
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [profileModalUser, setProfileModalUser] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(false);
 
   // Refetch when user profile_photo changes (after profile update)
   const userPhotoKey = user?.profile_photo || 'no-photo';
@@ -86,12 +91,35 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
     fetchDirectory();
   }, [userPhotoKey]); // Refetch when user's photo changes
 
-  const handleViewProfile = (userId) => {
+  const handleViewProfile = async (userId, userBasicInfo) => {
     if (onViewProfile) {
+      // If parent provides handler, use it
       onViewProfile(userId);
+    } else if (embedded) {
+      // EMBEDDED MODE: Show profile in modal (no navigation)
+      setProfileModalUser(userBasicInfo); // Show basic info immediately
+      setProfileModalOpen(true);
+      
+      // Optionally fetch full profile data
+      try {
+        setLoadingProfile(true);
+        const fullProfile = await api.getPublicProfile(userId);
+        setProfileModalUser(prev => ({ ...prev, ...fullProfile }));
+      } catch (err) {
+        console.error('Error loading full profile:', err);
+        // Keep showing basic info even if full fetch fails
+      } finally {
+        setLoadingProfile(false);
+      }
     } else {
+      // Non-embedded mode: navigate to profile page
       navigate(`/profile/${userId}`);
     }
+  };
+
+  const closeProfileModal = () => {
+    setProfileModalOpen(false);
+    setProfileModalUser(null);
   };
 
   const handlePhotoClick = (user, e) => {
