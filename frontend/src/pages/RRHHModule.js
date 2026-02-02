@@ -2135,7 +2135,8 @@ const RRHHModule = () => {
 
         {/* Submodule Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <ScrollArea className="w-full">
+          {/* Mobile-friendly horizontal scroll container */}
+          <div className="w-full overflow-x-auto overflow-y-hidden scrollbar-hide -webkit-overflow-scrolling-touch pb-2" style={{ WebkitOverflowScrolling: 'touch' }}>
             <TabsList className="inline-flex w-max bg-[#0F111A] border border-[#1E293B] p-1">
               {availableSubmodules.map(submodule => {
                 const Icon = submodule.icon;
@@ -2143,7 +2144,8 @@ const RRHHModule = () => {
                   <TabsTrigger 
                     key={submodule.id} 
                     value={submodule.id}
-                    className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary whitespace-nowrap"
+                    className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary whitespace-nowrap flex-shrink-0"
+                    data-testid={`rrhh-tab-${submodule.id}`}
                   >
                     <Icon className="w-4 h-4 mr-2" />
                     {isMobile ? submodule.shortLabel : submodule.label}
@@ -2151,7 +2153,7 @@ const RRHHModule = () => {
                 );
               })}
             </TabsList>
-          </ScrollArea>
+          </div>
 
           {/* Submodule Content */}
           <div className="mt-6">
