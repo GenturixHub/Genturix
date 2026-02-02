@@ -8813,6 +8813,16 @@ async def create_condominium(
     
     await db.condominiums.insert_one(condo_doc)
     
+    # Create default condominium settings
+    settings_doc = {
+        "condominium_id": condo_id,
+        "condominium_name": condo_data.name,
+        **get_default_condominium_settings(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.condominium_settings.insert_one(settings_doc)
+    
     await log_audit_event(
         AuditEventType.CONDO_CREATED,
         current_user["id"],
