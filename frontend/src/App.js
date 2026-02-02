@@ -22,9 +22,6 @@ import ProfilePage from './pages/ProfilePage';
 import AlertSoundManager from './utils/AlertSoundManager';
 import './App.css';
 
-// Track auto-stop timeout to prevent multiple timeouts
-let panicSoundTimeout = null;
-
 // Suppress PostHog errors in development
 if (typeof window !== 'undefined') {
   const originalPostMessage = window.postMessage;
@@ -39,88 +36,6 @@ if (typeof window !== 'undefined') {
       throw e;
     }
   };
-  
-  // Track if user has manually acknowledged the alert
-  let userAcknowledged = false;
-  
-  // Listen for global acknowledgement event from GuardUI components
-  window.addEventListener('panicAlertAcknowledged', () => {
-    console.log('[App] Panic alert acknowledged by user (global event)');
-    userAcknowledged = true;
-    if (panicSoundTimeout) {
-      clearTimeout(panicSoundTimeout);
-      panicSoundTimeout = null;
-    }
-    AlertSoundManager.stop();
-  });
-  
-  // Listen for service worker messages
-  navigator.serviceWorker?.addEventListener('message', (event) => {
-    if (event.data?.type === 'PLAY_PANIC_SOUND') {
-      console.log('[App] Received panic sound request from SW');
-      
-      // Don't restart sound if user has already acknowledged
-      if (userAcknowledged) {
-        console.log('[App] User already acknowledged alert, ignoring new sound request');
-        return;
-      }
-      
-      // Clear any existing timeout to prevent duplicate stops
-      if (panicSoundTimeout) {
-        clearTimeout(panicSoundTimeout);
-        panicSoundTimeout = null;
-      }
-      
-      AlertSoundManager.play();
-      
-      // Auto-stop after 30 seconds if not acknowledged (safety net)
-      panicSoundTimeout = setTimeout(() => {
-        AlertSoundManager.stop();
-        panicSoundTimeout = null;
-      }, 30000);
-    }
-    
-    if (event.data?.type === 'PANIC_ALERT_CLICK') {
-      console.log('[App] Received panic alert click from SW');
-      userAcknowledged = true;  // Mark as acknowledged
-      if (panicSoundTimeout) {
-        clearTimeout(panicSoundTimeout);
-        panicSoundTimeout = null;
-      }
-      AlertSoundManager.stop();
-    }
-    
-    // Stop sound when alert is viewed/acknowledged
-    if (event.data?.type === 'STOP_PANIC_SOUND') {
-      console.log('[App] Received stop sound request');
-      userAcknowledged = true;  // Mark as acknowledged
-      if (panicSoundTimeout) {
-        clearTimeout(panicSoundTimeout);
-        panicSoundTimeout = null;
-      }
-      AlertSoundManager.stop();
-    }
-    
-    // Also handle NOTIFICATION_CLICKED and NOTIFICATION_CLOSED as backup
-    if (event.data?.type === 'NOTIFICATION_CLICKED' || event.data?.type === 'NOTIFICATION_CLOSED') {
-      console.log('[App] Notification clicked/closed, stopping sound');
-      userAcknowledged = true;  // Mark as acknowledged
-      if (panicSoundTimeout) {
-        clearTimeout(panicSoundTimeout);
-        panicSoundTimeout = null;
-      }
-      AlertSoundManager.stop();
-    }
-  });
-  
-  // Reset acknowledgement flag when a new alert comes in (after some time)
-  // This allows new alerts to play sound again after the current one is resolved
-  setInterval(() => {
-    if (userAcknowledged && !AlertSoundManager.getIsPlaying()) {
-      // Check if there are no more active alerts, reset flag
-      userAcknowledged = false;
-    }
-  }, 60000);  // Check every minute
 }
 
 // Role-based redirect component
