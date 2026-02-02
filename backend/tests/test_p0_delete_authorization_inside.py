@@ -220,9 +220,9 @@ class TestP0DeleteAuthorizationInsideFix:
         """Test that guard can see visitors currently inside"""
         self.login_as_guard()
         
-        # Get active visitors (inside)
+        # Get active visitors (inside) - correct endpoint
         response = self.session.get(
-            f"{BASE_URL}/api/guard/visitors/active",
+            f"{BASE_URL}/api/guard/visitors-inside",
             headers={"Authorization": f"Bearer {self.guard_token}"}
         )
         
