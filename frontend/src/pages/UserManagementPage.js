@@ -1332,7 +1332,7 @@ const AccessRequestsTab = () => {
                     </div>
                     {req.notes && (
                       <p className="mt-2 text-xs text-muted-foreground/70 italic">
-                        "{req.notes}"
+                        &ldquo;{req.notes}&rdquo;
                       </p>
                     )}
                     {req.status_message && !isPending && (
