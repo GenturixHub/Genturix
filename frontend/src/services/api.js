@@ -481,6 +481,9 @@ class ApiService {
   // Profile Directory - All users in same condominium
   getCondominiumDirectory = () => this.get('/profile/directory/condominium');
 
+  // Language Settings
+  updateLanguage = (language) => this.patch('/profile/language', { language });
+
   // ==================== RESERVATIONS ====================
   // Areas
   getReservationAreas = () => this.get('/reservations/areas');
