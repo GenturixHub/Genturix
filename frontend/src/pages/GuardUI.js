@@ -2275,10 +2275,10 @@ const GuardUI = () => {
   const handleTabChange = useCallback((newTab) => {
     // Stop panic sound when navigating to alerts tab
     if (newTab === 'alerts') {
-      AlertSoundManager.stop();
+      stopAlertSound();
     }
     setActiveTab(newTab);
-  }, []);
+  }, [stopAlertSound]);
 
   // Handle mobile nav tab changes
   const handleMobileTabChange = (tabId) => {
@@ -2321,23 +2321,35 @@ const GuardUI = () => {
   // Stop panic sound on component unmount (cleanup)
   useEffect(() => {
     return () => {
-      AlertSoundManager.stop();
+      stopAlertSound();
     };
-  }, []);
+  }, [stopAlertSound]);
 
-  // Stop sound when guard views alerts tab (mounting)
+  // Stop sound when guard views alerts tab
   useEffect(() => {
     if (activeTab === 'alerts') {
-      AlertSoundManager.stop();
+      stopAlertSound();
     }
-  }, [activeTab]);
+  }, [activeTab, stopAlertSound]);
 
-  // Vibrate on new active alerts
+  // Reset sound acknowledgement when new active alerts arrive (allows sound for new alerts)
+  // Also vibrate on new alerts
+  const prevActiveCountRef = React.useRef(0);
   useEffect(() => {
     const activeCount = alerts.filter(a => a.status === 'active').length;
+    
+    // If we have more active alerts than before, reset acknowledgement
+    // so the next push notification can play sound
+    if (activeCount > prevActiveCountRef.current) {
+      soundAcknowledgedRef.current = false;
+    }
+    
+    // Vibrate on active alerts
     if (activeCount > 0 && navigator.vibrate) {
       navigator.vibrate([200, 100, 200]);
     }
+    
+    prevActiveCountRef.current = activeCount;
   }, [alerts]);
 
   const handleClockInOut = async () => {
