@@ -1951,8 +1951,22 @@ async def update_profile(profile_data: ProfileUpdate, current_user = Depends(get
         phone=updated_user.get("phone"),
         profile_photo=updated_user.get("profile_photo"),
         public_description=updated_user.get("public_description"),
-        role_data=updated_user.get("role_data")
+        role_data=updated_user.get("role_data"),
+        language=updated_user.get("language", "es")
     )
+
+@api_router.patch("/profile/language")
+async def update_language(language_data: LanguageUpdate, current_user = Depends(get_current_user)):
+    """Update current user's language preference"""
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {"$set": {
+            "language": language_data.language,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Language updated successfully", "language": language_data.language}
 
 @api_router.get("/profile/directory/condominium")
 async def get_condominium_directory(current_user = Depends(get_current_user)):
