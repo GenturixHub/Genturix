@@ -598,9 +598,11 @@ const VisitsTab = ({ onRefresh }) => {
     try {
       await api.registerVisitorEntry(id, '');
       if (navigator.vibrate) navigator.vibrate(100);
+      toast.success('Entrada registrada');
       fetchVisitors();
     } catch (error) {
-      alert('Error al registrar entrada');
+      const errorMessage = error?.message || 'Error al registrar entrada';
+      toast.error(errorMessage);
     } finally {
       setProcessingId(null);
     }
@@ -611,9 +613,11 @@ const VisitsTab = ({ onRefresh }) => {
     try {
       await api.registerVisitorExit(id, '');
       if (navigator.vibrate) navigator.vibrate(100);
+      toast.success('Salida registrada');
       fetchVisitors();
     } catch (error) {
-      alert('Error al registrar salida');
+      const errorMessage = error?.message || 'Error al registrar salida';
+      toast.error(errorMessage);
     } finally {
       setProcessingId(null);
     }
