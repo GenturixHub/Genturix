@@ -1,14 +1,29 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 2, 2026 (Session 65 - P1 Feature: Condominium Settings Module)
+## Last Updated: February 2, 2026 (P1 Feature: i18n Multi-language System)
 
 ## Changelog
-### 2025-02-02
+### 2025-02-02 (Session 66)
+- **P1 Feature:** Implemented i18n Multi-language System
+  - Backend: Added `language` field to user model and `PATCH /api/profile/language` endpoint
+  - Frontend: Installed and configured `react-i18next`
+  - Created translation files: `/src/i18n/es.json` (Spanish) and `/src/i18n/en.json` (English)
+  - Created `LanguageSelector` component with real-time language switching
+  - Added language selector to user profile (EmbeddedProfile)
+  - Language persists in backend and localStorage
+  - Language loads automatically on login
+  - Default language: Spanish (es)
+
 - **P0 Bug Fix:** Fixed horizontal scroll on RRHH tabs in mobile view
   - Replaced `ScrollArea` component with native CSS scroll container
   - Added `.scrollbar-hide` and `.mobile-scroll-tabs` utility classes
-  - All 8 tabs (Ausencias, Horario, Turnos, Reclutar, Onboard, Evaluación, Personas, Perfil) now accessible via swipe
+  - All 8 tabs now accessible via swipe
   - Desktop view remains unaffected
+
+- **P0 Bug Fix:** Fixed vertical scroll on RRHH module in mobile view
+  - Fixed flexbox scroll issue in DashboardLayout
+  - Removed problematic overflow rules in mobile.css
+  - All content now scrollable on mobile devices
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
