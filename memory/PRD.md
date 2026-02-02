@@ -2,6 +2,14 @@
 
 ## Last Updated: February 2, 2026 (Session 65 - P1 Feature: Condominium Settings Module)
 
+## Changelog
+### 2025-02-02
+- **P0 Bug Fix:** Fixed horizontal scroll on RRHH tabs in mobile view
+  - Replaced `ScrollArea` component with native CSS scroll container
+  - Added `.scrollbar-hide` and `.mobile-scroll-tabs` utility classes
+  - All 8 tabs (Ausencias, Horario, Turnos, Reclutar, Onboard, Evaluación, Personas, Perfil) now accessible via swipe
+  - Desktop view remains unaffected
+
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
 
