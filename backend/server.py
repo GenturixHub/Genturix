@@ -2660,6 +2660,14 @@ async def get_my_authorizations(
         auth["validity_message"] = validity["message"]
         auth["is_currently_valid"] = validity["is_valid"]
         
+        # P0 FIX: Check if there's a visitor currently INSIDE using this authorization
+        # This prevents residents from deleting authorizations while visitor is inside
+        active_inside = await db.visitor_entries.find_one({
+            "authorization_id": auth.get("id"),
+            "status": "inside"
+        }, {"_id": 0, "id": 1})
+        auth["has_visitor_inside"] = active_inside is not None
+        
         # Check if authorization has been used (has entry record)
         auth_type = auth.get("authorization_type")
         if auth_type in ["temporary", "extended"]:
