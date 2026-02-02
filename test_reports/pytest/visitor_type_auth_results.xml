@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="9" skipped="0" tests="9" time="2.888" timestamp="2026-02-02T18:03:50.634658+00:00" hostname="agent-env-ad4944af-3ee8-420d-b772-6d1717e3713e"><testcase classname="backend.tests.test_visitor_type_authorization.TestVisitorTypeAuthorization" name="test_create_delivery_authorization" time="0.353"><failure message="AssertionError: Failed to create delivery auth: {&quot;detail&quot;:&quot;Not Found&quot;}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_visitor_type_authorization.py:74: in test_create_delivery_authorization
+    assert response.status_code == 201, f"Failed to create delivery auth: {response.text}"
+E   AssertionError: Failed to create delivery auth: {"detail":"Not Found"}
+E   assert 404 == 201
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_visitor_type_authorization.TestVisitorTypeAuthorization" name="test_create_maintenance_authorization" time="0.274"><failure message="AssertionError: Failed to create maintenance auth: {&quot;detail&quot;:&quot;Not Found&quot;}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_visitor_type_authorization.py:101: in test_create_maintenance_authorization
+    assert response.status_code == 201, f"Failed to create maintenance auth: {response.text}"
+E   AssertionError: Failed to create maintenance auth: {"detail":"Not Found"}
+E   assert 404 == 201
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_visitor_type_authorization.TestVisitorTypeAuthorization" name="test_create_technical_authorization" time="0.267"><failure message="AssertionError: Failed to create technical auth: {&quot;detail&quot;:&quot;Not Found&quot;}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_visitor_type_authorization.py:126: in test_create_technical_authorization
+    assert response.status_code == 201, f"Failed to create technical auth: {response.text}"
+E   AssertionError: Failed to create technical auth: {"detail":"Not Found"}
+E   assert 404 == 201
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_visitor_type_authorization.TestVisitorTypeAuthorization" name="test_create_cleaning_authorization" time="0.273"><failure message="AssertionError: Failed to create cleaning auth: {&quot;detail&quot;:&quot;Not Found&quot;}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_visitor_type_authorization.py:150: in test_create_cleaning_authorization
+    assert response.status_code == 201, f"Failed to create cleaning auth: {response.text}"
+E   AssertionError: Failed to create cleaning auth: {"detail":"Not Found"}
+E   assert 404 == 201
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_visitor_type_authorization.TestVisitorTypeAuthorization" name="test_create_other_authorization" time="0.272"><failure message="AssertionError: Failed to create other auth: {&quot;detail&quot;:&quot;Not Found&quot;}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_visitor_type_authorization.py:176: in test_create_other_authorization
+    assert response.status_code == 201, f"Failed to create other auth: {response.text}"
+E   AssertionError: Failed to create other auth: {"detail":"Not Found"}
+E   assert 404 == 201
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_visitor_type_authorization.TestVisitorTypeAuthorization" name="test_create_visitor_authorization_default_type" time="0.271"><failure message="AssertionError: Failed to create visitor auth: {&quot;detail&quot;:&quot;Not Found&quot;}&#10;assert 404 == 201&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_visitor_type_authorization.py:197: in test_create_visitor_authorization_default_type
+    assert response.status_code == 201, f"Failed to create visitor auth: {response.text}"
+E   AssertionError: Failed to create visitor auth: {"detail":"Not Found"}
+E   assert 404 == 201
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_visitor_type_authorization.TestVisitorTypeAuthorization" name="test_get_authorization_returns_visitor_type_fields" time="0.270"><failure message="assert 404 == 201&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_visitor_type_authorization.py:222: in test_get_authorization_returns_visitor_type_fields
+    assert create_response.status_code == 201
+E   assert 404 == 201
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_visitor_type_authorization.TestVisitorTypeAuthorization" name="test_update_authorization_visitor_type" time="0.272"><failure message="assert 404 == 201&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_visitor_type_authorization.py:255: in test_update_authorization_visitor_type
+    assert create_response.status_code == 201
+E   assert 404 == 201
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_visitor_type_authorization.TestGuardViewsVisitorTypeAuthorizations" name="test_guard_sees_visitor_type_in_authorizations" time="0.510"><failure message="assert 404 == 201&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_visitor_type_authorization.py:332: in test_guard_sees_visitor_type_in_authorizations
+    assert create_response.status_code == 201
+E   assert 404 == 201
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase></testsuite></testsuites>
