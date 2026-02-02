@@ -648,6 +648,10 @@ const VisitsTab = ({ onRefresh }) => {
             className="pl-10 h-11 bg-[#0A0A0F] border-[#1E293B] text-base"
           />
         </div>
+        {/* Helpful tip */}
+        <p className="text-[10px] text-muted-foreground mt-2 text-center">
+          💡 Aquí ves pre-registros. Para entrada manual sin pre-registro, usa la pestaña <span className="text-primary font-medium">Check-In</span>
+        </p>
       </div>
 
       {/* Content */}
@@ -698,7 +702,8 @@ const VisitsTab = ({ onRefresh }) => {
           ) : (
             <div className="flex flex-col items-center justify-center h-32 text-muted-foreground bg-[#0A0A0F] rounded-xl border border-dashed border-[#1E293B]">
               <Users className="w-10 h-10 mb-2 opacity-30" />
-              <p className="text-sm">Sin visitas esperadas</p>
+              <p className="text-sm">Sin visitas pre-registradas</p>
+              <p className="text-[10px] mt-1">Para entrada manual, ve a Check-In</p>
             </div>
           )}
         </div>
