@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 2, 2026 (Session 59 - P1 Visitor Types for Guard Manual Check-In)
+## Last Updated: February 2, 2026 (Session 60 - P1 Visitor Types for Resident Authorizations)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,54 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
+
+### Session 60 - P1 FEATURE: Visitor Types for Resident Authorizations (February 2, 2026) ⭐⭐⭐⭐⭐
+
+**Feature Requested:**
+- Permitir que los residentes también puedan crear pre-registros de tipos de servicio (Delivery, Mantenimiento, etc.)
+- Los mismos tipos que el guardia pero para autorizaciones del residente
+
+**Implementation:**
+
+**1. Resident Authorization Form Updated:**
+- Added "Tipo de Persona" selector with 6 options
+- Dynamic fields based on type selection
+- Company is required for service types
+
+**2. Authorization Card Updated:**
+- Shows visitor type badge with color (Delivery=yellow, Maintenance=blue, etc.)
+- Displays company name and service type in details section
+
+**3. Backend Updates:**
+```python
+class VisitorAuthorizationCreate(BaseModel):
+    visitor_type: Optional[str] = "visitor"
+    company: Optional[str] = None
+    service_type: Optional[str] = None
+```
+
+**Testing Results:**
+
+| Test | Result |
+|------|--------|
+| 6 visitor types in form | ✅ PASS |
+| Dynamic fields work | ✅ PASS |
+| Company validation | ✅ PASS |
+| Create Delivery authorization | ✅ PASS |
+| Badge on card | ✅ PASS |
+| Company displayed | ✅ PASS |
+| Guard sees visitor_type | ✅ PASS |
+
+**Files Modified:**
+- `/app/frontend/src/components/VisitorAuthorizationsResident.jsx` - AuthorizationFormDialog, AuthorizationCard
+- `/app/backend/server.py` - VisitorAuthorizationCreate, VisitorAuthorizationUpdate models
+
+**Testing Status:**
+- ✅ Backend: 100% (9/9)
+- ✅ Frontend: 100% (7/7)
+- ✅ Test report: `/app/test_reports/iteration_60.json`
+
+---
 
 ### Session 59 - P1 FEATURE: Visitor Types for Guard Manual Check-In (February 2, 2026) ⭐⭐⭐⭐⭐
 
