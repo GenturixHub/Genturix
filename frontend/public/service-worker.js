@@ -257,6 +257,11 @@ self.addEventListener('notificationclose', (event) => {
   // Notify app to stop any sounds
   self.clients.matchAll({ type: 'window' }).then((clients) => {
     clients.forEach((client) => {
+      // Send STOP_PANIC_SOUND to ensure sound stops
+      client.postMessage({
+        type: 'STOP_PANIC_SOUND',
+        data: event.notification.data
+      });
       client.postMessage({
         type: 'NOTIFICATION_CLOSED',
         data: event.notification.data
