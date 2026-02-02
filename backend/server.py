@@ -2863,7 +2863,14 @@ async def deactivate_authorization(
     request: Request,
     current_user = Depends(get_current_user)
 ):
-    """Resident deactivates (soft delete) their authorization"""
+    """
+    Resident deactivates (soft delete) their authorization.
+    
+    BUSINESS RULES:
+    - Resident CAN delete when: status is PENDING or visitor has EXITED
+    - Resident CANNOT delete when: visitor is currently INSIDE the condominium
+    - This prevents losing track of who's inside
+    """
     auth = await db.visitor_authorizations.find_one({"id": auth_id})
     if not auth:
         raise HTTPException(status_code=404, detail="Autorización no encontrada")
@@ -2871,6 +2878,25 @@ async def deactivate_authorization(
     # Only owner can deactivate
     if auth.get("created_by") != current_user["id"]:
         raise HTTPException(status_code=403, detail="Solo puedes eliminar tus propias autorizaciones")
+    
+    # ==================== P0 FIX: PREVENT DELETION WHEN VISITOR IS INSIDE ====================
+    # Check if this authorization has an active visitor entry (status = "inside")
+    user_roles = current_user.get("roles", [])
+    is_resident = "Residente" in user_roles and not any(r in user_roles for r in ["Administrador", "SuperAdmin", "Guarda", "Supervisor", "RRHH"])
+    
+    if is_resident:
+        # Check for active visitor entries using this authorization
+        active_entry = await db.visitor_entries.find_one({
+            "authorization_id": auth_id,
+            "status": "inside"
+        }, {"_id": 0, "id": 1, "visitor_name": 1})
+        
+        if active_entry:
+            raise HTTPException(
+                status_code=403, 
+                detail="No puedes eliminar esta autorización mientras la persona esté dentro del condominio. Contacta al guarda para registrar su salida primero."
+            )
+    # ==================== END P0 FIX ====================
     
     await db.visitor_authorizations.update_one(
         {"id": auth_id},
