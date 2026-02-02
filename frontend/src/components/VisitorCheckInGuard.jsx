@@ -811,7 +811,7 @@ const VisitorCheckInGuard = () => {
             </div>
           )}
 
-          {/* Today's Active Authorizations - Always visible when not searching */}
+          {/* Today's Active Authorizations - Grouped by Resident */}
           {!search.trim() && (
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -853,17 +853,69 @@ const VisitorCheckInGuard = () => {
               </div>
               
               {todayPreregistrations.length > 0 ? (
-                <div className="space-y-2">
-                  {todayPreregistrations.map((auth) => (
-                    <AuthorizationSearchCard 
-                      key={auth.id}
-                      auth={auth}
-                      onCheckIn={handleCheckInClick}
-                      isProcessing={processingAuthId === auth.id}
-                      isRecentlyProcessed={recentlyProcessed.has(auth.id)}
-                    />
-                  ))}
-                </div>
+                (() => {
+                  // Group authorizations by resident
+                  const groupedByResident = todayPreregistrations.reduce((acc, auth) => {
+                    const residentKey = auth.created_by || 'unknown';
+                    if (!acc[residentKey]) {
+                      acc[residentKey] = {
+                        resident_name: auth.created_by_name || 'Residente',
+                        resident_apartment: auth.resident_apartment || '',
+                        authorizations: []
+                      };
+                    }
+                    acc[residentKey].authorizations.push(auth);
+                    return acc;
+                  }, {});
+                  
+                  const residentKeys = Object.keys(groupedByResident);
+                  
+                  return (
+                    <Accordion type="multiple" defaultValue={residentKeys} className="space-y-2">
+                      {residentKeys.map((residentKey) => {
+                        const group = groupedByResident[residentKey];
+                        return (
+                          <AccordionItem 
+                            key={residentKey} 
+                            value={residentKey}
+                            className="border border-[#1E293B] rounded-xl bg-[#0F111A]/50 overflow-hidden"
+                            data-testid={`resident-group-${residentKey}`}
+                          >
+                            <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-[#1E293B]/30">
+                              <div className="flex items-center gap-3 w-full">
+                                <div className="w-10 h-10 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center flex-shrink-0">
+                                  <Home className="w-5 h-5 text-blue-400" />
+                                </div>
+                                <div className="flex-1 text-left">
+                                  <p className="font-semibold text-white text-sm">{group.resident_name}</p>
+                                  {group.resident_apartment && (
+                                    <p className="text-xs text-muted-foreground">{group.resident_apartment}</p>
+                                  )}
+                                </div>
+                                <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30 mr-2">
+                                  {group.authorizations.length} visitante{group.authorizations.length !== 1 ? 's' : ''}
+                                </Badge>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="px-3 pb-3">
+                              <div className="space-y-2 pt-1">
+                                {group.authorizations.map((auth) => (
+                                  <AuthorizationSearchCard 
+                                    key={auth.id}
+                                    auth={auth}
+                                    onCheckIn={handleCheckInClick}
+                                    isProcessing={processingAuthId === auth.id}
+                                    isRecentlyProcessed={recentlyProcessed.has(auth.id)}
+                                  />
+                                ))}
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        );
+                      })}
+                    </Accordion>
+                  );
+                })()
               ) : (
                 <div className="text-center py-6 text-muted-foreground bg-[#0F111A] rounded-xl border border-dashed border-[#1E293B]">
                   <CalendarCheck className="w-8 h-8 mx-auto mb-2 opacity-30" />
