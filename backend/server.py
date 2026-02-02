@@ -3474,7 +3474,7 @@ async def get_visits_summary(
     # 3. Get today's exits (completed visits)
     exits_query = {
         **base_query,
-        "status": "exited",
+        "status": {"$in": ["exited", "completed"]},  # Support both status values
         "exit_at": {"$gte": f"{today}T00:00:00"}
     }
     today_exits = await db.visitor_entries.find(exits_query, {"_id": 0}).sort("exit_at", -1).to_list(100)
