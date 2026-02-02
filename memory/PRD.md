@@ -22,38 +22,37 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ```python
 @api_router.get("/guard/visits-summary")
 # Returns: {pending: [], inside: [], exits: []}
-# - pending: Valid authorizations not yet used
-# - inside: Visitors currently inside (from visitor_entries)
-# - exits: Today's exits with duration
+# Fixed: exits query now uses "status": {"$in": ["exited", "completed"]}
 ```
 
 **2. Rewritten VisitsTab Component:**
 - 3 section tabs: Dentro, Pendientes, Salidas
+- **Pendientes agrupados por residente** con acordeón expandible
 - READ-ONLY mode (no action buttons)
 - Message directing users to Check-In for actions
-- Search/filter functionality
 - VisitCard component with badges for visitor type
 
 **3. Mobile Navigation Updated:**
 - Added "Visitas" to GUARD_MOBILE_NAV
+
+**4. Bug Fix - Exits Not Showing:**
+- Changed status query from `"exited"` to `{"$in": ["exited", "completed"]}`
+- Now correctly shows all exits (49 shown in test)
 
 **Testing Results:**
 
 | Test | Result |
 |------|--------|
 | 3 sections visible | ✅ PASS |
-| Dentro badges & time | ✅ PASS |
-| Visitor type badges | ✅ PASS |
-| Company/destination shown | ✅ PASS |
+| Pendientes grouped by resident | ✅ PASS |
+| Exits showing (49 today) | ✅ PASS |
 | NO action buttons (READ-ONLY) | ✅ PASS |
-| Search filters correctly | ✅ PASS |
-| Mobile nav works | ✅ PASS |
-| Check-In → Visitas integration | ✅ PASS |
+| Mobile works | ✅ PASS |
 
 **Files Modified:**
-- `/app/backend/server.py` - Added `/guard/visits-summary` endpoint
+- `/app/backend/server.py` - Added `/guard/visits-summary` endpoint, fixed exits query
 - `/app/frontend/src/services/api.js` - Added `getVisitsSummary()`
-- `/app/frontend/src/pages/GuardUI.js` - Rewritten VisitsTab, VisitCard, EmptyState, GUARD_MOBILE_NAV
+- `/app/frontend/src/pages/GuardUI.js` - Rewritten VisitsTab with Accordion, added to GUARD_MOBILE_NAV
 
 **Testing Status:**
 - ✅ Backend: 100% (2/2)
