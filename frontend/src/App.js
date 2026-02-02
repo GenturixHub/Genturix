@@ -306,11 +306,8 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
 
-      <Route path="/settings" element={
-        <ProtectedRoute allowedRoles={['Administrador']}>
-          <DashboardPage />
-        </ProtectedRoute>
-      } />
+      {/* Redirect old settings to new admin settings */}
+      <Route path="/settings" element={<Navigate to="/admin/settings" replace />} />
 
       {/* Profile - Available to all authenticated users EXCEPT Guards */}
       {/* Guards have their own embedded profile in GuardUI */}
