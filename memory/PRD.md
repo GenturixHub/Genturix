@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 2, 2026 (Session 59 - P1 Guard UI Enhancement: Group Pre-registrations by Resident)
+## Last Updated: February 2, 2026 (Session 59 - P1 Visitor Types for Guard Manual Check-In)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,69 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
+
+### Session 59 - P1 FEATURE: Visitor Types for Guard Manual Check-In (February 2, 2026) ⭐⭐⭐⭐⭐
+
+**Feature Requested:**
+- Agregar roles recurrentes predefinidos al Registro Manual del Guardia
+- Campos dinámicos según el tipo de visitante
+- Badges de color en el historial
+
+**Implementation:**
+
+**1. Visitor Types Configuration:**
+```jsx
+const VISITOR_TYPES = {
+  visitor: { label: 'Visitante', color: 'gray', icon: Users },
+  delivery: { label: 'Delivery', color: 'yellow', icon: Package },
+  maintenance: { label: 'Mantenimiento', color: 'blue', icon: Wrench },
+  technical: { label: 'Servicio Técnico', color: 'purple', icon: Cpu },
+  cleaning: { label: 'Limpieza', color: 'green', icon: Sparkles },
+  other: { label: 'Otro', color: 'orange', icon: MoreHorizontal }
+};
+```
+
+**2. Dynamic Fields by Type:**
+
+| Type | Required Fields | Optional Fields |
+|------|-----------------|-----------------|
+| Visitor | Nombre | ID, Placa, Destino |
+| Delivery | Empresa | Repartidor, Destino, Tipo Entrega |
+| Mantenimiento | Empresa, Técnico, Área | ID, Tipo Servicio, Autorizado por |
+| Limpieza | Empresa/Persona | ID, Horario, Área, Destino |
+| Otro | Nombre | Descripción, ID, Destino |
+
+**3. Backend Fields Added:**
+```python
+class FastCheckInRequest(BaseModel):
+    visitor_type: Optional[str] = "visitor"
+    company: Optional[str] = None
+    service_type: Optional[str] = None
+    authorized_by: Optional[str] = None  # resident, admin, guard
+    estimated_time: Optional[str] = None
+```
+
+**Testing Results:**
+
+| Test | Result |
+|------|--------|
+| 6 visitor types in UI | ✅ PASS |
+| Dynamic fields work | ✅ PASS |
+| Required field validation | ✅ PASS |
+| Backend saves all fields | ✅ PASS |
+| Color badges in visitors inside | ✅ PASS |
+| Pre-registrations unchanged | ✅ PASS |
+
+**Files Modified:**
+- `/app/frontend/src/components/VisitorCheckInGuard.jsx` - ManualCheckInDialog with dynamic fields, VisitorInsideCard with badges
+- `/app/backend/server.py` - FastCheckInRequest model, entry_doc fields
+
+**Testing Status:**
+- ✅ Backend: 100% (4/4)
+- ✅ Frontend: 100% (11/11)
+- ✅ Test report: `/app/test_reports/iteration_59.json`
+
+---
 
 ### Session 59 - P1 UI ENHANCEMENT: Guard Pre-registrations Grouped by Resident (February 2, 2026) ⭐⭐⭐⭐⭐
 
