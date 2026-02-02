@@ -556,8 +556,11 @@ const VisitorsTab = ({ user }) => {
   const handleCancel = async (visitorId) => {
     try {
       await api.cancelVisitor(visitorId);
+      toast.success('Autorización eliminada');
       fetchVisitors();
     } catch (error) {
+      const errorMessage = error?.message || 'Error al eliminar';
+      toast.error(errorMessage);
       console.error('Error cancelling visitor:', error);
     }
   };
