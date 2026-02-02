@@ -20,6 +20,7 @@ import OnboardingWizard from './pages/OnboardingWizard';
 import UserManagementPage from './pages/UserManagementPage';
 import ProfilePage from './pages/ProfilePage';
 import JoinPage from './pages/JoinPage';
+import CondominiumSettingsPage from './pages/CondominiumSettingsPage';
 import AlertSoundManager from './utils/AlertSoundManager';
 import './App.css';
 
