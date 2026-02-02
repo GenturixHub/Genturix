@@ -149,18 +149,24 @@ self.addEventListener('push', (event) => {
       .then(() => {
         console.log('[SW] Notification shown:', notification.title);
         
-        // For panic alerts, also notify the app to play sound
+        // For panic alerts, notify the app to play sound (only ONE client to avoid duplicates)
         if (isPanic) {
           return self.clients.matchAll({ type: 'window', includeUncontrolled: true })
             .then((clients) => {
               if (clients.length > 0) {
-                // Send to all clients to play sound
-                clients.forEach(client => {
-                  client.postMessage({
+                // Only send to ONE client to avoid duplicate sound
+                // Prefer focused client, or first visible, or just first available
+                let targetClient = clients.find(c => c.focused) || 
+                                   clients.find(c => c.visibilityState === 'visible') || 
+                                   clients[0];
+                
+                if (targetClient) {
+                  console.log('[SW] Sending PLAY_PANIC_SOUND to single client');
+                  targetClient.postMessage({
                     type: 'PLAY_PANIC_SOUND',
                     data: notification.data
                   });
-                });
+                }
               }
             });
         }
