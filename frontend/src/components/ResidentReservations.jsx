@@ -744,39 +744,46 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
             </div>
           )}
           
-          {/* Purpose */}
+          {/* Purpose - Optional */}
           <div className="space-y-1.5">
             <Label className="text-xs">Motivo (opcional)</Label>
             <Textarea
               value={form.purpose}
               onChange={(e) => setForm({ ...form, purpose: e.target.value })}
               placeholder="Ej: Reunión familiar, cumpleaños..."
-              className="bg-[#0A0A0F] border-[#1E293B] h-20 resize-none"
+              className="bg-[#0A0A0F] border-[#1E293B] h-16 resize-none text-sm"
               data-testid="reservation-purpose"
             />
           </div>
           
-          {/* Area Rules Section - Shown before confirming */}
-          {area.rules && area.rules.trim().length > 0 ? (
-            <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30" data-testid="area-rules-panel">
-              <div className="flex items-start gap-2">
-                <ScrollText className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-xs font-semibold text-blue-400 mb-1.5">📌 Reglas del área</p>
-                  <div className="max-h-32 overflow-y-auto custom-scrollbar">
-                    <p className="text-xs text-blue-200/90 whitespace-pre-wrap leading-relaxed">{area.rules}</p>
+          {/* Area Rules Section - ALWAYS visible and prominent */}
+          <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30" data-testid="area-rules-panel">
+            <div className="flex items-start gap-2">
+              <ScrollText className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-amber-400 mb-1.5">📌 Reglas y Condiciones</p>
+                {area.rules && area.rules.trim().length > 0 ? (
+                  <div className="max-h-28 overflow-y-auto custom-scrollbar">
+                    <p className="text-xs text-amber-200/90 whitespace-pre-wrap leading-relaxed">{area.rules}</p>
                   </div>
+                ) : (
+                  <p className="text-xs text-amber-200/70">
+                    • Horario: {area.available_from} - {area.available_until}<br/>
+                    • Capacidad máxima: {area.capacity} personas<br/>
+                    {area.requires_approval && '• Requiere aprobación del administrador'}
+                  </p>
+                )}
+                {/* Show behavior-specific rules */}
+                <div className="mt-2 pt-2 border-t border-amber-500/20">
+                  <p className="text-[10px] text-amber-300/60">
+                    {availability?.reservation_behavior === 'exclusive' && 'ℹ️ Reservación exclusiva: el área queda bloqueada para ti durante el horario seleccionado.'}
+                    {availability?.reservation_behavior === 'capacity' && `ℹ️ Área compartida: hasta ${availability?.max_capacity_per_slot || area.capacity} personas pueden reservar el mismo horario.`}
+                    {availability?.reservation_behavior === 'slot_based' && 'ℹ️ Por turnos: cada reservación corresponde a un slot fijo.'}
+                  </p>
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="p-3 rounded-lg bg-gray-500/10 border border-gray-500/20">
-              <div className="flex items-center gap-2">
-                <Info className="w-4 h-4 text-gray-400" />
-                <p className="text-xs text-gray-400">Este espacio no tiene reglas adicionales definidas por la administración.</p>
-              </div>
-            </div>
-          )}
+          </div>
         </div>
         
         <DialogFooter className="flex-col sm:flex-row gap-2">
