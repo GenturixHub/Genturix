@@ -118,6 +118,79 @@ const COLOR_CONFIG = {
 };
 
 // ============================================
+// VISITOR TYPE CONFIGURATION (same as Guard)
+// ============================================
+import { 
+  Package,
+  Wrench,
+  Cpu,
+  Sparkles,
+  MoreHorizontal
+} from 'lucide-react';
+
+const VISITOR_TYPES = {
+  visitor: {
+    label: 'Visitante',
+    description: 'Persona que viene a visitarte',
+    icon: Users,
+    bgColor: 'bg-gray-500/20',
+    borderColor: 'border-gray-500/30',
+    textColor: 'text-gray-400'
+  },
+  delivery: {
+    label: 'Delivery',
+    description: 'Repartidor o mensajero',
+    icon: Package,
+    bgColor: 'bg-yellow-500/20',
+    borderColor: 'border-yellow-500/30',
+    textColor: 'text-yellow-400'
+  },
+  maintenance: {
+    label: 'Mantenimiento',
+    description: 'Técnico de mantenimiento',
+    icon: Wrench,
+    bgColor: 'bg-blue-500/20',
+    borderColor: 'border-blue-500/30',
+    textColor: 'text-blue-400'
+  },
+  technical: {
+    label: 'Servicio Técnico',
+    description: 'Técnico de servicio',
+    icon: Cpu,
+    bgColor: 'bg-purple-500/20',
+    borderColor: 'border-purple-500/30',
+    textColor: 'text-purple-400'
+  },
+  cleaning: {
+    label: 'Limpieza',
+    description: 'Personal de limpieza',
+    icon: Sparkles,
+    bgColor: 'bg-green-500/20',
+    borderColor: 'border-green-500/30',
+    textColor: 'text-green-400'
+  },
+  other: {
+    label: 'Otro',
+    description: 'Otro tipo de servicio',
+    icon: MoreHorizontal,
+    bgColor: 'bg-orange-500/20',
+    borderColor: 'border-orange-500/30',
+    textColor: 'text-orange-400'
+  }
+};
+
+const DELIVERY_COMPANIES = [
+  'Uber Eats', 'Rappi', 'DHL', 'FedEx', 'Amazon', 'PedidosYa', 'Otro'
+];
+
+const SERVICE_TYPES = {
+  delivery: ['Paquete', 'Comida', 'Documentos', 'Otro'],
+  maintenance: ['Plomería', 'Electricidad', 'Aires Acondicionados', 'Pintura', 'Otro'],
+  technical: ['Internet/Cable', 'Electrodomésticos', 'Cerrajería', 'Fumigación', 'Otro'],
+  cleaning: ['Apartamento', 'Oficina', 'Otro']
+};
+
+// ============================================
 // AUTHORIZATION CARD
 // ============================================
 const AuthorizationCard = ({ auth, onEdit, onDelete }) => {
