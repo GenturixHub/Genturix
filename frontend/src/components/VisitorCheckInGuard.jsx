@@ -380,66 +380,122 @@ const VisitorInsideCard = ({ entry, onCheckOut, isProcessing }) => {
 };
 
 // ============================================
-// MANUAL CHECK-IN DIALOG
+// MANUAL CHECK-IN DIALOG WITH VISITOR TYPES
 // ============================================
 const ManualCheckInDialog = ({ open, onClose, authorization, onSubmit }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [visitorType, setVisitorType] = useState('visitor');
   const [formData, setFormData] = useState({
     visitor_name: '',
     identification_number: '',
     vehicle_plate: '',
     destination: '',
-    notes: ''
+    notes: '',
+    company: '',
+    service_type: '',
+    authorized_by: '',
+    estimated_time: ''
   });
 
+  // Reset form when dialog opens/closes or authorization changes
   useEffect(() => {
     if (authorization) {
+      setVisitorType('visitor');
       setFormData({
         visitor_name: authorization.visitor_name || '',
         identification_number: authorization.identification_number || '',
         vehicle_plate: authorization.vehicle_plate || '',
         destination: authorization.resident_apartment || '',
-        notes: ''
+        notes: '',
+        company: '',
+        service_type: '',
+        authorized_by: '',
+        estimated_time: ''
       });
     } else {
+      setVisitorType('visitor');
       setFormData({
         visitor_name: '',
         identification_number: '',
         vehicle_plate: '',
         destination: '',
-        notes: ''
+        notes: '',
+        company: '',
+        service_type: '',
+        authorized_by: '',
+        estimated_time: ''
       });
     }
   }, [authorization, open]);
 
+  // Get required field validation
+  const getRequiredFieldsMissing = () => {
+    if (authorization) return false; // Pre-authorized visitors don't need validation
+    
+    switch (visitorType) {
+      case 'visitor':
+        return !formData.visitor_name.trim();
+      case 'delivery':
+        return !formData.company.trim();
+      case 'maintenance':
+      case 'technical':
+        return !formData.company.trim() || !formData.visitor_name.trim() || !formData.destination.trim();
+      case 'cleaning':
+        return !formData.visitor_name.trim();
+      case 'other':
+        return !formData.visitor_name.trim();
+      default:
+        return !formData.visitor_name.trim();
+    }
+  };
+
   const handleSubmit = async () => {
-    // Prevent double-submit
     if (isSubmitting) {
       console.log('[Dialog] Blocked double-submit');
       return;
     }
     
-    if (!formData.visitor_name.trim() && !authorization) {
-      toast.error('El nombre es requerido');
+    if (getRequiredFieldsMissing()) {
+      toast.error('Completa los campos requeridos');
       return;
     }
 
     setIsSubmitting(true);
     try {
+      // Build visitor name based on type
+      let finalVisitorName = formData.visitor_name.trim();
+      if (!authorization) {
+        switch (visitorType) {
+          case 'delivery':
+            finalVisitorName = formData.visitor_name.trim() || `Repartidor ${formData.company}`;
+            break;
+          case 'maintenance':
+          case 'technical':
+          case 'cleaning':
+            finalVisitorName = formData.visitor_name.trim() || `Técnico ${formData.company}`;
+            break;
+          default:
+            break;
+        }
+      }
+
       const payload = {
         authorization_id: authorization?.id || null,
-        visitor_name: formData.visitor_name.trim() || null,
+        visitor_name: finalVisitorName || null,
         identification_number: formData.identification_number.trim() || null,
         vehicle_plate: formData.vehicle_plate.trim().toUpperCase() || null,
         destination: formData.destination.trim() || null,
-        notes: formData.notes.trim() || null
+        notes: formData.notes.trim() || null,
+        visitor_type: authorization ? 'visitor' : visitorType,
+        company: formData.company.trim() || null,
+        service_type: formData.service_type || null,
+        authorized_by: formData.authorized_by || null,
+        estimated_time: formData.estimated_time.trim() || null
       };
 
       await onSubmit(payload);
       onClose();
     } catch (error) {
-      // Don't show error toast here - parent component handles it
-      // Just close the dialog on 409 (already used)
       if (error.status === 409) {
         onClose();
       }
@@ -449,13 +505,366 @@ const ManualCheckInDialog = ({ open, onClose, authorization, onSubmit }) => {
   };
 
   const isAuthorized = authorization?.is_currently_valid;
+  const currentTypeConfig = VISITOR_TYPES[visitorType];
+  const TypeIcon = currentTypeConfig?.icon || Users;
+
+  // Render fields based on visitor type (only for manual entries, not pre-authorized)
+  const renderTypeSpecificFields = () => {
+    if (authorization) return null; // Skip for pre-authorized visitors
+
+    switch (visitorType) {
+      case 'visitor':
+        return (
+          <>
+            {/* Visitor Name */}
+            <div>
+              <Label className="text-sm text-muted-foreground">Nombre del Visitante *</Label>
+              <Input
+                placeholder="Nombre completo"
+                value={formData.visitor_name}
+                onChange={(e) => setFormData({...formData, visitor_name: e.target.value})}
+                className="bg-[#0F111A] border-[#1E293B] mt-1 h-12 text-lg"
+                data-testid="checkin-visitor-name"
+              />
+            </div>
+            {/* ID and Vehicle */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-sm text-muted-foreground">Cédula / ID</Label>
+                <Input
+                  placeholder="Documento"
+                  value={formData.identification_number}
+                  onChange={(e) => setFormData({...formData, identification_number: e.target.value})}
+                  className="bg-[#0F111A] border-[#1E293B] mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-sm text-muted-foreground">Placa Vehículo</Label>
+                <Input
+                  placeholder="ABC-123"
+                  value={formData.vehicle_plate}
+                  onChange={(e) => setFormData({...formData, vehicle_plate: e.target.value.toUpperCase()})}
+                  className="bg-[#0F111A] border-[#1E293B] mt-1 font-mono"
+                />
+              </div>
+            </div>
+            {/* Destination */}
+            <div>
+              <Label className="text-sm text-muted-foreground">Casa / Apartamento</Label>
+              <Input
+                placeholder="Destino del visitante"
+                value={formData.destination}
+                onChange={(e) => setFormData({...formData, destination: e.target.value})}
+                className="bg-[#0F111A] border-[#1E293B] mt-1"
+              />
+            </div>
+          </>
+        );
+
+      case 'delivery':
+        return (
+          <>
+            {/* Company */}
+            <div>
+              <Label className="text-sm text-muted-foreground">Empresa *</Label>
+              <Select value={formData.company} onValueChange={(v) => setFormData({...formData, company: v})}>
+                <SelectTrigger className="bg-[#0F111A] border-[#1E293B] mt-1 h-12">
+                  <SelectValue placeholder="Selecciona empresa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DELIVERY_COMPANIES.map(c => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {/* Delivery person name */}
+            <div>
+              <Label className="text-sm text-muted-foreground">Nombre del Repartidor (opcional)</Label>
+              <Input
+                placeholder="Nombre"
+                value={formData.visitor_name}
+                onChange={(e) => setFormData({...formData, visitor_name: e.target.value})}
+                className="bg-[#0F111A] border-[#1E293B] mt-1"
+              />
+            </div>
+            {/* Destination and Service Type */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-sm text-muted-foreground">Destino</Label>
+                <Input
+                  placeholder="Casa / Apto"
+                  value={formData.destination}
+                  onChange={(e) => setFormData({...formData, destination: e.target.value})}
+                  className="bg-[#0F111A] border-[#1E293B] mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-sm text-muted-foreground">Tipo de Entrega</Label>
+                <Select value={formData.service_type} onValueChange={(v) => setFormData({...formData, service_type: v})}>
+                  <SelectTrigger className="bg-[#0F111A] border-[#1E293B] mt-1">
+                    <SelectValue placeholder="Tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SERVICE_TYPES.delivery.map(t => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </>
+        );
+
+      case 'maintenance':
+      case 'technical':
+        return (
+          <>
+            {/* Company */}
+            <div>
+              <Label className="text-sm text-muted-foreground">Empresa *</Label>
+              <Input
+                placeholder="Nombre de la empresa"
+                value={formData.company}
+                onChange={(e) => setFormData({...formData, company: e.target.value})}
+                className="bg-[#0F111A] border-[#1E293B] mt-1 h-12"
+              />
+            </div>
+            {/* Technician name */}
+            <div>
+              <Label className="text-sm text-muted-foreground">Nombre del Técnico *</Label>
+              <Input
+                placeholder="Nombre completo"
+                value={formData.visitor_name}
+                onChange={(e) => setFormData({...formData, visitor_name: e.target.value})}
+                className="bg-[#0F111A] border-[#1E293B] mt-1"
+                data-testid="checkin-visitor-name"
+              />
+            </div>
+            {/* ID */}
+            <div>
+              <Label className="text-sm text-muted-foreground">Cédula / ID</Label>
+              <Input
+                placeholder="Documento"
+                value={formData.identification_number}
+                onChange={(e) => setFormData({...formData, identification_number: e.target.value})}
+                className="bg-[#0F111A] border-[#1E293B] mt-1"
+              />
+            </div>
+            {/* Area and Service Type */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-sm text-muted-foreground">Área / Apartamento *</Label>
+                <Input
+                  placeholder="Destino"
+                  value={formData.destination}
+                  onChange={(e) => setFormData({...formData, destination: e.target.value})}
+                  className="bg-[#0F111A] border-[#1E293B] mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-sm text-muted-foreground">Tipo de Servicio</Label>
+                <Select value={formData.service_type} onValueChange={(v) => setFormData({...formData, service_type: v})}>
+                  <SelectTrigger className="bg-[#0F111A] border-[#1E293B] mt-1">
+                    <SelectValue placeholder="Servicio" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SERVICE_TYPES[visitorType].map(t => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {/* Authorized By */}
+            <div>
+              <Label className="text-sm text-muted-foreground">Autorizado por</Label>
+              <Select value={formData.authorized_by} onValueChange={(v) => setFormData({...formData, authorized_by: v})}>
+                <SelectTrigger className="bg-[#0F111A] border-[#1E293B] mt-1">
+                  <SelectValue placeholder="Selecciona quién autorizó" />
+                </SelectTrigger>
+                <SelectContent>
+                  {AUTHORIZED_BY_OPTIONS.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        );
+
+      case 'cleaning':
+        return (
+          <>
+            {/* Company/Person */}
+            <div>
+              <Label className="text-sm text-muted-foreground">Empresa o Persona *</Label>
+              <Input
+                placeholder="Nombre de empresa o persona"
+                value={formData.visitor_name}
+                onChange={(e) => setFormData({...formData, visitor_name: e.target.value})}
+                className="bg-[#0F111A] border-[#1E293B] mt-1 h-12"
+                data-testid="checkin-visitor-name"
+              />
+            </div>
+            {/* ID */}
+            <div>
+              <Label className="text-sm text-muted-foreground">Cédula / ID</Label>
+              <Input
+                placeholder="Documento"
+                value={formData.identification_number}
+                onChange={(e) => setFormData({...formData, identification_number: e.target.value})}
+                className="bg-[#0F111A] border-[#1E293B] mt-1"
+              />
+            </div>
+            {/* Estimated time and Area */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-sm text-muted-foreground">Horario Estimado</Label>
+                <Input
+                  placeholder="Ej: 8am - 12pm"
+                  value={formData.estimated_time}
+                  onChange={(e) => setFormData({...formData, estimated_time: e.target.value})}
+                  className="bg-[#0F111A] border-[#1E293B] mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-sm text-muted-foreground">Área</Label>
+                <Select value={formData.service_type} onValueChange={(v) => setFormData({...formData, service_type: v})}>
+                  <SelectTrigger className="bg-[#0F111A] border-[#1E293B] mt-1">
+                    <SelectValue placeholder="Área" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SERVICE_TYPES.cleaning.map(t => (
+                      <SelectItem key={t} value={t}>{t}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {/* Destination */}
+            <div>
+              <Label className="text-sm text-muted-foreground">Área Común / Apartamento</Label>
+              <Input
+                placeholder="Destino específico"
+                value={formData.destination}
+                onChange={(e) => setFormData({...formData, destination: e.target.value})}
+                className="bg-[#0F111A] border-[#1E293B] mt-1"
+              />
+            </div>
+          </>
+        );
+
+      case 'other':
+        return (
+          <>
+            {/* Name */}
+            <div>
+              <Label className="text-sm text-muted-foreground">Nombre *</Label>
+              <Input
+                placeholder="Nombre completo"
+                value={formData.visitor_name}
+                onChange={(e) => setFormData({...formData, visitor_name: e.target.value})}
+                className="bg-[#0F111A] border-[#1E293B] mt-1 h-12"
+                data-testid="checkin-visitor-name"
+              />
+            </div>
+            {/* Description */}
+            <div>
+              <Label className="text-sm text-muted-foreground">Descripción / Motivo</Label>
+              <Input
+                placeholder="Ej: Proveedor de agua"
+                value={formData.company}
+                onChange={(e) => setFormData({...formData, company: e.target.value})}
+                className="bg-[#0F111A] border-[#1E293B] mt-1"
+              />
+            </div>
+            {/* ID and Destination */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-sm text-muted-foreground">Cédula / ID</Label>
+                <Input
+                  placeholder="Documento"
+                  value={formData.identification_number}
+                  onChange={(e) => setFormData({...formData, identification_number: e.target.value})}
+                  className="bg-[#0F111A] border-[#1E293B] mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-sm text-muted-foreground">Destino</Label>
+                <Input
+                  placeholder="Casa / Apto"
+                  value={formData.destination}
+                  onChange={(e) => setFormData({...formData, destination: e.target.value})}
+                  className="bg-[#0F111A] border-[#1E293B] mt-1"
+                />
+              </div>
+            </div>
+          </>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  // Render fields for pre-authorized visitors (original flow)
+  const renderAuthorizedFields = () => {
+    if (!authorization) return null;
+    
+    return (
+      <>
+        {/* Visitor Name - disabled */}
+        <div>
+          <Label className="text-sm text-muted-foreground">Nombre del Visitante</Label>
+          <Input
+            value={formData.visitor_name}
+            className="bg-[#0F111A] border-[#1E293B] mt-1 h-12 text-lg"
+            disabled
+            data-testid="checkin-visitor-name"
+          />
+        </div>
+        {/* ID and Vehicle */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label className="text-sm text-muted-foreground">Cédula / ID</Label>
+            <Input
+              placeholder="Documento"
+              value={formData.identification_number}
+              onChange={(e) => setFormData({...formData, identification_number: e.target.value})}
+              className="bg-[#0F111A] border-[#1E293B] mt-1"
+            />
+          </div>
+          <div>
+            <Label className="text-sm text-muted-foreground">Placa Vehículo</Label>
+            <Input
+              placeholder="ABC-123"
+              value={formData.vehicle_plate}
+              onChange={(e) => setFormData({...formData, vehicle_plate: e.target.value.toUpperCase()})}
+              className="bg-[#0F111A] border-[#1E293B] mt-1 font-mono"
+            />
+          </div>
+        </div>
+        {/* Destination */}
+        <div>
+          <Label className="text-sm text-muted-foreground">Casa / Apartamento</Label>
+          <Input
+            placeholder="Destino"
+            value={formData.destination}
+            onChange={(e) => setFormData({...formData, destination: e.target.value})}
+            className="bg-[#0F111A] border-[#1E293B] mt-1"
+          />
+        </div>
+      </>
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-[#0A0A0F] border-[#1E293B] max-w-md">
+      <DialogContent className="bg-[#0A0A0F] border-[#1E293B] max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <UserPlus className={`w-5 h-5 ${isAuthorized ? 'text-green-400' : 'text-yellow-400'}`} />
+            <TypeIcon className={`w-5 h-5 ${isAuthorized ? 'text-green-400' : currentTypeConfig?.textColor || 'text-yellow-400'}`} />
             {authorization ? 'Confirmar Entrada' : 'Entrada Manual'}
           </DialogTitle>
           <DialogDescription>
@@ -494,53 +903,40 @@ const ManualCheckInDialog = ({ open, onClose, authorization, onSubmit }) => {
             </div>
           )}
 
-          {/* Visitor Name */}
-          <div>
-            <Label className="text-sm text-muted-foreground">Nombre del Visitante *</Label>
-            <Input
-              placeholder="Nombre completo"
-              value={formData.visitor_name}
-              onChange={(e) => setFormData({...formData, visitor_name: e.target.value})}
-              className="bg-[#0F111A] border-[#1E293B] mt-1 h-12 text-lg"
-              disabled={!!authorization}
-              data-testid="checkin-visitor-name"
-            />
-          </div>
-
-          {/* ID and Vehicle */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Visitor Type Selector - Only for manual entries */}
+          {!authorization && (
             <div>
-              <Label className="text-sm text-muted-foreground">Cédula / ID</Label>
-              <Input
-                placeholder="Documento"
-                value={formData.identification_number}
-                onChange={(e) => setFormData({...formData, identification_number: e.target.value})}
-                className="bg-[#0F111A] border-[#1E293B] mt-1"
-              />
+              <Label className="text-sm text-muted-foreground mb-2 block">Tipo de Acceso</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {Object.entries(VISITOR_TYPES).map(([key, config]) => {
+                  const Icon = config.icon;
+                  const isSelected = visitorType === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setVisitorType(key)}
+                      className={`p-3 rounded-lg border-2 transition-all flex flex-col items-center gap-1.5 ${
+                        isSelected 
+                          ? `${config.bgColor} ${config.borderColor} ${config.textColor}` 
+                          : 'bg-[#0F111A] border-[#1E293B] text-muted-foreground hover:border-[#2E3B4B]'
+                      }`}
+                      data-testid={`visitor-type-${key}`}
+                    >
+                      <Icon className="w-5 h-5" />
+                      <span className="text-xs font-medium">{config.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <div>
-              <Label className="text-sm text-muted-foreground">Placa Vehículo</Label>
-              <Input
-                placeholder="ABC-123"
-                value={formData.vehicle_plate}
-                onChange={(e) => setFormData({...formData, vehicle_plate: e.target.value.toUpperCase()})}
-                className="bg-[#0F111A] border-[#1E293B] mt-1 font-mono"
-              />
-            </div>
-          </div>
+          )}
 
-          {/* Destination */}
-          <div>
-            <Label className="text-sm text-muted-foreground">Casa / Apartamento</Label>
-            <Input
-              placeholder="Destino del visitante"
-              value={formData.destination}
-              onChange={(e) => setFormData({...formData, destination: e.target.value})}
-              className="bg-[#0F111A] border-[#1E293B] mt-1"
-            />
-          </div>
+          {/* Dynamic Fields */}
+          {renderAuthorizedFields()}
+          {renderTypeSpecificFields()}
 
-          {/* Notes */}
+          {/* Notes - Always visible */}
           <div>
             <Label className="text-sm text-muted-foreground">Notas (opcional)</Label>
             <Textarea
@@ -557,15 +953,28 @@ const ManualCheckInDialog = ({ open, onClose, authorization, onSubmit }) => {
             Cancelar
           </Button>
           <Button 
-            className={`${isAuthorized ? 'bg-green-600 hover:bg-green-700' : 'bg-yellow-600 hover:bg-yellow-700'} font-bold`}
+            className={`font-bold ${
+              isAuthorized 
+                ? 'bg-green-600 hover:bg-green-700' 
+                : authorization 
+                  ? 'bg-yellow-600 hover:bg-yellow-700'
+                  : `${currentTypeConfig?.bgColor?.replace('/20', '')} hover:opacity-90`
+            }`}
+            style={!authorization && !isAuthorized ? {
+              backgroundColor: visitorType === 'delivery' ? '#eab308' : 
+                              visitorType === 'maintenance' ? '#3b82f6' :
+                              visitorType === 'technical' ? '#a855f7' :
+                              visitorType === 'cleaning' ? '#22c55e' :
+                              visitorType === 'other' ? '#f97316' : '#6b7280'
+            } : {}}
             onClick={handleSubmit}
-            disabled={(!formData.visitor_name.trim() && !authorization) || isSubmitting}
+            disabled={getRequiredFieldsMissing() || isSubmitting}
             data-testid="confirm-checkin-btn"
           >
             {isSubmitting ? (
               <Loader2 className="w-4 h-4 animate-spin mr-2" />
             ) : (
-              <UserPlus className="w-4 h-4 mr-2" />
+              <TypeIcon className="w-4 h-4 mr-2" />
             )}
             REGISTRAR ENTRADA
           </Button>
