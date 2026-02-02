@@ -115,8 +115,9 @@ const Sidebar = ({ collapsed, onToggle }) => {
     {
       title: 'Configuración',
       icon: Settings,
-      href: '/settings',
+      href: '/admin/settings',
       roles: ['Administrador'],
+      description: 'Configuración del condominio'
       // Settings is always available for admins
     },
   ];
