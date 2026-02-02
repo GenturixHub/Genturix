@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Button } from './ui/button';
@@ -48,18 +49,19 @@ import {
   ArrowLeft
 } from 'lucide-react';
 
-// Role configuration
+// Role configuration with i18n keys
 const ROLE_CONFIG = {
-  'Administrador': { icon: Shield, color: 'bg-cyan-500/10 text-cyan-400', label: 'Administrador' },
-  'Residente': { icon: Home, color: 'bg-blue-500/10 text-blue-400', label: 'Residente' },
-  'Guarda': { icon: Shield, color: 'bg-green-500/10 text-green-400', label: 'Guardia' },
-  'HR': { icon: Briefcase, color: 'bg-orange-500/10 text-orange-400', label: 'Recursos Humanos' },
-  'Supervisor': { icon: UserCheck, color: 'bg-cyan-500/10 text-cyan-400', label: 'Supervisor' },
-  'Estudiante': { icon: GraduationCap, color: 'bg-cyan-500/10 text-cyan-400', label: 'Estudiante' },
-  'SuperAdmin': { icon: Shield, color: 'bg-red-500/10 text-red-400', label: 'Super Admin' },
+  'Administrador': { icon: Shield, color: 'bg-cyan-500/10 text-cyan-400', key: 'admin' },
+  'Residente': { icon: Home, color: 'bg-blue-500/10 text-blue-400', key: 'resident' },
+  'Guarda': { icon: Shield, color: 'bg-green-500/10 text-green-400', key: 'guard' },
+  'HR': { icon: Briefcase, color: 'bg-orange-500/10 text-orange-400', key: 'hr' },
+  'Supervisor': { icon: UserCheck, color: 'bg-cyan-500/10 text-cyan-400', key: 'supervisor' },
+  'Estudiante': { icon: GraduationCap, color: 'bg-cyan-500/10 text-cyan-400', key: 'student' },
+  'SuperAdmin': { icon: Shield, color: 'bg-red-500/10 text-red-400', key: 'superadmin' },
 };
 
 const EmbeddedProfile = ({ userId = null, onBack = null }) => {
+  const { t } = useTranslation();
   const { user, refreshUser, logout } = useAuth();
   const navigate = useNavigate();
   
