@@ -73,7 +73,7 @@ const AdminMobileNav = ({ activeRoute }) => {
     { id: 'users', label: 'Usuarios', icon: Users, href: '/admin/users' },
     { id: 'rrhh', label: 'RRHH', icon: Briefcase, href: '/rrhh' },
     { id: 'reservations', label: 'Reservas', icon: Calendar, href: '/reservations' },
-    { id: 'profile', label: 'Perfil', icon: User, href: '/profile' },
+    { id: 'settings', label: 'Config', icon: Settings, href: '/admin/settings' },
   ];
 
   return (
