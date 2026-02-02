@@ -1,6 +1,6 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 2, 2026 (Session 62 - P0 Bug Fix: Guard Visitas Tab Empty)
+## Last Updated: February 2, 2026 (Session 63 - P0 REGRESSION FIX: Alert Sound Duplication + Map)
 
 ## Vision
 GENTURIX is a security and emergency platform for real people under stress. Emergency-first design, not a corporate dashboard.
@@ -8,6 +8,89 @@ GENTURIX is a security and emergency platform for real people under stress. Emer
 ---
 
 ## PLATFORM STATUS: ✅ PRODUCTION READY
+
+### Session 63 - P0 REGRESSION FIX: Alert Sound Duplication + Map Verification (February 2, 2026) ⭐⭐⭐⭐⭐
+
+**Bug Reported:**
+- Alert sound playing twice (duplicated audio trigger)
+- Alert notifications not displaying embedded map/location
+- Sound not stopping when guard opens/acknowledges alert
+
+**Root Cause Analysis:**
+1. **Sound Duplication:** Multiple listeners in both `App.js` (global) and `GuardUI.js` (component) were processing service worker messages. Service worker was also sending to ALL clients instead of one.
+2. **Map Issue:** VERIFIED WORKING - The active test alert had `null` coordinates. Map displays correctly when coordinates are present.
+
+**Solution:**
+
+**1. App.js Cleanup:**
+- Removed ALL sound-related service worker listeners (60+ lines)
+- Now only contains PostHog error suppression
+
+**2. GuardUI.js - Centralized Sound Control:**
+```javascript
+// Refs to track sound state
+const soundAcknowledgedRef = React.useRef(false);
+const soundTimeoutRef = React.useRef(null);
+
+// Centralized stop function
+const stopAlertSound = useCallback(() => {
+  soundAcknowledgedRef.current = true;
+  clearTimeout(soundTimeoutRef.current);
+  AlertSoundManager.stop();
+}, []);
+
+// Single listener for ALL sound messages
+useEffect(() => {
+  const handleServiceWorkerMessage = (event) => {
+    if (event.data?.type === 'PLAY_PANIC_SOUND') {
+      if (soundAcknowledgedRef.current) return; // Already acknowledged
+      if (AlertSoundManager.getIsPlaying()) return; // Already playing
+      AlertSoundManager.play();
+    }
+    if (['PANIC_ALERT_CLICK','STOP_PANIC_SOUND','NOTIFICATION_CLICKED','NOTIFICATION_CLOSED'].includes(event.data?.type)) {
+      stopAlertSound();
+    }
+  };
+  navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
+  return () => navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
+}, [stopAlertSound]);
+```
+
+**3. Service Worker Fix:**
+```javascript
+// Only send to ONE client (prevents multiple tabs playing)
+let targetClient = clients.find(c => c.focused) || 
+                   clients.find(c => c.visibilityState === 'visible') || 
+                   clients[0];
+if (targetClient) {
+  targetClient.postMessage({ type: 'PLAY_PANIC_SOUND', data: notification.data });
+}
+```
+
+**Testing Results:**
+
+| Test | Result |
+|------|--------|
+| Alert modal opens | ✅ PASS |
+| Map shows with coordinates | ✅ PASS |
+| Map hidden without coords | ✅ PASS |
+| GPS badge on cards | ✅ PASS |
+| Sound stops on tab nav | ✅ PASS |
+| Sound stops on click | ✅ PASS |
+| Sound stops on resolve | ✅ PASS |
+| Single client receives msg | ✅ PASS |
+| Mobile view works | ✅ PASS |
+
+**Files Modified:**
+- `/app/frontend/src/App.js` - Removed sound listeners
+- `/app/frontend/src/pages/GuardUI.js` - Centralized sound control with refs
+- `/app/frontend/public/service-worker.js` - Single client messaging
+
+**Testing Status:**
+- ✅ Frontend: 100% (24/24)
+- ✅ Test report: `/app/test_reports/iteration_63.json`
+
+---
 
 ### Session 62 - P0 BUG FIX: Guard Visitas Tab Was Empty (February 2, 2026) ⭐⭐⭐⭐⭐
 
