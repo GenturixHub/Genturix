@@ -119,6 +119,77 @@ const TYPE_ICONS = {
 };
 
 // ============================================
+// VISITOR TYPE CONFIGURATION
+// ============================================
+const VISITOR_TYPES = {
+  visitor: {
+    label: 'Visitante',
+    icon: Users,
+    color: 'gray',
+    bgColor: 'bg-gray-500/20',
+    borderColor: 'border-gray-500/30',
+    textColor: 'text-gray-400'
+  },
+  delivery: {
+    label: 'Delivery',
+    icon: Package,
+    color: 'yellow',
+    bgColor: 'bg-yellow-500/20',
+    borderColor: 'border-yellow-500/30',
+    textColor: 'text-yellow-400'
+  },
+  maintenance: {
+    label: 'Mantenimiento',
+    icon: Wrench,
+    color: 'blue',
+    bgColor: 'bg-blue-500/20',
+    borderColor: 'border-blue-500/30',
+    textColor: 'text-blue-400'
+  },
+  technical: {
+    label: 'Servicio Técnico',
+    icon: Cpu,
+    color: 'purple',
+    bgColor: 'bg-purple-500/20',
+    borderColor: 'border-purple-500/30',
+    textColor: 'text-purple-400'
+  },
+  cleaning: {
+    label: 'Limpieza',
+    icon: Sparkles,
+    color: 'green',
+    bgColor: 'bg-green-500/20',
+    borderColor: 'border-green-500/30',
+    textColor: 'text-green-400'
+  },
+  other: {
+    label: 'Otro',
+    icon: MoreHorizontal,
+    color: 'orange',
+    bgColor: 'bg-orange-500/20',
+    borderColor: 'border-orange-500/30',
+    textColor: 'text-orange-400'
+  }
+};
+
+const DELIVERY_COMPANIES = [
+  'Uber Eats', 'Rappi', 'DHL', 'FedEx', 'Amazon', 'PedidosYa', 'Otro'
+];
+
+const SERVICE_TYPES = {
+  delivery: ['Paquete', 'Comida', 'Documentos', 'Otro'],
+  maintenance: ['Plomería', 'Electricidad', 'Aires Acondicionados', 'Pintura', 'Otro'],
+  technical: ['Internet/Cable', 'Electrodomésticos', 'Cerrajería', 'Fumigación', 'Otro'],
+  cleaning: ['Área común', 'Apartamento', 'Piscina', 'Jardines', 'Otro']
+};
+
+const AUTHORIZED_BY_OPTIONS = [
+  { value: 'resident', label: 'Residente' },
+  { value: 'admin', label: 'Administración' },
+  { value: 'guard', label: 'Guardia' }
+];
+
+// ============================================
 // AUTHORIZATION SEARCH CARD
 // ============================================
 const AuthorizationSearchCard = ({ auth, onCheckIn, isProcessing, isRecentlyProcessed }) => {
