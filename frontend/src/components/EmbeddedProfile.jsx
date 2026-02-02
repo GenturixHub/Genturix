@@ -300,7 +300,7 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
             <CardHeader className="p-3 pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
                 <Phone className="w-4 h-4" />
-                Contacto
+                {t('profile.contact')}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-3 pt-0">
@@ -312,7 +312,7 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
                   placeholder="+52 555 123 4567"
                 />
               ) : (
-                <p className="text-sm text-muted-foreground">{profile?.phone || 'No especificado'}</p>
+                <p className="text-sm text-muted-foreground">{profile?.phone || t('profile.notSpecified')}</p>
               )}
             </CardContent>
           </Card>
@@ -321,11 +321,11 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
             <CardHeader className="p-3 pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
                 <Building2 className="w-4 h-4" />
-                Condominio
+                {t('profile.condominium')}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-3 pt-0">
-              <p className="text-sm">{profile?.condominium_name || 'No asignado'}</p>
+              <p className="text-sm">{profile?.condominium_name || t('profile.notSpecified')}</p>
             </CardContent>
           </Card>
         </div>
@@ -335,11 +335,11 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
           <CardHeader className="p-3 pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <FileText className="w-4 h-4" />
-              {isOwnProfile ? 'Descripción Pública' : 'Acerca de'}
+              {isOwnProfile ? t('profile.publicDescription') : t('profile.about', 'About')}
             </CardTitle>
             {isOwnProfile && !editMode && (
               <CardDescription className="text-xs">
-                Visible para otros usuarios de tu condominio
+                {t('profile.publicDescriptionHint')}
               </CardDescription>
             )}
           </CardHeader>
@@ -349,11 +349,11 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
                 value={formData.public_description}
                 onChange={(e) => setFormData(prev => ({ ...prev, public_description: e.target.value }))}
                 className="bg-[#0A0A0F] border-[#1E293B] min-h-[80px] text-sm"
-                placeholder="Escribe una breve descripción sobre ti..."
+                placeholder={t('profile.publicDescriptionPlaceholder', 'Write a brief description about yourself...')}
               />
             ) : (
               <p className="text-sm text-muted-foreground">
-                {profile?.public_description || 'Sin descripción'}
+                {profile?.public_description || t('profile.noDescription', 'No description')}
               </p>
             )}
           </CardContent>
@@ -365,10 +365,10 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
             <CardHeader className="p-3 pb-2">
               <CardTitle className="text-sm flex items-center gap-2">
                 <Shield className="w-4 h-4" />
-                Notificaciones de Alerta
+                {t('security.panicAlerts')}
               </CardTitle>
               <CardDescription className="text-xs">
-                Recibe alertas de pánico en tiempo real
+                {t('profile.alertNotificationsHint', 'Receive panic alerts in real time')}
               </CardDescription>
             </CardHeader>
             <CardContent className="p-3 pt-0">
