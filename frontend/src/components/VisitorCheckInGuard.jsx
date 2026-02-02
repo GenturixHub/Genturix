@@ -324,6 +324,8 @@ const AuthorizationSearchCard = ({ auth, onCheckIn, isProcessing, isRecentlyProc
 // ============================================
 const VisitorInsideCard = ({ entry, onCheckOut, isProcessing }) => {
   const colorConfig = COLOR_CONFIG[entry.color_code] || COLOR_CONFIG.gray;
+  const visitorTypeConfig = VISITOR_TYPES[entry.visitor_type] || VISITOR_TYPES.visitor;
+  const TypeIcon = visitorTypeConfig.icon;
   
   const formatDuration = () => {
     if (!entry.entry_at) return '';
@@ -337,17 +339,38 @@ const VisitorInsideCard = ({ entry, onCheckOut, isProcessing }) => {
     return `${hours}h ${mins}m`;
   };
 
+  // Determine card color based on visitor type for manual entries
+  const isManualWithType = entry.authorization_type === 'manual' && entry.visitor_type && entry.visitor_type !== 'visitor';
+  const cardBgColor = isManualWithType ? visitorTypeConfig.bgColor : colorConfig.light;
+  const cardBorderColor = isManualWithType ? visitorTypeConfig.borderColor : colorConfig.border;
+
   return (
-    <div className={`p-3 rounded-xl border-2 ${colorConfig.light} ${colorConfig.border}`}>
+    <div className={`p-3 rounded-xl border-2 ${cardBgColor} ${cardBorderColor}`}>
       <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-lg ${colorConfig.bg} flex items-center justify-center flex-shrink-0`}>
-          <Users className="w-5 h-5 text-white" />
+        <div className={`w-10 h-10 rounded-lg ${isManualWithType ? visitorTypeConfig.bgColor?.replace('/20', '') : colorConfig.bg} flex items-center justify-center flex-shrink-0`}
+             style={isManualWithType ? {
+               backgroundColor: entry.visitor_type === 'delivery' ? '#eab308' : 
+                               entry.visitor_type === 'maintenance' ? '#3b82f6' :
+                               entry.visitor_type === 'technical' ? '#a855f7' :
+                               entry.visitor_type === 'cleaning' ? '#22c55e' :
+                               entry.visitor_type === 'other' ? '#f97316' : '#6b7280'
+             } : {}}>
+          <TypeIcon className="w-5 h-5 text-white" />
         </div>
         
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-white truncate">{entry.visitor_name}</p>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            {entry.resident_name && <span>{entry.resident_name}</span>}
+          <div className="flex items-center gap-2">
+            <p className="font-bold text-white truncate">{entry.visitor_name}</p>
+            {/* Visitor Type Badge */}
+            {isManualWithType && (
+              <Badge className={`${visitorTypeConfig.bgColor} ${visitorTypeConfig.textColor} border ${visitorTypeConfig.borderColor} text-[10px] px-1.5 py-0`}>
+                {visitorTypeConfig.label}
+              </Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+            {entry.company && <span className="font-medium">{entry.company}</span>}
+            {entry.resident_name && <span>{entry.company ? '•' : ''} {entry.resident_name}</span>}
             {entry.destination && <span>• {entry.destination}</span>}
           </div>
           <div className="flex items-center gap-2 text-xs mt-1">
