@@ -1,0 +1,66 @@
+{
+  "summary": "Area Rules Feature for Residents VERIFIED. All 7 test requirements passed. Rules are displayed in area cards with expandable toggle and in reservation form with blue panel. Areas without rules show appropriate 'no rules' message. Rules are read-only for residents.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_results": {
+    "area_card_rules_toggle": {
+      "test_rules_link_visible": "PASS - 'Reglas del área' link visible in area card for Piscina Principal",
+      "test_toggle_expands_rules": "PASS - Clicking toggle expands rules with multiline formatting preserved",
+      "test_toggle_collapses_rules": "PASS - Clicking again collapses the rules section",
+      "test_blue_panel_in_card": "PASS - Blue panel (bg-blue-500/10) displayed when rules expanded",
+      "test_no_toggle_without_rules": "PASS - Area without rules (TEST_Gimnasio Sin Reglas) does NOT show 'Reglas del área' toggle"
+    },
+    "reservation_form_rules": {
+      "test_rules_panel_visible": "PASS - Rules panel with data-testid='area-rules-panel' found in reservation form",
+      "test_blue_panel_in_form": "PASS - Blue background panel (bg-blue-500/10, border-blue-500/30) displayed",
+      "test_rules_header": "PASS - '📌 Reglas del área' header shown in form",
+      "test_multiline_preserved": "PASS - Rules displayed with multiline formatting (1. Uso de traje... 2. Duchas... etc.)",
+      "test_no_rules_message": "PASS - 'Este espacio no tiene reglas adicionales definidas por la administración.' shown for areas without rules",
+      "test_gray_panel_no_rules": "PASS - Gray panel (bg-gray-500/10) displayed for areas without rules"
+    },
+    "backend_api": {
+      "test_rules_field_returned": "PASS - GET /api/reservations/areas returns 'rules' field with multiline content",
+      "test_rules_readonly": "PASS - Residents cannot update area rules (PUT returns 'Method Not Allowed')"
+    }
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Lines 107-215 in ResidentReservations.jsx: AreaCard correctly implements rules toggle with showRules state",
+    "Lines 175-195: Rules section with toggle button, ChevronRight rotation animation, and blue panel",
+    "Lines 708-727: ReservationFormDialog correctly shows rules in blue panel or 'no rules' message in gray panel",
+    "Line 117: hasRules check correctly validates area.rules && area.rules.trim().length > 0",
+    "Line 181: data-testid='toggle-rules-{area.id}' added for testing",
+    "Line 709: data-testid='area-rules-panel' added for testing"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (2/2 tests passed)",
+    "frontend": "100% (11/11 tests passed)"
+  },
+  "test_credentials": {
+    "resident": {
+      "email": "residente@genturix.com",
+      "password": "Resi123!"
+    },
+    "admin": {
+      "email": "admin@genturix.com",
+      "password": "Admin123!"
+    }
+  },
+  "seed_data_creation": "Created and cleaned up TEST_Gimnasio Sin Reglas area for testing 'no rules' scenario",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Area rules feature for residents is FULLY VERIFIED. Implementation includes: 1) 'Reglas del área' toggle in area cards (only shown if rules exist), 2) Expandable rules section with blue panel and multiline formatting, 3) Rules displayed in reservation form before confirming in blue panel, 4) 'Este espacio no tiene reglas adicionales' message in gray panel for areas without rules, 5) Rules are read-only for residents (API returns 'Method Not Allowed' on update attempts).",
+  "mocked_api": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": []
+  }
+}
