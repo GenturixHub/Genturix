@@ -124,6 +124,11 @@ const AuthorizationCard = ({ auth, onEdit, onDelete }) => {
   const typeConfig = AUTHORIZATION_TYPES[auth.authorization_type] || AUTHORIZATION_TYPES.temporary;
   const colorConfig = COLOR_CONFIG[auth.color_code] || COLOR_CONFIG.yellow;
   const IconComponent = typeConfig.icon;
+  
+  // P0 FIX: Check if visitor is currently inside (cannot delete)
+  const hasVisitorInside = auth.has_visitor_inside === true;
+  // Can delete if NOT inside and authorization is active
+  const canDelete = !hasVisitorInside;
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
