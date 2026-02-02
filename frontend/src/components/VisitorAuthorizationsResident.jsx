@@ -229,15 +229,28 @@ const AuthorizationCard = ({ auth, onEdit, onDelete }) => {
             <Edit className="w-4 h-4 mr-1" />
             Editar
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="text-red-400 hover:bg-red-500/10"
-            onClick={() => onDelete(auth)}
-            data-testid={`delete-auth-${auth.id}`}
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
+          
+          {/* P0 FIX: Conditional delete button based on visitor status */}
+          {canDelete ? (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="text-red-400 hover:bg-red-500/10"
+              onClick={() => onDelete(auth)}
+              data-testid={`delete-auth-${auth.id}`}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          ) : (
+            <div 
+              className="h-9 px-3 flex items-center rounded-md text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20"
+              title="No puedes eliminar mientras la persona está dentro del condominio"
+              data-testid={`inside-indicator-${auth.id}`}
+            >
+              <Shield className="w-3.5 h-3.5 mr-1.5" />
+              Dentro
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
