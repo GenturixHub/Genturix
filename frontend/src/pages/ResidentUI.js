@@ -637,7 +637,7 @@ const VisitorsTab = ({ user }) => {
                     </div>
 
                     {/* Delete button - only when NOT inside */}
-                    {(visitor.status === 'pending' || visitor.status === 'exited') && (
+                    {(visitor.status === 'pending' || visitor.status === 'exited' || visitor.status === 'exit_registered' || visitor.status === 'cancelled') && (
                       <Button
                         size="icon"
                         variant="ghost"
@@ -650,10 +650,10 @@ const VisitorsTab = ({ user }) => {
                     )}
                     
                     {/* Info when inside - cannot delete */}
-                    {visitor.status === 'inside' && (
+                    {(visitor.status === 'inside' || visitor.status === 'entry_registered') && (
                       <div 
                         className="h-8 px-2 flex items-center rounded text-[10px] text-yellow-400 bg-yellow-500/10 border border-yellow-500/20"
-                        title="No puedes eliminar mientras la persona está dentro"
+                        title="No puedes eliminar mientras la persona está dentro del condominio"
                       >
                         <Shield className="w-3 h-3 mr-1" />
                         Dentro
