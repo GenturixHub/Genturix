@@ -53,7 +53,9 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertCircle,
-  Info
+  Info,
+  FileText,
+  ScrollText
 } from 'lucide-react';
 
 // ============================================
