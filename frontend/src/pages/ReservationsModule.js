@@ -657,6 +657,7 @@ const AreaFormDialog = ({ open, onClose, area, onSave }) => {
                 min={1}
                 max={24}
                 className="bg-[#0A0A0F] border-[#1E293B] h-9"
+                disabled={form.reservation_behavior === 'slot_based' || form.reservation_behavior === 'free_access'}
               />
             </div>
             <div className="space-y-1">
@@ -668,9 +669,27 @@ const AreaFormDialog = ({ open, onClose, area, onSave }) => {
                 min={1}
                 max={100}
                 className="bg-[#0A0A0F] border-[#1E293B] h-9"
+                disabled={form.reservation_behavior === 'free_access'}
               />
             </div>
           </div>
+          
+          {/* Limit per user per day */}
+          {form.reservation_behavior !== 'free_access' && (
+            <div className="space-y-1">
+              <Label className="text-xs">Límite por usuario por día (opcional)</Label>
+              <Input
+                type="number"
+                value={form.max_reservations_per_user_per_day || ''}
+                onChange={(e) => setForm({ ...form, max_reservations_per_user_per_day: e.target.value ? parseInt(e.target.value) : null })}
+                min={1}
+                max={10}
+                placeholder="Sin límite"
+                className="bg-[#0A0A0F] border-[#1E293B] h-9"
+              />
+              <p className="text-[10px] text-muted-foreground">Máximo de reservas que un usuario puede hacer por día en esta área</p>
+            </div>
+          )}
           
           {/* Allowed Days */}
           <div className="space-y-2">
