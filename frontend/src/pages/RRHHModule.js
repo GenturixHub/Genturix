@@ -2000,6 +2000,7 @@ const EvaluacionSubmodule = ({ employees: propEmployees, canCreate = true }) => 
 // MAIN RRHH MODULE
 // ============================================
 const RRHHModule = () => {
+  const { t } = useTranslation();
   const { user, hasRole, hasAnyRole } = useAuth();
   const isMobile = useIsMobile();
   const [employees, setEmployees] = useState([]);
@@ -2035,12 +2036,12 @@ const RRHHModule = () => {
   const handleCreateShift = async (shiftData) => {
     try {
       await api.createShift(shiftData);
-      toast.success('Turno creado exitosamente');
+      toast.success(t('rrhh.shiftCreated', 'Turno creado exitosamente'));
       fetchData();
     } catch (error) {
       console.error('Error creating shift:', error);
       // Show specific error message from backend
-      const errorMsg = error.message || 'Error al crear turno';
+      const errorMsg = error.message || t('rrhh.shiftCreateError', 'Error al crear turno');
       toast.error(errorMsg);
     }
   };
@@ -2049,11 +2050,11 @@ const RRHHModule = () => {
   const handleDeleteShift = async (shiftId) => {
     try {
       await api.deleteShift(shiftId);
-      toast.success('Turno eliminado');
+      toast.success(t('rrhh.shiftDeleted', 'Turno eliminado'));
       fetchData();
     } catch (error) {
       console.error('Error deleting shift:', error);
-      toast.error(error.message || 'Error al eliminar turno');
+      toast.error(error.message || t('rrhh.shiftDeleteError', 'Error al eliminar turno'));
     }
   };
 
@@ -2077,7 +2078,7 @@ const RRHHModule = () => {
 
   if (isLoading) {
     return (
-      <DashboardLayout title="Recursos Humanos">
+      <DashboardLayout title={t('rrhh.title')}>
         <div className="flex items-center justify-center h-64">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
@@ -2086,13 +2087,13 @@ const RRHHModule = () => {
   }
 
   return (
-    <DashboardLayout title="Recursos Humanos">
+    <DashboardLayout title={t('rrhh.title')}>
       <div className="space-y-6">
         {/* Success Toast */}
         {showEditSuccess && (
           <div className="fixed top-4 right-4 z-50 p-4 rounded-lg bg-green-500/20 border border-green-500/30 text-green-400 flex items-center gap-2 animate-in slide-in-from-top-2">
             <CheckCircle className="w-5 h-5" />
-            Empleado actualizado correctamente
+            {t('rrhh.employeeUpdated')}
           </div>
         )}
 
