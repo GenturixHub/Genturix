@@ -2122,14 +2122,14 @@ const RRHHModule = () => {
           <div className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B]">
             <div className="flex items-center gap-2 mb-1">
               <Calendar className="w-4 h-4 text-cyan-400" />
-              <span className="text-xs text-muted-foreground">Turnos Hoy</span>
+              <span className="text-xs text-muted-foreground">{t('rrhh.shiftsToday')}</span>
             </div>
             <p className="text-2xl font-bold text-white">{shifts.length}</p>
           </div>
           <div className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B]">
             <div className="flex items-center gap-2 mb-1">
               <CalendarOff className="w-4 h-4 text-yellow-400" />
-              <span className="text-xs text-muted-foreground">Ausencias</span>
+              <span className="text-xs text-muted-foreground">{t('rrhh.absences')}</span>
             </div>
             <p className="text-2xl font-bold text-white">--</p>
           </div>
@@ -2145,6 +2145,8 @@ const RRHHModule = () => {
             <TabsList className="inline-flex w-max bg-[#0F111A] border border-[#1E293B] p-1">
               {availableSubmodules.map(submodule => {
                 const Icon = submodule.icon;
+                const label = t(submodule.labelKey);
+                const shortLabel = t(submodule.shortLabelKey);
                 return (
                   <TabsTrigger 
                     key={submodule.id} 
@@ -2153,7 +2155,7 @@ const RRHHModule = () => {
                     data-testid={`rrhh-tab-${submodule.id}`}
                   >
                     <Icon className="w-4 h-4 mr-2" />
-                    {isMobile ? submodule.shortLabel : submodule.label}
+                    {isMobile ? shortLabel : label}
                   </TabsTrigger>
                 );
               })}
