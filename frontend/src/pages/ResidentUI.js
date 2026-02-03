@@ -271,32 +271,29 @@ const SecondaryEmergencyButton = ({ config, variant, onPress, disabled, isLoadin
 };
 
 // ============================================
-// GPS STATUS INDICATOR
+// GPS STATUS INDICATOR - Premium Compact
 // ============================================
 const GPSStatus = ({ location, isLoading, error }) => {
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-full bg-blue-500/20 border border-blue-500/30">
-        <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
-        <span className="text-xs text-blue-400 font-medium">Obteniendo ubicación...</span>
+      <div className="emergency-gps-status emergency-gps-status--loading">
+        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        <span>Obteniendo ubicación...</span>
       </div>
     );
   }
   if (error || !location) {
     return (
-      <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-full bg-yellow-500/20 border border-yellow-500/30">
-        <WifiOff className="w-4 h-4 text-yellow-400" />
-        <span className="text-xs text-yellow-400 font-medium">GPS no disponible</span>
+      <div className="emergency-gps-status emergency-gps-status--error">
+        <WifiOff className="w-3.5 h-3.5" />
+        <span>GPS no disponible</span>
       </div>
     );
   }
   return (
-    <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-full bg-green-500/20 border border-green-500/30">
-      <div className="relative">
-        <Wifi className="w-4 h-4 text-green-400" />
-        <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-      </div>
-      <span className="text-xs text-green-400 font-medium">GPS Activo • ±{Math.round(location.accuracy || 10)}m</span>
+    <div className="emergency-gps-status emergency-gps-status--active">
+      <span className="emergency-gps-dot" />
+      <span>GPS Activo • ±{Math.round(location.accuracy || 10)}m</span>
     </div>
   );
 };
