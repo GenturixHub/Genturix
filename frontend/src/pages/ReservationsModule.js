@@ -990,6 +990,7 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
 // MAIN COMPONENT
 // ============================================
 const ReservationsModule = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const isAdmin = user?.roles?.some(r => ['Administrador', 'SuperAdmin'].includes(r));
@@ -1027,11 +1028,11 @@ const ReservationsModule = () => {
       setReservations(reservationsData);
       setError(null);
     } catch (err) {
-      setError(err.message || 'Error al cargar datos');
+      setError(err.message || t('errors.generic'));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [t]);
   
   useEffect(() => {
     fetchData();
@@ -1042,16 +1043,16 @@ const ReservationsModule = () => {
     try {
       if (areaId) {
         await api.updateReservationArea(areaId, formData);
-        toast.success('Área actualizada');
+        toast.success(t('reservations.areaUpdated', 'Área actualizada'));
       } else {
         await api.createReservationArea(formData);
-        toast.success('Área creada');
+        toast.success(t('reservations.areaCreated', 'Área creada'));
       }
       fetchData();
     } catch (error) {
-      const errorMessage = error?.message || (typeof error === 'string' ? error : 'Error al guardar área');
+      const errorMessage = error?.message || (typeof error === 'string' ? error : t('reservations.areaSaveError', 'Error al guardar área'));
       toast.error(errorMessage);
-      throw error; // Re-throw to let the dialog know
+      throw error;
     }
   };
   
@@ -1059,24 +1060,24 @@ const ReservationsModule = () => {
     if (!areaToDelete) return;
     try {
       await api.deleteReservationArea(areaToDelete.id);
-      toast.success('Área eliminada');
+      toast.success(t('reservations.areaDeleted', 'Área eliminada'));
       setShowDeleteDialog(false);
       setAreaToDelete(null);
       fetchData();
     } catch (err) {
-      toast.error(err.message || 'Error al eliminar');
+      toast.error(err.message || t('common.error'));
     }
   };
   
   const handleCreateReservation = async (formData) => {
     try {
       await api.createReservation(formData);
-      toast.success('Reservación creada');
+      toast.success(t('reservations.reservationCreated'));
       fetchData();
     } catch (error) {
-      const errorMessage = error?.message || (typeof error === 'string' ? error : 'Error al crear reservación');
+      const errorMessage = error?.message || (typeof error === 'string' ? error : t('reservations.reservationCreateError', 'Error al crear reservación'));
       toast.error(errorMessage);
-      throw error; // Re-throw to let the dialog know
+      throw error;
     }
   };
   
