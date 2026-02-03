@@ -12,24 +12,57 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [passwordResetRequired, setPasswordResetRequired] = useState(false);
 
+  // Initialize from session storage and sync language
   useEffect(() => {
-    const storedAccessToken = sessionStorage.getItem('accessToken');
-    const storedRefreshToken = sessionStorage.getItem('refreshToken');
-    const storedUser = sessionStorage.getItem('user');
-    const storedPasswordReset = sessionStorage.getItem('passwordResetRequired');
+    const initializeAuth = async () => {
+      const storedAccessToken = sessionStorage.getItem('accessToken');
+      const storedRefreshToken = sessionStorage.getItem('refreshToken');
+      const storedUser = sessionStorage.getItem('user');
+      const storedPasswordReset = sessionStorage.getItem('passwordResetRequired');
 
-    if (storedAccessToken && storedUser) {
-      setAccessToken(storedAccessToken);
-      setRefreshToken(storedRefreshToken);
-      try {
-        setUser(JSON.parse(storedUser));
-        setPasswordResetRequired(storedPasswordReset === 'true');
-      } catch (e) {
-        console.error('Error parsing stored user:', e);
+      if (storedAccessToken && storedUser) {
+        setAccessToken(storedAccessToken);
+        setRefreshToken(storedRefreshToken);
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          setPasswordResetRequired(storedPasswordReset === 'true');
+          
+          // Sync language from user profile on app load
+          if (parsedUser.language && ['es', 'en'].includes(parsedUser.language)) {
+            await changeLanguage(parsedUser.language);
+          } else {
+            // Fetch fresh profile to get language if not in stored user
+            try {
+              const profileResponse = await fetch(`${API_URL}/api/profile`, {
+                headers: {
+                  'Authorization': `Bearer ${storedAccessToken}`,
+                  'Content-Type': 'application/json',
+                },
+              });
+              if (profileResponse.ok) {
+                const profileData = await profileResponse.json();
+                if (profileData.language && ['es', 'en'].includes(profileData.language)) {
+                  await changeLanguage(profileData.language);
+                  // Update stored user with language
+                  const updatedUser = { ...parsedUser, language: profileData.language };
+                  sessionStorage.setItem('user', JSON.stringify(updatedUser));
+                  setUser(updatedUser);
+                }
+              }
+            } catch (e) {
+              console.warn('Could not fetch profile for language sync:', e);
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing stored user:', e);
+        }
       }
-    }
 
-    setIsLoading(false);
+      setIsLoading(false);
+    };
+
+    initializeAuth();
   }, []);
 
   const login = async (email, password) => {
