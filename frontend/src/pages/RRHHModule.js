@@ -92,10 +92,10 @@ import {
 const RRHH_SUBMODULES = {
   ausencias: {
     id: 'ausencias',
-    label: 'Solicitudes de Ausencia',
-    shortLabel: 'Ausencias',
+    labelKey: 'rrhh.absenceRequests',
+    shortLabelKey: 'rrhh.absences',
     icon: CalendarOff,
-    description: 'Vacaciones, permisos, aprobaciones',
+    descriptionKey: 'rrhh.absenceDescription',
     roles: ['Administrador', 'Supervisor', 'Guarda', 'HR'],
   },
   control_horario: {
