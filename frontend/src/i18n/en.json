@@ -335,7 +335,19 @@
     "reservationCreated": "Reservation created successfully",
     "reservationCancelled": "Reservation cancelled",
     "cancelReservation": "Cancel Reservation",
-    "confirmCancel": "Are you sure you want to cancel this reservation?"
+    "confirmCancel": "Are you sure you want to cancel this reservation?",
+    "adminSubtitle": "Manage areas and reservations",
+    "residentSubtitle": "Reserve common areas",
+    "newArea": "New Area",
+    "areas": "Areas",
+    "areaUpdated": "Area updated",
+    "areaCreated": "Area created",
+    "areaSaveError": "Error saving area",
+    "areaDeleted": "Area deleted",
+    "reservationCreateError": "Error creating reservation",
+    "myReservationsTab": "My Bookings",
+    "pendingTab": "Pending",
+    "approvedTab": "Approved"
   },
   "security": {
     "title": "Security",
