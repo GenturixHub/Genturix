@@ -2099,8 +2099,8 @@ const RRHHModule = () => {
 
         {/* Header */}
         <div>
-          <h1 className="text-xl font-bold text-white">Recursos Humanos</h1>
-          <p className="text-sm text-muted-foreground">Gestión integral de personal y operaciones</p>
+          <h1 className="text-xl font-bold text-white">{t('rrhh.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('rrhh.subtitle')}</p>
         </div>
 
         {/* Stats Row */}
@@ -2108,14 +2108,14 @@ const RRHHModule = () => {
           <div className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B]">
             <div className="flex items-center gap-2 mb-1">
               <Users className="w-4 h-4 text-blue-400" />
-              <span className="text-xs text-muted-foreground">Empleados</span>
+              <span className="text-xs text-muted-foreground">{t('rrhh.employees')}</span>
             </div>
             <p className="text-2xl font-bold text-white">{employees.length}</p>
           </div>
           <div className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B]">
             <div className="flex items-center gap-2 mb-1">
               <UserCheck className="w-4 h-4 text-green-400" />
-              <span className="text-xs text-muted-foreground">Activos</span>
+              <span className="text-xs text-muted-foreground">{t('rrhh.activeEmployees')}</span>
             </div>
             <p className="text-2xl font-bold text-white">{employees.filter(e => e.is_active).length}</p>
           </div>
