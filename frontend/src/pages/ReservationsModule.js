@@ -1150,7 +1150,7 @@ const ReservationsModule = () => {
   
   if (isLoading) {
     return (
-      <DashboardLayout>
+      <DashboardLayout title={t('reservations.title')}>
         <div className="flex items-center justify-center h-64">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
@@ -1160,12 +1160,12 @@ const ReservationsModule = () => {
   
   if (error) {
     return (
-      <DashboardLayout>
+      <DashboardLayout title={t('reservations.title')}>
         <Card className="bg-red-500/10 border-red-500/30">
           <CardContent className="p-6 text-center">
             <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
             <p className="text-red-400">{error}</p>
-            <Button onClick={fetchData} className="mt-4">Reintentar</Button>
+            <Button onClick={fetchData} className="mt-4">{t('errors.tryAgain')}</Button>
           </CardContent>
         </Card>
       </DashboardLayout>
@@ -1173,20 +1173,20 @@ const ReservationsModule = () => {
   }
   
   return (
-    <DashboardLayout>
+    <DashboardLayout title={t('reservations.title')}>
       <div className="space-y-4" data-testid="reservations-module">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-bold">Reservaciones</h1>
+            <h1 className="text-xl font-bold">{t('reservations.title')}</h1>
             <p className="text-sm text-muted-foreground">
-              {isAdmin ? 'Gestión de áreas y reservaciones' : 'Reserva áreas comunes'}
+              {isAdmin ? t('reservations.adminSubtitle', 'Gestión de áreas y reservaciones') : t('reservations.residentSubtitle', 'Reserva áreas comunes')}
             </p>
           </div>
           {isAdmin && (
             <Button onClick={() => { setEditingArea(null); setShowAreaDialog(true); }} data-testid="new-area-btn">
               <Plus className="w-4 h-4 mr-2" />
-              Nueva Área
+              {t('reservations.newArea', 'Nueva Área')}
             </Button>
           )}
         </div>
@@ -1196,7 +1196,7 @@ const ReservationsModule = () => {
           <TabsList className={`bg-[#0F111A] ${isMobile ? 'grid w-full' : ''}`} style={isMobile && isAdmin ? { gridTemplateColumns: 'repeat(4, 1fr)' } : isMobile ? { gridTemplateColumns: 'repeat(3, 1fr)' } : {}}>
             <TabsTrigger value="areas" className="gap-1">
               <MapPin className="w-3 h-3" />
-              {!isMobile && 'Áreas'}
+              {!isMobile && t('reservations.areas', 'Áreas')}
             </TabsTrigger>
             <TabsTrigger value="reservations" className="gap-1">
               <Calendar className="w-3 h-3" />
