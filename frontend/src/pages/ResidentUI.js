@@ -214,7 +214,7 @@ const HeroEmergencyButton = ({ config, onPress, disabled, isLoading }) => {
 };
 
 // ============================================
-// SECONDARY EMERGENCY BUTTON (Médica & Sospechosa)
+// SECONDARY EMERGENCY BUTTON - Circular Design
 // ============================================
 const SecondaryEmergencyButton = ({ config, variant, onPress, disabled, isLoading }) => {
   const [ripples, setRipples] = useState([]);
@@ -242,7 +242,7 @@ const SecondaryEmergencyButton = ({ config, variant, onPress, disabled, isLoadin
       onClick={handlePress}
       disabled={disabled || isLoading}
       data-testid={`panic-btn-${config.id}`}
-      className={`emergency-secondary emergency-secondary--${variant} ${isLoading ? 'is-loading' : ''}`}
+      className={`emergency-secondary-circle emergency-secondary-circle--${variant} ${isLoading ? 'is-loading' : ''}`}
     >
       {/* Ripples */}
       {ripples.map(ripple => (
@@ -254,18 +254,17 @@ const SecondaryEmergencyButton = ({ config, variant, onPress, disabled, isLoadin
       ))}
       
       {/* Icon */}
-      <div className="emergency-secondary-icon">
-        <div className="emergency-secondary-icon-bg" />
+      <div className="emergency-secondary-icon-wrapper">
         {isLoading ? (
-          <Loader2 className="animate-spin" />
+          <Loader2 />
         ) : (
           <IconComponent strokeWidth={2.5} />
         )}
       </div>
       
-      {/* Label - shorter text */}
+      {/* Label */}
       <p className="emergency-secondary-label">
-        {config.id === 'emergencia_medica' ? 'MÉDICA' : 'SOSPECHOSA'}
+        {config.id === 'emergencia_medica' ? 'MÉDICA' : 'SEGURIDAD'}
       </p>
     </button>
   );
