@@ -1,250 +1,339 @@
 /* ========================================
-   GENTURIX Emergency Action Layout v2
-   Premium Hero-Based Design
+   GENTURIX Emergency Action Layout v3
+   Premium Circular Design - Enterprise UX
    ======================================== */
+
+/* ========================================
+   CSS CUSTOM PROPERTIES
+   ======================================== */
+:root {
+  --emergency-primary: #f97316;
+  --emergency-primary-glow: rgba(249, 115, 22, 0.5);
+  --emergency-medical: #dc2626;
+  --emergency-medical-glow: rgba(220, 38, 38, 0.4);
+  --emergency-suspicious: #eab308;
+  --emergency-suspicious-glow: rgba(234, 179, 8, 0.4);
+}
 
 /* ========================================
    KEYFRAME ANIMATIONS
    ======================================== */
 
-@keyframes heroBreathing {
+@keyframes circularPulse {
   0%, 100% { 
     transform: scale(1);
-    box-shadow: var(--hero-glow);
+    opacity: 1;
   }
   50% { 
-    transform: scale(1.008);
-    box-shadow: var(--hero-glow-intense);
+    transform: scale(1.03);
+    opacity: 0.95;
   }
 }
 
-@keyframes secondaryPulse {
+@keyframes outerRingPulse {
   0%, 100% { 
-    box-shadow: var(--secondary-glow);
+    transform: scale(1);
+    opacity: 0.3;
   }
   50% { 
-    box-shadow: var(--secondary-glow-intense);
+    transform: scale(1.08);
+    opacity: 0.15;
   }
 }
 
-@keyframes heroRipple {
+@keyframes innerGlow {
+  0%, 100% { 
+    box-shadow: 
+      0 0 40px var(--glow-color),
+      inset 0 0 30px rgba(255, 255, 255, 0.1);
+  }
+  50% { 
+    box-shadow: 
+      0 0 60px var(--glow-color),
+      inset 0 0 40px rgba(255, 255, 255, 0.15);
+  }
+}
+
+@keyframes rippleExpand {
   0% {
     transform: scale(0);
-    opacity: 0.6;
+    opacity: 0.5;
   }
   100% {
-    transform: scale(3);
+    transform: scale(2.5);
     opacity: 0;
   }
 }
 
-@keyframes iconPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
+@keyframes iconFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
 }
 
-@keyframes pressDown {
+@keyframes pressScale {
   0% { transform: scale(1); }
-  50% { transform: scale(0.95); }
+  50% { transform: scale(0.92); }
   100% { transform: scale(1); }
 }
 
-/* ========================================
-   EMERGENCY ACTION CONTAINER
-   ======================================== */
+@keyframes shimmer {
+  0% { transform: translateX(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) rotate(45deg); }
+}
 
-.emergency-action-layout {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  padding: 1rem;
-  gap: 1rem;
-  overflow-y: auto;
-  max-width: 480px;
-  margin: 0 auto;
-  width: 100%;
+@keyframes statusPing {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0; }
 }
 
 /* ========================================
-   HERO BUTTON (EMERGENCIA GENERAL)
-   ~50-60% of visible area
+   EMERGENCY CONTAINER - Mobile First
    ======================================== */
 
-.emergency-hero {
-  --hero-glow: 
-    0 8px 40px rgba(249, 115, 22, 0.4),
-    0 4px 20px rgba(234, 88, 12, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  --hero-glow-intense: 
-    0 12px 60px rgba(249, 115, 22, 0.55),
-    0 6px 30px rgba(234, 88, 12, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  
-  position: relative;
-  flex: 1;
-  min-height: 200px;
-  max-height: 320px;
+.emergency-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
-  padding: 2rem 1.5rem;
-  
-  /* Pill shape */
+  flex: 1;
+  padding: 1rem;
+  gap: 1.5rem;
+  max-width: 420px;
+  margin: 0 auto;
+  width: 100%;
+  min-height: 0;
+}
+
+/* ========================================
+   GPS STATUS BAR - Premium
+   ======================================== */
+
+.emergency-gps-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
   border-radius: 2rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+}
+
+.emergency-gps-status--active {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #4ade80;
+}
+
+.emergency-gps-status--loading {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+}
+
+.emergency-gps-status--error {
+  background: rgba(234, 179, 8, 0.15);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  color: #facc15;
+}
+
+.emergency-gps-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  position: relative;
+}
+
+.emergency-gps-dot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: statusPing 1.5s ease-in-out infinite;
+}
+
+/* ========================================
+   HERO EMERGENCY BUTTON - Circular Premium
+   Main Action - Large Circle
+   ======================================== */
+
+.emergency-hero-circle {
+  --glow-color: var(--emergency-primary-glow);
+  
+  position: relative;
+  width: clamp(180px, 50vw, 240px);
+  height: clamp(180px, 50vw, 240px);
+  border-radius: 50%;
   
   /* Premium gradient */
-  background: linear-gradient(160deg, 
-    #fb923c 0%, 
-    #f97316 30%, 
-    #ea580c 70%, 
-    #c2410c 100%
-  );
+  background: 
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.2), transparent 50%),
+    linear-gradient(145deg, 
+      #fb923c 0%, 
+      #f97316 35%, 
+      #ea580c 65%, 
+      #c2410c 100%
+    );
   
-  /* Border glow */
-  border: 3px solid rgba(251, 146, 60, 0.7);
-  
-  /* Shadow & depth */
-  box-shadow: var(--hero-glow);
+  /* Outer glow */
+  box-shadow: 
+    0 0 0 3px rgba(251, 146, 60, 0.4),
+    0 0 40px var(--emergency-primary-glow),
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 2px 20px rgba(255, 255, 255, 0.1),
+    inset 0 -3px 15px rgba(0, 0, 0, 0.2);
   
   /* Interaction */
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   user-select: none;
-  overflow: hidden;
   
-  /* Animation */
-  animation: heroBreathing 3s ease-in-out infinite;
-  transition: transform 0.15s ease-out, filter 0.15s ease-out;
-}
-
-/* Glass overlay */
-.emergency-hero::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 50%;
-  background: linear-gradient(to bottom, 
-    rgba(255, 255, 255, 0.18), 
-    transparent
-  );
-  border-radius: 1.85rem 1.85rem 0 0;
-  pointer-events: none;
-}
-
-/* Inner border glow */
-.emergency-hero::after {
-  content: '';
-  position: absolute;
-  inset: 4px;
-  border-radius: 1.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  pointer-events: none;
-}
-
-/* Hover - desktop only */
-@media (hover: hover) {
-  .emergency-hero:not(:disabled):hover {
-    transform: translateY(-3px) scale(1.01);
-    filter: brightness(1.05);
-  }
-}
-
-/* Active/Press */
-.emergency-hero:not(:disabled):active {
-  animation: pressDown 0.15s ease-out;
-  filter: brightness(0.95);
-}
-
-/* Disabled */
-.emergency-hero:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  animation: none;
-  filter: grayscale(0.3);
-}
-
-/* Focus */
-.emergency-hero:focus-visible {
-  outline: none;
-  box-shadow: 
-    var(--hero-glow),
-    0 0 0 4px rgba(255, 255, 255, 0.3);
-}
-
-/* Hero Icon Container */
-.emergency-hero-icon {
-  position: relative;
-  width: 5rem;
-  height: 5rem;
+  /* Flexbox centering */
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.75rem;
+  
+  /* Animation */
+  animation: circularPulse 3s ease-in-out infinite, innerGlow 3s ease-in-out infinite;
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
+  
+  /* Overflow for ripple */
+  overflow: hidden;
 }
 
-@media (min-width: 640px) {
-  .emergency-hero-icon {
-    width: 6rem;
-    height: 6rem;
-  }
+/* Outer decorative ring */
+.emergency-hero-circle::before {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  border: 2px dashed rgba(251, 146, 60, 0.3);
+  animation: outerRingPulse 3s ease-in-out infinite;
+  pointer-events: none;
 }
 
-/* Icon background */
-.emergency-hero-icon-bg {
+/* Inner highlight ring */
+.emergency-hero-circle::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  pointer-events: none;
+}
+
+/* Shimmer effect */
+.emergency-hero-shimmer {
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background: rgba(0, 0, 0, 0.25);
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  pointer-events: none;
 }
 
-/* Icon itself */
-.emergency-hero-icon svg {
-  position: relative;
-  z-index: 1;
-  width: 2.5rem;
-  height: 2.5rem;
-  color: white;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-  animation: iconPulse 2s ease-in-out infinite;
+.emergency-hero-shimmer::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.15) 50%,
+    transparent 60%
+  );
+  animation: shimmer 4s ease-in-out infinite;
 }
 
-@media (min-width: 640px) {
-  .emergency-hero-icon svg {
-    width: 3rem;
-    height: 3rem;
+/* Hover state - Desktop */
+@media (hover: hover) {
+  .emergency-hero-circle:not(:disabled):hover {
+    transform: scale(1.04);
+    box-shadow: 
+      0 0 0 4px rgba(251, 146, 60, 0.5),
+      0 0 60px var(--emergency-primary-glow),
+      0 12px 40px rgba(0, 0, 0, 0.5),
+      inset 0 2px 25px rgba(255, 255, 255, 0.15),
+      inset 0 -3px 15px rgba(0, 0, 0, 0.2);
   }
+}
+
+/* Active/Press state */
+.emergency-hero-circle:not(:disabled):active {
+  transform: scale(0.94);
+  animation: pressScale 0.2s ease-out;
+}
+
+/* Disabled state */
+.emergency-hero-circle:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  animation: none;
+  filter: grayscale(0.4);
+}
+
+/* Focus state */
+.emergency-hero-circle:focus-visible {
+  outline: none;
+  box-shadow: 
+    0 0 0 4px rgba(255, 255, 255, 0.4),
+    0 0 40px var(--emergency-primary-glow);
+}
+
+/* Hero Icon */
+.emergency-hero-icon-wrapper {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.25);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 2;
+}
+
+.emergency-hero-icon-wrapper svg {
+  width: 2rem;
+  height: 2rem;
+  color: white;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+  animation: iconFloat 3s ease-in-out infinite;
 }
 
 /* Hero Text */
 .emergency-hero-text {
   text-align: center;
-  color: white;
+  z-index: 2;
 }
 
 .emergency-hero-label {
-  font-size: 1.5rem;
+  font-size: 1.125rem;
   font-weight: 800;
-  letter-spacing: 0.05em;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  margin-bottom: 0.25rem;
-}
-
-@media (min-width: 640px) {
-  .emergency-hero-label {
-    font-size: 1.75rem;
-  }
+  color: white;
+  letter-spacing: 0.08em;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  text-transform: uppercase;
+  margin-bottom: 0.125rem;
 }
 
 .emergency-hero-sublabel {
-  font-size: 0.875rem;
-  opacity: 0.9;
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.85);
   font-weight: 500;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
 /* Ripple */
@@ -252,344 +341,499 @@
   position: absolute;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.4);
-  width: 100px;
-  height: 100px;
-  margin-left: -50px;
-  margin-top: -50px;
-  animation: heroRipple 0.6s ease-out forwards;
+  width: 80px;
+  height: 80px;
+  margin-left: -40px;
+  margin-top: -40px;
+  animation: rippleExpand 0.6s ease-out forwards;
   pointer-events: none;
+  z-index: 10;
 }
 
 /* ========================================
-   SECONDARY BUTTONS GRID
-   (Médica & Sospechosa)
+   SECONDARY BUTTONS - Circular Grid
    ======================================== */
 
 .emergency-secondary-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 320px;
 }
 
 /* ========================================
-   SECONDARY BUTTON BASE
+   SECONDARY BUTTON - Smaller Circles
    ======================================== */
 
-.emergency-secondary {
+.emergency-secondary-circle {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 1.25rem 1rem;
-  min-height: 110px;
-  
-  /* Rounded card */
-  border-radius: 1.25rem;
+  width: clamp(100px, 28vw, 120px);
+  height: clamp(100px, 28vw, 120px);
+  border-radius: 50%;
   
   /* Interaction */
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   user-select: none;
-  overflow: hidden;
   
-  /* Transitions */
-  transition: transform 0.15s ease-out, filter 0.15s ease-out, box-shadow 0.3s ease-out;
+  /* Flexbox */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
   
   /* Animation */
-  animation: secondaryPulse 4s ease-in-out infinite;
+  animation: circularPulse 4s ease-in-out infinite;
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
+  
+  overflow: hidden;
 }
 
-/* Glass overlay */
-.emergency-secondary::before {
+/* Inner highlight */
+.emergency-secondary-circle::after {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 50%;
-  background: linear-gradient(to bottom, 
-    rgba(255, 255, 255, 0.12), 
-    transparent
-  );
-  border-radius: 1.1rem 1.1rem 0 0;
-  pointer-events: none;
-}
-
-/* Inner border */
-.emergency-secondary::after {
-  content: '';
-  position: absolute;
-  inset: 3px;
-  border-radius: 1.1rem;
+  inset: 4px;
+  border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.1);
   pointer-events: none;
 }
 
-/* Hover */
+/* Medical Button - Red */
+.emergency-secondary-circle--medical {
+  --glow-color: var(--emergency-medical-glow);
+  
+  background: 
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.15), transparent 50%),
+    linear-gradient(145deg, 
+      #f87171 0%, 
+      #ef4444 35%, 
+      #dc2626 65%, 
+      #b91c1c 100%
+    );
+  
+  box-shadow: 
+    0 0 0 2px rgba(248, 113, 113, 0.4),
+    0 0 25px var(--emergency-medical-glow),
+    0 6px 20px rgba(0, 0, 0, 0.35),
+    inset 0 2px 12px rgba(255, 255, 255, 0.1),
+    inset 0 -2px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Suspicious Button - Yellow/Amber */
+.emergency-secondary-circle--suspicious {
+  --glow-color: var(--emergency-suspicious-glow);
+  
+  background: 
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.2), transparent 50%),
+    linear-gradient(145deg, 
+      #fde047 0%, 
+      #facc15 35%, 
+      #eab308 65%, 
+      #ca8a04 100%
+    );
+  
+  box-shadow: 
+    0 0 0 2px rgba(253, 224, 71, 0.4),
+    0 0 25px var(--emergency-suspicious-glow),
+    0 6px 20px rgba(0, 0, 0, 0.35),
+    inset 0 2px 12px rgba(255, 255, 255, 0.15),
+    inset 0 -2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Hover - Desktop */
 @media (hover: hover) {
-  .emergency-secondary:not(:disabled):hover {
-    transform: translateY(-2px) scale(1.02);
-    filter: brightness(1.05);
+  .emergency-secondary-circle:not(:disabled):hover {
+    transform: scale(1.08);
+  }
+  
+  .emergency-secondary-circle--medical:not(:disabled):hover {
+    box-shadow: 
+      0 0 0 3px rgba(248, 113, 113, 0.5),
+      0 0 40px var(--emergency-medical-glow),
+      0 8px 25px rgba(0, 0, 0, 0.4);
+  }
+  
+  .emergency-secondary-circle--suspicious:not(:disabled):hover {
+    box-shadow: 
+      0 0 0 3px rgba(253, 224, 71, 0.5),
+      0 0 40px var(--emergency-suspicious-glow),
+      0 8px 25px rgba(0, 0, 0, 0.4);
   }
 }
 
 /* Active */
-.emergency-secondary:not(:disabled):active {
-  transform: scale(0.96);
-  filter: brightness(0.95);
+.emergency-secondary-circle:not(:disabled):active {
+  transform: scale(0.92);
 }
 
 /* Disabled */
-.emergency-secondary:disabled {
-  opacity: 0.5;
+.emergency-secondary-circle:disabled {
+  opacity: 0.4;
   cursor: not-allowed;
   animation: none;
+  filter: grayscale(0.3);
 }
 
 /* Focus */
-.emergency-secondary:focus-visible {
+.emergency-secondary-circle:focus-visible {
   outline: none;
   box-shadow: 
-    var(--secondary-glow),
-    0 0 0 3px rgba(255, 255, 255, 0.25);
+    0 0 0 3px rgba(255, 255, 255, 0.4),
+    0 0 30px var(--glow-color);
 }
 
-/* ========================================
-   MEDICAL BUTTON (Red)
-   ======================================== */
-
-.emergency-secondary--medical {
-  --secondary-glow: 
-    0 6px 24px rgba(220, 38, 38, 0.35),
-    0 3px 12px rgba(185, 28, 28, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  --secondary-glow-intense: 
-    0 8px 32px rgba(220, 38, 38, 0.45),
-    0 4px 16px rgba(185, 28, 28, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  
-  background: linear-gradient(160deg, 
-    #ef4444 0%, 
-    #dc2626 40%, 
-    #b91c1c 100%
-  );
-  border: 2px solid rgba(248, 113, 113, 0.6);
-  box-shadow: var(--secondary-glow);
-}
-
-/* ========================================
-   SUSPICIOUS BUTTON (Amber)
-   ======================================== */
-
-.emergency-secondary--suspicious {
-  --secondary-glow: 
-    0 6px 24px rgba(245, 158, 11, 0.35),
-    0 3px 12px rgba(217, 119, 6, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  --secondary-glow-intense: 
-    0 8px 32px rgba(245, 158, 11, 0.45),
-    0 4px 16px rgba(217, 119, 6, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  
-  background: linear-gradient(160deg, 
-    #fbbf24 0%, 
-    #f59e0b 40%, 
-    #d97706 100%
-  );
-  border: 2px solid rgba(252, 211, 77, 0.6);
-  box-shadow: var(--secondary-glow);
-}
-
-/* ========================================
-   SECONDARY ICON
-   ======================================== */
-
-.emergency-secondary-icon {
-  position: relative;
-  width: 3rem;
-  height: 3rem;
+/* Secondary Icon */
+.emergency-secondary-icon-wrapper {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 
-.emergency-secondary-icon-bg {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.emergency-secondary-icon svg {
-  position: relative;
-  z-index: 1;
-  width: 1.5rem;
-  height: 1.5rem;
+.emergency-secondary-icon-wrapper svg {
+  width: 1.25rem;
+  height: 1.25rem;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
 }
 
-/* Text colors */
-.emergency-secondary--medical .emergency-secondary-icon svg,
-.emergency-secondary--medical .emergency-secondary-label {
+/* Secondary Text Colors */
+.emergency-secondary-circle--medical .emergency-secondary-icon-wrapper svg,
+.emergency-secondary-circle--medical .emergency-secondary-label {
   color: white;
 }
 
-.emergency-secondary--suspicious .emergency-secondary-icon svg,
-.emergency-secondary--suspicious .emergency-secondary-label {
+.emergency-secondary-circle--suspicious .emergency-secondary-icon-wrapper svg,
+.emergency-secondary-circle--suspicious .emergency-secondary-label {
   color: #1a1a1a;
 }
 
-/* ========================================
-   SECONDARY TEXT
-   ======================================== */
-
+/* Secondary Label */
 .emergency-secondary-label {
-  font-size: 0.75rem;
+  font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
-  text-align: center;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-@media (min-width: 400px) {
-  .emergency-secondary-label {
-    font-size: 0.8125rem;
-  }
-}
-
-/* ========================================
-   RIPPLE FOR SECONDARY
-   ======================================== */
-
+/* Ripple */
 .emergency-secondary-ripple {
   position: absolute;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.35);
-  width: 60px;
-  height: 60px;
-  margin-left: -30px;
-  margin-top: -30px;
-  animation: heroRipple 0.5s ease-out forwards;
+  background: rgba(255, 255, 255, 0.4);
+  width: 50px;
+  height: 50px;
+  margin-left: -25px;
+  margin-top: -25px;
+  animation: rippleExpand 0.5s ease-out forwards;
   pointer-events: none;
+  z-index: 10;
+}
+
+/* ========================================
+   INSTRUCTION TEXT
+   ======================================== */
+
+.emergency-instruction {
+  text-align: center;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.emergency-instruction-text {
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.emergency-instruction-text strong {
+  color: rgba(255, 255, 255, 0.7);
 }
 
 /* ========================================
    LOADING STATE
    ======================================== */
 
-.emergency-hero.is-loading,
-.emergency-secondary.is-loading {
+.emergency-hero-circle.is-loading,
+.emergency-secondary-circle.is-loading {
   animation: none;
 }
 
-.emergency-hero.is-loading .emergency-hero-icon svg,
-.emergency-secondary.is-loading .emergency-secondary-icon svg {
+.emergency-hero-circle.is-loading .emergency-hero-icon-wrapper svg,
+.emergency-secondary-circle.is-loading .emergency-secondary-icon-wrapper svg {
   animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 /* ========================================
    RESPONSIVE ADJUSTMENTS
    ======================================== */
 
-/* Small screens */
-@media (max-height: 700px) {
-  .emergency-hero {
-    min-height: 160px;
-    max-height: 240px;
-    padding: 1.5rem 1rem;
+/* Larger screens */
+@media (min-width: 400px) {
+  .emergency-container {
+    gap: 2rem;
+    padding: 1.5rem;
   }
   
-  .emergency-hero-icon {
-    width: 4rem;
-    height: 4rem;
+  .emergency-hero-icon-wrapper {
+    width: 4.5rem;
+    height: 4.5rem;
   }
   
-  .emergency-hero-icon svg {
-    width: 2rem;
-    height: 2rem;
+  .emergency-hero-icon-wrapper svg {
+    width: 2.25rem;
+    height: 2.25rem;
   }
   
   .emergency-hero-label {
     font-size: 1.25rem;
   }
   
-  .emergency-secondary {
-    min-height: 90px;
-    padding: 1rem 0.75rem;
+  .emergency-hero-sublabel {
+    font-size: 0.75rem;
   }
-}
-
-/* Extra small screens */
-@media (max-width: 359px) {
-  .emergency-hero-label {
-    font-size: 1.125rem;
+  
+  .emergency-secondary-icon-wrapper {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+  
+  .emergency-secondary-icon-wrapper svg {
+    width: 1.375rem;
+    height: 1.375rem;
   }
   
   .emergency-secondary-label {
     font-size: 0.6875rem;
   }
+}
+
+/* Small height screens */
+@media (max-height: 650px) {
+  .emergency-container {
+    gap: 1rem;
+    padding: 0.75rem;
+  }
   
-  .emergency-secondary-icon {
+  .emergency-hero-circle {
+    width: clamp(140px, 40vw, 180px);
+    height: clamp(140px, 40vw, 180px);
+  }
+  
+  .emergency-hero-icon-wrapper {
+    width: 3rem;
+    height: 3rem;
+  }
+  
+  .emergency-hero-icon-wrapper svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+  
+  .emergency-hero-label {
+    font-size: 0.9375rem;
+  }
+  
+  .emergency-secondary-grid {
+    gap: 1rem;
+  }
+  
+  .emergency-secondary-circle {
+    width: clamp(80px, 22vw, 100px);
+    height: clamp(80px, 22vw, 100px);
+  }
+  
+  .emergency-secondary-icon-wrapper {
+    width: 2rem;
+    height: 2rem;
+  }
+  
+  .emergency-secondary-icon-wrapper svg {
+    width: 1rem;
+    height: 1rem;
+  }
+  
+  .emergency-secondary-label {
+    font-size: 0.5625rem;
+  }
+  
+  .emergency-instruction {
+    display: none;
+  }
+}
+
+/* Desktop - Larger sizes */
+@media (min-width: 768px) {
+  .emergency-container {
+    max-width: 480px;
+    gap: 2.5rem;
+  }
+  
+  .emergency-hero-circle {
+    width: 260px;
+    height: 260px;
+  }
+  
+  .emergency-hero-circle::before {
+    inset: -16px;
+    border-width: 3px;
+  }
+  
+  .emergency-hero-icon-wrapper {
+    width: 5rem;
+    height: 5rem;
+  }
+  
+  .emergency-hero-icon-wrapper svg {
     width: 2.5rem;
     height: 2.5rem;
   }
   
-  .emergency-secondary-icon svg {
-    width: 1.25rem;
-    height: 1.25rem;
-  }
-}
-
-/* Desktop - larger sizes */
-@media (min-width: 768px) {
-  .emergency-action-layout {
-    max-width: 520px;
-    padding: 1.5rem;
-    gap: 1.25rem;
-  }
-  
-  .emergency-hero {
-    min-height: 280px;
-    max-height: 400px;
-    border-radius: 2.5rem;
-    padding: 2.5rem 2rem;
-  }
-  
-  .emergency-hero-icon {
-    width: 7rem;
-    height: 7rem;
-  }
-  
-  .emergency-hero-icon svg {
-    width: 3.5rem;
-    height: 3.5rem;
-  }
-  
   .emergency-hero-label {
-    font-size: 2rem;
+    font-size: 1.375rem;
   }
   
-  .emergency-secondary {
-    min-height: 130px;
-    border-radius: 1.5rem;
-    padding: 1.5rem 1.25rem;
+  .emergency-hero-sublabel {
+    font-size: 0.8125rem;
   }
   
-  .emergency-secondary-icon {
-    width: 3.5rem;
-    height: 3.5rem;
+  .emergency-secondary-grid {
+    gap: 2rem;
+    max-width: 360px;
   }
   
-  .emergency-secondary-icon svg {
-    width: 1.75rem;
-    height: 1.75rem;
+  .emergency-secondary-circle {
+    width: 130px;
+    height: 130px;
+  }
+  
+  .emergency-secondary-icon-wrapper {
+    width: 3rem;
+    height: 3rem;
+  }
+  
+  .emergency-secondary-icon-wrapper svg {
+    width: 1.5rem;
+    height: 1.5rem;
   }
   
   .emergency-secondary-label {
+    font-size: 0.75rem;
+  }
+  
+  .emergency-instruction-text {
+    font-size: 0.75rem;
+  }
+}
+
+/* Landscape mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+  .emergency-container {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    max-width: 100%;
+    padding: 0.5rem 1rem;
+  }
+  
+  .emergency-gps-status {
+    position: absolute;
+    top: 0.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+  }
+  
+  .emergency-hero-circle {
+    width: 140px;
+    height: 140px;
+    order: 1;
+  }
+  
+  .emergency-hero-circle::before {
+    display: none;
+  }
+  
+  .emergency-secondary-grid {
+    order: 2;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .emergency-secondary-circle {
+    width: 90px;
+    height: 90px;
+  }
+  
+  .emergency-hero-label {
+    font-size: 0.875rem;
+  }
+  
+  .emergency-hero-sublabel {
+    display: none;
+  }
+  
+  .emergency-instruction {
+    display: none;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 340px) {
+  .emergency-hero-circle {
+    width: 160px;
+    height: 160px;
+  }
+  
+  .emergency-hero-icon-wrapper {
+    width: 3rem;
+    height: 3rem;
+  }
+  
+  .emergency-hero-icon-wrapper svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+  
+  .emergency-hero-label {
     font-size: 0.9375rem;
+  }
+  
+  .emergency-secondary-circle {
+    width: 85px;
+    height: 85px;
+  }
+  
+  .emergency-secondary-icon-wrapper {
+    width: 2rem;
+    height: 2rem;
+  }
+  
+  .emergency-secondary-icon-wrapper svg {
+    width: 1rem;
+    height: 1rem;
+  }
+  
+  .emergency-secondary-label {
+    font-size: 0.5625rem;
   }
 }
