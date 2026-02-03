@@ -88,6 +88,7 @@ const EMERGENCY_TYPES = {
   emergencia_medica: {
     id: 'emergencia_medica',
     label: 'EMERGENCIA MÉDICA',
+    shortLabel: 'MÉDICA',
     subLabel: 'Necesito ayuda médica',
     icon: Heart,
     colors: {
@@ -104,6 +105,7 @@ const EMERGENCY_TYPES = {
   actividad_sospechosa: {
     id: 'actividad_sospechosa',
     label: 'ACTIVIDAD SOSPECHOSA',
+    shortLabel: 'SEGURIDAD',
     subLabel: 'Veo algo sospechoso',
     icon: Eye,
     colors: {
@@ -120,6 +122,7 @@ const EMERGENCY_TYPES = {
   emergencia_general: {
     id: 'emergencia_general',
     label: 'EMERGENCIA GENERAL',
+    shortLabel: 'EMERGENCIA',
     subLabel: 'Necesito ayuda urgente',
     icon: AlertTriangle,
     colors: {
