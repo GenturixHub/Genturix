@@ -335,16 +335,14 @@ const SuccessScreen = ({ alert, onDismiss }) => {
 };
 
 // ============================================
-// EMERGENCY TAB (Premium Hero Layout)
+// EMERGENCY TAB - Premium Circular Layout
 // ============================================
 const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, sendingType }) => (
-  <div className="emergency-action-layout">
-    {/* GPS Status - Compact */}
-    <div className="flex justify-center">
-      <GPSStatus location={location} isLoading={locationLoading} error={locationError} />
-    </div>
+  <div className="emergency-container">
+    {/* GPS Status - Premium Badge */}
+    <GPSStatus location={location} isLoading={locationLoading} error={locationError} />
     
-    {/* HERO BUTTON - Emergencia General (50-60% of space) */}
+    {/* HERO BUTTON - Emergencia General (Large Circle) */}
     <HeroEmergencyButton
       config={EMERGENCY_TYPES.emergencia_general}
       onPress={onEmergency}
@@ -352,7 +350,7 @@ const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, s
       isLoading={sendingType === 'emergencia_general'}
     />
     
-    {/* SECONDARY BUTTONS - Grid layout */}
+    {/* SECONDARY BUTTONS - Smaller Circles */}
     <div className="emergency-secondary-grid">
       <SecondaryEmergencyButton
         config={EMERGENCY_TYPES.emergencia_medica}
@@ -368,6 +366,14 @@ const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, s
         disabled={!!sendingType}
         isLoading={sendingType === 'actividad_sospechosa'}
       />
+    </div>
+    
+    {/* Instruction text - Hidden on small screens */}
+    <div className="emergency-instruction">
+      <p className="emergency-instruction-text">
+        <strong>Presiona el botón</strong> para alertar a seguridad.<br/>
+        Tu ubicación será enviada automáticamente.
+      </p>
     </div>
   </div>
 );
