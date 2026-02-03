@@ -21,6 +21,13 @@
   - GPS status badge redesigned with pulse animation
   - Files: `/app/frontend/src/styles/emergency-buttons.css` (v3), `ResidentUI.js`
 
+- **P1 Integration:** Stripe TEST/DEMO Mode Integration
+  - Backend: Added STRIPE_API_KEY (sk_test_...) and STRIPE_WEBHOOK_SECRET placeholder
+  - Frontend: Added REACT_APP_STRIPE_PUBLIC_KEY (pk_test_...)
+  - Verified checkout flow opens Stripe in Sandbox mode
+  - No real money processed, keys not exposed in logs
+  - Ready for production (just replace keys)
+
 ### 2025-02-02 (Session 66)
 - **P1 Enhancement:** Improved Reservations Module UX
   - **Admin Area Configuration:**
