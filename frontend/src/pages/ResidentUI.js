@@ -153,7 +153,7 @@ const STATUS_CONFIG = {
 };
 
 // ============================================
-// HERO EMERGENCY BUTTON (Emergencia General)
+// HERO EMERGENCY BUTTON - Circular Premium Design
 // ============================================
 const HeroEmergencyButton = ({ config, onPress, disabled, isLoading }) => {
   const [ripples, setRipples] = useState([]);
@@ -165,7 +165,7 @@ const HeroEmergencyButton = ({ config, onPress, disabled, isLoading }) => {
     // Strong haptic feedback for hero button
     if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
     
-    // Create ripple
+    // Create ripple at center for circular button
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -181,8 +181,11 @@ const HeroEmergencyButton = ({ config, onPress, disabled, isLoading }) => {
       onClick={handlePress}
       disabled={disabled || isLoading}
       data-testid={`panic-btn-${config.id}`}
-      className={`emergency-hero ${isLoading ? 'is-loading' : ''}`}
+      className={`emergency-hero-circle ${isLoading ? 'is-loading' : ''}`}
     >
+      {/* Shimmer effect overlay */}
+      <div className="emergency-hero-shimmer" />
+      
       {/* Ripples */}
       {ripples.map(ripple => (
         <span
@@ -193,10 +196,9 @@ const HeroEmergencyButton = ({ config, onPress, disabled, isLoading }) => {
       ))}
       
       {/* Icon */}
-      <div className="emergency-hero-icon">
-        <div className="emergency-hero-icon-bg" />
+      <div className="emergency-hero-icon-wrapper">
         {isLoading ? (
-          <Loader2 className="animate-spin" />
+          <Loader2 />
         ) : (
           <IconComponent strokeWidth={2.5} />
         )}
@@ -204,7 +206,7 @@ const HeroEmergencyButton = ({ config, onPress, disabled, isLoading }) => {
       
       {/* Text */}
       <div className="emergency-hero-text">
-        <p className="emergency-hero-label">{config.label}</p>
+        <p className="emergency-hero-label">{config.shortLabel || 'EMERGENCIA'}</p>
         <p className="emergency-hero-sublabel">{config.subLabel}</p>
       </div>
     </button>
