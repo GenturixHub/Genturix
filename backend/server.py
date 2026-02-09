@@ -2220,8 +2220,13 @@ async def get_resident_alerts(current_user = Depends(get_current_user)):
     return formatted_events
 
 @api_router.get("/security/panic-events")
-async def get_panic_events(current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
+async def get_panic_events(current_user = Depends(require_module("security"))):
     """Get panic events - scoped by condominium, excludes test/demo data"""
+    # Verify role
+    allowed_roles = ["Administrador", "Supervisor", "Guarda", "SuperAdmin"]
+    if not any(role in current_user.get("roles", []) for role in allowed_roles):
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    
     query = {"is_test": {"$ne": True}}  # Exclude test data
     
     if "SuperAdmin" not in current_user.get("roles", []):
