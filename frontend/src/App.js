@@ -123,6 +123,40 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   return children;
 };
 
+// Module Protected Route - Validates both role AND module availability
+const ModuleProtectedRoute = ({ children, allowedRoles = [], moduleId }) => {
+  const { isAuthenticated, isLoading, user, hasAnyRole } = useAuth();
+  const { isModuleEnabled, isLoading: modulesLoading } = useModules();
+  const location = useLocation();
+
+  if (isLoading || modulesLoading) {
+    return (
+      <div className="min-h-screen bg-[#05050A] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles.length > 0 && !hasAnyRole(...allowedRoles)) {
+    return <Navigate to="/" replace />;
+  }
+
+  // Check if module is enabled
+  if (moduleId && !isModuleEnabled(moduleId)) {
+    // Show toast notification
+    toast.error('Módulo no disponible', {
+      description: 'Este módulo está desactivado para tu condominio.',
+    });
+    return <Navigate to="/admin/dashboard" replace state={{ from: location }} />;
+  }
+
+  return children;
+};
+
 // Public Route Component
 const PublicRoute = ({ children }) => {
   const { isAuthenticated, isLoading, passwordResetRequired } = useAuth();
