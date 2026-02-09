@@ -272,23 +272,6 @@ const LoginPage = () => {
     }
   };
 
-  const handleSeedDemo = async () => {
-    setIsSeeding(true);
-    try {
-      await api.seedDemoData();
-      setError(null);
-      alert('✅ Demo data created!\n\nAdmin: admin@genturix.com / Admin123!\nGuard: guarda1@genturix.com / Guard123!\nResident: residente@genturix.com / Resi123!');
-    } catch (err) {
-      if (err.message.includes('already exists')) {
-        alert('Demo data already exists.\n\nYou can use:\nadmin@genturix.com / Admin123!');
-      } else {
-        setError(err.message);
-      }
-    } finally {
-      setIsSeeding(false);
-    }
-  };
-
   React.useEffect(() => {
     const remembered = localStorage.getItem('rememberedEmail');
     if (remembered) {
