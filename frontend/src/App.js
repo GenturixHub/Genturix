@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { ModulesProvider } from './contexts/ModulesContext';
+import { ModulesProvider, useModules } from './contexts/ModulesContext';
 import { Toaster } from './components/ui/sonner';
+import { toast } from 'sonner';
 import LoginPage from './pages/LoginPage';
 import PanelSelectionPage from './pages/PanelSelectionPage';
 import DashboardPage from './pages/DashboardPage';
