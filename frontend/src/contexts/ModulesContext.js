@@ -91,10 +91,24 @@ export const ModulesProvider = ({ children }) => {
 
   // Check if a specific module is enabled
   const isModuleEnabled = useCallback((moduleId) => {
-    if (!modules) return true; // Default to enabled if no config
+    // SuperAdmin without condominium sees all modules
+    if (user?.roles?.includes('SuperAdmin') && !user?.condominium_id) {
+      return true;
+    }
+    
+    // If no modules loaded yet, return false (safer default during loading)
+    if (!modules) return false;
+    
     const moduleConfig = modules[moduleId];
-    return moduleConfig?.enabled !== false; // Default to true if not explicitly disabled
-  }, [modules]);
+    
+    // Handle both old format (boolean) and new format ({enabled: boolean})
+    if (typeof moduleConfig === 'boolean') {
+      return moduleConfig;
+    }
+    
+    // Check if explicitly disabled
+    return moduleConfig?.enabled !== false;
+  }, [modules, user?.roles, user?.condominium_id]);
 
   // Check if a path should be accessible based on module config
   const isPathEnabled = useCallback((path) => {
