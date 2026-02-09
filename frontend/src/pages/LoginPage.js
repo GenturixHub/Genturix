@@ -189,7 +189,6 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isSeeding, setIsSeeding] = useState(false);
   const [showPasswordChange, setShowPasswordChange] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState(null);
   const [tempPassword, setTempPassword] = useState('');
