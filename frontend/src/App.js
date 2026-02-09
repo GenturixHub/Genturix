@@ -287,16 +287,16 @@ function AppRoutes() {
       } />
 
       <Route path="/security" element={
-        <ProtectedRoute allowedRoles={['Administrador', 'Supervisor', 'Guarda']}>
+        <ModuleProtectedRoute allowedRoles={['Administrador', 'Supervisor', 'Guarda']} moduleId="security">
           <SecurityModule />
-        </ProtectedRoute>
+        </ModuleProtectedRoute>
       } />
 
       {/* RRHH - Módulo Central de Recursos Humanos (incluye Turnos) */}
       <Route path="/rrhh" element={
-        <ProtectedRoute allowedRoles={['Administrador', 'Supervisor', 'Guarda', 'HR']}>
+        <ModuleProtectedRoute allowedRoles={['Administrador', 'Supervisor', 'Guarda', 'HR']} moduleId="hr">
           <RRHHModule />
-        </ProtectedRoute>
+        </ModuleProtectedRoute>
       } />
 
       {/* Redirect legacy /hr and /shifts to /rrhh */}
@@ -304,27 +304,27 @@ function AppRoutes() {
       <Route path="/shifts" element={<Navigate to="/rrhh" replace />} />
 
       <Route path="/school" element={
-        <ProtectedRoute allowedRoles={['Administrador', 'Estudiante', 'Guarda']}>
+        <ModuleProtectedRoute allowedRoles={['Administrador', 'Estudiante', 'Guarda']} moduleId="school">
           <SchoolModule />
-        </ProtectedRoute>
+        </ModuleProtectedRoute>
       } />
 
       <Route path="/payments" element={
-        <ProtectedRoute allowedRoles={['Administrador', 'Residente', 'Estudiante']}>
+        <ModuleProtectedRoute allowedRoles={['Administrador', 'Residente', 'Estudiante']} moduleId="payments">
           <PaymentsModule />
-        </ProtectedRoute>
+        </ModuleProtectedRoute>
       } />
 
       <Route path="/reservations" element={
-        <ProtectedRoute allowedRoles={['Administrador', 'Residente', 'Guarda']}>
+        <ModuleProtectedRoute allowedRoles={['Administrador', 'Residente', 'Guarda']} moduleId="reservations">
           <ReservationsModule />
-        </ProtectedRoute>
+        </ModuleProtectedRoute>
       } />
 
       <Route path="/audit" element={
-        <ProtectedRoute allowedRoles={['Administrador', 'SuperAdmin']}>
+        <ModuleProtectedRoute allowedRoles={['Administrador', 'SuperAdmin']} moduleId="audit">
           <AuditModule />
-        </ProtectedRoute>
+        </ModuleProtectedRoute>
       } />
 
       {/* Super Admin Dashboard */}
