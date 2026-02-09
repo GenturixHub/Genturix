@@ -4296,9 +4296,13 @@ async def create_guard(guard: GuardCreate, request: Request, current_user = Depe
 @api_router.get("/hr/guards")
 async def get_guards(
     include_invalid: bool = False,
-    current_user = Depends(require_role("Administrador", "Supervisor", "HR"))
+    current_user = Depends(require_module("hr"))
 ):
     """Get guards/employees - filtered by condominium, optionally including invalid records"""
+    # Verify role
+    if not any(role in current_user.get("roles", []) for role in ["Administrador", "Supervisor", "HR", "SuperAdmin"]):
+        raise HTTPException(status_code=403, detail="Se requiere rol de Administrador, Supervisor o HR")
+    
     query = {}
     # Filter by condominium for non-super-admins
     if "SuperAdmin" not in current_user.get("roles", []):
