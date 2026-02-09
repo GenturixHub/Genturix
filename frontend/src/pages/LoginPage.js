@@ -281,7 +281,7 @@ const LoginPage = () => {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#05050A] safe-area">
+    <div className="h-screen flex flex-col bg-[#05050A] overflow-hidden">
       {/* Background */}
       <div 
         className="absolute inset-0 opacity-20"
@@ -294,33 +294,33 @@ const LoginPage = () => {
       <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-[#05050A]/90 to-[#05050A]" />
       
       {/* Content */}
-      <div className="relative z-10 flex-1 flex flex-col justify-center p-4 md:p-6">
-        <div className="w-full max-w-md mx-auto space-y-6 md:space-y-8">
+      <div className="relative z-10 flex-1 flex flex-col justify-center items-center p-4">
+        <div className="w-full max-w-md space-y-5">
           {/* Logo */}
           <div className="flex flex-col items-center text-center">
-            <GenturixLogo size={100} className="mb-4" />
-            <h1 className="text-3xl md:text-4xl font-bold font-['Outfit'] text-white">GENTURIX</h1>
-            <p className="text-sm text-muted-foreground mt-1">{t('auth.platformTagline', 'Security & Emergency Platform')}</p>
+            <GenturixLogo size={80} className="mb-3" />
+            <h1 className="text-2xl md:text-3xl font-bold font-['Outfit'] text-white">GENTURIX</h1>
+            <p className="text-xs text-muted-foreground mt-1">{t('auth.platformTagline', 'Security & Emergency Platform')}</p>
           </div>
 
           {/* Login Card */}
           <Card className="bg-[#0F111A]/90 backdrop-blur-xl border-[#1E293B]">
-            <CardHeader className="space-y-1 text-center pb-4">
-              <CardTitle className="text-xl font-['Outfit']">{t('auth.login')}</CardTitle>
-              <CardDescription className="text-sm">
+            <CardHeader className="space-y-1 text-center pb-3 pt-5">
+              <CardTitle className="text-lg font-['Outfit']">{t('auth.login')}</CardTitle>
+              <CardDescription className="text-xs">
                 {t('auth.enterCredentials')}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pb-5">
               {error && (
-                <Alert variant="destructive" className="mb-4 bg-red-500/10 border-red-500/20">
-                  <AlertDescription>{error}</AlertDescription>
+                <Alert variant="destructive" className="mb-3 bg-red-500/10 border-red-500/20">
+                  <AlertDescription className="text-sm">{error}</AlertDescription>
                 </Alert>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">{t('auth.email')}</Label>
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="email" className="text-sm">{t('auth.email')}</Label>
                   <Input
                     id="email"
                     type="email"
@@ -331,12 +331,12 @@ const LoginPage = () => {
                     required
                     autoComplete="email"
                     data-testid="login-email-input"
-                    className="h-12 bg-[#181B25] border-[#1E293B] focus:border-primary"
+                    className="h-11 bg-[#181B25] border-[#1E293B] focus:border-primary"
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="password">{t('auth.password')}</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="password" className="text-sm">{t('auth.password')}</Label>
                   <div className="relative">
                     <Input
                       id="password"
@@ -348,7 +348,7 @@ const LoginPage = () => {
                       required
                       autoComplete="current-password"
                       data-testid="login-password-input"
-                      className="h-12 bg-[#181B25] border-[#1E293B] focus:border-primary pr-12"
+                      className="h-11 bg-[#181B25] border-[#1E293B] focus:border-primary pr-12"
                     />
                     <button
                       type="button"
@@ -356,7 +356,7 @@ const LoginPage = () => {
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground p-1"
                       data-testid="toggle-password-visibility"
                     >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
@@ -368,20 +368,20 @@ const LoginPage = () => {
                     onCheckedChange={setRememberMe}
                     data-testid="remember-me-checkbox"
                   />
-                  <Label htmlFor="remember" className="text-sm text-muted-foreground cursor-pointer">
+                  <Label htmlFor="remember" className="text-xs text-muted-foreground cursor-pointer">
                     {t('auth.rememberMe')}
                   </Label>
                 </div>
 
                 <Button
                   type="submit"
-                  className="w-full h-12 bg-primary hover:bg-primary/90 text-base font-semibold"
+                  className="w-full h-11 bg-primary hover:bg-primary/90 text-sm font-semibold"
                   disabled={isLoading}
                   data-testid="login-submit-btn"
                 >
                   {isLoading ? (
                     <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       {t('auth.loggingIn', 'Logging in...')}
                     </>
                   ) : (
@@ -389,40 +389,13 @@ const LoginPage = () => {
                   )}
                 </Button>
               </form>
-
-              {/* Demo Data Button */}
-              <div className="mt-6 pt-6 border-t border-[#1E293B]">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full h-11 border-[#1E293B] hover:bg-muted text-sm"
-                  onClick={handleSeedDemo}
-                  disabled={isSeeding}
-                  data-testid="seed-demo-btn"
-                >
-                  {isSeeding ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      {t('auth.creatingData', 'Creating data...')}
-                    </>
-                  ) : (
-                    t('auth.createDemoData', 'Create Demo Data')
-                  )}
-                </Button>
-                <p className="text-xs text-center text-muted-foreground mt-2">
-                  {t('auth.demoDescription', 'Create test users to explore')}
-                </p>
-              </div>
             </CardContent>
           </Card>
 
           {/* Footer */}
-          <div className="text-center space-y-2">
-            <p className="text-xs text-muted-foreground">
-              GENTURIX v1.0 • $1/{t('auth.userMonth', 'user/month')}
-            </p>
+          <div className="text-center">
             <p className="text-[10px] text-muted-foreground">
-              {t('auth.enterprisePlatform', 'Enterprise Security Platform')}
+              GENTURIX v1.0 • {t('auth.enterprisePlatform', 'Enterprise Security Platform')}
             </p>
           </div>
         </div>
