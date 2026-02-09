@@ -4258,7 +4258,11 @@ async def get_security_stats(current_user = Depends(require_role("Administrador"
 
 # ==================== HR MODULE ====================
 @api_router.post("/hr/guards")
-async def create_guard(guard: GuardCreate, request: Request, current_user = Depends(require_role("Administrador", "HR"))):
+async def create_guard(guard: GuardCreate, request: Request, current_user = Depends(require_module("hr"))):
+    # Verify admin/HR role
+    if not any(role in current_user.get("roles", []) for role in ["Administrador", "HR", "SuperAdmin"]):
+        raise HTTPException(status_code=403, detail="Se requiere rol de Administrador o HR")
+    
     user = await db.users.find_one({"id": guard.user_id})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
