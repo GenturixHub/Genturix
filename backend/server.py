@@ -4699,9 +4699,14 @@ async def create_shift(shift: ShiftCreate, request: Request, current_user = Depe
 async def get_shifts(
     status: Optional[str] = None,
     guard_id: Optional[str] = None,
-    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda", "HR"))
+    current_user = Depends(require_module("hr"))
 ):
     """Get shifts with optional filters - scoped by condominium"""
+    # Verify role
+    allowed_roles = ["Administrador", "Supervisor", "Guarda", "HR", "SuperAdmin"]
+    if not any(role in current_user.get("roles", []) for role in allowed_roles):
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    
     query = {}
     
     # Multi-tenant filtering - non-SuperAdmin sees only their condo
