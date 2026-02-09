@@ -7916,8 +7916,12 @@ async def get_audit_logs(
     module: Optional[str] = None,
     event_type: Optional[str] = None,
     user_id: Optional[str] = None,
-    current_user = Depends(require_role("Administrador"))
+    current_user = Depends(require_module("audit"))
 ):
+    # Verify role
+    if not any(role in current_user.get("roles", []) for role in ["Administrador", "SuperAdmin"]):
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    
     query = {}
     if module:
         query["module"] = module
@@ -7930,7 +7934,11 @@ async def get_audit_logs(
     return logs
 
 @api_router.get("/audit/stats")
-async def get_audit_stats(current_user = Depends(require_role("Administrador"))):
+async def get_audit_stats(current_user = Depends(require_module("audit"))):
+    # Verify role
+    if not any(role in current_user.get("roles", []) for role in ["Administrador", "SuperAdmin"]):
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
     
     total_events = await db.audit_logs.count_documents({})
