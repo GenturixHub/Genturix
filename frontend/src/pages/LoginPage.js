@@ -18,7 +18,6 @@ import {
 } from '../components/ui/dialog';
 import { Eye, EyeOff, Loader2, AlertTriangle, Shield, CheckCircle } from 'lucide-react';
 import GenturixLogo from '../components/GenturixLogo';
-import api from '../services/api';
 
 // Password Change Dialog Component
 const PasswordChangeDialog = ({ open, onClose, onSuccess, tempPassword }) => {
