@@ -1144,6 +1144,7 @@ def require_module(module_name: str):
     async def check_module(current_user = Depends(get_current_user)):
         # SuperAdmin bypasses module checks
         if "SuperAdmin" in current_user.get("roles", []):
+            logger.info(f"[module-check] SuperAdmin bypasses {module_name} check")
             return current_user
         
         condo_id = current_user.get("condominium_id")
@@ -1161,6 +1162,8 @@ def require_module(module_name: str):
         modules = condo.get("modules", {})
         module_config = modules.get(module_name)
         
+        logger.info(f"[module-check] Module '{module_name}' config: {module_config}")
+        
         # Handle both boolean and dict formats
         is_enabled = False
         if isinstance(module_config, bool):
@@ -1171,7 +1174,10 @@ def require_module(module_name: str):
             # Module not configured - default to enabled for backwards compatibility
             is_enabled = True
         
+        logger.info(f"[module-check] Module '{module_name}' is_enabled: {is_enabled}")
+        
         if not is_enabled:
+            logger.warning(f"[module-check] Access DENIED to module '{module_name}' for user {current_user.get('email')}")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Módulo '{module_name}' no está habilitado para este condominio"
