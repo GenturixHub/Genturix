@@ -3,6 +3,14 @@
 ## Last Updated: February 3, 2026 (Verification: Admin Settings Page)
 
 ## Changelog
+### 2026-02-09 (Session 68)
+- **UI Fix:** Login Page Cleanup
+  - Removed "Create Demo Data" button and related functionality
+  - Layout changed to `h-screen overflow-hidden` for no scroll
+  - Form centered vertically and horizontally
+  - Reduced spacing and sizes to fit 100vh
+  - Verified no scroll on desktop (1920x800) and mobile (390x844)
+
 ### 2026-02-03 (Session 67)
 - **Verification:** Confirmed Admin Settings Page refactor was already completed
   - Mobile-first design with collapsible sections
