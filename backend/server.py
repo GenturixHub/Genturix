@@ -2090,6 +2090,53 @@ async def get_condominium_directory(current_user = Depends(get_current_user)):
 @api_router.post("/security/panic")
 async def trigger_panic(event: PanicEventCreate, request: Request, current_user = Depends(get_current_user)):
     """Trigger panic alert - scoped to user's condominium, only notifies guards in same condo"""
+    
+    # ========== DIAGNÓSTICO P0 ==========
+    user_id = current_user.get("id", "UNKNOWN")
+    user_email = current_user.get("email", "UNKNOWN")
+    user_roles = current_user.get("roles", [])
+    condo_id = current_user.get("condominium_id")
+    
+    logger.info(f"[PANIC-DIAG] ========== PANIC REQUEST RECEIVED ==========")
+    logger.info(f"[PANIC-DIAG] User ID: {user_id}")
+    logger.info(f"[PANIC-DIAG] User Email: {user_email}")
+    logger.info(f"[PANIC-DIAG] User Roles: {user_roles}")
+    logger.info(f"[PANIC-DIAG] Condominium ID: {condo_id}")
+    logger.info(f"[PANIC-DIAG] Panic Type: {event.panic_type.value}")
+    logger.info(f"[PANIC-DIAG] Location: {event.location}")
+    logger.info(f"[PANIC-DIAG] GPS: lat={event.latitude}, lng={event.longitude}")
+    logger.info(f"[PANIC-DIAG] Description: {event.description}")
+    
+    # Validar condominium_id
+    if not condo_id:
+        logger.error(f"[PANIC-DIAG] ERROR: User {user_email} has NO condominium_id")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Usuario no asignado a un condominio. Contacta al administrador."
+        )
+    
+    # Validar que el usuario existe y está activo
+    db_user = await db.users.find_one({"id": user_id}, {"_id": 0, "is_active": 1})
+    if not db_user:
+        logger.error(f"[PANIC-DIAG] ERROR: User {user_id} not found in database")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuario no encontrado. Sesión inválida."
+        )
+    
+    if not db_user.get("is_active", True):
+        logger.error(f"[PANIC-DIAG] ERROR: User {user_id} is inactive")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cuenta desactivada. Contacta al administrador."
+        )
+    
+    # Log GPS status
+    has_gps = event.latitude is not None and event.longitude is not None
+    logger.info(f"[PANIC-DIAG] GPS Available: {has_gps}")
+    
+    # ========== FIN DIAGNÓSTICO ==========
+    
     panic_type_labels = {
         "emergencia_medica": "🚑 Emergencia Médica",
         "actividad_sospechosa": "👁️ Actividad Sospechosa",
