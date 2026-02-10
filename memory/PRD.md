@@ -3,6 +3,14 @@
 ## Last Updated: February 3, 2026 (Verification: Admin Settings Page)
 
 ## Changelog
+### 2026-02-10 (Session 69)
+- **P0 UX Bug Fix:** Admin Mobile Profile/RRHH Separation
+  - Fixed issue where Admin profile was rendering inside RRHH module on mobile
+  - Modified `RRHHModule.js` to hide "Mi Perfil" tab for Admins
+  - Admins now access profile via independent `/profile` route
+  - Guards/HR still have "Mi Perfil" tab inside RRHH (intended behavior)
+  - Verified: Admin mobile RRHH ✅, Admin profile ✅, Guard RRHH ✅, Desktop ✅
+
 ### 2026-02-09 (Session 68)
 - **UI Fix:** Login Page Cleanup
   - Removed "Create Demo Data" button and related functionality
