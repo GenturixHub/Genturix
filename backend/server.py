@@ -1877,6 +1877,16 @@ async def unsubscribe_from_push(
     logger.info(f"Push subscription removed for user {current_user['id']}")
     return {"message": "Suscripción eliminada"}
 
+@api_router.delete("/push/unsubscribe-all")
+async def unsubscribe_all_push(current_user = Depends(get_current_user)):
+    """Unsubscribe ALL push subscriptions for current user (used on logout)"""
+    result = await db.push_subscriptions.delete_many({
+        "user_id": current_user["id"]
+    })
+    
+    logger.info(f"All push subscriptions removed for user {current_user['id']}: {result.deleted_count} deleted")
+    return {"message": f"{result.deleted_count} suscripciones eliminadas", "deleted_count": result.deleted_count}
+
 @api_router.get("/push/status")
 async def get_push_status(current_user = Depends(get_current_user)):
     """Get current user's push notification subscription status"""
