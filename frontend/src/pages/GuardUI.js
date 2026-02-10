@@ -2345,6 +2345,31 @@ const GuardUI = () => {
     return () => clearInterval(interval);
   }, [fetchAlerts, fetchClockStatus]);
 
+  // Try to unlock audio on first user interaction
+  useEffect(() => {
+    const tryUnlockAudio = async () => {
+      if (!audioUnlocked) {
+        const success = await AlertSoundManager.unlock();
+        if (success) {
+          setAudioUnlocked(true);
+          console.log('[GuardUI] Audio unlocked via user interaction');
+        }
+      }
+    };
+
+    // Try on any click/touch/keypress
+    const events = ['click', 'touchstart', 'keydown'];
+    events.forEach(event => {
+      document.addEventListener(event, tryUnlockAudio, { once: true, passive: true });
+    });
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, tryUnlockAudio);
+      });
+    };
+  }, [audioUnlocked]);
+
   // Stop panic sound on component unmount (cleanup)
   useEffect(() => {
     return () => {
