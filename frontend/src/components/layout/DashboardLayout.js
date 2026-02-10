@@ -94,9 +94,9 @@ const AdminMobileNav = ({ activeRoute }) => {
     <>
       {/* More Menu Overlay */}
       {showMoreMenu && (
-        <div className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm" onClick={() => setShowMoreMenu(false)}>
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm" onClick={() => setShowMoreMenu(false)}>
           <div 
-            className="absolute bottom-20 right-4 w-56 bg-[#0F111A] border border-[#1E293B] rounded-xl shadow-2xl overflow-hidden"
+            className="absolute bottom-24 right-4 w-56 bg-[#0F111A] border border-[#1E293B] rounded-xl shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-1">
