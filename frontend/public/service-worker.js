@@ -161,9 +161,15 @@ self.addEventListener('push', (event) => {
                                    clients[0];
                 
                 if (targetClient) {
-                  console.log('[SW] Sending PLAY_PANIC_SOUND to single client');
+                  // Generate unique alert ID from event_id or timestamp
+                  const alertId = notification.data?.event_id || 
+                                  notification.tag || 
+                                  `alert-${Date.now()}`;
+                  
+                  console.log('[SW] Sending PLAY_PANIC_SOUND to client, alertId:', alertId);
                   targetClient.postMessage({
                     type: 'PLAY_PANIC_SOUND',
+                    alertId: alertId,
                     data: notification.data
                   });
                 }
