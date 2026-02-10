@@ -1,50 +1,55 @@
 /**
- * AlertSoundManager - Centralized alert sound control
+ * AlertSoundManager - Centralized alert sound control with User Gesture Unlock
  * 
- * Provides a single point of control for panic alert sounds.
- * Prevents multiple audio instances and ensures sound stops
- * immediately when any interaction occurs.
- * 
- * Uses BroadcastChannel + localStorage to coordinate across tabs.
- * Only ONE tab plays sound at a time.
+ * IMPORTANT: Browsers block audio playback without user interaction.
+ * This manager requires explicit unlock via user gesture before sounds work.
  * 
  * Usage:
- *   import AlertSoundManager from '../utils/AlertSoundManager';
- *   AlertSoundManager.play();   // Start alert sound loop
- *   AlertSoundManager.stop();   // Stop immediately
- *   AlertSoundManager.reset();  // Stop and reset state
+ *   AlertSoundManager.unlock();     // Call on user click/tap (REQUIRED FIRST)
+ *   AlertSoundManager.play();       // Play alert sound (only works if unlocked)
+ *   AlertSoundManager.stop();       // Stop immediately
+ *   AlertSoundManager.isUnlocked(); // Check if audio is available
  */
 
 const SOUND_LOCK_KEY = 'genturix_panic_sound_lock';
-const SOUND_LOCK_TIMEOUT = 5000; // 5 seconds max lock
+const SOUND_LOCK_TIMEOUT = 5000;
 const BROADCAST_CHANNEL_NAME = 'genturix_alert_sound';
+const AUDIO_UNLOCKED_KEY = 'genturix_audio_unlocked';
 
 class AlertSoundManagerClass {
   constructor() {
     this.audioContext = null;
     this.soundInterval = null;
     this.isPlaying = false;
+    this.audioUnlocked = false;
     this.currentOscillator = null;
     this.currentGain = null;
     this.tabId = Math.random().toString(36).substring(7);
     this.broadcastChannel = null;
+    this.onUnlockCallbacks = [];
     
-    // Setup cross-tab communication
+    // Check if previously unlocked in this session
     if (typeof window !== 'undefined') {
-      // BroadcastChannel for instant cross-tab communication
+      const wasUnlocked = sessionStorage.getItem(AUDIO_UNLOCKED_KEY) === 'true';
+      if (wasUnlocked) {
+        // Will verify on first play attempt
+        this.audioUnlocked = true;
+      }
+      
+      // Setup cross-tab communication
       try {
         this.broadcastChannel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
         this.broadcastChannel.onmessage = (event) => {
           if (event.data.type === 'STOP_ALL_SOUNDS') {
-            console.log('[AlertSoundManager] Received stop broadcast from another tab');
+            console.log('[AlertSound] Received stop broadcast from another tab');
             this._stopInternal();
           }
         };
       } catch (e) {
-        console.warn('[AlertSoundManager] BroadcastChannel not supported');
+        console.warn('[AlertSound] BroadcastChannel not supported');
       }
       
-      // Fallback: Listen for storage events
+      // Listen for storage events (cross-tab)
       window.addEventListener('storage', (e) => {
         if (e.key === SOUND_LOCK_KEY) {
           const lockData = e.newValue ? JSON.parse(e.newValue) : null;
@@ -57,6 +62,69 @@ class AlertSoundManagerClass {
   }
 
   /**
+   * Check if audio is unlocked and ready
+   */
+  isUnlocked() {
+    return this.audioUnlocked && this.audioContext !== null;
+  }
+
+  /**
+   * Register callback for when audio gets unlocked
+   */
+  onUnlock(callback) {
+    if (this.isUnlocked()) {
+      callback();
+    } else {
+      this.onUnlockCallbacks.push(callback);
+    }
+  }
+
+  /**
+   * MUST be called from a user gesture (click/tap) to enable audio
+   * Returns true if successfully unlocked
+   */
+  async unlock() {
+    console.log('[AlertSound] unlock() called');
+    
+    try {
+      // Create AudioContext if needed
+      if (!this.audioContext) {
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        console.log('[AlertSound] AudioContext created, state:', this.audioContext.state);
+      }
+      
+      // Resume if suspended (this MUST happen during user gesture)
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+        console.log('[AlertSound] AudioContext resumed, state:', this.audioContext.state);
+      }
+      
+      // Play a silent sound to fully unlock
+      const oscillator = this.audioContext.createOscillator();
+      const gainNode = this.audioContext.createGain();
+      gainNode.gain.setValueAtTime(0, this.audioContext.currentTime); // Silent
+      oscillator.connect(gainNode);
+      gainNode.connect(this.audioContext.destination);
+      oscillator.start();
+      oscillator.stop(this.audioContext.currentTime + 0.001);
+      
+      this.audioUnlocked = true;
+      sessionStorage.setItem(AUDIO_UNLOCKED_KEY, 'true');
+      console.log('[AlertSound] audioUnlocked = true');
+      
+      // Notify callbacks
+      this.onUnlockCallbacks.forEach(cb => cb());
+      this.onUnlockCallbacks = [];
+      
+      return true;
+    } catch (e) {
+      console.error('[AlertSound] Failed to unlock audio:', e);
+      this.audioUnlocked = false;
+      return false;
+    }
+  }
+
+  /**
    * Try to acquire the sound lock (only one tab can play)
    */
   _acquireLock() {
@@ -64,21 +132,17 @@ class AlertSoundManagerClass {
       const existingLock = localStorage.getItem(SOUND_LOCK_KEY);
       if (existingLock) {
         const lockData = JSON.parse(existingLock);
-        // Check if lock is stale (older than timeout)
         if (Date.now() - lockData.timestamp < SOUND_LOCK_TIMEOUT) {
-          // Another tab has the lock and it's not stale
-          console.log('[AlertSoundManager] Another tab is already playing sound');
+          console.log('[AlertSound] Another tab is already playing');
           return false;
         }
       }
-      // Acquire the lock
       localStorage.setItem(SOUND_LOCK_KEY, JSON.stringify({
         tabId: this.tabId,
         timestamp: Date.now()
       }));
       return true;
     } catch (e) {
-      // localStorage might be unavailable
       return true;
     }
   }
@@ -91,18 +155,15 @@ class AlertSoundManagerClass {
       const existingLock = localStorage.getItem(SOUND_LOCK_KEY);
       if (existingLock) {
         const lockData = JSON.parse(existingLock);
-        // Only release if we own the lock
         if (lockData.tabId === this.tabId) {
           localStorage.removeItem(SOUND_LOCK_KEY);
         }
       }
-    } catch (e) {
-      // Ignore errors
-    }
+    } catch (e) {}
   }
 
   /**
-   * Refresh lock timestamp to keep it alive
+   * Refresh lock timestamp
    */
   _refreshLock() {
     try {
@@ -110,126 +171,120 @@ class AlertSoundManagerClass {
         tabId: this.tabId,
         timestamp: Date.now()
       }));
-    } catch (e) {
-      // Ignore errors
-    }
-  }
-
-  /**
-   * Initialize audio context (must be called after user interaction)
-   */
-  initContext() {
-    if (!this.audioContext) {
-      try {
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      } catch (e) {
-        console.warn('[AlertSoundManager] Could not create AudioContext:', e);
-      }
-    }
-    return this.audioContext;
+    } catch (e) {}
   }
 
   /**
    * Play a single alert sound burst
    */
-  playSingleBurst() {
-    try {
-      const ctx = this.initContext();
-      if (!ctx) return;
+  _playSingleBurst() {
+    if (!this.audioContext || !this.audioUnlocked) {
+      console.log('[AlertSound] Cannot play burst - audio not unlocked');
+      return false;
+    }
 
-      // Resume if suspended (browser autoplay policy)
-      if (ctx.state === 'suspended') {
-        ctx.resume();
+    try {
+      // Resume if suspended
+      if (this.audioContext.state === 'suspended') {
+        this.audioContext.resume();
       }
 
-      // Create oscillator for alert sound
-      const oscillator = ctx.createOscillator();
-      const gainNode = ctx.createGain();
+      const oscillator = this.audioContext.createOscillator();
+      const gainNode = this.audioContext.createGain();
 
       oscillator.connect(gainNode);
-      gainNode.connect(ctx.destination);
+      gainNode.connect(this.audioContext.destination);
 
-      // Alert-like sound pattern (high-low-high-low)
-      oscillator.frequency.setValueAtTime(880, ctx.currentTime);      // A5
-      oscillator.frequency.setValueAtTime(660, ctx.currentTime + 0.15); // E5
-      oscillator.frequency.setValueAtTime(880, ctx.currentTime + 0.3);  // A5
-      oscillator.frequency.setValueAtTime(660, ctx.currentTime + 0.45); // E5
+      // Alert sound pattern (high-low-high-low)
+      const now = this.audioContext.currentTime;
+      oscillator.frequency.setValueAtTime(880, now);       // A5
+      oscillator.frequency.setValueAtTime(660, now + 0.15); // E5
+      oscillator.frequency.setValueAtTime(880, now + 0.3);  // A5
+      oscillator.frequency.setValueAtTime(660, now + 0.45); // E5
 
       // Volume envelope
-      gainNode.gain.setValueAtTime(0.5, ctx.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+      gainNode.gain.setValueAtTime(0.5, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
 
       oscillator.type = 'square';
-      oscillator.start(ctx.currentTime);
-      oscillator.stop(ctx.currentTime + 0.6);
+      oscillator.start(now);
+      oscillator.stop(now + 0.6);
 
-      // Store references for potential immediate stop
       this.currentOscillator = oscillator;
       this.currentGain = gainNode;
-      
-      // Refresh lock to show we're still active
       this._refreshLock();
+      
+      return true;
     } catch (e) {
-      console.warn('[AlertSoundManager] Could not play sound:', e);
+      console.error('[AlertSound] Error playing burst:', e);
+      return false;
     }
   }
 
   /**
    * Start the repeating alert sound loop
+   * Returns: { success: boolean, blocked: boolean }
    */
   play() {
-    // Try to acquire lock - only one tab should play
+    console.log('[AlertSound] play() called, unlocked:', this.audioUnlocked, 'isPlaying:', this.isPlaying);
+    
+    // Check if audio is unlocked
+    if (!this.audioUnlocked || !this.audioContext) {
+      console.log('[AlertSound] audio blocked by browser - needs unlock');
+      return { success: false, blocked: true };
+    }
+
+    // Check tab lock
     if (!this._acquireLock()) {
-      console.log('[AlertSoundManager] Skipping play - another tab has the lock');
-      return;
+      return { success: false, blocked: false };
     }
     
     if (this.isPlaying) {
-      console.log('[AlertSoundManager] Already playing, ignoring play request');
-      return;
+      console.log('[AlertSound] Already playing');
+      return { success: true, blocked: false };
     }
 
-    console.log('[AlertSoundManager] Starting panic sound loop');
+    console.log('[AlertSound] Starting panic sound loop');
     this.isPlaying = true;
 
     // Play immediately
-    this.playSingleBurst();
+    const firstBurst = this._playSingleBurst();
+    if (!firstBurst) {
+      this.isPlaying = false;
+      this._releaseLock();
+      return { success: false, blocked: true };
+    }
 
     // Repeat every 2 seconds
     this.soundInterval = setInterval(() => {
       if (this.isPlaying) {
-        this.playSingleBurst();
+        this._playSingleBurst();
       }
     }, 2000);
+
+    return { success: true, blocked: false };
   }
 
   /**
-   * Internal stop without releasing lock (for cross-tab coordination)
+   * Internal stop without releasing lock
    */
   _stopInternal() {
-    // Clear the interval
     if (this.soundInterval) {
       clearInterval(this.soundInterval);
       this.soundInterval = null;
     }
 
-    // Stop current oscillator if playing
     if (this.currentOscillator) {
       try {
         this.currentOscillator.stop();
-      } catch (e) {
-        // Oscillator may have already stopped
-      }
+      } catch (e) {}
       this.currentOscillator = null;
     }
 
-    // Mute gain immediately
     if (this.currentGain && this.audioContext) {
       try {
         this.currentGain.gain.setValueAtTime(0, this.audioContext.currentTime);
-      } catch (e) {
-        // Ignore errors
-      }
+      } catch (e) {}
       this.currentGain = null;
     }
 
@@ -237,33 +292,28 @@ class AlertSoundManagerClass {
   }
 
   /**
-   * Stop all alert sounds immediately (across all tabs)
+   * Stop all alert sounds immediately
    */
   stop() {
-    console.log('[AlertSoundManager] Stopping panic sound');
+    console.log('[AlertSound] stop() called');
     
     this._stopInternal();
     this._releaseLock();
     
-    // Broadcast stop to all other tabs via BroadcastChannel
+    // Broadcast stop to other tabs
     if (this.broadcastChannel) {
       try {
         this.broadcastChannel.postMessage({ type: 'STOP_ALL_SOUNDS' });
-      } catch (e) {
-        // Ignore
-      }
+      } catch (e) {}
     }
     
-    // Also clear lock from localStorage to signal other tabs (fallback)
     try {
       localStorage.removeItem(SOUND_LOCK_KEY);
-    } catch (e) {
-      // Ignore
-    }
+    } catch (e) {}
   }
 
   /**
-   * Reset the manager to initial state
+   * Reset the manager
    */
   reset() {
     this.stop();
@@ -277,13 +327,12 @@ class AlertSoundManagerClass {
   }
 }
 
-// Create singleton instance
+// Create singleton
 const AlertSoundManager = new AlertSoundManagerClass();
 
-// Expose to window for global access (backward compatibility)
+// Expose globally
 if (typeof window !== 'undefined') {
   window.AlertSoundManager = AlertSoundManager;
-  // Legacy support
   window.stopPanicSound = () => AlertSoundManager.stop();
 }
 
