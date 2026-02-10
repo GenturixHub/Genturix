@@ -2165,7 +2165,7 @@ const GuardUI = () => {
     const handleServiceWorkerMessage = (event) => {
       const messageType = event.data?.type;
       
-      // Handle sound play request - ALWAYS play for new alerts
+      // Handle sound play request
       if (messageType === 'PLAY_PANIC_SOUND') {
         const alertId = event.data?.alertId || event.data?.data?.event_id || Date.now().toString();
         console.log('[GuardUI] Received PLAY_PANIC_SOUND from SW, alertId:', alertId);
@@ -2174,37 +2174,38 @@ const GuardUI = () => {
         const isNewAlert = alertId !== lastAlertIdRef.current;
         
         if (isNewAlert) {
-          console.log('[GuardUI] New alert detected, resetting sound state');
-          // Reset acknowledged state for new alert
+          console.log('[GuardUI] NEW alert detected:', alertId);
+          // Reset state for new alert
           soundAcknowledgedRef.current = false;
           lastAlertIdRef.current = alertId;
+        }
+        
+        // Don't play if user has already acknowledged THIS alert
+        if (soundAcknowledgedRef.current) {
+          console.log('[GuardUI] Alert already acknowledged, ignoring');
+          return;
+        }
+        
+        // For new alerts OR if not already playing, start/restart sound
+        if (isNewAlert || !AlertSoundManager.getIsPlaying()) {
+          console.log('[GuardUI] Playing alert sound for:', alertId);
           
-          // Stop current sound to restart fresh
-          if (AlertSoundManager.getIsPlaying()) {
-            AlertSoundManager.stop();
+          // Clear any existing timeout
+          if (soundTimeoutRef.current) {
+            clearTimeout(soundTimeoutRef.current);
           }
-        } else if (soundAcknowledgedRef.current) {
-          // Same alert, already acknowledged - don't replay
-          console.log('[GuardUI] Same alert already acknowledged, ignoring');
-          return;
-        } else if (AlertSoundManager.getIsPlaying()) {
-          // Same alert, already playing - don't restart
-          console.log('[GuardUI] Same alert already playing, ignoring');
-          return;
+          
+          // Play sound (force restart if new alert)
+          AlertSoundManager.play(isNewAlert);
+          
+          // Auto-stop after 30 seconds as safety net
+          soundTimeoutRef.current = setTimeout(() => {
+            AlertSoundManager.stop();
+            soundTimeoutRef.current = null;
+          }, 30000);
+        } else {
+          console.log('[GuardUI] Same alert already playing');
         }
-        
-        // Play sound for this alert
-        console.log('[GuardUI] Playing alert sound');
-        AlertSoundManager.play();
-        
-        // Auto-stop after 30 seconds as safety net
-        if (soundTimeoutRef.current) {
-          clearTimeout(soundTimeoutRef.current);
-        }
-        soundTimeoutRef.current = setTimeout(() => {
-          AlertSoundManager.stop();
-          soundTimeoutRef.current = null;
-        }, 30000);
       }
       
       // Handle all stop requests
@@ -2238,7 +2239,7 @@ const GuardUI = () => {
     
     return () => {
       navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
-      window.removeEventListener('panicAlertAcknowledge', handleGlobalAcknowledge);
+      window.removeEventListener('panicAlertAcknowledged', handleGlobalAcknowledge);
       // Cleanup timeout on unmount
       if (soundTimeoutRef.current) {
         clearTimeout(soundTimeoutRef.current);
