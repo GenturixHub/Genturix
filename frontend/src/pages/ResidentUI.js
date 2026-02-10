@@ -1013,6 +1013,8 @@ const ResidentUI = () => {
     setSendingType(emergencyType);
 
     try {
+      console.log('[Panic] Sending alert:', emergencyType, 'GPS:', location);
+      
       const result = await api.triggerPanic({
         panic_type: emergencyType,
         location: `Residencia de ${user.full_name}`,
@@ -1021,6 +1023,7 @@ const ResidentUI = () => {
         description: `Alerta ${EMERGENCY_TYPES[emergencyType].label} activada por ${user.full_name}`,
       });
 
+      console.log('[Panic] Alert sent successfully:', result);
       if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 300]);
 
       setSentAlert({
@@ -1032,9 +1035,30 @@ const ResidentUI = () => {
 
       setTimeout(() => setSentAlert(null), 20000);
     } catch (error) {
-      console.error('Emergency send error:', error);
+      console.error('[Panic] Error details:', error);
       if (navigator.vibrate) navigator.vibrate(500);
-      alert('Error al enviar alerta. Intenta de nuevo o llama al 911.');
+      
+      // Mensaje específico según el error
+      let errorMessage = 'Error al enviar alerta. Intenta de nuevo o llama al 911.';
+      const status = error.status || error.response?.status;
+      const detail = error.data?.detail || error.message;
+      
+      console.log('[Panic] Error status:', status, 'detail:', detail);
+      
+      if (status === 401) {
+        errorMessage = 'Sesión expirada. Por favor, inicia sesión nuevamente.';
+      } else if (status === 403) {
+        errorMessage = detail || 'No tienes permisos para enviar alertas. Contacta al administrador.';
+      } else if (status === 422) {
+        errorMessage = 'Datos incompletos. Verifica tu ubicación GPS.';
+      } else if (detail) {
+        errorMessage = detail;
+      }
+      
+      toast.error('Error de Emergencia', {
+        description: errorMessage,
+        duration: 10000,
+      });
     } finally {
       setSendingType(null);
     }
