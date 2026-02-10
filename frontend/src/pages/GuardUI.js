@@ -2188,28 +2188,23 @@ const GuardUI = () => {
       
       // Handle sound play request
       if (messageType === 'PLAY_PANIC_SOUND') {
-        console.log('[GuardUI] Received PLAY_PANIC_SOUND from SW');
+        console.log('[GuardUI] New alert received - PLAY_PANIC_SOUND');
         
-        // Reset acknowledged state for new alert
+        // Reset acknowledged state
         soundAcknowledgedRef.current = false;
         
-        // Don't play if already playing
-        if (AlertSoundManager.getIsPlaying()) {
-          console.log('[GuardUI] Sound already playing');
-          return;
-        }
-        
-        // Try to play
+        // ALWAYS try to play - AlertSoundManager will restart if already playing
+        // This ensures every alert produces sound
         const result = AlertSoundManager.play();
-        console.log('[GuardUI] AlertSoundManager.play() result:', result);
+        console.log('[GuardUI] play() result:', result);
         
         if (result.blocked) {
-          // Audio is blocked - show banner and save pending state
+          // Audio blocked by browser - show banner
           console.log('[GuardUI] Audio blocked - showing unlock banner');
           setShowAudioBanner(true);
           setPendingAlertSound(true);
         } else if (result.success) {
-          // Auto-stop after 30 seconds as safety net
+          // Clear any existing timeout and set new one
           if (soundTimeoutRef.current) {
             clearTimeout(soundTimeoutRef.current);
           }
