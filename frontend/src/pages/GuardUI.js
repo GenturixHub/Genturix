@@ -91,7 +91,8 @@ import {
   PlayCircle,
   StopCircle,
   Users as UsersIcon,
-  ScanLine
+  ScanLine,
+  Volume2
 } from 'lucide-react';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
