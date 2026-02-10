@@ -25,9 +25,13 @@
   - Token persists across browser close/refresh
   - Auto-validates token on app load
   - Auto-refreshes if expired but refresh_token valid
-  - Does NOT clear on network errors (only on explicit 401)
-  - Manual logout required to end session
   - File: AuthContext.js
+
+- **P0 Fix:** Push Notifications Stop on Logout
+  - New endpoint: DELETE /api/push/unsubscribe-all
+  - Logout now: 1) Removes DB subscriptions, 2) Unsubscribes locally, 3) Clears auth
+  - Users don't receive push after logout
+  - Re-subscribes automatically on next login
 
 ### 2026-02-09 (Session 68)
 - **UI Fix:** Login Page Cleanup
