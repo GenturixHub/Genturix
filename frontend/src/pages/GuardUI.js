@@ -2189,27 +2189,34 @@ const GuardUI = () => {
       if (messageType === 'PLAY_PANIC_SOUND') {
         console.log('[GuardUI] Received PLAY_PANIC_SOUND from SW');
         
-        // IMPORTANT: Reset acknowledged state for EACH new push notification
-        // This fixes the bug where sound only played once
+        // Reset acknowledged state for new alert
         soundAcknowledgedRef.current = false;
         
-        // Don't play if already playing (same alert batch)
+        // Don't play if already playing
         if (AlertSoundManager.getIsPlaying()) {
-          console.log('[GuardUI] Sound already playing, ignoring duplicate');
+          console.log('[GuardUI] Sound already playing');
           return;
         }
         
-        console.log('[GuardUI] Starting alert sound');
-        AlertSoundManager.play();
+        // Try to play
+        const result = AlertSoundManager.play();
+        console.log('[GuardUI] AlertSoundManager.play() result:', result);
         
-        // Auto-stop after 30 seconds as safety net
-        if (soundTimeoutRef.current) {
-          clearTimeout(soundTimeoutRef.current);
+        if (result.blocked) {
+          // Audio is blocked - show banner and save pending state
+          console.log('[GuardUI] Audio blocked - showing unlock banner');
+          setShowAudioBanner(true);
+          setPendingAlertSound(true);
+        } else if (result.success) {
+          // Auto-stop after 30 seconds as safety net
+          if (soundTimeoutRef.current) {
+            clearTimeout(soundTimeoutRef.current);
+          }
+          soundTimeoutRef.current = setTimeout(() => {
+            AlertSoundManager.stop();
+            soundTimeoutRef.current = null;
+          }, 30000);
         }
-        soundTimeoutRef.current = setTimeout(() => {
-          AlertSoundManager.stop();
-          soundTimeoutRef.current = null;
-        }, 30000);
       }
       
       // Handle all stop requests
