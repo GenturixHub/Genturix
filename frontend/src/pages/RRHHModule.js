@@ -2072,9 +2072,21 @@ const RRHHModule = () => {
   };
 
   // Filter available submodules based on role
-  const availableSubmodules = Object.values(RRHH_SUBMODULES).filter(
-    submodule => submodule.roles.some(role => hasRole(role))
-  );
+  // For Admins: Don't show "Mi Perfil" tab in RRHH - they have access via main navigation /profile
+  // For Guards/HR/Supervisors: Show "Mi Perfil" since they might not have direct sidebar access
+  const availableSubmodules = Object.values(RRHH_SUBMODULES).filter(submodule => {
+    // First check role permission
+    const hasRolePermission = submodule.roles.some(role => hasRole(role));
+    if (!hasRolePermission) return false;
+    
+    // Hide "Mi Perfil" tab for Admins - they should use the main /profile route
+    // This prevents confusion in mobile where profile would appear inside RRHH module
+    if (submodule.id === 'mi_perfil' && hasRole('Administrador')) {
+      return false;
+    }
+    
+    return true;
+  });
 
   if (isLoading) {
     return (
