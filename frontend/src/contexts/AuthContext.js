@@ -260,6 +260,35 @@ export const AuthProvider = ({ children }) => {
     
     try {
       if (accessToken) {
+        // Step 1: Unsubscribe from push notifications (backend)
+        try {
+          console.log('[Auth] Unsubscribing from push notifications...');
+          await fetch(`${API_URL}/api/push/unsubscribe-all`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+            },
+          });
+          console.log('[Auth] Push subscriptions removed from backend');
+        } catch (pushError) {
+          console.warn('[Auth] Failed to unsubscribe push from backend:', pushError);
+        }
+
+        // Step 2: Unsubscribe locally via Service Worker
+        try {
+          if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+            if (subscription) {
+              await subscription.unsubscribe();
+              console.log('[Auth] Local push subscription unsubscribed');
+            }
+          }
+        } catch (swError) {
+          console.warn('[Auth] Failed to unsubscribe local push:', swError);
+        }
+
+        // Step 3: Call logout endpoint
         await fetch(`${API_URL}/api/auth/logout`, {
           method: 'POST',
           headers: {
@@ -280,6 +309,8 @@ export const AuthProvider = ({ children }) => {
       setAccessToken(null);
       setRefreshToken(null);
       setPasswordResetRequired(false);
+      
+      console.log('[Auth] Logout complete');
     }
   }, [accessToken]);
 
