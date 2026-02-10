@@ -2237,6 +2237,8 @@ async def trigger_panic(event: PanicEventCreate, request: Request, current_user 
         request.headers.get("user-agent", "unknown")
     )
     
+    logger.info(f"[PANIC-DIAG] SUCCESS: Alert {panic_event['id']} created, {len(active_guards)} guards notified")
+    
     return {
         "message": "Alerta enviada exitosamente",
         "event_id": panic_event["id"],
