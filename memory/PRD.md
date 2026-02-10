@@ -8,22 +8,26 @@
   - Fixed issue where Admin profile was rendering inside RRHH module on mobile
   - Modified `RRHHModule.js` to hide "Mi Perfil" tab for Admins
   - Admins now access profile via independent `/profile` route
-  - Guards/HR still have "Mi Perfil" tab inside RRHH (intended behavior)
-  - Verified: Admin mobile RRHH ✅, Admin profile ✅, Guard RRHH ✅, Desktop ✅
 
 - **UX Enhancement:** Admin Mobile Navigation "Más" Menu
-  - Replaced "Settings" button with "Más" (More) popup menu
+  - Replaced "Settings" button with "Más" popup menu
   - Menu contains: Mi Perfil, Configuración, Cerrar Sesión
-  - z-index 100 to display over other elements
-  - Added translations for nav.more and nav.logout
 
-- **P0 Bug Fix:** Guard Alert Sound Consistency
-  - Fixed issue where only 1 of ~4-5 alerts played sound
-  - Added `lastAlertIdRef` to track and distinguish new alerts
-  - Each new alert resets `soundAcknowledgedRef` automatically
-  - New alerts restart sound even if another is playing
-  - Service Worker now sends unique `alertId` with PLAY_PANIC_SOUND
-  - Files: GuardUI.js, AlertSoundManager.js, service-worker.js
+- **P0 Bug Fix:** Guard Alert Sound Reliability (Multiple Alerts)
+  - Rewrote AlertSoundManager.js v3 with proper Web Audio API usage
+  - Each alert creates NEW oscillator (never reuses)
+  - Restart sound on new alert instead of blocking
+  - User gesture unlock required (banner shown if blocked)
+  - Files: AlertSoundManager.js, GuardUI.js, service-worker.js
+
+- **P0 Feature:** Session Persistence
+  - Changed from sessionStorage to localStorage
+  - Token persists across browser close/refresh
+  - Auto-validates token on app load
+  - Auto-refreshes if expired but refresh_token valid
+  - Does NOT clear on network errors (only on explicit 401)
+  - Manual logout required to end session
+  - File: AuthContext.js
 
 ### 2026-02-09 (Session 68)
 - **UI Fix:** Login Page Cleanup
