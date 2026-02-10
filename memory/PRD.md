@@ -11,6 +11,20 @@
   - Guards/HR still have "Mi Perfil" tab inside RRHH (intended behavior)
   - Verified: Admin mobile RRHH ✅, Admin profile ✅, Guard RRHH ✅, Desktop ✅
 
+- **UX Enhancement:** Admin Mobile Navigation "Más" Menu
+  - Replaced "Settings" button with "Más" (More) popup menu
+  - Menu contains: Mi Perfil, Configuración, Cerrar Sesión
+  - z-index 100 to display over other elements
+  - Added translations for nav.more and nav.logout
+
+- **P0 Bug Fix:** Guard Alert Sound Consistency
+  - Fixed issue where only 1 of ~4-5 alerts played sound
+  - Added `lastAlertIdRef` to track and distinguish new alerts
+  - Each new alert resets `soundAcknowledgedRef` automatically
+  - New alerts restart sound even if another is playing
+  - Service Worker now sends unique `alertId` with PLAY_PANIC_SOUND
+  - Files: GuardUI.js, AlertSoundManager.js, service-worker.js
+
 ### 2026-02-09 (Session 68)
 - **UI Fix:** Login Page Cleanup
   - Removed "Create Demo Data" button and related functionality
