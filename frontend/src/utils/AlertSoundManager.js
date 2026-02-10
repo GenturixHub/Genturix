@@ -176,25 +176,15 @@ class AlertSoundManagerClass {
 
   /**
    * Start the repeating alert sound loop
-   * @param {boolean} forceRestart - If true, stop and restart even if already playing
    */
-  play(forceRestart = false) {
-    console.log('[AlertSoundManager] play() called, forceRestart:', forceRestart, 'isPlaying:', this.isPlaying);
-    
-    // If force restart, stop first then continue
-    if (forceRestart && this.isPlaying) {
-      console.log('[AlertSoundManager] Force restart - stopping current sound');
-      this._stopInternal();
-      this._releaseLock();
-    }
-    
+  play() {
     // Try to acquire lock - only one tab should play
     if (!this._acquireLock()) {
       console.log('[AlertSoundManager] Skipping play - another tab has the lock');
       return;
     }
     
-    if (this.isPlaying && !forceRestart) {
+    if (this.isPlaying) {
       console.log('[AlertSoundManager] Already playing, ignoring play request');
       return;
     }
