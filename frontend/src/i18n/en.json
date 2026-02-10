@@ -95,7 +95,7 @@
     "reservations": "Reservations",
     "security": "Security",
     "settings": "Settings",
-    "profile": "Profile",
+    "profile": "My Profile",
     "audit": "Audit",
     "payments": "Payments",
     "usersDescription": "Create and manage users",
@@ -107,7 +107,9 @@
     "switchPanel": "Switch Panel",
     "rrhhShort": "HR",
     "reservationsShort": "Bookings",
-    "settingsShort": "Settings"
+    "settingsShort": "Settings",
+    "more": "More",
+    "logout": "Logout"
   },
   "profile": {
     "title": "My Profile",
