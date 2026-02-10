@@ -5,6 +5,14 @@ const AuthContext = createContext(undefined);
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
+// Storage keys
+const STORAGE_KEYS = {
+  ACCESS_TOKEN: 'genturix_access_token',
+  REFRESH_TOKEN: 'genturix_refresh_token',
+  USER: 'genturix_user',
+  PASSWORD_RESET: 'genturix_password_reset',
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [accessToken, setAccessToken] = useState(null);
@@ -12,54 +20,129 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [passwordResetRequired, setPasswordResetRequired] = useState(false);
 
-  // Initialize from session storage and sync language
+  // Initialize from localStorage and validate token
   useEffect(() => {
     const initializeAuth = async () => {
-      const storedAccessToken = sessionStorage.getItem('accessToken');
-      const storedRefreshToken = sessionStorage.getItem('refreshToken');
-      const storedUser = sessionStorage.getItem('user');
-      const storedPasswordReset = sessionStorage.getItem('passwordResetRequired');
+      console.log('[Auth] Initializing auth from storage...');
+      
+      const storedAccessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+      const storedRefreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
+      const storedUser = localStorage.getItem(STORAGE_KEYS.USER);
+      const storedPasswordReset = localStorage.getItem(STORAGE_KEYS.PASSWORD_RESET);
 
       if (storedAccessToken && storedUser) {
-        setAccessToken(storedAccessToken);
-        setRefreshToken(storedRefreshToken);
+        console.log('[Auth] Token found in storage, validating...');
+        
         try {
           const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
-          setPasswordResetRequired(storedPasswordReset === 'true');
           
-          // Sync language from user profile on app load
-          if (parsedUser.language && ['es', 'en'].includes(parsedUser.language)) {
-            await changeLanguage(parsedUser.language);
-          } else {
-            // Fetch fresh profile to get language if not in stored user
-            try {
-              const profileResponse = await fetch(`${API_URL}/api/profile`, {
-                headers: {
-                  'Authorization': `Bearer ${storedAccessToken}`,
-                  'Content-Type': 'application/json',
-                },
-              });
-              if (profileResponse.ok) {
-                const profileData = await profileResponse.json();
-                if (profileData.language && ['es', 'en'].includes(profileData.language)) {
-                  await changeLanguage(profileData.language);
-                  // Update stored user with language
-                  const updatedUser = { ...parsedUser, language: profileData.language };
-                  sessionStorage.setItem('user', JSON.stringify(updatedUser));
-                  setUser(updatedUser);
-                }
-              }
-            } catch (e) {
-              console.warn('Could not fetch profile for language sync:', e);
+          // Validate token with backend
+          const validationResponse = await fetch(`${API_URL}/api/profile`, {
+            headers: {
+              'Authorization': `Bearer ${storedAccessToken}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (validationResponse.ok) {
+            console.log('[Auth] Token valid, session restored');
+            const profileData = await validationResponse.json();
+            
+            // Update user with fresh profile data
+            const updatedUser = {
+              ...parsedUser,
+              full_name: profileData.full_name,
+              phone: profileData.phone,
+              profile_photo: profileData.profile_photo,
+              language: profileData.language,
+            };
+            
+            setAccessToken(storedAccessToken);
+            setRefreshToken(storedRefreshToken);
+            setUser(updatedUser);
+            setPasswordResetRequired(storedPasswordReset === 'true');
+            
+            // Update storage with fresh data
+            localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+            
+            // Sync language
+            if (profileData.language && ['es', 'en'].includes(profileData.language)) {
+              await changeLanguage(profileData.language);
             }
+          } else if (validationResponse.status === 401) {
+            console.log('[Auth] Token expired, trying refresh...');
+            
+            // Try to refresh token
+            if (storedRefreshToken) {
+              try {
+                const refreshResponse = await fetch(`${API_URL}/api/auth/refresh`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ refresh_token: storedRefreshToken }),
+                });
+
+                if (refreshResponse.ok) {
+                  const refreshData = await refreshResponse.json();
+                  console.log('[Auth] Token refreshed successfully');
+                  
+                  localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, refreshData.access_token);
+                  localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshData.refresh_token);
+                  
+                  setAccessToken(refreshData.access_token);
+                  setRefreshToken(refreshData.refresh_token);
+                  setUser(parsedUser);
+                  setPasswordResetRequired(storedPasswordReset === 'true');
+                  
+                  // Sync language
+                  if (parsedUser.language && ['es', 'en'].includes(parsedUser.language)) {
+                    await changeLanguage(parsedUser.language);
+                  }
+                } else {
+                  console.log('[Auth] Refresh failed, clearing session');
+                  clearStorage();
+                }
+              } catch (refreshError) {
+                console.error('[Auth] Refresh error:', refreshError);
+                // Don't clear on network error - might be temporary
+              }
+            } else {
+              console.log('[Auth] No refresh token, clearing session');
+              clearStorage();
+            }
+          } else {
+            // Other error - don't clear, might be network issue
+            console.warn('[Auth] Validation error (non-401), keeping session:', validationResponse.status);
+            setAccessToken(storedAccessToken);
+            setRefreshToken(storedRefreshToken);
+            setUser(parsedUser);
+            setPasswordResetRequired(storedPasswordReset === 'true');
           }
         } catch (e) {
-          console.error('Error parsing stored user:', e);
+          console.error('[Auth] Error during initialization:', e);
+          // Network error - don't clear session, might be temporary
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            setAccessToken(storedAccessToken);
+            setRefreshToken(storedRefreshToken);
+            setUser(parsedUser);
+            setPasswordResetRequired(storedPasswordReset === 'true');
+          } catch (parseError) {
+            console.error('[Auth] Cannot parse stored user, clearing');
+            clearStorage();
+          }
         }
+      } else {
+        console.log('[Auth] No stored session found');
       }
 
       setIsLoading(false);
+    };
+
+    const clearStorage = () => {
+      localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.USER);
+      localStorage.removeItem(STORAGE_KEYS.PASSWORD_RESET);
     };
 
     initializeAuth();
@@ -79,25 +162,25 @@ export const AuthProvider = ({ children }) => {
       try {
         const error = await response.json();
         errorMessage = error.detail || errorMessage;
-      } catch (e) {
-        // Response body may already be consumed
-      }
+      } catch (e) {}
       throw new Error(errorMessage);
     }
 
     const data = await response.json();
+    console.log('[Auth] Login successful');
     
-    sessionStorage.setItem('accessToken', data.access_token);
-    sessionStorage.setItem('refreshToken', data.refresh_token);
-    sessionStorage.setItem('user', JSON.stringify(data.user));
-    sessionStorage.setItem('passwordResetRequired', data.password_reset_required ? 'true' : 'false');
+    // Store in localStorage for persistence
+    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.access_token);
+    localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token);
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(data.user));
+    localStorage.setItem(STORAGE_KEYS.PASSWORD_RESET, data.password_reset_required ? 'true' : 'false');
 
     setAccessToken(data.access_token);
     setRefreshToken(data.refresh_token);
     setUser(data.user);
     setPasswordResetRequired(data.password_reset_required || false);
 
-    // Load user's language preference after login
+    // Load user's language preference
     try {
       const profileResponse = await fetch(`${API_URL}/api/profile`, {
         headers: {
@@ -112,7 +195,7 @@ export const AuthProvider = ({ children }) => {
         }
       }
     } catch (langError) {
-      console.warn('Could not load user language preference:', langError);
+      console.warn('[Auth] Could not load language preference:', langError);
     }
 
     return { user: data.user, passwordResetRequired: data.password_reset_required };
@@ -138,15 +221,13 @@ export const AuthProvider = ({ children }) => {
       throw new Error(error.detail || 'Password change failed');
     }
 
-    // Clear password reset flag
     setPasswordResetRequired(false);
-    sessionStorage.setItem('passwordResetRequired', 'false');
+    localStorage.setItem(STORAGE_KEYS.PASSWORD_RESET, 'false');
     
-    // Update user object
     if (user) {
       const updatedUser = { ...user, password_reset_required: false };
       setUser(updatedUser);
-      sessionStorage.setItem('user', JSON.stringify(updatedUser));
+      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
     }
 
     return await response.json();
@@ -175,6 +256,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = useCallback(async () => {
+    console.log('[Auth] Manual logout');
+    
     try {
       if (accessToken) {
         await fetch(`${API_URL}/api/auth/logout`, {
@@ -185,12 +268,13 @@ export const AuthProvider = ({ children }) => {
         });
       }
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('[Auth] Logout API error:', error);
     } finally {
-      sessionStorage.removeItem('accessToken');
-      sessionStorage.removeItem('refreshToken');
-      sessionStorage.removeItem('user');
-      sessionStorage.removeItem('passwordResetRequired');
+      // Always clear local state
+      localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.USER);
+      localStorage.removeItem(STORAGE_KEYS.PASSWORD_RESET);
       
       setUser(null);
       setAccessToken(null);
@@ -204,6 +288,8 @@ export const AuthProvider = ({ children }) => {
       throw new Error('No refresh token available');
     }
 
+    console.log('[Auth] Refreshing access token...');
+    
     const response = await fetch(`${API_URL}/api/auth/refresh`, {
       method: 'POST',
       headers: {
@@ -213,14 +299,16 @@ export const AuthProvider = ({ children }) => {
     });
 
     if (!response.ok) {
+      console.log('[Auth] Token refresh failed, logging out');
       await logout();
       throw new Error('Token refresh failed');
     }
 
     const data = await response.json();
+    console.log('[Auth] Token refreshed successfully');
     
-    sessionStorage.setItem('accessToken', data.access_token);
-    sessionStorage.setItem('refreshToken', data.refresh_token);
+    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.access_token);
+    localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token);
 
     setAccessToken(data.access_token);
     setRefreshToken(data.refresh_token);
@@ -236,7 +324,6 @@ export const AuthProvider = ({ children }) => {
     return user?.roles?.some(userRole => roles.includes(userRole)) || false;
   }, [user]);
 
-  // Refresh user data from server (after profile updates)
   const refreshUser = useCallback(async () => {
     if (!accessToken) return;
     
@@ -250,7 +337,6 @@ export const AuthProvider = ({ children }) => {
       
       if (response.ok) {
         const profileData = await response.json();
-        // Merge profile data with existing user data
         const updatedUser = {
           ...user,
           full_name: profileData.full_name,
@@ -261,15 +347,14 @@ export const AuthProvider = ({ children }) => {
           language: profileData.language,
         };
         setUser(updatedUser);
-        sessionStorage.setItem('user', JSON.stringify(updatedUser));
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
         
-        // Sync language with i18n
         if (profileData.language && ['es', 'en'].includes(profileData.language)) {
           await changeLanguage(profileData.language);
         }
       }
     } catch (error) {
-      console.error('Error refreshing user:', error);
+      console.error('[Auth] Error refreshing user:', error);
     }
   }, [accessToken, user]);
 
