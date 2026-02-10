@@ -2113,14 +2113,35 @@ const GuardUI = () => {
   // Highlighted alert from push notification
   const [highlightedAlertId, setHighlightedAlertId] = useState(null);
   
+  // Audio unlock state - browsers require user gesture
+  const [audioUnlocked, setAudioUnlocked] = useState(AlertSoundManager.isUnlocked());
+  const [showAudioBanner, setShowAudioBanner] = useState(false);
+  const [pendingAlertSound, setPendingAlertSound] = useState(false);
+  
   // Track if sound has been acknowledged for current alert batch
   const soundAcknowledgedRef = React.useRef(false);
   const soundTimeoutRef = React.useRef(null);
+
+  // Unlock audio on user interaction
+  const handleUnlockAudio = useCallback(async () => {
+    console.log('[GuardUI] User clicked to unlock audio');
+    const success = await AlertSoundManager.unlock();
+    if (success) {
+      setAudioUnlocked(true);
+      setShowAudioBanner(false);
+      // If there was a pending alert, play it now
+      if (pendingAlertSound) {
+        setPendingAlertSound(false);
+        AlertSoundManager.play();
+      }
+    }
+  }, [pendingAlertSound]);
 
   // CENTRALIZED sound stop function
   const stopAlertSound = useCallback(() => {
     console.log('[GuardUI] Stopping alert sound');
     soundAcknowledgedRef.current = true;
+    setPendingAlertSound(false);
     if (soundTimeoutRef.current) {
       clearTimeout(soundTimeoutRef.current);
       soundTimeoutRef.current = null;
