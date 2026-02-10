@@ -2116,6 +2116,7 @@ const GuardUI = () => {
   // Track if sound has been acknowledged for current alert batch
   const soundAcknowledgedRef = React.useRef(false);
   const soundTimeoutRef = React.useRef(null);
+  const lastAlertIdRef = React.useRef(null); // Track last alert to detect new ones
 
   // CENTRALIZED sound stop function
   const stopAlertSound = useCallback(() => {
