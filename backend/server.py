@@ -8174,22 +8174,28 @@ async def get_condominium_billing_info(current_user = Depends(get_current_user))
     return billing_info
 
 @api_router.get("/billing/can-create-user")
-async def check_can_create_user(current_user = Depends(require_role("Administrador", "SuperAdmin"))):
-    """Check if the condominium can create a new user"""
+async def check_can_create_user(
+    role: str = "Residente",
+    current_user = Depends(require_role("Administrador", "SuperAdmin"))
+):
+    """Check if the condominium can create a new user of the specified role"""
     condo_id = current_user.get("condominium_id")
     if not condo_id:
         raise HTTPException(status_code=400, detail="Usuario no asociado a un condominio")
     
-    can_create, error_msg = await can_create_user(condo_id)
+    can_create, error_msg = await can_create_user(condo_id, role)
     billing_info = await get_billing_info(condo_id)
+    active_residents = await count_active_residents(condo_id)
     
     return {
         "can_create": can_create,
         "error_message": error_msg if not can_create else None,
         "paid_seats": billing_info.get("paid_seats", 0),
         "active_users": billing_info.get("active_users", 0),
-        "remaining_seats": billing_info.get("remaining_seats", 0),
-        "billing_status": billing_info.get("billing_status", "unknown")
+        "active_residents": active_residents,
+        "remaining_seats": max(0, billing_info.get("paid_seats", 0) - active_residents),
+        "billing_status": billing_info.get("billing_status", "unknown"),
+        "role_checked": role
     }
 
 @api_router.post("/billing/upgrade-seats")
