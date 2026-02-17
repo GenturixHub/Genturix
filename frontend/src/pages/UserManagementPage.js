@@ -1622,23 +1622,64 @@ const UserManagementPage = () => {
     fetchUsers();
   };
 
-  // Handle user status toggle
-  const handleToggleUserStatus = async () => {
+  // Handle user status change (block/unblock/suspend)
+  const handleChangeUserStatus = async () => {
+    if (!selectedUser || !newStatus) return;
+    
+    setActionLoading(true);
+    try {
+      await api.updateUserStatusV2(selectedUser.id, newStatus, statusReason || null);
+      toast.success(
+        newStatus === 'active' ? 'Usuario activado exitosamente' :
+        newStatus === 'blocked' ? 'Usuario bloqueado exitosamente' :
+        'Usuario suspendido exitosamente'
+      );
+      fetchUsers();
+      fetchSeatUsage();
+      setShowDeactivateDialog(false);
+      setSelectedUser(null);
+      setNewStatus('');
+      setStatusReason('');
+    } catch (err) {
+      console.error('Error updating user status:', err);
+      toast.error(err.message || 'Error al cambiar el estado del usuario');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Handle user deletion
+  const handleDeleteUser = async () => {
     if (!selectedUser) return;
     
     setActionLoading(true);
     try {
-      await api.patch(`/admin/users/${selectedUser.id}/status`, {
-        is_active: !selectedUser.is_active
-      });
+      await api.deleteUser(selectedUser.id);
+      toast.success('Usuario eliminado exitosamente');
       fetchUsers();
-      setShowDeactivateDialog(false);
+      fetchSeatUsage();
+      setShowDeleteDialog(false);
       setSelectedUser(null);
     } catch (err) {
-      console.error('Error updating user status:', err);
+      console.error('Error deleting user:', err);
+      toast.error(err.message || 'Error al eliminar el usuario');
     } finally {
       setActionLoading(false);
     }
+  };
+
+  // Open status change dialog
+  const openStatusDialog = (user, status) => {
+    setSelectedUser(user);
+    setNewStatus(status);
+    setStatusReason('');
+    setShowDeactivateDialog(true);
+  };
+
+  // Open delete dialog
+  const openDeleteDialog = (user) => {
+    setSelectedUser(user);
+    setShowDeleteDialog(true);
   };
 
   // Stats
