@@ -1090,14 +1090,24 @@ async def send_password_reset_email(
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({"exp": expire, "type": "access"})
+    now = datetime.now(timezone.utc)
+    expire = now + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({
+        "exp": expire, 
+        "iat": int(now.timestamp()),  # Issued at timestamp
+        "type": "access"
+    })
     return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
 def create_refresh_token(data: dict) -> str:
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire, "type": "refresh"})
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({
+        "exp": expire, 
+        "iat": int(now.timestamp()),  # Issued at timestamp
+        "type": "refresh"
+    })
     return jwt.encode(to_encode, JWT_REFRESH_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
 def verify_access_token(token: str) -> Optional[dict]:
