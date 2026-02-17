@@ -1683,6 +1683,47 @@ const UserManagementPage = () => {
     setShowDeleteDialog(true);
   };
 
+  // Handle admin password reset
+  const handleResetPassword = async () => {
+    if (!selectedUser) return;
+    
+    setActionLoading(true);
+    try {
+      const result = await api.adminResetPassword(selectedUser.id);
+      toast.success(`Se ha enviado un enlace de restablecimiento a ${result.email_sent_to || selectedUser.email}`);
+      setShowResetPasswordDialog(false);
+      setSelectedUser(null);
+    } catch (err) {
+      console.error('Error resetting password:', err);
+      toast.error(err.message || 'Error al restablecer la contraseña');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Open reset password dialog
+  const openResetPasswordDialog = (user) => {
+    setSelectedUser(user);
+    setShowResetPasswordDialog(true);
+  };
+
+  // Check if user can have password reset (not SuperAdmin, not other Admins for regular admins)
+  const canResetPassword = (targetUser) => {
+    const targetRoles = targetUser.roles || [];
+    const currentRoles = user?.roles || [];
+    
+    // Cannot reset SuperAdmin
+    if (targetRoles.includes('SuperAdmin')) return false;
+    
+    // Cannot reset yourself
+    if (targetUser.id === user?.id) return false;
+    
+    // Regular admins cannot reset other admins
+    if (targetRoles.includes('Administrador') && !currentRoles.includes('SuperAdmin')) return false;
+    
+    return true;
+  };
+
   // Stats - now includes status breakdown
   const stats = {
     total: users.length,
