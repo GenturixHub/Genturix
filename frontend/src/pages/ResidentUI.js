@@ -1262,8 +1262,8 @@ const ResidentUI = () => {
           />
         </TabsContent>
 
-        <TabsContent value="authorizations" className="flex-1 mt-0">
-          <VisitorAuthorizationsResident />
+        <TabsContent value="authorizations" className="flex-1 mt-0 overflow-hidden">
+          <ResidentVisitsModule />
         </TabsContent>
 
         <TabsContent value="reservations" className="flex-1 mt-0 overflow-hidden">
