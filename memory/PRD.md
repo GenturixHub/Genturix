@@ -1,8 +1,50 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 17, 2026 (P1 Feature: Seat Management Refactor)
+## Last Updated: February 17, 2026 (P1 Feature: Admin Password Reset)
 
 ## Changelog
+### 2026-02-17 (Session 71) - Enterprise Admin Password Reset ⭐⭐⭐⭐⭐
+- **P1 Feature: Enterprise-Grade Admin Password Reset** - FULLY VERIFIED ✅
+  - Backend Testing: 100% (15/15 tests passed)
+  - Frontend Testing: 100% (all UI flows verified)
+  - Test report: `/app/test_reports/iteration_70.json`
+  
+  **Key Implementation (Enterprise-Grade):**
+  
+  1. **Secure Token-Based Reset (NOT temporary password):**
+     - JWT token with 1-hour expiration
+     - Token hash stored in DB for single-use validation
+     - Email with secure link (no password in email)
+  
+  2. **Backend Endpoints:**
+     - `POST /api/admin/users/{id}/reset-password` - Admin initiates reset
+     - `GET /api/auth/verify-reset-token` - Validates token
+     - `POST /api/auth/reset-password-complete` - User completes reset
+  
+  3. **Security Validations:**
+     - ✅ Cannot reset SuperAdmin passwords
+     - ✅ Cannot reset own password (use "Cambiar Contraseña")
+     - ✅ Admins cannot reset other Admin passwords
+     - ✅ Only same-condominium users can be reset
+     - ✅ Session invalidation on reset initiation
+  
+  4. **Audit Trail:**
+     - `PASSWORD_RESET_BY_ADMIN` event type
+     - Logs: admin_id, target_user_id, tenant_id, IP, timestamp
+  
+  5. **Frontend Updates:**
+     - Reset button (🔑) with conditional visibility
+     - Confirmation modal with email destination
+     - New `/reset-password` page for users
+     - Invalid token handling with friendly error
+  
+  6. **Files Created/Modified:**
+     - `/app/backend/server.py` - Reset endpoints, token functions
+     - `/app/frontend/src/pages/UserManagementPage.js` - Reset button & dialog
+     - `/app/frontend/src/pages/ResetPasswordPage.jsx` - NEW: Reset password form
+     - `/app/frontend/src/App.js` - New route
+     - `/app/frontend/src/services/api.js` - API methods
+
 ### 2026-02-17 (Session 71) - Seat Management Refactoring ⭐⭐⭐⭐⭐
 - **P1 Feature: Seat Management Complete Refactor** - FULLY VERIFIED ✅
   - Backend Testing: 100% (11/11 tests passed)
