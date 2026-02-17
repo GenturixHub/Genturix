@@ -966,8 +966,8 @@ const VisitorAuthorizationsResident = () => {
       </div>
 
       {/* Content */}
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-4">
+      <ScrollArea className="flex-1 h-full">
+        <div className="p-4 pb-24 space-y-4">
           {/* Notifications Panel (collapsible) */}
           {showNotifications && (
             <Card className="bg-[#0F111A] border-[#1E293B]">
