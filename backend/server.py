@@ -1828,7 +1828,16 @@ async def change_password(
     request: Request,
     current_user = Depends(get_current_user)
 ):
-    """Change user password - especially for first login after credential email"""
+    """
+    Change user password - Secure password change for all authenticated users.
+    
+    Security features:
+    - Validates current password
+    - Enforces password policy (8+ chars, 1 uppercase, 1 number)
+    - Confirms new password matches
+    - Updates passwordChangedAt to invalidate old tokens
+    - Logs audit event
+    """
     # Verify current password
     user = await db.users.find_one({"id": current_user["id"]})
     if not user:
@@ -1841,28 +1850,45 @@ async def change_password(
     if password_data.current_password == password_data.new_password:
         raise HTTPException(status_code=400, detail="La nueva contraseña debe ser diferente a la actual")
     
-    # Update password and clear reset flag
+    # Verify confirm_password matches new_password
+    if password_data.new_password != password_data.confirm_password:
+        raise HTTPException(status_code=400, detail="Las contraseñas no coinciden")
+    
+    # Get current timestamp for password change
+    password_changed_at = datetime.now(timezone.utc).isoformat()
+    
+    # Update password, clear reset flag, and set password_changed_at
     await db.users.update_one(
         {"id": current_user["id"]},
         {
             "$set": {
                 "hashed_password": hash_password(password_data.new_password),
                 "password_reset_required": False,
-                "password_changed_at": datetime.now(timezone.utc).isoformat()
+                "password_changed_at": password_changed_at
             }
         }
     )
     
+    # Log audit event with full context
     await log_audit_event(
         AuditEventType.PASSWORD_CHANGED,
         current_user["id"],
         "auth",
-        {"forced_reset": user.get("password_reset_required", False)},
+        {
+            "forced_reset": user.get("password_reset_required", False),
+            "tenant_id": current_user.get("condominium_id"),
+            "user_agent": request.headers.get("user-agent", "unknown")[:200],
+            "ip_address": request.client.host if request.client else "unknown"
+        },
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
     )
     
-    return {"message": "Contraseña actualizada exitosamente"}
+    return {
+        "message": "Contraseña actualizada exitosamente",
+        "password_changed_at": password_changed_at,
+        "sessions_invalidated": True
+    }
 
 # ==================== PUSH NOTIFICATION ROUTES ====================
 @api_router.get("/push/vapid-public-key")
