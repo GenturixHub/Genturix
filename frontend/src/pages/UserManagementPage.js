@@ -2129,28 +2129,109 @@ const UserManagementPage = () => {
       <AlertDialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>
         <AlertDialogContent className="bg-[#0F111A] border-[#1E293B]">
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {selectedUser?.is_active !== false ? 'Desactivar Usuario' : 'Activar Usuario'}
+            <AlertDialogTitle className="flex items-center gap-2">
+              {newStatus === 'blocked' && <Lock className="w-5 h-5 text-red-400" />}
+              {newStatus === 'suspended' && <AlertTriangle className="w-5 h-5 text-yellow-400" />}
+              {newStatus === 'active' && <Unlock className="w-5 h-5 text-green-400" />}
+              {newStatus === 'blocked' ? 'Bloquear Usuario' : 
+               newStatus === 'suspended' ? 'Suspender Usuario' : 'Activar Usuario'}
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              {selectedUser?.is_active !== false 
-                ? `¿Estás seguro de desactivar a ${selectedUser?.full_name}? El usuario no podrá iniciar sesión hasta que lo reactives.`
-                : `¿Estás seguro de activar a ${selectedUser?.full_name}? El usuario podrá iniciar sesión nuevamente.`}
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                {newStatus === 'blocked' 
+                  ? `¿Estás seguro de bloquear a ${selectedUser?.full_name}? El usuario no podrá iniciar sesión y su sesión actual será cerrada inmediatamente.`
+                  : newStatus === 'suspended'
+                  ? `¿Estás seguro de suspender a ${selectedUser?.full_name}? El usuario no podrá acceder temporalmente.`
+                  : `¿Estás seguro de activar a ${selectedUser?.full_name}? El usuario podrá iniciar sesión nuevamente.`}
+              </p>
+              {selectedUser?.roles?.includes('Residente') && newStatus === 'blocked' && (
+                <p className="text-cyan-400 text-sm">
+                  ✓ Esto liberará 1 asiento de tu plan de residentes.
+                </p>
+              )}
+              {selectedUser?.roles?.includes('Residente') && newStatus === 'active' && !seatUsage.can_add_resident && (
+                <p className="text-red-400 text-sm">
+                  ⚠️ No hay asientos disponibles. Aumenta tu plan o bloquea otros residentes primero.
+                </p>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          {newStatus === 'blocked' && (
+            <div className="space-y-2 py-2">
+              <Label className="text-sm text-muted-foreground">Motivo (opcional)</Label>
+              <Textarea
+                value={statusReason}
+                onChange={(e) => setStatusReason(e.target.value)}
+                placeholder="Ej: Incumplimiento de reglas del condominio"
+                className="bg-[#0A0A0F] border-[#1E293B] resize-none h-20"
+              />
+            </div>
+          )}
+          
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setStatusReason('');
+              setNewStatus('');
+            }}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleChangeUserStatus}
+              className={
+                newStatus === 'blocked' ? 'bg-red-600 hover:bg-red-700' : 
+                newStatus === 'suspended' ? 'bg-yellow-600 hover:bg-yellow-700' :
+                'bg-green-600 hover:bg-green-700'
+              }
+              disabled={actionLoading || (newStatus === 'active' && selectedUser?.roles?.includes('Residente') && !seatUsage.can_add_resident)}
+            >
+              {actionLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : newStatus === 'blocked' ? (
+                'Bloquear'
+              ) : newStatus === 'suspended' ? (
+                'Suspender'
+              ) : (
+                'Activar'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete User Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent className="bg-[#0F111A] border-[#1E293B]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-400">
+              <Trash2 className="w-5 h-5" />
+              Eliminar Usuario
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                ¿Estás seguro de eliminar permanentemente a <strong>{selectedUser?.full_name}</strong>?
+              </p>
+              <p className="text-red-400 font-medium">
+                Esta acción no se puede deshacer.
+              </p>
+              {selectedUser?.roles?.includes('Residente') && (
+                <p className="text-cyan-400 text-sm">
+                  ✓ Esto liberará 1 asiento de tu plan de residentes.
+                </p>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleToggleUserStatus}
-              className={selectedUser?.is_active !== false ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}
+              onClick={handleDeleteUser}
+              className="bg-red-600 hover:bg-red-700"
               disabled={actionLoading}
             >
               {actionLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
-              ) : selectedUser?.is_active !== false ? (
-                'Desactivar'
               ) : (
-                'Activar'
+                'Eliminar Permanentemente'
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
