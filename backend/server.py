@@ -1106,6 +1106,136 @@ async def send_password_reset_email(
             "recipient": recipient_email
         }
 
+# ==================== PASSWORD RESET TOKEN FUNCTIONS ====================
+def create_password_reset_token(user_id: str, email: str) -> str:
+    """Create a secure password reset token that expires in 1 hour"""
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(hours=1)
+    to_encode = {
+        "sub": user_id,
+        "email": email,
+        "exp": expire,
+        "iat": int(now.timestamp()),
+        "type": "password_reset"
+    }
+    return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+def verify_password_reset_token(token: str) -> Optional[dict]:
+    """Verify a password reset token and return payload if valid"""
+    try:
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        if payload.get("type") != "password_reset":
+            return None
+        return payload
+    except jwt.ExpiredSignatureError:
+        logger.warning("[RESET-TOKEN] Token expired")
+        return None
+    except jwt.InvalidTokenError as e:
+        logger.warning(f"[RESET-TOKEN] Invalid token: {e}")
+        return None
+
+async def send_password_reset_link_email(
+    recipient_email: str,
+    user_name: str,
+    reset_link: str,
+    admin_name: str = "Administrador"
+) -> dict:
+    """Send password reset email with secure link (not temporary password)"""
+    
+    email_enabled = await is_email_enabled()
+    if not email_enabled:
+        logger.info(f"Password reset link email not sent - Email sending is DISABLED (recipient: {recipient_email})")
+        return {"status": "skipped", "reason": "Email sending disabled", "toggle_disabled": True}
+    
+    if not RESEND_API_KEY:
+        logger.warning("Password reset link email not sent - RESEND_API_KEY not configured")
+        return {"status": "skipped", "reason": "Email service not configured"}
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0A0A0F; color: #ffffff; margin: 0; padding: 0;">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #0F111A; border-radius: 12px; overflow: hidden;">
+            <tr>
+                <td style="padding: 40px 30px; background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);">
+                    <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #ffffff;">GENTURIX</h1>
+                    <p style="margin: 8px 0 0 0; font-size: 14px; color: rgba(255,255,255,0.8);">Solicitud de Restablecimiento de Contraseña</p>
+                </td>
+            </tr>
+            <tr>
+                <td style="padding: 40px 30px;">
+                    <h2 style="margin: 0 0 20px 0; font-size: 22px; color: #ffffff;">Hola, {user_name}</h2>
+                    <p style="margin: 0 0 20px 0; font-size: 16px; color: #9CA3AF; line-height: 1.6;">
+                        El administrador <strong style="color: #ffffff;">{admin_name}</strong> ha solicitado restablecer tu contraseña.
+                    </p>
+                    <p style="margin: 0 0 20px 0; font-size: 16px; color: #9CA3AF; line-height: 1.6;">
+                        Haz clic en el siguiente botón para crear tu nueva contraseña:
+                    </p>
+                    
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="{reset_link}" style="display: inline-block; padding: 16px 32px; background: linear-gradient(135deg, #10B981 0%, #059669 100%); color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 8px;">
+                            🔐 Restablecer Contraseña
+                        </a>
+                    </div>
+                    
+                    <div style="background-color: #1E293B; border-radius: 8px; padding: 16px; margin: 20px 0;">
+                        <p style="margin: 0; color: #9CA3AF; font-size: 14px;">
+                            ⏰ Este enlace expirará en <strong style="color: #F59E0B;">1 hora</strong>.
+                        </p>
+                    </div>
+                    
+                    <div style="background-color: #FEF3C7; border-radius: 8px; padding: 16px; margin: 20px 0;">
+                        <p style="margin: 0; color: #92400E; font-size: 14px;">
+                            ⚠️ <strong>Importante:</strong> Si no reconoces esta solicitud, ignora este correo y contacta inmediatamente a tu administrador.
+                        </p>
+                    </div>
+                    
+                    <p style="margin: 20px 0 0 0; font-size: 13px; color: #6B7280;">
+                        Si el botón no funciona, copia y pega este enlace en tu navegador:<br>
+                        <span style="color: #60A5FA; word-break: break-all;">{reset_link}</span>
+                    </p>
+                </td>
+            </tr>
+            <tr>
+                <td style="padding: 20px 30px; background-color: #0A0A0F; border-top: 1px solid #1E293B;">
+                    <p style="margin: 0; font-size: 12px; color: #6B7280; text-align: center;">
+                        Este es un correo automático de GENTURIX. Por favor no responder.<br>
+                        © 2026 GENTURIX - Todos los derechos reservados.
+                    </p>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>
+    """
+    
+    params = {
+        "from": SENDER_EMAIL,
+        "to": [recipient_email],
+        "subject": "🔐 Restablece tu Contraseña - GENTURIX",
+        "html": html_content
+    }
+    
+    try:
+        email_response = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Password reset link email sent to {recipient_email}")
+        return {
+            "status": "success",
+            "email_id": email_response.get("id") if isinstance(email_response, dict) else str(email_response),
+            "recipient": recipient_email
+        }
+    except Exception as e:
+        logger.error(f"Failed to send password reset link email to {recipient_email}: {str(e)}")
+        return {
+            "status": "failed",
+            "error": str(e),
+            "recipient": recipient_email
+        }
+
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     now = datetime.now(timezone.utc)
