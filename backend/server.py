@@ -8348,6 +8348,16 @@ async def upgrade_seats(
     if not condo:
         raise HTTPException(status_code=404, detail="Condominio no encontrado")
     
+    # ==================== DEMO ENVIRONMENT CHECK ====================
+    # Demo condominiums cannot purchase additional seats
+    condo_environment = condo.get("environment", "production")
+    if condo_environment == "demo" or condo.get("is_demo"):
+        raise HTTPException(
+            status_code=403, 
+            detail="Los condominios en modo Demo no pueden comprar asientos adicionales. Contacte al administrador para cambiar a modo Producción."
+        )
+    # ================================================================
+    
     stripe_api_key = os.environ.get('STRIPE_API_KEY')
     if not stripe_api_key:
         raise HTTPException(status_code=500, detail="Stripe no configurado")
