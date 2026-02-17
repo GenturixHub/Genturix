@@ -486,8 +486,8 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
   
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-md">
-        <DialogHeader>
+      <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <AreaIcon className="w-5 h-5 text-primary" />
             Reservar {area.name}
@@ -497,7 +497,8 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-4 py-2">
+        <div className="flex-1 overflow-y-auto min-h-0 pr-2 -mr-2">
+          <div className="space-y-4 py-2">
           {/* Date Selection */}
           <div className="space-y-1.5">
             <Label className="text-xs">Fecha de Reservación</Label>
