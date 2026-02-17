@@ -10255,7 +10255,14 @@ async def create_condominium(
         current_users=0,
         modules=modules.model_dump(),
         is_active=True,
-        created_at=condo_doc["created_at"]
+        created_at=condo_doc["created_at"],
+        # Environment and billing fields
+        environment=condo_data.environment,
+        is_demo=is_demo,
+        paid_seats=paid_seats,
+        billing_status=billing_status,
+        status="demo" if is_demo else "active",
+        plan="demo" if is_demo else "basic"
     )
 
 @api_router.get("/condominiums")
