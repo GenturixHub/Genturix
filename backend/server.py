@@ -9392,6 +9392,9 @@ async def create_condominium(
     # Initialize module config with defaults
     modules = condo_data.modules if condo_data.modules else CondominiumModules()
     
+    # Determine if this is a demo tenant
+    is_demo = condo_data.environment == "demo"
+    
     condo_doc = {
         "id": condo_id,
         "name": condo_data.name,
@@ -9401,8 +9404,9 @@ async def create_condominium(
         "max_users": condo_data.max_users,
         "current_users": 0,
         "modules": modules.model_dump(),
-        "status": "active",  # active, demo, suspended
-        "is_demo": False,
+        "status": "demo" if is_demo else "active",
+        "is_demo": is_demo,
+        "environment": condo_data.environment,  # "demo" or "production"
         "is_active": True,
         "price_per_user": 1.0,
         "discount_percent": 0,
