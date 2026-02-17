@@ -452,6 +452,12 @@ class ApiService {
   deleteUser = (userId) => this.delete(`/admin/users/${userId}`);
   canCreateUser = (role = 'Residente') => this.get(`/billing/can-create-user?role=${role}`);
 
+  // ==================== PASSWORD RESET (Admin) ====================
+  adminResetPassword = (userId) => this.post(`/admin/users/${userId}/reset-password`);
+  verifyResetToken = (token) => this.get(`/auth/verify-reset-token?token=${encodeURIComponent(token)}`);
+  completePasswordReset = (token, newPassword) => 
+    this.post('/auth/reset-password-complete', { token, new_password: newPassword });
+
   // Condominiums (Multi-tenant)
   getCondominiums = () => this.get('/condominiums');
   getCondominium = (id) => this.get(`/condominiums/${id}`);
