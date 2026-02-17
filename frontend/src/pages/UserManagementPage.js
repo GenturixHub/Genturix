@@ -1755,6 +1755,63 @@ const UserManagementPage = () => {
 
           {/* Users Tab Content */}
           <TabsContent value="users" className="mt-6">
+            {/* Seat Usage Card - Only for Residents */}
+            <Card className="bg-gradient-to-r from-[#0F111A] to-[#1a1f2e] border-[#1E293B] mb-6">
+              <CardContent className="p-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-xl bg-primary/10">
+                      <Home className="w-6 h-6 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold">Plan de Residentes</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {seatUsage.active_residents} de {seatUsage.seat_limit} asientos ocupados
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-6">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-primary">{seatUsage.seat_limit}</p>
+                      <p className="text-xs text-muted-foreground">Contratados</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-green-400">{seatUsage.active_residents}</p>
+                      <p className="text-xs text-muted-foreground">Activos</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-cyan-400">{seatUsage.available_seats}</p>
+                      <p className="text-xs text-muted-foreground">Disponibles</p>
+                    </div>
+                  </div>
+                </div>
+                {/* Progress bar */}
+                <div className="mt-4">
+                  <div className="h-2 bg-[#1E293B] rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all ${
+                        seatUsage.available_seats === 0 ? 'bg-red-500' :
+                        seatUsage.available_seats <= 2 ? 'bg-yellow-500' : 'bg-primary'
+                      }`}
+                      style={{ width: `${Math.min(100, (seatUsage.active_residents / seatUsage.seat_limit) * 100)}%` }}
+                    />
+                  </div>
+                  {seatUsage.available_seats === 0 && (
+                    <p className="text-xs text-red-400 mt-2 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      Límite alcanzado. Aumenta tu plan o bloquea residentes para agregar más.
+                    </p>
+                  )}
+                  {seatUsage.available_seats > 0 && seatUsage.available_seats <= 2 && (
+                    <p className="text-xs text-yellow-400 mt-2 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      Pocos asientos disponibles.
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
           <Card className="bg-[#0F111A] border-[#1E293B]">
