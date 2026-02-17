@@ -1,0 +1,112 @@
+{
+  "summary": "Demo vs Production Environment Separation - Complete Testing. Backend: 12/12 tests passed (100%). Frontend: Environment badges (DEMO yellow, PROD green) visible in condos list. Fixed bug in POST /api/condominiums response not including environment fields.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Create Condominium Modal Environment Selector",
+        "issue": "The CreateCondoDialog component with 'Tipo de Tenant' selector and info boxes exists in SuperAdminDashboard.js but is NOT used - the 'Nuevo Condominio' button navigates to /super-admin/onboarding wizard instead",
+        "affected_selectors": ["button[data-testid='condos-new-condo-btn']"],
+        "impact": "LOW - The onboarding wizard works but doesn't have environment selection, user must edit condo after creation to change to demo mode"
+      }
+    ],
+    "design_issues": []
+  },
+  "test_results": {
+    "backend_api_tests": {
+      "test_billing_info_includes_environment_field": "PASS - billing/info returns environment field",
+      "test_billing_info_includes_is_demo_field": "PASS - billing/info returns is_demo boolean",
+      "test_billing_info_includes_billing_enabled_field": "PASS - billing/info returns billing_enabled",
+      "test_demo_condo_has_billing_disabled": "PASS - Demo condos have billing_enabled=false",
+      "test_upgrade_seats_rejected_for_demo_condo": "PASS - POST /api/billing/upgrade-seats returns 403 for demo condos",
+      "test_upgrade_seats_error_message_contains_demo": "PASS - Error message mentions 'modo Demo'",
+      "test_create_demo_condominium_has_10_seats_hardcoded": "PASS - Demo condos created with paid_seats=10",
+      "test_create_demo_condominium_has_billing_disabled": "PASS - Demo condos have billing_status='demo'",
+      "test_create_production_condominium_has_billing_enabled": "PASS - Production condos have billing_status='active'",
+      "test_create_production_condominium_uses_max_users_as_paid_seats": "PASS - Production condos use max_users as paid_seats",
+      "test_condominiums_list_includes_environment": "PASS - List endpoint includes environment info",
+      "test_tenant_environment_returns_correct_format": "PASS - tenant-environment endpoint works"
+    },
+    "frontend_ui_tests": {
+      "demo_badges_visible": "PASS - 26 DEMO badges found (yellow)",
+      "prod_badges_visible": "PASS - 12 PROD badges found (green)",
+      "environment_selector_in_create_modal": "NOT APPLICABLE - Button navigates to onboarding wizard instead of modal"
+    }
+  },
+  "features_verified": {
+    "GET /api/billing/info environment fields": {
+      "environment": "VERIFIED - Returns 'demo' or 'production'",
+      "is_demo": "VERIFIED - Boolean true for demo condos",
+      "billing_enabled": "VERIFIED - false for demo, true for production"
+    },
+    "POST /api/billing/upgrade-seats demo rejection": {
+      "returns_403": "VERIFIED",
+      "error_message": "VERIFIED - 'Los condominios en modo Demo no pueden comprar asientos adicionales'"
+    },
+    "POST /api/condominiums demo configuration": {
+      "paid_seats_10_hardcoded": "VERIFIED - Demo condos always get paid_seats=10",
+      "billing_enabled_false": "VERIFIED - Demo condos have billing disabled",
+      "billing_status_demo": "VERIFIED - Demo condos have billing_status='demo'"
+    },
+    "POST /api/condominiums production configuration": {
+      "billing_enabled_true": "VERIFIED",
+      "billing_status_active": "VERIFIED",
+      "paid_seats_from_max_users": "VERIFIED"
+    },
+    "Stripe webhooks ignore demo condos": "VERIFIED IN CODE - Lines 8474-8486 check environment and return early for demo condos",
+    "Frontend environment badges": {
+      "DEMO_yellow_badge": "VERIFIED - Visible in condos list",
+      "PROD_green_badge": "VERIFIED - Visible in condos list"
+    }
+  },
+  "bugs_fixed": [
+    {
+      "file": "/app/backend/server.py",
+      "line": "10248-10259",
+      "issue": "POST /api/condominiums response didn't include environment, is_demo, paid_seats, billing_status fields",
+      "fix": "Added missing fields to CondominiumResponse return statement"
+    }
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_demo_production_environment.py",
+    "/app/test_reports/pytest/demo_production_environment_results.xml"
+  ],
+  "action_items": [
+    "OPTIONAL: Consider adding environment selector to the /super-admin/onboarding wizard or activating the CreateCondoDialog modal for quick condominium creation with environment selection"
+  ],
+  "critical_code_review_comments": [
+    "CreateCondoDialog component in SuperAdminDashboard.js lines 1068-1226 has full environment selector with info boxes but is not connected - showCreateDialog never set to true",
+    "The onboarding wizard at /super-admin/onboarding doesn't include environment selection - condos created there default to 'production'"
+  ],
+  "updated_files": [
+    "/app/backend/server.py (lines 10248-10267 - fixed response to include environment fields)",
+    "/app/backend/tests/test_demo_production_environment.py (new test file)"
+  ],
+  "success_rate": {
+    "backend": "100% (12/12 passed)",
+    "frontend": "90% (badges work, create modal environment selector not connected)"
+  },
+  "test_credentials": {
+    "super_admin": {
+      "email": "superadmin@genturix.com",
+      "password": "SuperAdmin123!"
+    },
+    "admin_demo_condo": {
+      "email": "admin@genturix.com",
+      "password": "Admin123!",
+      "condo": "Residencial Las Palmas (DEMO)"
+    }
+  },
+  "seed_data_creation": "Test condominiums created during testing were cleaned up",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Demo vs Production environment separation fully tested. Key endpoints: GET /api/billing/info (includes environment, is_demo, billing_enabled), POST /api/billing/upgrade-seats (rejects demo with 403), POST /api/condominiums (respects environment field). Frontend badges work in SuperAdminDashboard condos list. Note: The 'Nuevo Condominio' button routes to /super-admin/onboarding wizard which doesn't have environment selector - condos default to 'production'. The CreateCondoDialog with environment selector exists but isn't used. Test file: /app/backend/tests/test_demo_production_environment.py",
+  "mocked_api": {
+    "has_mocked_apis": false,
+    "mocked_apis_list": []
+  }
+}
