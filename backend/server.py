@@ -1745,11 +1745,6 @@ async def can_create_user(condominium_id: str, role: str = "Residente") -> tuple
             return False, f"Límite de asientos para residentes alcanzado ({active_residents}/{paid_seats}). Por favor actualice su plan para agregar más residentes."
     
     return True, ""
-    
-    if active_users >= paid_seats:
-        return False, f"Límite de usuarios alcanzado ({active_users}/{paid_seats}). Por favor actualice su plan para agregar más usuarios."
-    
-    return True, ""
 
 async def log_billing_event(
     event_type: str,
