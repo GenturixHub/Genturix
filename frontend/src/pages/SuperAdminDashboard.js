@@ -1159,7 +1159,7 @@ const CreateCondoDialog = ({ open, onClose, onSuccess }) => {
             <Label>Tipo de Tenant</Label>
             <Select 
               value={form.environment} 
-              onValueChange={(v) => setForm({...form, environment: v})}
+              onValueChange={(v) => setForm({...form, environment: v, max_users: v === 'demo' ? 10 : 100})}
             >
               <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B]">
                 <SelectValue placeholder="Seleccionar tipo" />
@@ -1167,27 +1167,49 @@ const CreateCondoDialog = ({ open, onClose, onSuccess }) => {
               <SelectContent>
                 <SelectItem value="production">
                   <div className="flex items-center gap-2">
-                    <Badge className="bg-green-500/20 text-green-400 text-[10px]">PRODUCCIÓN</Badge>
-                    <span>Envía emails, requiere cambio de contraseña</span>
+                    <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">PRODUCCIÓN</Badge>
+                    <span>Stripe activo, facturación real</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="demo">
                   <div className="flex items-center gap-2">
-                    <Badge className="bg-blue-500/20 text-blue-400 text-[10px]">DEMO</Badge>
-                    <span>No envía emails, muestra credenciales</span>
+                    <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-[10px]">DEMO</Badge>
+                    <span>Sin cargos, solo pruebas</span>
                   </div>
                 </SelectItem>
               </SelectContent>
             </Select>
+            
+            {/* Demo Environment Info */}
             {form.environment === 'demo' && (
-              <p className="text-xs text-blue-400 mt-1">
-                ℹ️ Los tenants DEMO nunca envían emails. Las credenciales se muestran directamente en pantalla.
-              </p>
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">DEMO</Badge>
+                  <span className="text-yellow-400 text-sm font-medium">Modo Demostración</span>
+                </div>
+                <ul className="text-xs text-yellow-200/70 space-y-1">
+                  <li>• Límite fijo de <strong>10 residentes</strong></li>
+                  <li>• Sin integración con Stripe</li>
+                  <li>• No genera cargos</li>
+                  <li>• Credenciales visibles en pantalla (no email)</li>
+                </ul>
+              </div>
             )}
+            
+            {/* Production Environment Info */}
             {form.environment === 'production' && (
-              <p className="text-xs text-green-400 mt-1">
-                ℹ️ Los tenants de PRODUCCIÓN envían credenciales por email vía Resend.
-              </p>
+              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30">PRODUCCIÓN</Badge>
+                  <span className="text-green-400 text-sm font-medium">Modo Producción</span>
+                </div>
+                <ul className="text-xs text-green-200/70 space-y-1">
+                  <li>• Facturación activa vía Stripe</li>
+                  <li>• Compra de asientos disponible</li>
+                  <li>• Emails de credenciales vía Resend</li>
+                  <li>• Cambio de contraseña obligatorio</li>
+                </ul>
+              </div>
             )}
           </div>
         </div>
