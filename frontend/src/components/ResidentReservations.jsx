@@ -935,8 +935,8 @@ const ResidentReservations = () => {
       </div>
       
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <TabsList className="grid grid-cols-2 mx-4 mt-3 bg-[#0A0A0F]">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <TabsList className="grid grid-cols-2 mx-4 mt-3 bg-[#0A0A0F] flex-shrink-0">
           <TabsTrigger value="areas" className="text-xs" data-testid="tab-areas">
             <Building2 className="w-3.5 h-3.5 mr-1.5" />
             Áreas
