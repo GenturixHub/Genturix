@@ -3862,6 +3862,263 @@ async def get_resident_unread_notification_count(
 
 
 # ============================================
+# RESIDENT VISIT HISTORY (Advanced Module)
+# ============================================
+
+@api_router.get("/resident/visit-history")
+async def get_resident_visit_history(
+    filter_period: Optional[str] = None,  # today, 7days, 30days, custom
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    visitor_type: Optional[str] = None,  # visitor, delivery, maintenance, etc.
+    status: Optional[str] = None,  # inside, completed
+    search: Optional[str] = None,  # Search by name, document, plate
+    page: int = 1,
+    page_size: int = 20,
+    current_user = Depends(get_current_user)
+):
+    """
+    Advanced visit history for residents.
+    Returns paginated list of visitor entries related to the resident's house.
+    Enforces tenant isolation (validates condominium_id + resident_id).
+    """
+    user_id = current_user["id"]
+    condo_id = current_user.get("condominium_id")
+    
+    if not condo_id:
+        raise HTTPException(status_code=403, detail="Usuario no asignado a un condominio")
+    
+    # Base query: Only visits related to this resident's authorizations
+    # Find all authorization IDs created by this resident
+    resident_auth_ids = await db.visitor_authorizations.distinct(
+        "id",
+        {"created_by": user_id, "condominium_id": condo_id}
+    )
+    
+    # Also include legacy visitors registered by this resident
+    legacy_visitor_ids = await db.visitors.distinct(
+        "id",
+        {"created_by": user_id, "condominium_id": condo_id}
+    )
+    
+    # Build query for visitor_entries
+    query = {
+        "condominium_id": condo_id,
+        "$or": [
+            {"authorization_id": {"$in": resident_auth_ids}},
+            {"visitor_id": {"$in": legacy_visitor_ids}},
+            {"resident_id": user_id}
+        ]
+    }
+    
+    # Date filtering
+    now = datetime.now(timezone.utc)
+    if filter_period == "today":
+        today_str = now.strftime("%Y-%m-%d")
+        query["entry_at"] = {"$gte": f"{today_str}T00:00:00"}
+    elif filter_period == "7days":
+        seven_days_ago = (now - timedelta(days=7)).strftime("%Y-%m-%d")
+        query["entry_at"] = {"$gte": f"{seven_days_ago}T00:00:00"}
+    elif filter_period == "30days":
+        thirty_days_ago = (now - timedelta(days=30)).strftime("%Y-%m-%d")
+        query["entry_at"] = {"$gte": f"{thirty_days_ago}T00:00:00"}
+    elif filter_period == "custom" and (date_from or date_to):
+        date_query = {}
+        if date_from:
+            date_query["$gte"] = f"{date_from}T00:00:00"
+        if date_to:
+            date_query["$lte"] = f"{date_to}T23:59:59"
+        if date_query:
+            query["entry_at"] = date_query
+    
+    # Visitor type filter
+    if visitor_type:
+        query["visitor_type"] = visitor_type
+    
+    # Status filter
+    if status:
+        query["status"] = status
+    
+    # Search filter (name, document, plate)
+    if search:
+        search_regex = {"$regex": search, "$options": "i"}
+        query["$and"] = query.get("$and", []) + [{
+            "$or": [
+                {"visitor_name": search_regex},
+                {"document_number": search_regex},
+                {"vehicle_plate": search_regex}
+            ]
+        }]
+    
+    # Get total count for pagination
+    total_count = await db.visitor_entries.count_documents(query)
+    
+    # Calculate pagination
+    skip = (page - 1) * page_size
+    total_pages = (total_count + page_size - 1) // page_size
+    
+    # Fetch entries with pagination
+    entries = await db.visitor_entries.find(
+        query, 
+        {"_id": 0}
+    ).sort("entry_at", -1).skip(skip).limit(page_size).to_list(page_size)
+    
+    # Enrich entries with additional data
+    enriched_entries = []
+    for entry in entries:
+        # Calculate duration if both entry and exit exist
+        duration_minutes = None
+        if entry.get("entry_at") and entry.get("exit_at"):
+            try:
+                entry_time = datetime.fromisoformat(entry["entry_at"].replace("Z", "+00:00"))
+                exit_time = datetime.fromisoformat(entry["exit_at"].replace("Z", "+00:00"))
+                duration_minutes = int((exit_time - entry_time).total_seconds() / 60)
+            except:
+                pass
+        
+        # Get authorization details if available
+        auth_details = None
+        if entry.get("authorization_id"):
+            auth = await db.visitor_authorizations.find_one(
+                {"id": entry["authorization_id"]},
+                {"_id": 0, "authorization_type": 1, "visitor_type": 1}
+            )
+            if auth:
+                auth_details = auth
+        
+        enriched_entry = {
+            **entry,
+            "duration_minutes": duration_minutes,
+            "authorization_details": auth_details,
+            # Determine display type
+            "display_type": entry.get("visitor_type") or (auth_details.get("visitor_type") if auth_details else "visitor")
+        }
+        enriched_entries.append(enriched_entry)
+    
+    # Get count of visitors currently inside (for badge)
+    inside_count = await db.visitor_entries.count_documents({
+        **{k: v for k, v in query.items() if k not in ["entry_at", "status"]},
+        "status": "inside"
+    })
+    
+    return {
+        "entries": enriched_entries,
+        "pagination": {
+            "page": page,
+            "page_size": page_size,
+            "total_count": total_count,
+            "total_pages": total_pages,
+            "has_next": page < total_pages,
+            "has_prev": page > 1
+        },
+        "summary": {
+            "total_visits": total_count,
+            "visitors_inside": inside_count
+        }
+    }
+
+
+@api_router.get("/resident/visit-history/export")
+async def export_resident_visit_history(
+    filter_period: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    visitor_type: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user = Depends(get_current_user)
+):
+    """
+    Export visit history data for PDF generation.
+    Returns all matching entries (up to 500) with resident/condo info.
+    """
+    user_id = current_user["id"]
+    condo_id = current_user.get("condominium_id")
+    
+    if not condo_id:
+        raise HTTPException(status_code=403, detail="Usuario no asignado a un condominio")
+    
+    # Get resident and condo info
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "full_name": 1, "role_data": 1})
+    condo = await db.condominiums.find_one({"id": condo_id}, {"_id": 0, "name": 1})
+    
+    # Get apartment info from role_data
+    apartment = user.get("role_data", {}).get("apartment_number", "N/A") if user else "N/A"
+    
+    # Build query (same as main endpoint but without pagination)
+    resident_auth_ids = await db.visitor_authorizations.distinct(
+        "id",
+        {"created_by": user_id, "condominium_id": condo_id}
+    )
+    
+    legacy_visitor_ids = await db.visitors.distinct(
+        "id",
+        {"created_by": user_id, "condominium_id": condo_id}
+    )
+    
+    query = {
+        "condominium_id": condo_id,
+        "$or": [
+            {"authorization_id": {"$in": resident_auth_ids}},
+            {"visitor_id": {"$in": legacy_visitor_ids}},
+            {"resident_id": user_id}
+        ]
+    }
+    
+    # Apply filters
+    now = datetime.now(timezone.utc)
+    if filter_period == "today":
+        query["entry_at"] = {"$gte": now.strftime("%Y-%m-%d") + "T00:00:00"}
+    elif filter_period == "7days":
+        query["entry_at"] = {"$gte": (now - timedelta(days=7)).strftime("%Y-%m-%d") + "T00:00:00"}
+    elif filter_period == "30days":
+        query["entry_at"] = {"$gte": (now - timedelta(days=30)).strftime("%Y-%m-%d") + "T00:00:00"}
+    elif filter_period == "custom" and (date_from or date_to):
+        date_query = {}
+        if date_from:
+            date_query["$gte"] = f"{date_from}T00:00:00"
+        if date_to:
+            date_query["$lte"] = f"{date_to}T23:59:59"
+        if date_query:
+            query["entry_at"] = date_query
+    
+    if visitor_type:
+        query["visitor_type"] = visitor_type
+    if status:
+        query["status"] = status
+    
+    # Fetch entries (limit 500 for export)
+    entries = await db.visitor_entries.find(query, {"_id": 0}).sort("entry_at", -1).to_list(500)
+    
+    # Enrich with duration
+    for entry in entries:
+        if entry.get("entry_at") and entry.get("exit_at"):
+            try:
+                entry_time = datetime.fromisoformat(entry["entry_at"].replace("Z", "+00:00"))
+                exit_time = datetime.fromisoformat(entry["exit_at"].replace("Z", "+00:00"))
+                entry["duration_minutes"] = int((exit_time - entry_time).total_seconds() / 60)
+            except:
+                entry["duration_minutes"] = None
+        else:
+            entry["duration_minutes"] = None
+    
+    return {
+        "resident_name": user.get("full_name", "N/A") if user else "N/A",
+        "apartment": apartment,
+        "condominium_name": condo.get("name", "N/A") if condo else "N/A",
+        "export_date": now.isoformat(),
+        "filter_applied": {
+            "period": filter_period,
+            "date_from": date_from,
+            "date_to": date_to,
+            "visitor_type": visitor_type,
+            "status": status
+        },
+        "total_entries": len(entries),
+        "entries": entries
+    }
+
+
+# ============================================
 # GUARD/ADMIN NOTIFICATIONS ENDPOINTS
 # ============================================
 
