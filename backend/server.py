@@ -6506,9 +6506,17 @@ async def create_user_by_admin(
             "guard_assignments": user_data.guard_assignments or []
         }
     
-    # Get condominium name for email
-    condo = await db.condominiums.find_one({"id": condominium_id}, {"_id": 0, "name": 1})
+    # Get condominium name and environment for email logic
+    condo = await db.condominiums.find_one({"id": condominium_id}, {"_id": 0, "name": 1, "environment": 1, "is_demo": 1})
     condo_name = condo.get("name", "GENTURIX") if condo else "GENTURIX"
+    
+    # IMPORTANT: Use tenant environment instead of global DEV_MODE
+    # Demo tenants: Don't send emails, show credentials in UI
+    # Production tenants: Send emails via Resend
+    tenant_is_demo = condo.get("environment", "production") == "demo" if condo else False
+    # Fallback: if environment not set but is_demo is true, treat as demo
+    if condo and condo.get("is_demo") and not tenant_is_demo:
+        tenant_is_demo = True
     
     # Determine if we should send credentials email and generate temp password
     send_email = user_data.send_credentials_email
@@ -6518,17 +6526,25 @@ async def create_user_by_admin(
     # Check if email sending is enabled (toggle)
     email_toggle_enabled = await is_email_enabled()
     
-    if send_email:
+    # For DEMO tenants: Never send emails, always show credentials
+    # For PRODUCTION tenants: Send emails if requested
+    if tenant_is_demo:
+        # Demo tenant: Don't send email, show credentials
+        send_email = False
+        password_reset_required = False
+        show_password_in_response = True
+    elif send_email:
+        # Production tenant with email requested
         # Generate a temporary password if sending email
         password_to_use = generate_temporary_password()
-        # Require password reset ONLY if:
-        # 1. NOT in DEV_MODE AND
-        # 2. Email toggle is ENABLED (so user will actually receive the email)
-        password_reset_required = not DEV_MODE and email_toggle_enabled
-    
-    # Determine if we should show password in response
-    # Show password if: DEV_MODE is true OR email toggle is disabled
-    show_password_in_response = DEV_MODE or not email_toggle_enabled
+        # Require password reset if email toggle is enabled (so user will receive the email)
+        password_reset_required = email_toggle_enabled
+        # Show password only if email toggle is disabled (email won't be sent)
+        show_password_in_response = not email_toggle_enabled
+    else:
+        # Production tenant, no email requested
+        password_reset_required = False
+        show_password_in_response = True  # Show since no email will be sent
     
     user_id = str(uuid.uuid4())
     user_doc = {
