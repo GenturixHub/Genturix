@@ -179,6 +179,17 @@ class RefreshTokenRequest(BaseModel):
 class PasswordChangeRequest(BaseModel):
     current_password: str
     new_password: str = Field(..., min_length=8)
+    confirm_password: str = Field(..., min_length=8)
+    
+    @field_validator('new_password')
+    @classmethod
+    def validate_password_strength(cls, v):
+        """Validate password meets security requirements"""
+        if not any(c.isupper() for c in v):
+            raise ValueError('La contraseña debe contener al menos una mayúscula')
+        if not any(c.isdigit() for c in v):
+            raise ValueError('La contraseña debe contener al menos un número')
+        return v
 
 # Profile Models
 class ProfileResponse(BaseModel):
