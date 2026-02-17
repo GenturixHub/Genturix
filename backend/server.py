@@ -6577,8 +6577,8 @@ async def create_user_by_admin(
         raise HTTPException(status_code=400, detail="Se requiere condominium_id para crear usuarios")
     
     # ==================== SAAS BILLING ENFORCEMENT ====================
-    # Check if we can create a new user based on paid seats
-    can_create, error_msg = await can_create_user(condominium_id)
+    # Check if we can create a new user based on paid seats (only for residents)
+    can_create, error_msg = await can_create_user(condominium_id, user_data.role)
     if not can_create:
         # Log the blocked attempt
         await log_billing_event(
@@ -6589,9 +6589,6 @@ async def create_user_by_admin(
         )
         raise HTTPException(status_code=403, detail=error_msg)
     # ==================================================================
-    
-    # Role-specific validation
-    role_data = {}
     
     # Role-specific validation
     role_data = {}
