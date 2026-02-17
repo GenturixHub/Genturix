@@ -48,7 +48,7 @@ import api from '../services/api';
 import pushManager from '../utils/PushNotificationManager';
 import ProfileDirectory from '../components/ProfileDirectory';
 import EmbeddedProfile from '../components/EmbeddedProfile';
-import VisitorAuthorizationsResident from '../components/VisitorAuthorizationsResident';
+import ResidentVisitsModule from '../components/ResidentVisitsModule';
 import PushPermissionBanner from '../components/PushPermissionBanner';
 import ResidentReservations from '../components/ResidentReservations';
 import MobileBottomNav, { useIsMobile } from '../components/layout/BottomNav';
