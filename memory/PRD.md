@@ -1,8 +1,25 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 3, 2026 (Verification: Admin Settings Page)
+## Last Updated: February 17, 2026 (P0 Bug Fixes: Panic Alert & Module Access Control)
 
 ## Changelog
+### 2026-02-17 (Session 70)
+- **P0 Bug Fix:** Panic Alert Sending Failure
+  - Root cause: `api.js` used `sessionStorage` with key `'accessToken'` while `AuthContext.js` used `localStorage` with key `'genturix_access_token'`
+  - Fix: Updated `api.js` to use `localStorage` with correct storage keys
+  - Tokens now correctly read for authenticated API requests
+  - Verified: Residents can now send panic alerts successfully with "¡ALERTA ENVIADA!" message
+
+- **P0 Bug Fix:** Backend Module Access Control
+  - Root cause: `require_module()` dependency wasn't combined with role checks effectively
+  - Fix: Created new `require_role_and_module()` combined dependency
+  - Updated HR and Security endpoints to use the combined dependency
+  - Verified: Disabled modules now correctly return 403 Forbidden
+  - Note: Panic endpoint intentionally NOT protected by module check (critical emergency feature)
+
+- **Test Results:** 100% pass rate (11/11 backend tests, all frontend UI flows verified)
+- **Files modified:** `/app/frontend/src/services/api.js`, `/app/backend/server.py`
+
 ### 2026-02-10 (Session 69)
 - **P0 UX Bug Fix:** Admin Mobile Profile/RRHH Separation
   - Fixed issue where Admin profile was rendering inside RRHH module on mobile
