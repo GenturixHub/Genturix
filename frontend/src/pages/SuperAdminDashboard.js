@@ -177,7 +177,7 @@ const MODULES = [
 
 const STATUS_CONFIG = {
   active: { label: 'Activo', color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: CheckCircle },
-  demo: { label: 'Demo', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', icon: Play },
+  demo: { label: 'Demo', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: Play },
   suspended: { label: 'Suspendido', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: Pause },
 };
 
