@@ -2136,24 +2136,26 @@ const UserManagementPage = () => {
               {newStatus === 'blocked' ? 'Bloquear Usuario' : 
                newStatus === 'suspended' ? 'Suspender Usuario' : 'Activar Usuario'}
             </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-3">
-              <p>
-                {newStatus === 'blocked' 
-                  ? `¿Estás seguro de bloquear a ${selectedUser?.full_name}? El usuario no podrá iniciar sesión y su sesión actual será cerrada inmediatamente.`
-                  : newStatus === 'suspended'
-                  ? `¿Estás seguro de suspender a ${selectedUser?.full_name}? El usuario no podrá acceder temporalmente.`
-                  : `¿Estás seguro de activar a ${selectedUser?.full_name}? El usuario podrá iniciar sesión nuevamente.`}
-              </p>
-              {selectedUser?.roles?.includes('Residente') && newStatus === 'blocked' && (
-                <p className="text-cyan-400 text-sm">
-                  ✓ Esto liberará 1 asiento de tu plan de residentes.
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-muted-foreground text-sm">
+                <p>
+                  {newStatus === 'blocked' 
+                    ? `¿Estás seguro de bloquear a ${selectedUser?.full_name}? El usuario no podrá iniciar sesión y su sesión actual será cerrada inmediatamente.`
+                    : newStatus === 'suspended'
+                    ? `¿Estás seguro de suspender a ${selectedUser?.full_name}? El usuario no podrá acceder temporalmente.`
+                    : `¿Estás seguro de activar a ${selectedUser?.full_name}? El usuario podrá iniciar sesión nuevamente.`}
                 </p>
-              )}
-              {selectedUser?.roles?.includes('Residente') && newStatus === 'active' && !seatUsage.can_add_resident && (
-                <p className="text-red-400 text-sm">
-                  ⚠️ No hay asientos disponibles. Aumenta tu plan o bloquea otros residentes primero.
-                </p>
-              )}
+                {selectedUser?.roles?.includes('Residente') && newStatus === 'blocked' && (
+                  <p className="text-cyan-400">
+                    ✓ Esto liberará 1 asiento de tu plan de residentes.
+                  </p>
+                )}
+                {selectedUser?.roles?.includes('Residente') && newStatus === 'active' && !seatUsage.can_add_resident && (
+                  <p className="text-red-400">
+                    ⚠️ No hay asientos disponibles. Aumenta tu plan o bloquea otros residentes primero.
+                  </p>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           
