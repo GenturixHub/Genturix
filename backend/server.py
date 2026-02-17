@@ -1142,6 +1142,28 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             detail="User not found or inactive"
         )
     
+    # Security: Check if token was issued before password was changed
+    # This invalidates all sessions after a password change
+    password_changed_at = user.get("password_changed_at")
+    token_iat = payload.get("iat")  # Token issued at timestamp
+    
+    if password_changed_at and token_iat:
+        try:
+            # Parse password_changed_at (ISO format) to timestamp
+            pwd_changed_time = datetime.fromisoformat(password_changed_at.replace("Z", "+00:00"))
+            pwd_changed_timestamp = pwd_changed_time.timestamp()
+            
+            # If token was issued BEFORE password was changed, reject it
+            if token_iat < pwd_changed_timestamp:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Session expired due to password change. Please login again.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+        except ValueError:
+            # If we can't parse the date, don't block the user
+            pass
+    
     return user
 
 def require_role(*allowed_roles):
