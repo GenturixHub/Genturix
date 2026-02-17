@@ -182,6 +182,12 @@ class ApiService {
 
   // Auth endpoints
   seedDemoData = () => this.post('/seed-demo-data');
+  changePassword = (currentPassword, newPassword, confirmPassword) => 
+    this.post('/auth/change-password', { 
+      current_password: currentPassword, 
+      new_password: newPassword,
+      confirm_password: confirmPassword
+    });
 
   // Dashboard
   getDashboardStats = () => this.get('/dashboard/stats');
