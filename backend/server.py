@@ -6650,13 +6650,16 @@ async def create_user_by_admin(
         "role_data": role_data,
         "credentials": {
             "email": user_data.email,
-            # Show password if DEV_MODE is true OR email toggle is disabled
             "password": password_to_use if show_password_in_response else "********",
             "show_password": show_password_in_response
         },
-        "dev_mode": DEV_MODE,
+        "tenant_environment": "demo" if tenant_is_demo else "production",
         "email_toggle_enabled": email_toggle_enabled
     }
+    
+    # Add appropriate message based on tenant type
+    if tenant_is_demo:
+        response["demo_mode_notice"] = "Modo DEMO: Las credenciales se muestran en pantalla. Los emails no se envían."
     
     if send_email:
         response["email_status"] = email_result.get("status", "unknown")
