@@ -88,7 +88,8 @@ import {
   UserX,
   Building,
   Calendar,
-  ExternalLink
+  ExternalLink,
+  Key
 } from 'lucide-react';
 
 // ============================================
