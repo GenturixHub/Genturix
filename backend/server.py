@@ -2354,7 +2354,7 @@ async def get_panic_events(current_user = Depends(require_module("security"))):
     return events
 
 @api_router.put("/security/panic/{event_id}/resolve")
-async def resolve_panic(event_id: str, resolve_data: PanicResolveRequest, request: Request, current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
+async def resolve_panic(event_id: str, resolve_data: PanicResolveRequest, request: Request, current_user = Depends(require_role_and_module("Administrador", "Supervisor", "Guarda", module="security"))):
     """Resolve a panic event and save to guard_history"""
     # Verify event exists and belongs to user's condominium
     event = await db.panic_events.find_one({"id": event_id})
@@ -2422,7 +2422,7 @@ async def resolve_panic(event_id: str, resolve_data: PanicResolveRequest, reques
     return {"message": "Panic event resolved"}
 
 @api_router.post("/security/access-log")
-async def create_access_log(log: AccessLogCreate, request: Request, current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
+async def create_access_log(log: AccessLogCreate, request: Request, current_user = Depends(require_role_and_module("Administrador", "Supervisor", "Guarda", module="security"))):
     # Determine role for source field
     user_roles = current_user.get("roles", [])
     if "Administrador" in user_roles:
