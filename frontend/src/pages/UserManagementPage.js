@@ -1549,6 +1549,7 @@ const UserManagementPage = () => {
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [statusReason, setStatusReason] = useState(''); // NEW: Reason for blocking
   const [newStatus, setNewStatus] = useState(''); // NEW: Status to set
+  const [showResetPasswordDialog, setShowResetPasswordDialog] = useState(false); // NEW: Reset password dialog
   
   // NEW: Seat usage state
   const [seatUsage, setSeatUsage] = useState({
