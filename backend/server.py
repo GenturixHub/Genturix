@@ -632,6 +632,8 @@ class CondominiumResponse(BaseModel):
     is_demo: bool = False
     discount_percent: float = 0.0
     plan: str = "basic"
+    # Environment: "demo" or "production"
+    environment: str = "production"
     # SaaS Billing Fields
     paid_seats: int = 10  # How many users are paid for
     active_users: int = 0  # Real count of active users (excluding SuperAdmin)
