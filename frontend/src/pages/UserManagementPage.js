@@ -2015,6 +2015,18 @@ const UserManagementPage = () => {
                               </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-1">
+                                  {/* Reset Password Button */}
+                                  {canResetPassword(u) && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => openResetPasswordDialog(u)}
+                                      data-testid={`reset-password-${u.id}`}
+                                      title="Restablecer contraseña"
+                                    >
+                                      <Key className="w-4 h-4 text-cyan-400" />
+                                    </Button>
+                                  )}
                                   {userStatus === 'active' ? (
                                     <Button
                                       variant="ghost"
