@@ -602,6 +602,8 @@ class CondominiumCreate(BaseModel):
     modules: Optional[CondominiumModules] = None
     # Billing fields
     paid_seats: int = Field(default=10, ge=1)  # Default 10 seats for new condos
+    # Environment field: "demo" or "production"
+    environment: str = Field(default="production", pattern="^(demo|production)$")
 
 class CondominiumUpdate(BaseModel):
     name: Optional[str] = None
