@@ -10181,6 +10181,23 @@ async def create_condominium(
     # Determine if this is a demo tenant
     is_demo = condo_data.environment == "demo"
     
+    # ==================== DEMO VS PRODUCTION CONFIG ====================
+    # Demo condominiums have:
+    # - Fixed seat_limit of 10
+    # - billing_enabled = false
+    # - No Stripe integration
+    if is_demo:
+        paid_seats = 10  # Hardcoded for demo
+        billing_enabled = False
+        billing_status = "demo"
+        stripe_customer_id = None
+    else:
+        paid_seats = condo_data.max_users if condo_data.max_users else 10
+        billing_enabled = True
+        billing_status = "active"
+        stripe_customer_id = None  # Will be set when subscription is created
+    # ==================================================================
+    
     condo_doc = {
         "id": condo_id,
         "name": condo_data.name,
@@ -10194,10 +10211,15 @@ async def create_condominium(
         "is_demo": is_demo,
         "environment": condo_data.environment,  # "demo" or "production"
         "is_active": True,
+        # Billing configuration
+        "paid_seats": paid_seats,
+        "billing_enabled": billing_enabled,
+        "billing_status": billing_status,
+        "stripe_customer_id": stripe_customer_id,
         "price_per_user": 1.0,
         "discount_percent": 0,
         "free_modules": [],
-        "plan": "basic",
+        "plan": "demo" if is_demo else "basic",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat()
     }
