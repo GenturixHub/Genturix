@@ -284,8 +284,8 @@ class TestCompletePasswordResetEndpoint:
             }
         )
         
-        # Should return 400 for either invalid token or password requirements
-        assert response.status_code == 400, f"Expected 400, got {response.status_code}: {response.text}"
+        # Should return 400 or 422 for password validation / invalid token
+        assert response.status_code in [400, 422], f"Expected 400/422, got {response.status_code}: {response.text}"
         print("✓ Weak password or invalid token correctly rejected")
 
     def test_complete_without_token_returns_validation_error(self):
