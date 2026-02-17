@@ -180,15 +180,15 @@ const CredentialsDialog = ({ open, onClose, credentials }) => {
           <DialogTitle className="flex items-center gap-2 text-green-400">
             <CheckCircle className="w-5 h-5" />
             Usuario Creado Exitosamente
-            {isDevMode && (
-              <Badge className="bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 ml-2">
-                DEV MODE
+            {tenantIsDemo && (
+              <Badge className="bg-blue-500/20 text-blue-400 border border-blue-500/30 ml-2">
+                DEMO
               </Badge>
             )}
           </DialogTitle>
           <DialogDescription>
-            {isDevMode 
-              ? "Modo desarrollo: La contraseña se muestra para pruebas. No se requiere cambio obligatorio."
+            {tenantIsDemo 
+              ? "Modo DEMO: Las credenciales se muestran en pantalla. Los emails no se envían."
               : emailSent && emailSuccess 
                 ? "Las credenciales han sido enviadas al email del usuario."
                 : "Guarda estas credenciales de forma segura. La contraseña no se mostrará de nuevo."
@@ -197,19 +197,19 @@ const CredentialsDialog = ({ open, onClose, credentials }) => {
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* DEV MODE Banner */}
-          {isDevMode && (
-            <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-start gap-2">
-              <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5 text-yellow-400" />
-              <div className="text-sm text-yellow-400">
-                <strong>Modo Desarrollo Activo</strong><br/>
-                La contraseña se muestra para facilitar pruebas. En producción, esta información estará oculta.
+          {/* DEMO MODE Banner */}
+          {tenantIsDemo && (
+            <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-start gap-2">
+              <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5 text-blue-400" />
+              <div className="text-sm text-blue-400">
+                <strong>Tenant en Modo DEMO</strong><br/>
+                Este condominio está configurado como DEMO. Las credenciales siempre se muestran y los emails nunca se envían.
               </div>
             </div>
           )}
 
           {/* Email Status Banner */}
-          {emailSent && !isDevMode && (
+          {emailSent && !tenantIsDemo && (
             <div className={`p-3 rounded-lg flex items-start gap-2 ${
               emailSuccess 
                 ? 'bg-green-500/10 border border-green-500/20' 
@@ -232,8 +232,8 @@ const CredentialsDialog = ({ open, onClose, credentials }) => {
             </div>
           )}
 
-          {/* Warning Banner - only show if NOT sent by email and NOT dev mode */}
-          {!emailSent && !isDevMode && (
+          {/* Warning Banner - only show if NOT sent by email and NOT demo mode */}
+          {!emailSent && !tenantIsDemo && (
             <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-start gap-2">
               <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-yellow-400">
@@ -241,7 +241,7 @@ const CredentialsDialog = ({ open, onClose, credentials }) => {
                 Cópiala ahora y entrégala al usuario de forma segura.
               </div>
             </div>
-          )}
+          )}}
 
           {/* User Info */}
           <div className="p-4 rounded-lg bg-[#0A0A0F] border border-[#1E293B] space-y-3">
