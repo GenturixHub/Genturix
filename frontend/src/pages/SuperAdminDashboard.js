@@ -1049,7 +1049,7 @@ const CreateCondoDialog = ({ open, onClose, onSuccess }) => {
     contact_email: '',
     contact_phone: '',
     max_users: 100,
-    is_demo: false
+    environment: 'production'  // "demo" or "production"
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -1060,7 +1060,7 @@ const CreateCondoDialog = ({ open, onClose, onSuccess }) => {
     try {
       await api.createCondominium(form);
       onSuccess();
-      setForm({ name: '', address: '', contact_email: '', contact_phone: '', max_users: 100, is_demo: false });
+      setForm({ name: '', address: '', contact_email: '', contact_phone: '', max_users: 100, environment: 'production' });
     } catch (error) {
       alert('Error creating condominium');
     } finally {
@@ -1130,15 +1130,42 @@ const CreateCondoDialog = ({ open, onClose, onSuccess }) => {
               className="bg-[#0A0A0F] border-[#1E293B] mt-1"
             />
           </div>
-          <div className="flex items-center justify-between p-3 rounded-lg bg-[#0A0A0F] border border-[#1E293B]">
-            <div>
-              <p className="font-medium">Modo Demo</p>
-              <p className="text-xs text-muted-foreground">Para ventas y pruebas</p>
-            </div>
-            <Switch
-              checked={form.is_demo}
-              onCheckedChange={(checked) => setForm({...form, is_demo: checked})}
-            />
+          
+          {/* Environment Selector */}
+          <div className="space-y-2">
+            <Label>Tipo de Tenant</Label>
+            <Select 
+              value={form.environment} 
+              onValueChange={(v) => setForm({...form, environment: v})}
+            >
+              <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B]">
+                <SelectValue placeholder="Seleccionar tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="production">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-green-500/20 text-green-400 text-[10px]">PRODUCCIÓN</Badge>
+                    <span>Envía emails, requiere cambio de contraseña</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="demo">
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-blue-500/20 text-blue-400 text-[10px]">DEMO</Badge>
+                    <span>No envía emails, muestra credenciales</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            {form.environment === 'demo' && (
+              <p className="text-xs text-blue-400 mt-1">
+                ℹ️ Los tenants DEMO nunca envían emails. Las credenciales se muestran directamente en pantalla.
+              </p>
+            )}
+            {form.environment === 'production' && (
+              <p className="text-xs text-green-400 mt-1">
+                ℹ️ Los tenants de PRODUCCIÓN envían credenciales por email vía Resend.
+              </p>
+            )}
           </div>
         </div>
 
