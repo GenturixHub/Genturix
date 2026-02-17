@@ -1537,14 +1537,40 @@ const UserManagementPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all'); // NEW: Filter by status
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showCredentialsDialog, setShowCredentialsDialog] = useState(false);
   const [newUserCredentials, setNewUserCredentials] = useState(null);
   const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false); // NEW: Delete confirmation
   const [selectedUser, setSelectedUser] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('users');
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const [statusReason, setStatusReason] = useState(''); // NEW: Reason for blocking
+  const [newStatus, setNewStatus] = useState(''); // NEW: Status to set
+  
+  // NEW: Seat usage state
+  const [seatUsage, setSeatUsage] = useState({
+    seat_limit: 0,
+    active_residents: 0,
+    available_seats: 0,
+    total_users: 0,
+    users_by_role: {},
+    users_by_status: {},
+    can_add_resident: true,
+    billing_status: 'active'
+  });
+
+  // NEW: Fetch seat usage
+  const fetchSeatUsage = useCallback(async () => {
+    try {
+      const data = await api.getSeatUsage();
+      setSeatUsage(data);
+    } catch (err) {
+      console.error('Error fetching seat usage:', err);
+    }
+  }, []);
 
   // Fetch pending requests count
   const fetchPendingCount = useCallback(async () => {
