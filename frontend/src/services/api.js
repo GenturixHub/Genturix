@@ -540,6 +540,31 @@ class ApiService {
   markNotificationRead = (notificationId) => this.put(`/resident/visitor-notifications/${notificationId}/read`);
   markAllNotificationsRead = () => this.put('/resident/visitor-notifications/read-all');
   
+  // Resident Visit History (Advanced Module)
+  getResidentVisitHistory = (params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.filter_period) queryParams.append('filter_period', params.filter_period);
+    if (params.date_from) queryParams.append('date_from', params.date_from);
+    if (params.date_to) queryParams.append('date_to', params.date_to);
+    if (params.visitor_type) queryParams.append('visitor_type', params.visitor_type);
+    if (params.status) queryParams.append('status', params.status);
+    if (params.search) queryParams.append('search', params.search);
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.page_size) queryParams.append('page_size', params.page_size.toString());
+    const queryString = queryParams.toString();
+    return this.get(`/resident/visit-history${queryString ? `?${queryString}` : ''}`);
+  };
+  exportResidentVisitHistory = (params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.filter_period) queryParams.append('filter_period', params.filter_period);
+    if (params.date_from) queryParams.append('date_from', params.date_from);
+    if (params.date_to) queryParams.append('date_to', params.date_to);
+    if (params.visitor_type) queryParams.append('visitor_type', params.visitor_type);
+    if (params.status) queryParams.append('status', params.status);
+    const queryString = queryParams.toString();
+    return this.get(`/resident/visit-history/export${queryString ? `?${queryString}` : ''}`);
+  };
+  
   // Guard endpoints
   getAuthorizationsForGuard = (search = '', includeUsed = false) => {
     const params = new URLSearchParams();
