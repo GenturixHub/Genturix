@@ -1938,6 +1938,9 @@ const UserManagementPage = () => {
                           const role = u.roles?.[0] || 'Sin rol';
                           const config = ROLE_CONFIG[role];
                           const Icon = config?.icon || Users;
+                          const statusBadge = getStatusBadge(u);
+                          const userStatus = u.status || (u.is_active !== false ? 'active' : 'blocked');
+                          const isResident = u.roles?.includes('Residente');
                           
                           return (
                             <TableRow key={u.id} className="border-[#1E293B]" data-testid={`user-row-${u.id}`}>
@@ -1961,33 +1964,47 @@ const UserManagementPage = () => {
                                 </Badge>
                               </TableCell>
                               <TableCell>
-                                <Badge 
-                                  className={u.is_active !== false 
-                                    ? 'bg-green-500/10 text-green-400 border-green-500/20' 
-                                    : 'bg-red-500/10 text-red-400 border-red-500/20'}
-                                >
-                                  {u.is_active !== false ? 'Activo' : 'Inactivo'}
+                                <Badge className={statusBadge.className}>
+                                  {statusBadge.label}
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-muted-foreground text-sm">
                                 {u.created_at ? new Date(u.created_at).toLocaleDateString('es-MX') : 'N/A'}
                               </TableCell>
                               <TableCell className="text-right">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    setSelectedUser(u);
-                                    setShowDeactivateDialog(true);
-                                  }}
-                                  data-testid={`toggle-status-${u.id}`}
-                                >
-                                  {u.is_active !== false ? (
-                                    <Lock className="w-4 h-4 text-yellow-400" />
+                                <div className="flex items-center justify-end gap-1">
+                                  {userStatus === 'active' ? (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => openStatusDialog(u, 'blocked')}
+                                      data-testid={`block-user-${u.id}`}
+                                      title="Bloquear usuario"
+                                    >
+                                      <Lock className="w-4 h-4 text-yellow-400" />
+                                    </Button>
                                   ) : (
-                                    <Unlock className="w-4 h-4 text-green-400" />
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => openStatusDialog(u, 'active')}
+                                      data-testid={`unblock-user-${u.id}`}
+                                      title="Desbloquear usuario"
+                                      disabled={isResident && !seatUsage.can_add_resident}
+                                    >
+                                      <Unlock className="w-4 h-4 text-green-400" />
+                                    </Button>
                                   )}
-                                </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => openDeleteDialog(u)}
+                                    data-testid={`delete-user-${u.id}`}
+                                    title="Eliminar usuario"
+                                  >
+                                    <Trash2 className="w-4 h-4 text-red-400" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           );
@@ -2004,6 +2021,9 @@ const UserManagementPage = () => {
                       const role = u.roles?.[0] || 'Sin rol';
                       const config = ROLE_CONFIG[role];
                       const Icon = config?.icon || Users;
+                      const statusBadge = getStatusBadge(u);
+                      const userStatus = u.status || (u.is_active !== false ? 'active' : 'blocked');
+                      const isResident = u.roles?.includes('Residente');
                       
                       return (
                         <MobileCard
