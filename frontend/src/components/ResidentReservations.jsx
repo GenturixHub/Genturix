@@ -785,9 +785,10 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
               </div>
             </div>
           </div>
+          </div>
         </div>
         
-        <DialogFooter className="flex-col sm:flex-row gap-2">
+        <DialogFooter className="flex-col sm:flex-row gap-2 flex-shrink-0 pt-4 border-t border-[#1E293B]">
           <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
             Cancelar
           </Button>
