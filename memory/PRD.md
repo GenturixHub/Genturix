@@ -1,9 +1,16 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 17, 2026 (P0 Bug Fixes: Panic Alert & Module Access Control)
+## Last Updated: February 17, 2026 (P0 Bug Fix: VAPID Keys + Panic Alert + Module Access)
 
 ## Changelog
 ### 2026-02-17 (Session 70)
+- **P0 Bug Fix:** VAPID Keys Configuration for Push Notifications
+  - Root cause: `usePushNotifications.js` expected `vapid_public_key` but API returns `publicKey`
+  - Fix: Updated hook to correctly destructure `publicKey` from API response
+  - VAPID keys already configured in backend `.env`: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_CLAIMS_EMAIL
+  - Verified: Push subscription flow works correctly end-to-end
+  - Endpoint `/api/push/vapid-public-key` returns valid VAPID public key
+
 - **P0 Bug Fix:** Panic Alert Sending Failure
   - Root cause: `api.js` used `sessionStorage` with key `'accessToken'` while `AuthContext.js` used `localStorage` with key `'genturix_access_token'`
   - Fix: Updated `api.js` to use `localStorage` with correct storage keys
