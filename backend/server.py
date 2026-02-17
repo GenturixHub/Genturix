@@ -8591,6 +8591,310 @@ async def update_user_roles(user_id: str, roles: List[str], current_user = Depen
         raise HTTPException(status_code=404, detail="User not found")
     return {"message": "Roles updated"}
 
+# ==================== SEAT MANAGEMENT MODELS ====================
+class UserStatusUpdateV2(BaseModel):
+    """Update user status with enhanced seat management"""
+    status: str = Field(..., pattern="^(active|blocked|suspended)$")
+    reason: Optional[str] = None  # Optional reason for blocking/suspending
+
+class SeatUsageResponse(BaseModel):
+    """Response model for seat usage information"""
+    seat_limit: int
+    active_residents: int
+    available_seats: int
+    total_users: int
+    users_by_role: Dict[str, int]
+    users_by_status: Dict[str, int]
+    can_add_resident: bool
+    billing_status: str
+
+class SeatReductionValidation(BaseModel):
+    """Validate if seat reduction is allowed"""
+    new_seat_limit: int = Field(..., ge=1)
+
+# ==================== SEAT MANAGEMENT ENDPOINTS ====================
+
+@api_router.get("/admin/seat-usage")
+async def get_seat_usage(current_user = Depends(require_role("Administrador", "SuperAdmin"))):
+    """
+    Get detailed seat usage for the condominium.
+    Returns seat_limit, active_residents (calculated dynamically), and availability.
+    """
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="Usuario no asociado a un condominio")
+    
+    condo = await db.condominiums.find_one({"id": condo_id}, {"_id": 0})
+    if not condo:
+        raise HTTPException(status_code=404, detail="Condominio no encontrado")
+    
+    seat_limit = condo.get("paid_seats", 10)
+    
+    # Count active residents dynamically (status='active' AND role='Residente')
+    active_residents = await db.users.count_documents({
+        "condominium_id": condo_id,
+        "roles": {"$in": ["Residente"]},
+        "$or": [
+            {"status": "active"},
+            {"status": {"$exists": False}, "is_active": True}  # Backward compatibility
+        ]
+    })
+    
+    # Count total users by role
+    pipeline = [
+        {"$match": {"condominium_id": condo_id, "roles": {"$not": {"$in": ["SuperAdmin"]}}}},
+        {"$unwind": "$roles"},
+        {"$group": {"_id": "$roles", "count": {"$sum": 1}}}
+    ]
+    role_counts = await db.users.aggregate(pipeline).to_list(100)
+    users_by_role = {item["_id"]: item["count"] for item in role_counts}
+    
+    # Count users by status
+    status_pipeline = [
+        {"$match": {"condominium_id": condo_id, "roles": {"$not": {"$in": ["SuperAdmin"]}}}},
+        {"$group": {
+            "_id": {"$ifNull": ["$status", {"$cond": [{"$eq": ["$is_active", False]}, "blocked", "active"]}]},
+            "count": {"$sum": 1}
+        }}
+    ]
+    status_counts = await db.users.aggregate(status_pipeline).to_list(100)
+    users_by_status = {item["_id"]: item["count"] for item in status_counts}
+    
+    total_users = await db.users.count_documents({
+        "condominium_id": condo_id,
+        "roles": {"$not": {"$in": ["SuperAdmin"]}}
+    })
+    
+    return {
+        "seat_limit": seat_limit,
+        "active_residents": active_residents,
+        "available_seats": max(0, seat_limit - active_residents),
+        "total_users": total_users,
+        "users_by_role": users_by_role,
+        "users_by_status": users_by_status,
+        "can_add_resident": active_residents < seat_limit,
+        "billing_status": condo.get("billing_status", "active")
+    }
+
+@api_router.post("/admin/validate-seat-reduction")
+async def validate_seat_reduction(
+    validation: SeatReductionValidation,
+    current_user = Depends(require_role("Administrador", "SuperAdmin"))
+):
+    """
+    Validate if seat reduction is allowed.
+    Returns error if activeResidents > newSeatLimit.
+    """
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="Usuario no asociado a un condominio")
+    
+    # Count active residents
+    active_residents = await db.users.count_documents({
+        "condominium_id": condo_id,
+        "roles": {"$in": ["Residente"]},
+        "$or": [
+            {"status": "active"},
+            {"status": {"$exists": False}, "is_active": True}
+        ]
+    })
+    
+    if active_residents > validation.new_seat_limit:
+        residents_to_remove = active_residents - validation.new_seat_limit
+        return {
+            "can_reduce": False,
+            "current_active_residents": active_residents,
+            "new_seat_limit": validation.new_seat_limit,
+            "residents_to_remove": residents_to_remove,
+            "message": f"Debes eliminar o bloquear {residents_to_remove} residente(s) antes de reducir el plan a {validation.new_seat_limit} asientos."
+        }
+    
+    return {
+        "can_reduce": True,
+        "current_active_residents": active_residents,
+        "new_seat_limit": validation.new_seat_limit,
+        "residents_to_remove": 0,
+        "message": "Puedes reducir el plan de forma segura."
+    }
+
+@api_router.patch("/admin/users/{user_id}/status-v2")
+async def update_user_status_v2(
+    user_id: str, 
+    status_data: UserStatusUpdateV2,
+    request: Request,
+    current_user = Depends(require_role("Administrador", "SuperAdmin"))
+):
+    """
+    Update user status with enhanced seat management.
+    - Validates seat limits when activating residents
+    - Invalidates user sessions when blocking/suspending
+    - Updates active user counts
+    """
+    target_user = await db.users.find_one({"id": user_id})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # Admin can only update users from their condominium
+    if "SuperAdmin" not in current_user.get("roles", []):
+        if target_user.get("condominium_id") != current_user.get("condominium_id"):
+            raise HTTPException(status_code=403, detail="No tienes permiso para modificar este usuario")
+    
+    # Cannot modify yourself
+    if target_user["id"] == current_user["id"]:
+        raise HTTPException(status_code=400, detail="No puedes modificar tu propio estado")
+    
+    condo_id = target_user.get("condominium_id")
+    is_resident = "Residente" in target_user.get("roles", [])
+    old_status = target_user.get("status", "active" if target_user.get("is_active", True) else "blocked")
+    new_status = status_data.status
+    
+    # If activating a resident, check seat limit
+    if new_status == "active" and is_resident and old_status != "active":
+        condo = await db.condominiums.find_one({"id": condo_id}, {"_id": 0, "paid_seats": 1})
+        seat_limit = condo.get("paid_seats", 10) if condo else 10
+        
+        active_residents = await db.users.count_documents({
+            "condominium_id": condo_id,
+            "roles": {"$in": ["Residente"]},
+            "$or": [
+                {"status": "active"},
+                {"status": {"$exists": False}, "is_active": True}
+            ]
+        })
+        
+        if active_residents >= seat_limit:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"No hay asientos disponibles ({active_residents}/{seat_limit}). Aumenta tu plan o bloquea otros residentes primero."
+            )
+    
+    # Prepare update
+    update_data = {
+        "status": new_status,
+        "is_active": new_status == "active",
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # If blocking/suspending, invalidate sessions by setting status_changed_at
+    if new_status in ["blocked", "suspended"]:
+        update_data["status_changed_at"] = datetime.now(timezone.utc).isoformat()
+        if status_data.reason:
+            update_data["status_reason"] = status_data.reason
+    
+    result = await db.users.update_one({"id": user_id}, {"$set": update_data})
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="No se pudo actualizar el usuario")
+    
+    # Update active user count
+    if condo_id:
+        await update_active_user_count(condo_id)
+    
+    # Determine audit event type
+    if new_status == "blocked":
+        event_type = AuditEventType.USER_BLOCKED
+    elif new_status == "suspended":
+        event_type = AuditEventType.USER_SUSPENDED
+    elif new_status == "active" and old_status in ["blocked", "suspended"]:
+        event_type = AuditEventType.USER_UNBLOCKED
+    else:
+        event_type = AuditEventType.USER_UPDATED
+    
+    await log_audit_event(
+        event_type,
+        current_user["id"],
+        "users",
+        {
+            "target_user_id": user_id,
+            "target_user_email": target_user.get("email"),
+            "target_role": target_user.get("roles", []),
+            "old_status": old_status,
+            "new_status": new_status,
+            "reason": status_data.reason,
+            "is_resident": is_resident
+        },
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    status_messages = {
+        "active": "activado",
+        "blocked": "bloqueado",
+        "suspended": "suspendido"
+    }
+    
+    return {
+        "message": f"Usuario {status_messages.get(new_status, new_status)} exitosamente",
+        "user_id": user_id,
+        "new_status": new_status,
+        "session_invalidated": new_status in ["blocked", "suspended"]
+    }
+
+@api_router.delete("/admin/users/{user_id}")
+async def delete_user(
+    user_id: str,
+    request: Request,
+    current_user = Depends(require_role("Administrador", "SuperAdmin"))
+):
+    """
+    Delete a user permanently.
+    - Releases the seat if the user is a resident
+    - Cannot delete yourself
+    - Cannot delete SuperAdmins
+    """
+    target_user = await db.users.find_one({"id": user_id})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # Admin can only delete users from their condominium
+    if "SuperAdmin" not in current_user.get("roles", []):
+        if target_user.get("condominium_id") != current_user.get("condominium_id"):
+            raise HTTPException(status_code=403, detail="No tienes permiso para eliminar este usuario")
+    
+    # Cannot delete yourself
+    if target_user["id"] == current_user["id"]:
+        raise HTTPException(status_code=400, detail="No puedes eliminarte a ti mismo")
+    
+    # Cannot delete SuperAdmins
+    if "SuperAdmin" in target_user.get("roles", []):
+        raise HTTPException(status_code=403, detail="No puedes eliminar un SuperAdmin")
+    
+    condo_id = target_user.get("condominium_id")
+    is_resident = "Residente" in target_user.get("roles", [])
+    
+    # Delete the user
+    result = await db.users.delete_one({"id": user_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="No se pudo eliminar el usuario")
+    
+    # Update active user count (releases the seat)
+    if condo_id:
+        await update_active_user_count(condo_id)
+    
+    # Log audit event
+    await log_audit_event(
+        AuditEventType.USER_DELETED,
+        current_user["id"],
+        "users",
+        {
+            "deleted_user_id": user_id,
+            "deleted_user_email": target_user.get("email"),
+            "deleted_user_roles": target_user.get("roles", []),
+            "was_resident": is_resident,
+            "seat_released": is_resident
+        },
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    return {
+        "message": "Usuario eliminado exitosamente",
+        "user_id": user_id,
+        "seat_released": is_resident
+    }
+
+# ==================== LEGACY STATUS ENDPOINT (kept for backward compatibility) ====================
 class UserStatusUpdate(BaseModel):
     is_active: bool
 
