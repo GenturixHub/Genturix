@@ -296,10 +296,10 @@ class TestSeatManagement:
         """Admin cannot modify their own status"""
         # Get admin's user ID
         profile_response = requests.get(
-            f"{BASE_URL}/api/profile/me",
+            f"{BASE_URL}/api/auth/me",
             headers=self.get_admin_headers()
         )
-        assert profile_response.status_code == 200
+        assert profile_response.status_code == 200, f"Expected 200, got {profile_response.status_code}: {profile_response.text}"
         admin_id = profile_response.json()["id"]
         
         # Try to block self
@@ -382,10 +382,10 @@ class TestSeatManagement:
         """Admin cannot delete themselves"""
         # Get admin's user ID
         profile_response = requests.get(
-            f"{BASE_URL}/api/profile/me",
+            f"{BASE_URL}/api/auth/me",
             headers=self.get_admin_headers()
         )
-        assert profile_response.status_code == 200
+        assert profile_response.status_code == 200, f"Expected 200, got {profile_response.status_code}: {profile_response.text}"
         admin_id = profile_response.json()["id"]
         
         # Try to delete self
@@ -415,12 +415,12 @@ class TestSeatManagement:
         
         # Get resident's user ID
         profile_response = requests.get(
-            f"{BASE_URL}/api/profile/me",
+            f"{BASE_URL}/api/auth/me",
             headers=resident_headers
         )
         
         if profile_response.status_code != 200:
-            pytest.skip("Could not get resident profile")
+            pytest.skip(f"Could not get resident profile: {profile_response.status_code}")
         
         resident_id = profile_response.json()["id"]
         
@@ -435,7 +435,7 @@ class TestSeatManagement:
         
         # Try to use the old token - should get 403
         blocked_response = requests.get(
-            f"{BASE_URL}/api/profile/me",
+            f"{BASE_URL}/api/auth/me",
             headers=resident_headers
         )
         
