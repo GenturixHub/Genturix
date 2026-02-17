@@ -1,9 +1,21 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 17, 2026 (P1 Feature: Resident Visit History Module)
+## Last Updated: February 17, 2026 (P1 Feature: Demo vs Production Tenant Logic)
 
 ## Changelog
 ### 2026-02-17 (Session 70)
+- **P1 Feature:** Demo vs Production Tenant Logic (Removed DEV_MODE dependency)
+  - Added `environment` field to tenant/condominium model: "demo" or "production"
+  - Demo tenants: Never send emails, always show credentials in UI
+  - Production tenants: Send credentials via Resend with secure password setup
+  - New endpoint: `/api/config/tenant-environment` returns tenant-specific behavior
+  - UI indicators: Blue "DEMO" badge / Green "PROD" badge on tenant list
+  - Updated CreateCondoDialog with environment selector dropdown
+  - Updated user creation response: `tenant_environment`, `demo_mode_notice` fields
+  - Backwards compatible: existing tenants default to "demo" for safety
+  - Files modified: `server.py` (CondominiumCreate/Update/Response models, create_user endpoint), 
+    `SuperAdminDashboard.js`, `UserManagementPage.js`, `api.js`
+
 - **P1 Feature:** Advanced Resident Visit History Module
   - Added "Historial" tab inside Visitas section
   - Tenant isolation: Only shows visits related to resident's authorizations
