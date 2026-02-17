@@ -619,6 +619,16 @@ const ProfilePage = () => {
         {/* Role-specific Information (only for own profile) */}
         {getRoleSpecificInfo()}
 
+        {/* Security Section - Change Password (only for own profile) */}
+        {isOwnProfile && (
+          <ChangePasswordForm 
+            onSuccess={() => {
+              setSuccess('Contraseña actualizada exitosamente');
+              setTimeout(() => setSuccess(null), 3000);
+            }}
+          />
+        )}
+
         {/* Photo Lightbox Modal */}
         <Dialog open={photoModalOpen} onOpenChange={setPhotoModalOpen}>
           <DialogContent className="max-w-3xl bg-black/95 border-[#1E293B] p-0 overflow-hidden">
