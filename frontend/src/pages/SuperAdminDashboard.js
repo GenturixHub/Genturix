@@ -2020,7 +2020,10 @@ const UsersTab = ({ condos }) => {
           <SelectTrigger className="w-full sm:w-48 bg-[#0A0A0F] border-[#1E293B]">
             <SelectValue placeholder="Condominio" />
           </SelectTrigger>
-          <SelectContent className="bg-[#0F111A] border-[#1E293B]">
+          <SelectContent 
+            className="bg-[#0F111A] border-[#1E293B] max-h-[60vh] overflow-y-auto"
+            style={{ overscrollBehavior: 'contain' }}
+          >
             <SelectItem value="all">Todos los condominios</SelectItem>
             {condos.map(c => (
               <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
