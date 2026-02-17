@@ -9460,9 +9460,13 @@ async def list_condominiums(
     for condo in condos:
         condo.setdefault("status", "active")
         condo.setdefault("is_demo", False)
+        condo.setdefault("environment", "production")  # Default to production for existing condos
         condo.setdefault("discount_percent", 0.0)
         condo.setdefault("plan", "basic")
         condo.setdefault("price_per_user", 1.0)
+        # Sync environment with is_demo for backwards compatibility
+        if condo.get("is_demo") and condo.get("environment") == "production":
+            condo["environment"] = "demo"
         # Calculate current_users from database if not set
         if condo.get("current_users", 0) == 0:
             user_count = await db.users.count_documents({"condominium_id": condo["id"], "is_active": True})
