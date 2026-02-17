@@ -150,6 +150,9 @@ class AuditEventType(str, Enum):
     # Seat management events
     SEAT_LIMIT_UPDATED = "seat_limit_updated"
     SEAT_REDUCTION_BLOCKED = "seat_reduction_blocked"
+    # Password reset events
+    PASSWORD_RESET_BY_ADMIN = "password_reset_by_admin"
+    PASSWORD_RESET_TOKEN_USED = "password_reset_token_used"
 
 # ==================== USER STATUS ENUM ====================
 class UserStatus(str, Enum):
