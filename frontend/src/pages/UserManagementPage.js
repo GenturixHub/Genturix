@@ -2032,22 +2032,31 @@ const UserManagementPage = () => {
                           title={u.full_name || 'Sin nombre'}
                           subtitle={u.email}
                           icon={Icon}
-                          status={u.is_active !== false ? 'Activo' : 'Inactivo'}
-                          statusColor={u.is_active !== false ? 'green' : 'red'}
+                          status={statusBadge.label}
+                          statusColor={userStatus === 'active' ? 'green' : userStatus === 'blocked' ? 'red' : 'yellow'}
                           details={[
                             { label: 'Rol', value: role },
                             { label: 'Teléfono', value: u.phone || '-' },
                             { label: 'Creado', value: u.created_at ? new Date(u.created_at).toLocaleDateString('es-MX') : '-' },
                           ]}
                           actions={[
+                            userStatus === 'active' ? {
+                              label: 'Bloquear',
+                              icon: Lock,
+                              onClick: () => openStatusDialog(u, 'blocked'),
+                              variant: 'default'
+                            } : {
+                              label: 'Desbloquear',
+                              icon: Unlock,
+                              onClick: () => openStatusDialog(u, 'active'),
+                              variant: 'default',
+                              disabled: isResident && !seatUsage.can_add_resident
+                            },
                             {
-                              label: u.is_active !== false ? 'Desactivar' : 'Activar',
-                              icon: u.is_active !== false ? Lock : Unlock,
-                              onClick: () => {
-                                setSelectedUser(u);
-                                setShowDeactivateDialog(true);
-                              },
-                              variant: u.is_active !== false ? 'default' : 'default'
+                              label: 'Eliminar',
+                              icon: Trash2,
+                              onClick: () => openDeleteDialog(u),
+                              variant: 'destructive'
                             }
                           ]}
                         />
