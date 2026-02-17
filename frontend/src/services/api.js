@@ -72,10 +72,16 @@ const apiRequest = (url, options = {}) => {
   });
 };
 
+// Storage keys must match AuthContext for session persistence
+const STORAGE_KEYS = {
+  ACCESS_TOKEN: 'genturix_access_token',
+  REFRESH_TOKEN: 'genturix_refresh_token',
+};
+
 class ApiService {
   async request(endpoint, options = {}) {
     const url = `${API_URL}/api${endpoint}`;
-    const accessToken = sessionStorage.getItem('accessToken');
+    const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
 
     const headers = {
       'Content-Type': 'application/json',
@@ -98,7 +104,7 @@ class ApiService {
     } catch (error) {
       // Handle 401 - try to refresh token
       if (error.status === 401) {
-        const refreshToken = sessionStorage.getItem('refreshToken');
+        const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
         if (refreshToken) {
           try {
             const refreshResponse = await window.fetch(`${API_URL}/api/auth/refresh`, {
@@ -109,22 +115,24 @@ class ApiService {
 
             if (refreshResponse.ok) {
               const data = await refreshResponse.json();
-              sessionStorage.setItem('accessToken', data.access_token);
-              sessionStorage.setItem('refreshToken', data.refresh_token);
+              localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.access_token);
+              localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token);
               
               // Retry original request with new token
               headers['Authorization'] = `Bearer ${data.access_token}`;
               return await apiRequest(url, { ...options, headers });
             }
           } catch (e) {
-            // Refresh failed, clear session
-            sessionStorage.clear();
+            // Refresh failed, clear storage
+            localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+            localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
             window.location.href = '/login';
             throw error;
           }
         }
-        // No refresh token, clear session
-        sessionStorage.clear();
+        // No refresh token, clear storage
+        localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+        localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
         window.location.href = '/login';
       }
       
