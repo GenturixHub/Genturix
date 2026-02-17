@@ -1717,8 +1717,10 @@ async def update_active_user_count(condominium_id: str):
     logger.info(f"Updated active_users count for condo {condominium_id}: {active_count}")
     return active_count
 
-async def can_create_user(condominium_id: str) -> tuple[bool, str]:
+async def can_create_user(condominium_id: str, role: str = "Residente") -> tuple[bool, str]:
     """Check if a new user can be created in the condominium.
+    For residents, checks against paid_seats (seat limit).
+    For other roles, no seat limit applies.
     Returns (can_create, error_message)"""
     if not condominium_id:
         return False, "Se requiere condominium_id"
@@ -1734,8 +1736,15 @@ async def can_create_user(condominium_id: str) -> tuple[bool, str]:
     if billing_status not in ["active", "trialing"]:
         return False, f"Suscripción inactiva ({billing_status}). Por favor actualice su plan de pago."
     
-    paid_seats = condo.get("paid_seats", 10)
-    active_users = await count_active_users(condominium_id)
+    # Seat limit only applies to residents
+    if role == "Residente":
+        paid_seats = condo.get("paid_seats", 10)
+        active_residents = await count_active_residents(condominium_id)
+        
+        if active_residents >= paid_seats:
+            return False, f"Límite de asientos para residentes alcanzado ({active_residents}/{paid_seats}). Por favor actualice su plan para agregar más residentes."
+    
+    return True, ""
     
     if active_users >= paid_seats:
         return False, f"Límite de usuarios alcanzado ({active_users}/{paid_seats}). Por favor actualice su plan para agregar más usuarios."
