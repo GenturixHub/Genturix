@@ -142,6 +142,20 @@ class AuditEventType(str, Enum):
     VISITOR_CHECKOUT = "visitor_checkout"
     VISITOR_ARRIVAL_NOTIFIED = "visitor_arrival_notified"
     VISITOR_EXIT_NOTIFIED = "visitor_exit_notified"
+    # User status events
+    USER_BLOCKED = "user_blocked"
+    USER_UNBLOCKED = "user_unblocked"
+    USER_SUSPENDED = "user_suspended"
+    USER_DELETED = "user_deleted"
+    # Seat management events
+    SEAT_LIMIT_UPDATED = "seat_limit_updated"
+    SEAT_REDUCTION_BLOCKED = "seat_reduction_blocked"
+
+# ==================== USER STATUS ENUM ====================
+class UserStatus(str, Enum):
+    ACTIVE = "active"
+    BLOCKED = "blocked"
+    SUSPENDED = "suspended"
 
 # ==================== MODELS ====================
 class UserCreate(BaseModel):
