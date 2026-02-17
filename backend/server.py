@@ -10812,7 +10812,7 @@ async def health_check():
 async def get_dev_mode_status():
     """
     Returns whether the server is in development mode.
-    Used by frontend to adjust behavior (e.g., show passwords after user creation).
+    DEPRECATED: Use /config/tenant-environment instead for tenant-specific logic.
     """
     return {
         "dev_mode": DEV_MODE,
@@ -10820,6 +10820,53 @@ async def get_dev_mode_status():
             "skip_password_reset": DEV_MODE,
             "show_generated_passwords": DEV_MODE,
             "skip_email_validation": DEV_MODE
+        },
+        "notice": "DEPRECATED: Use tenant environment field instead"
+    }
+
+@api_router.get("/config/tenant-environment")
+async def get_tenant_environment(current_user = Depends(get_current_user)):
+    """
+    Get the environment type for the current user's tenant.
+    Returns "demo" or "production" based on tenant configuration.
+    """
+    condo_id = current_user.get("condominium_id")
+    
+    # SuperAdmin without condo defaults to production
+    if not condo_id:
+        if "SuperAdmin" in current_user.get("roles", []):
+            return {
+                "environment": "production",
+                "is_demo": False,
+                "features": {
+                    "skip_password_reset": False,
+                    "show_generated_passwords": False,
+                    "send_emails": True
+                }
+            }
+        return {"environment": "production", "is_demo": False}
+    
+    condo = await db.condominiums.find_one({"id": condo_id}, {"_id": 0, "environment": 1, "is_demo": 1, "name": 1})
+    
+    if not condo:
+        return {"environment": "production", "is_demo": False}
+    
+    # Determine environment
+    environment = condo.get("environment", "production")
+    # Fallback: if environment not set but is_demo is true
+    if condo.get("is_demo") and environment == "production":
+        environment = "demo"
+    
+    is_demo = environment == "demo"
+    
+    return {
+        "environment": environment,
+        "is_demo": is_demo,
+        "condominium_name": condo.get("name", "N/A"),
+        "features": {
+            "skip_password_reset": is_demo,
+            "show_generated_passwords": is_demo,
+            "send_emails": not is_demo  # Demo tenants don't send emails
         }
     }
 
