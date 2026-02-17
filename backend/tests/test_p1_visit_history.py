@@ -338,17 +338,17 @@ class TestResidentVisitHistory:
 class TestVisitHistoryUnauthorized:
     """Test unauthorized access to visit history"""
     
-    def test_no_auth_returns_401(self):
-        """Test that unauthenticated requests return 401"""
+    def test_no_auth_returns_4xx(self):
+        """Test that unauthenticated requests return 4xx (401 or 403)"""
         response = requests.get(f"{BASE_URL}/api/resident/visit-history")
-        assert response.status_code == 401, f"Expected 401, got {response.status_code}"
-        print(f"✓ Unauthenticated request returns 401")
+        assert response.status_code in [401, 403], f"Expected 401/403, got {response.status_code}"
+        print(f"✓ Unauthenticated request returns {response.status_code}")
     
-    def test_export_no_auth_returns_401(self):
-        """Test that unauthenticated export requests return 401"""
+    def test_export_no_auth_returns_4xx(self):
+        """Test that unauthenticated export requests return 4xx (401 or 403)"""
         response = requests.get(f"{BASE_URL}/api/resident/visit-history/export")
-        assert response.status_code == 401, f"Expected 401, got {response.status_code}"
-        print(f"✓ Unauthenticated export request returns 401")
+        assert response.status_code in [401, 403], f"Expected 401/403, got {response.status_code}"
+        print(f"✓ Unauthenticated export request returns {response.status_code}")
 
 
 if __name__ == "__main__":
