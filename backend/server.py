@@ -1823,6 +1823,12 @@ async def get_billing_info(condominium_id: str) -> dict:
     paid_seats = condo.get("paid_seats", 10)
     billing_status = condo.get("billing_status", "active")
     
+    # Determine environment and billing enabled status
+    environment = condo.get("environment", "production")
+    is_demo = condo.get("is_demo", False)
+    # Demo condos have billing disabled regardless of other settings
+    billing_enabled = not (environment == "demo" or is_demo)
+    
     return {
         "condominium_id": condominium_id,
         "condominium_name": condo.get("name", ""),
@@ -1835,7 +1841,11 @@ async def get_billing_info(condominium_id: str) -> dict:
         "billing_period_end": condo.get("billing_period_end"),
         "price_per_seat": GENTURIX_PRICE_PER_USER,
         "monthly_cost": paid_seats * GENTURIX_PRICE_PER_USER,
-        "can_create_users": active_users < paid_seats and billing_status in ["active", "trialing"]
+        "can_create_users": active_users < paid_seats and billing_status in ["active", "trialing"],
+        # Environment info
+        "environment": environment,
+        "is_demo": is_demo or environment == "demo",
+        "billing_enabled": billing_enabled
     }
 
 async def update_active_user_count(condominium_id: str):
