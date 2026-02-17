@@ -9148,66 +9148,222 @@ async def update_user_status(
     
     return {"message": f"Usuario {'activado' if status_data.is_active else 'desactivado'} exitosamente"}
 
+# ==================== ENTERPRISE PASSWORD RESET SYSTEM ====================
 @api_router.post("/admin/users/{user_id}/reset-password")
 async def admin_reset_user_password(
     user_id: str,
     request: Request,
     current_user = Depends(require_role("Administrador", "SuperAdmin"))
 ):
-    """Admin resets a user's password and sends email with new temporary password"""
+    """
+    Enterprise-grade password reset by Admin.
+    - Generates secure reset token (expires in 1 hour)
+    - Sends email with reset link (NOT temporary password)
+    - Invalidates all existing sessions
+    - Logs audit event with full context
+    - Does NOT expose password to admin
+    """
     # Find user
     user = await db.users.find_one({"id": user_id})
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
-    # Check permission: Admin can only reset users in their condominium
-    if "SuperAdmin" not in current_user.get("roles", []):
-        if user.get("condominium_id") != current_user.get("condominium_id"):
+    user_roles = user.get("roles", [])
+    condo_id = user.get("condominium_id")
+    admin_roles = current_user.get("roles", [])
+    admin_condo_id = current_user.get("condominium_id")
+    
+    # ==================== SECURITY VALIDATIONS ====================
+    # 1. Cannot reset your own password via this endpoint
+    if user["id"] == current_user["id"]:
+        raise HTTPException(status_code=400, detail="No puedes restablecer tu propia contraseña con este método. Usa 'Cambiar Contraseña'.")
+    
+    # 2. Cannot reset SuperAdmin passwords (only SuperAdmin can do it for themselves)
+    if "SuperAdmin" in user_roles:
+        raise HTTPException(status_code=403, detail="No se puede restablecer la contraseña de un SuperAdmin")
+    
+    # 3. Admins cannot reset other Admin passwords (prevents privilege escalation)
+    if "Administrador" in user_roles and "SuperAdmin" not in admin_roles:
+        raise HTTPException(status_code=403, detail="No tienes permiso para restablecer la contraseña de otro Administrador")
+    
+    # 4. Admins can only reset users from their own condominium
+    if "SuperAdmin" not in admin_roles:
+        if condo_id != admin_condo_id:
             raise HTTPException(status_code=403, detail="No tienes permiso para modificar usuarios de otro condominio")
     
-    # Generate new temporary password
-    import secrets
-    new_password = secrets.token_urlsafe(10)[:12]
+    # ==================== GENERATE RESET TOKEN ====================
+    reset_token = create_password_reset_token(user["id"], user["email"])
     
-    # Update password
+    # Store token hash and metadata in user record for validation
+    token_hash = hashlib.sha256(reset_token.encode()).hexdigest()
+    reset_timestamp = datetime.now(timezone.utc)
+    
+    await db.users.update_one(
+        {"id": user_id},
+        {
+            "$set": {
+                "password_reset_token_hash": token_hash,
+                "password_reset_requested_at": reset_timestamp.isoformat(),
+                "password_reset_requested_by": current_user["id"],
+                "password_reset_required": True,
+                # Invalidate all existing sessions
+                "password_changed_at": reset_timestamp.isoformat()
+            }
+        }
+    )
+    
+    # ==================== SEND RESET EMAIL ====================
+    # Build reset link
+    frontend_url = os.environ.get('REACT_APP_BACKEND_URL', 'https://localhost:3000').replace('/api', '')
+    # If it doesn't have protocol, add it
+    if not frontend_url.startswith('http'):
+        frontend_url = f"https://{frontend_url}"
+    reset_link = f"{frontend_url}/reset-password?token={reset_token}"
+    
+    email_result = await send_password_reset_link_email(
+        recipient_email=user["email"],
+        user_name=user.get("full_name", "Usuario"),
+        reset_link=reset_link,
+        admin_name=current_user.get("full_name", "Administrador")
+    )
+    
+    # ==================== AUDIT LOGGING ====================
+    await log_audit_event(
+        AuditEventType.PASSWORD_RESET_BY_ADMIN,
+        current_user["id"],
+        "users",
+        {
+            "action": "password_reset_initiated",
+            "target_user_id": user_id,
+            "target_email": user["email"],
+            "target_roles": user_roles,
+            "condominium_id": condo_id,
+            "email_sent": email_result.get("status") == "success",
+            "email_status": email_result.get("status"),
+            "sessions_invalidated": True
+        },
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    logger.info(f"[PASSWORD-RESET] Admin {current_user['email']} initiated reset for {user['email']}")
+    
+    return {
+        "message": "Se ha enviado un enlace de restablecimiento al correo del usuario",
+        "email_status": email_result.get("status"),
+        "email_sent_to": user["email"] if email_result.get("status") == "success" else None,
+        "token_expires_in": "1 hour",
+        "sessions_invalidated": True
+    }
+
+@api_router.post("/auth/reset-password-complete")
+async def complete_password_reset(
+    request: Request,
+    token: str = Body(...),
+    new_password: str = Body(..., min_length=8)
+):
+    """
+    Complete password reset using the token from email link.
+    Validates token, updates password, clears reset flags.
+    """
+    # Validate token
+    payload = verify_password_reset_token(token)
+    if not payload:
+        raise HTTPException(status_code=400, detail="El enlace de restablecimiento es inválido o ha expirado")
+    
+    user_id = payload.get("sub")
+    email = payload.get("email")
+    
+    # Find user and verify token matches
+    user = await db.users.find_one({"id": user_id, "email": email})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # Verify token hash matches stored hash
+    stored_hash = user.get("password_reset_token_hash")
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    
+    if not stored_hash or stored_hash != token_hash:
+        raise HTTPException(status_code=400, detail="Este enlace de restablecimiento ya fue utilizado o es inválido")
+    
+    # Validate password requirements
+    if len(new_password) < 8:
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 8 caracteres")
+    if not any(c.isupper() for c in new_password):
+        raise HTTPException(status_code=400, detail="La contraseña debe contener al menos una mayúscula")
+    if not any(c.isdigit() for c in new_password):
+        raise HTTPException(status_code=400, detail="La contraseña debe contener al menos un número")
+    
+    # Update password and clear reset flags
+    password_changed_at = datetime.now(timezone.utc).isoformat()
+    
     await db.users.update_one(
         {"id": user_id},
         {
             "$set": {
                 "hashed_password": hash_password(new_password),
-                "password_reset_required": True,
-                "password_reset_at": datetime.now(timezone.utc).isoformat(),
-                "password_reset_by": current_user["id"]
+                "password_changed_at": password_changed_at,
+                "password_reset_required": False,
+                "updated_at": password_changed_at
+            },
+            "$unset": {
+                "password_reset_token_hash": "",
+                "password_reset_requested_at": "",
+                "password_reset_requested_by": ""
             }
         }
     )
     
-    # Get condominium name
-    condo = await db.condominiums.find_one({"id": user.get("condominium_id")})
-    condo_name = condo.get("name", "GENTURIX") if condo else "GENTURIX"
-    
-    # Get login URL from frontend
-    login_url = os.environ.get('FRONTEND_URL', 'https://localhost:3000') + '/login'
-    
-    # Send email with new password
-    email_result = await send_password_reset_email(
-        recipient_email=user["email"],
-        user_name=user.get("full_name", "Usuario"),
-        new_password=new_password,
-        login_url=login_url
-    )
-    
     # Log audit event
     await log_audit_event(
-        AuditEventType.USER_UPDATED,
-        current_user["id"],
+        AuditEventType.PASSWORD_RESET_TOKEN_USED,
+        user_id,
         "users",
         {
-            "action": "password_reset",
-            "target_user_id": user_id,
-            "target_email": user["email"],
-            "email_sent": email_result.get("status") == "success"
+            "action": "password_reset_completed",
+            "email": email,
+            "requested_by": user.get("password_reset_requested_by")
         },
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    logger.info(f"[PASSWORD-RESET] User {email} completed password reset")
+    
+    return {
+        "message": "Contraseña actualizada exitosamente",
+        "can_login": True
+    }
+
+@api_router.get("/auth/verify-reset-token")
+async def verify_reset_token_endpoint(token: str):
+    """Verify if a reset token is valid (for frontend to show form)"""
+    payload = verify_password_reset_token(token)
+    if not payload:
+        return {"valid": False, "reason": "Token inválido o expirado"}
+    
+    user_id = payload.get("sub")
+    email = payload.get("email")
+    
+    # Verify user exists and token matches
+    user = await db.users.find_one({"id": user_id, "email": email}, {"_id": 0, "password_reset_token_hash": 1, "full_name": 1})
+    if not user:
+        return {"valid": False, "reason": "Usuario no encontrado"}
+    
+    stored_hash = user.get("password_reset_token_hash")
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+    
+    if not stored_hash or stored_hash != token_hash:
+        return {"valid": False, "reason": "Este enlace ya fue utilizado"}
+    
+    return {
+        "valid": True,
+        "email": email,
+        "user_name": user.get("full_name", "Usuario")
+    }
+# ==================== END PASSWORD RESET SYSTEM ====================
+
+@api_router.put("/users/{user_id}/status")
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
     )
