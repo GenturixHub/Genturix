@@ -110,6 +110,36 @@ code, .mono {
     background: #334155;
 }
 
+/* ========================================
+   Dropdown & Select Scroll Fix (Production Safe)
+   ======================================== */
+
+/* Ensure Select dropdowns always have scroll capability */
+[data-radix-select-content],
+[data-radix-popper-content-wrapper] {
+    max-height: min(60vh, 400px) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Scrollable list containers */
+.dropdown-condominios,
+.scrollable-list {
+    max-height: min(60vh, 600px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #3B82F6 #1E293B;
+}
+
+/* Ensure parent containers don't block overflow */
+[data-radix-select-viewport] {
+    max-height: inherit !important;
+    overflow-y: auto !important;
+}
+
 /* Hide scrollbar on mobile for cleaner look */
 @media (max-width: 768px) {
     ::-webkit-scrollbar {
