@@ -953,9 +953,9 @@ const ResidentReservations = () => {
         </TabsList>
         
         {/* Areas Tab */}
-        <TabsContent value="areas" className="flex-1 mt-0">
-          <ScrollArea className="h-[calc(100vh-280px)]">
-            <div className="p-4 space-y-3">
+        <TabsContent value="areas" className="flex-1 mt-0 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="p-4 pb-24 space-y-3">
               {areas.length > 0 ? (
                 areas.map(area => (
                   <AreaCard 
