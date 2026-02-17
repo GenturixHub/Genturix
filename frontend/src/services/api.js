@@ -443,6 +443,14 @@ class ApiService {
   getUsers = () => this.get('/users');
   updateUserRoles = (userId, roles) => this.put(`/users/${userId}/roles`, roles);
   updateUserStatus = (userId, isActive) => this.put(`/users/${userId}/status`, isActive);
+  
+  // ==================== SEAT MANAGEMENT ====================
+  getSeatUsage = () => this.get('/admin/seat-usage');
+  validateSeatReduction = (newSeatLimit) => this.post('/admin/validate-seat-reduction', { new_seat_limit: newSeatLimit });
+  updateUserStatusV2 = (userId, status, reason = null) => 
+    this.patch(`/admin/users/${userId}/status-v2`, { status, reason });
+  deleteUser = (userId) => this.delete(`/admin/users/${userId}`);
+  canCreateUser = (role = 'Residente') => this.get(`/billing/can-create-user?role=${role}`);
 
   // Condominiums (Multi-tenant)
   getCondominiums = () => this.get('/condominiums');
