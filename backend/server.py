@@ -5875,7 +5875,7 @@ async def activate_employee(
 async def create_evaluation(
     evaluation: EvaluationCreate,
     request: Request,
-    current_user = Depends(require_role("Administrador", "HR", "Supervisor"))
+    current_user = Depends(require_role_and_module("Administrador", "HR", "Supervisor", module="hr"))
 ):
     """Create a new performance evaluation for an employee"""
     condominium_id = current_user.get("condominium_id")
@@ -5958,7 +5958,7 @@ async def create_evaluation(
 async def get_evaluations(
     employee_id: Optional[str] = None,
     request: Request = None,
-    current_user = Depends(get_current_user)
+    current_user = Depends(require_module("hr"))
 ):
     """Get evaluations - HR/Admin sees all in condominium, employees see only their own"""
     user_roles = current_user.get("roles", [])
