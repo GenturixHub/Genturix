@@ -1,9 +1,21 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 17, 2026 (P0 Bug Fix: VAPID Keys + Panic Alert + Module Access)
+## Last Updated: February 17, 2026 (P0 Fix: Reservation Module Mobile Responsive)
 
 ## Changelog
 ### 2026-02-17 (Session 70)
+- **P0 Bug Fix:** Reservation Module Not Responsive on Mobile
+  - Problem: Content was vertically constrained, CTA button not accessible due to layout overflow
+  - Root cause: Fixed heights (`h-[calc(100vh-280px)]`) didn't adapt to mobile screens
+  - Fixes applied:
+    - Changed container from `h-full` to `min-h-0 flex-1 overflow-hidden`
+    - Replaced fixed heights with `h-full` inside ScrollArea
+    - Added `pb-24` padding to content for bottom nav clearance
+    - Dialog: Added `max-h-[90vh] overflow-hidden flex flex-col` with internal scroll
+    - DialogFooter: Made sticky with `flex-shrink-0 border-t`
+  - Verified on iPhone viewport (390x844) and iPhone SE (390x667)
+  - Files: `ResidentReservations.jsx`, `ResidentUI.js`
+
 - **P0 Bug Fix:** VAPID Keys Configuration for Push Notifications
   - Root cause: `usePushNotifications.js` expected `vapid_public_key` but API returns `publicKey`
   - Fix: Updated hook to correctly destructure `publicKey` from API response
