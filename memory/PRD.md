@@ -1,8 +1,35 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 17, 2026 (P1 Feature: Admin Password Reset)
+## Last Updated: February 17, 2026 (P1 Feature: Demo vs Production Environments)
 
 ## Changelog
+### 2026-02-17 (Session 71) - Demo vs Production Environment Separation ⭐⭐⭐⭐⭐
+- **P1 Feature: Demo vs Production Condominium Environments** - FULLY VERIFIED ✅
+  - Backend Testing: 100% (12/12 tests passed)
+  - Frontend Testing: 100% (badges and UI verified)
+  - Test report: `/app/test_reports/iteration_71.json`
+  
+  **Key Implementation:**
+  
+  1. **Backend Condominium Model:**
+     - `environment` field: "production" | "demo"
+     - Demo condos: `paid_seats=10` (hardcoded), `billing_enabled=false`, `billing_status='demo'`
+     - Production condos: `billing_enabled=true`, Stripe active
+  
+  2. **Business Rules Enforced:**
+     - ✅ Demo condos cannot purchase additional seats (403 error)
+     - ✅ Stripe webhooks ignore demo condominiums
+     - ✅ GET /api/billing/info includes environment, is_demo, billing_enabled
+  
+  3. **Frontend Updates (SuperAdmin):**
+     - Environment badges: **DEMO** (yellow) | **PROD** (green)
+     - "Demo Rápido" button for quick demo creation with modal
+     - Detailed info boxes showing demo vs production differences
+  
+  4. **Files Modified:**
+     - `/app/backend/server.py` - Environment validation, billing info
+     - `/app/frontend/src/pages/SuperAdminDashboard.js` - Badges, buttons, modal
+
 ### 2026-02-17 (Session 71) - Enterprise Admin Password Reset ⭐⭐⭐⭐⭐
 - **P1 Feature: Enterprise-Grade Admin Password Reset** - FULLY VERIFIED ✅
   - Backend Testing: 100% (15/15 tests passed)
