@@ -2094,6 +2094,12 @@ const UserManagementPage = () => {
                             { label: 'Creado', value: u.created_at ? new Date(u.created_at).toLocaleDateString('es-MX') : '-' },
                           ]}
                           actions={[
+                            ...(canResetPassword(u) ? [{
+                              label: 'Resetear',
+                              icon: Key,
+                              onClick: () => openResetPasswordDialog(u),
+                              variant: 'default'
+                            }] : []),
                             userStatus === 'active' ? {
                               label: 'Bloquear',
                               icon: Lock,
