@@ -1,9 +1,23 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 17, 2026 (P0 Fix: Reservation Module Mobile Responsive)
+## Last Updated: February 17, 2026 (P1 Feature: Resident Visit History Module)
 
 ## Changelog
 ### 2026-02-17 (Session 70)
+- **P1 Feature:** Advanced Resident Visit History Module
+  - Added "Historial" tab inside Visitas section
+  - Tenant isolation: Only shows visits related to resident's authorizations
+  - Display per entry: Visitor name, type (Delivery/Permanent/Visitor), entry/exit timestamps, duration, status, alerts
+  - Filters: Today, Last 7 days, Last 30 days, Custom date range, By visitor type, By status
+  - Search: Real-time filtering by name, document number, vehicle plate
+  - Export to PDF: Includes resident name, apartment, condo, date range
+  - Pagination: 20 records per page with lazy load
+  - Mobile-first responsive design with card-based layout
+  - Status color indicators (green=active, gray=completed)
+  - Files created: `ResidentVisitHistory.jsx`, `ResidentVisitsModule.jsx`
+  - Backend endpoints: `/api/resident/visit-history`, `/api/resident/visit-history/export`
+  - Test results: 100% (19/19 backend tests, all frontend UI verified)
+
 - **P0 Bug Fix:** Reservation Module Not Responsive on Mobile
   - Problem: Content was vertically constrained, CTA button not accessible due to layout overflow
   - Root cause: Fixed heights (`h-[calc(100vh-280px)]`) didn't adapt to mobile screens
