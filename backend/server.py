@@ -4468,7 +4468,7 @@ async def get_guards(
 
 @api_router.get("/hr/validate-integrity")
 async def validate_hr_integrity(
-    current_user = Depends(require_role("Administrador", "SuperAdmin"))
+    current_user = Depends(require_role_and_module("Administrador", "SuperAdmin", module="hr"))
 ):
     """
     Validate HR data integrity - detect and report issues:
@@ -4693,7 +4693,7 @@ async def get_evaluable_employees(
     return evaluable_employees
 
 @api_router.get("/hr/guards/{guard_id}")
-async def get_guard(guard_id: str, current_user = Depends(require_role("Administrador", "Supervisor", "HR"))):
+async def get_guard(guard_id: str, current_user = Depends(require_role_and_module("Administrador", "Supervisor", "HR", module="hr"))):
     guard = await db.guards.find_one({"id": guard_id}, {"_id": 0})
     if not guard:
         raise HTTPException(status_code=404, detail="Guard not found")
@@ -4704,7 +4704,7 @@ async def update_guard(
     guard_id: str,
     guard_update: GuardUpdate,
     request: Request,
-    current_user = Depends(require_role("Administrador"))
+    current_user = Depends(require_role_and_module("Administrador", module="hr"))
 ):
     """Update guard/employee details"""
     guard = await db.guards.find_one({"id": guard_id})
