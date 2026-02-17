@@ -1,9 +1,21 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 17, 2026 (P1 Feature: Demo vs Production Tenant Logic)
+## Last Updated: February 17, 2026 (P1 Fix: SuperAdmin Condominiums Scroll)
 
 ## Changelog
 ### 2026-02-17 (Session 70)
+- **P1 Fix:** SuperAdmin Condominiums Dropdown Scroll (Production Issue)
+  - Problem: Condominiums list didn't scroll in production builds when expanded
+  - Root cause: `overflow-hidden` with dynamic `maxHeight` caused clipping without scroll
+  - Fixes applied:
+    - Changed container from `overflow-hidden` to conditional `overflow-y: auto`
+    - Added `max-height: min(60vh, 600px)` with scroll when expanded
+    - Added `overscrollBehavior: contain` for mobile touch behavior
+    - Added CSS rules for Radix Select dropdowns in `index.css`
+    - SelectContent now has `max-h-[60vh] overflow-y-auto`
+  - Verified on: Desktop (1920x800), Mobile (390x844)
+  - Production-safe: No dev-only styles, works after minification
+
 - **P1 Feature:** Demo vs Production Tenant Logic (Removed DEV_MODE dependency)
   - Added `environment` field to tenant/condominium model: "demo" or "production"
   - Demo tenants: Never send emails, always show credentials in UI
