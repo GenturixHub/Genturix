@@ -51,6 +51,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../components/ui/alert-dialog';
+import ChangePasswordForm from '../components/ChangePasswordForm';
 
 // Role configuration for display
 const ROLE_CONFIG = {
