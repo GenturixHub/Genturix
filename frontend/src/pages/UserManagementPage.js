@@ -2301,6 +2301,63 @@ const UserManagementPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Reset Password Dialog */}
+      <AlertDialog open={showResetPasswordDialog} onOpenChange={setShowResetPasswordDialog}>
+        <AlertDialogContent className="bg-[#0F111A] border-[#1E293B]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-cyan-400">
+              <Key className="w-5 h-5" />
+              Restablecer Contraseña
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4 text-muted-foreground text-sm">
+                <p>
+                  ¿Estás seguro de restablecer la contraseña de <strong className="text-foreground">{selectedUser?.full_name}</strong>?
+                </p>
+                <div className="bg-[#1E293B] rounded-lg p-4 space-y-2">
+                  <p className="text-cyan-400 flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    Se enviará un enlace de restablecimiento a:
+                  </p>
+                  <code className="text-primary block">{selectedUser?.email}</code>
+                </div>
+                <div className="space-y-1 text-xs">
+                  <p className="flex items-center gap-2">
+                    <CheckCircle className="w-3 h-3 text-green-400" />
+                    El enlace expirará en 1 hora
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <CheckCircle className="w-3 h-3 text-green-400" />
+                    Las sesiones activas serán cerradas
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <CheckCircle className="w-3 h-3 text-green-400" />
+                    El usuario elegirá su nueva contraseña
+                  </p>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleResetPassword}
+              className="bg-cyan-600 hover:bg-cyan-700"
+              disabled={actionLoading}
+            >
+              {actionLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <Mail className="w-4 h-4 mr-2" />
+                  Enviar Enlace
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 };
