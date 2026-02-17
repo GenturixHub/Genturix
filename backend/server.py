@@ -614,6 +614,7 @@ class CondominiumUpdate(BaseModel):
     modules: Optional[CondominiumModules] = None
     is_active: Optional[bool] = None
     paid_seats: Optional[int] = None
+    environment: Optional[str] = Field(default=None, pattern="^(demo|production)$")
 
 class CondominiumResponse(BaseModel):
     id: str
