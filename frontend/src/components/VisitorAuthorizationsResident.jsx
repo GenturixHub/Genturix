@@ -925,9 +925,9 @@ const VisitorAuthorizationsResident = () => {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="min-h-0 flex-1 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-[#1E293B] bg-[#0A0A0F]">
+      <div className="p-4 border-b border-[#1E293B] bg-[#0A0A0F] flex-shrink-0">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-primary" />
