@@ -2209,18 +2209,20 @@ const UserManagementPage = () => {
               <Trash2 className="w-5 h-5" />
               Eliminar Usuario
             </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-3">
-              <p>
-                ¿Estás seguro de eliminar permanentemente a <strong>{selectedUser?.full_name}</strong>?
-              </p>
-              <p className="text-red-400 font-medium">
-                Esta acción no se puede deshacer.
-              </p>
-              {selectedUser?.roles?.includes('Residente') && (
-                <p className="text-cyan-400 text-sm">
-                  ✓ Esto liberará 1 asiento de tu plan de residentes.
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-muted-foreground text-sm">
+                <p>
+                  ¿Estás seguro de eliminar permanentemente a <strong className="text-foreground">{selectedUser?.full_name}</strong>?
                 </p>
-              )}
+                <p className="text-red-400 font-medium">
+                  Esta acción no se puede deshacer.
+                </p>
+                {selectedUser?.roles?.includes('Residente') && (
+                  <p className="text-cyan-400">
+                    ✓ Esto liberará 1 asiento de tu plan de residentes.
+                  </p>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
