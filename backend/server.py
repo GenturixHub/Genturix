@@ -2478,7 +2478,7 @@ async def create_access_log(log: AccessLogCreate, request: Request, current_user
 async def get_access_logs(
     include_visitor_entries: bool = True,
     limit: int = 100,
-    current_user = Depends(require_role("Administrador", "Supervisor", "Guarda", "SuperAdmin"))
+    current_user = Depends(require_role_and_module("Administrador", "Supervisor", "Guarda", "SuperAdmin", module="security"))
 ):
     """
     Get unified access logs combining:
@@ -4007,7 +4007,7 @@ async def mark_all_guard_notifications_read(
 
 # Endpoint for Guards to write to their logbook
 @api_router.get("/security/logbook")
-async def get_guard_logbook(current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))):
+async def get_guard_logbook(current_user = Depends(require_role_and_module("Administrador", "Supervisor", "Guarda", module="security"))):
     """Get logbook entries for guards - scoped by condominium"""
     query = {}
     if "SuperAdmin" not in current_user.get("roles", []):
