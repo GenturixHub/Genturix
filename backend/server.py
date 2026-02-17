@@ -175,6 +175,7 @@ class UserResponse(BaseModel):
     full_name: str
     roles: List[str]
     is_active: bool
+    status: str = "active"  # active, blocked, suspended
     created_at: str
     condominium_id: Optional[str] = None  # Multi-tenant support
     password_reset_required: bool = False  # True if user needs to change password
