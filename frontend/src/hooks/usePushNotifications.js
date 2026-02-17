@@ -83,7 +83,8 @@ export function usePushNotifications() {
       }
 
       // Get VAPID public key from server
-      const { vapid_public_key } = await api.getVapidPublicKey();
+      const vapidResponse = await api.getVapidPublicKey();
+      const vapid_public_key = vapidResponse?.publicKey;
       
       if (!vapid_public_key) {
         throw new Error('VAPID key not configured on server');
