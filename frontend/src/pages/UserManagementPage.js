@@ -1682,14 +1682,27 @@ const UserManagementPage = () => {
     setShowDeleteDialog(true);
   };
 
-  // Stats
+  // Stats - now includes status breakdown
   const stats = {
     total: users.length,
-    active: users.filter(u => u.is_active !== false).length,
+    active: users.filter(u => (u.status || 'active') === 'active' && u.is_active !== false).length,
+    blocked: users.filter(u => u.status === 'blocked' || u.is_active === false).length,
+    suspended: users.filter(u => u.status === 'suspended').length,
     byRole: AVAILABLE_ROLES.reduce((acc, role) => {
       acc[role.value] = users.filter(u => u.roles?.includes(role.value)).length;
       return acc;
     }, {})
+  };
+
+  // Get status badge for user
+  const getStatusBadge = (user) => {
+    const status = user.status || (user.is_active !== false ? 'active' : 'blocked');
+    const statusConfig = {
+      active: { label: 'Activo', className: 'bg-green-500/10 text-green-400 border-green-500/20' },
+      blocked: { label: 'Bloqueado', className: 'bg-red-500/10 text-red-400 border-red-500/20' },
+      suspended: { label: 'Suspendido', className: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' }
+    };
+    return statusConfig[status] || statusConfig.active;
   };
 
   return (
