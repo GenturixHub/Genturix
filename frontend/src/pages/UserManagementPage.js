@@ -1875,6 +1875,17 @@ const UserManagementPage = () => {
                   ))}
                 </SelectContent>
               </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full md:w-40 bg-[#0A0A0F] border-[#1E293B]">
+                  <SelectValue placeholder="Estado" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0F111A] border-[#1E293B]">
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="active">Activos</SelectItem>
+                  <SelectItem value="blocked">Bloqueados</SelectItem>
+                  <SelectItem value="suspended">Suspendidos</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
