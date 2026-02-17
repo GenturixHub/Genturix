@@ -300,14 +300,14 @@ const FilterDialog = ({ open, onClose, filters, onApply }) => {
           <div className="space-y-1.5">
             <Label className="text-xs">Tipo de Visita</Label>
             <Select 
-              value={localFilters.visitorType} 
-              onValueChange={(v) => setLocalFilters({...localFilters, visitorType: v})}
+              value={localFilters.visitorType || 'all'} 
+              onValueChange={(v) => setLocalFilters({...localFilters, visitorType: v === 'all' ? '' : v})}
             >
               <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B]">
                 <SelectValue placeholder="Todos los tipos" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos los tipos</SelectItem>
+                <SelectItem value="all">Todos los tipos</SelectItem>
                 {Object.entries(VISITOR_TYPES).map(([key, config]) => (
                   <SelectItem key={key} value={key}>{config.label}</SelectItem>
                 ))}
@@ -319,14 +319,14 @@ const FilterDialog = ({ open, onClose, filters, onApply }) => {
           <div className="space-y-1.5">
             <Label className="text-xs">Estado</Label>
             <Select 
-              value={localFilters.status} 
-              onValueChange={(v) => setLocalFilters({...localFilters, status: v})}
+              value={localFilters.status || 'all'} 
+              onValueChange={(v) => setLocalFilters({...localFilters, status: v === 'all' ? '' : v})}
             >
               <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B]">
                 <SelectValue placeholder="Todos los estados" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos los estados</SelectItem>
+                <SelectItem value="all">Todos los estados</SelectItem>
                 <SelectItem value="inside">Activo (Adentro)</SelectItem>
                 <SelectItem value="completed">Completado</SelectItem>
               </SelectContent>
