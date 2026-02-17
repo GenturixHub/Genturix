@@ -1139,6 +1139,57 @@ def require_role(*allowed_roles):
         return current_user
     return check_role
 
+def require_role_and_module(*allowed_roles, module: str):
+    """Combined dependency that checks both role AND module status"""
+    async def check_role_and_module(current_user = Depends(get_current_user)):
+        user_roles = current_user.get("roles", [])
+        
+        # Check role first
+        if not any(role in user_roles for role in allowed_roles):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Required roles: {', '.join(allowed_roles)}"
+            )
+        
+        # SuperAdmin bypasses module checks
+        if "SuperAdmin" in user_roles:
+            return current_user
+        
+        # Check module status
+        condo_id = current_user.get("condominium_id")
+        if not condo_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Usuario no asignado a un condominio"
+            )
+        
+        condo = await db.condominiums.find_one({"id": condo_id}, {"_id": 0, "modules": 1})
+        if not condo:
+            raise HTTPException(status_code=404, detail="Condominio no encontrado")
+        
+        modules = condo.get("modules", {})
+        module_config = modules.get(module)
+        
+        # Handle both boolean and dict formats
+        is_enabled = False
+        if isinstance(module_config, bool):
+            is_enabled = module_config
+        elif isinstance(module_config, dict):
+            is_enabled = module_config.get("enabled", False)
+        elif module_config is None:
+            # Module not configured - default to enabled for backwards compatibility
+            is_enabled = True
+        
+        if not is_enabled:
+            logger.warning(f"[module-check] Access DENIED to module '{module}' for user {current_user.get('email')}")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Módulo '{module}' no está habilitado para este condominio"
+            )
+        
+        return current_user
+    return check_role_and_module
+
 def require_module(module_name: str):
     """Dependency that checks if a module is enabled for the user's condominium"""
     async def check_module(current_user = Depends(get_current_user)):
