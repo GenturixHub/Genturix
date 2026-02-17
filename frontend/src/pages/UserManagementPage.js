@@ -1599,14 +1599,20 @@ const UserManagementPage = () => {
   useEffect(() => {
     fetchUsers();
     fetchPendingCount();
-  }, [fetchUsers, fetchPendingCount]);
+    fetchSeatUsage();
+  }, [fetchUsers, fetchPendingCount, fetchSeatUsage]);
 
-  // Filter users by search
+  // Filter users by search and status
   const filteredUsers = users.filter(u => {
     const matchesSearch = searchQuery === '' || 
       u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.email?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
+    
+    // Status filter
+    const userStatus = u.status || (u.is_active !== false ? 'active' : 'blocked');
+    const matchesStatus = statusFilter === 'all' || userStatus === statusFilter;
+    
+    return matchesSearch && matchesStatus;
   });
 
   // Handle user creation success
