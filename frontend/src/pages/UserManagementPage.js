@@ -171,7 +171,7 @@ const CredentialsDialog = ({ open, onClose, credentials }) => {
 
   const emailSent = credentials.email_sent;
   const emailSuccess = credentials.email_status === 'success';
-  const isDevMode = credentials.dev_mode;
+  const tenantIsDemo = credentials.tenant_environment === 'demo';
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
