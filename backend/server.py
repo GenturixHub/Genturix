@@ -1153,15 +1153,22 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             pwd_changed_time = datetime.fromisoformat(password_changed_at.replace("Z", "+00:00"))
             pwd_changed_timestamp = pwd_changed_time.timestamp()
             
+            logger.debug(f"[JWT-CHECK] Token iat: {token_iat}, Password changed at: {pwd_changed_timestamp}")
+            
             # If token was issued BEFORE password was changed, reject it
             if token_iat < pwd_changed_timestamp:
+                logger.info(f"[JWT-CHECK] Rejecting token - issued before password change. User: {user_id}")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Session expired due to password change. Please login again.",
                     headers={"WWW-Authenticate": "Bearer"},
                 )
-        except ValueError:
-            # If we can't parse the date, don't block the user
+        except HTTPException:
+            # Re-raise HTTP exceptions
+            raise
+        except Exception as e:
+            # Log any parsing errors but don't block the user
+            logger.warning(f"[JWT-CHECK] Error parsing password_changed_at: {e}")
             pass
     
     return user
