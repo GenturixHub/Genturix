@@ -883,7 +883,16 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin, na
                           <Building2 className="w-5 h-5 text-primary" />
                         </div>
                         <div>
-                          <p className="font-medium text-white">{condo.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-white">{condo.name}</p>
+                            {/* Environment Badge */}
+                            {(condo.environment === 'demo' || condo.is_demo) && (
+                              <Badge className="bg-blue-500/20 text-blue-400 text-[10px] px-1.5">DEMO</Badge>
+                            )}
+                            {condo.environment === 'production' && !condo.is_demo && (
+                              <Badge className="bg-green-500/20 text-green-400 text-[10px] px-1.5">PROD</Badge>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground">{condo.contact_email}</p>
                         </div>
                       </div>
