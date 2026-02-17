@@ -8461,6 +8461,21 @@ async def stripe_subscription_webhook(request: Request):
                 condo_id = transaction.get("condominium_id")
                 new_total_seats = transaction.get("new_total_seats")
                 
+                # ==================== DEMO ENVIRONMENT CHECK ====================
+                # Verify the condominium is not in demo mode before processing payment
+                condo = await db.condominiums.find_one({"id": condo_id}, {"_id": 0, "environment": 1, "is_demo": 1})
+                if condo:
+                    condo_environment = condo.get("environment", "production")
+                    if condo_environment == "demo" or condo.get("is_demo"):
+                        logger.warning(f"[STRIPE-WEBHOOK] Ignoring payment for demo condominium: {condo_id}")
+                        # Mark transaction as ignored (demo)
+                        await db.billing_transactions.update_one(
+                            {"session_id": webhook_response.session_id},
+                            {"$set": {"payment_status": "ignored_demo", "note": "Demo condominium - payment ignored"}}
+                        )
+                        return {"status": "success", "note": "Demo condominium - no changes applied"}
+                # ================================================================
+                
                 # Update condominium paid_seats
                 await db.condominiums.update_one(
                     {"id": condo_id},
