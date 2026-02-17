@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Request
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Request, Body
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -9,6 +9,7 @@ import asyncio
 import secrets
 import string
 import json
+import hashlib
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr, field_validator
 from typing import List, Optional, Dict, Any
