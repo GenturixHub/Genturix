@@ -853,10 +853,25 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin, na
             </SelectContent>
           </Select>
         </div>
-        <Button onClick={() => navigate('/super-admin/onboarding')} className="gap-2 w-full sm:w-auto" data-testid="condos-new-condo-btn">
-          <Plus className="w-4 h-4" />
-          Nuevo Condominio
-        </Button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowCreateDialog(true)} 
+            className="gap-2 flex-1 sm:flex-none border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10" 
+            data-testid="condos-quick-create-btn"
+          >
+            <Plus className="w-4 h-4" />
+            Demo Rápido
+          </Button>
+          <Button 
+            onClick={() => navigate('/super-admin/onboarding')} 
+            className="gap-2 flex-1 sm:flex-none" 
+            data-testid="condos-new-condo-btn"
+          >
+            <Plus className="w-4 h-4" />
+            Nuevo Condominio
+          </Button>
+        </div>
       </div>
 
       {/* Desktop Table View - hidden on mobile */}
