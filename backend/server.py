@@ -5452,7 +5452,7 @@ async def get_payroll(current_user = Depends(require_role("Administrador", "HR")
 async def create_candidate(
     candidate: CandidateCreate,
     request: Request,
-    current_user = Depends(require_role("Administrador", "HR"))
+    current_user = Depends(require_role_and_module("Administrador", "HR", module="hr"))
 ):
     """Create a new recruitment candidate"""
     # Check if email already exists
@@ -5722,7 +5722,7 @@ async def reject_candidate(
 async def create_employee_directly(
     employee: CreateEmployeeByHR,
     request: Request,
-    current_user = Depends(require_role("Administrador", "HR"))
+    current_user = Depends(require_role_and_module("Administrador", "HR", module="hr"))
 ):
     """Create a new employee (guard) directly without recruitment"""
     # Check email not in use
