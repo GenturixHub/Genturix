@@ -1,8 +1,49 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 17, 2026 (P1 Feature: Secure Password Change - VERIFIED)
+## Last Updated: February 17, 2026 (P1 Feature: Seat Management Refactor)
 
 ## Changelog
+### 2026-02-17 (Session 71) - Seat Management Refactoring ⭐⭐⭐⭐⭐
+- **P1 Feature: Seat Management Complete Refactor** - FULLY VERIFIED ✅
+  - Backend Testing: 100% (11/11 tests passed)
+  - Frontend Testing: 100% (all UI flows verified)
+  - Test report: `/app/test_reports/iteration_69.json`
+  
+  **Key Changes Implemented:**
+  
+  1. **Data Model Updates:**
+     - Added `UserStatus` enum: `active`, `blocked`, `suspended`
+     - Added `status` field to User model (applies to ALL users)
+     - `status_changed_at` timestamp for session invalidation
+     - `status_reason` for blocking reason audit
+  
+  2. **Backend Endpoints:**
+     - `GET /api/admin/seat-usage` - Returns seat_limit, active_residents, available_seats dynamically
+     - `POST /api/admin/validate-seat-reduction` - Validates if seat reduction is allowed
+     - `PATCH /api/admin/users/{id}/status-v2` - Block/unblock/suspend with seat management
+     - `DELETE /api/admin/users/{id}` - Delete user and release seat
+  
+  3. **Business Rules Enforced:**
+     - ✅ `activeResidents` calculated dynamically (not stored)
+     - ✅ Seat reduction blocked when `activeResidents > newSeatLimit`
+     - ✅ Resident activation blocked when no seats available
+     - ✅ Blocking/suspending releases seat immediately
+     - ✅ Session invalidation on block/suspend via `status_changed_at`
+  
+  4. **Frontend Updates (UserManagementPage):**
+     - New "Plan de Residentes" card showing Contratados/Activos/Disponibles
+     - Progress bar with color coding (green/yellow/red)
+     - Status filter dropdown (Todos/Activos/Bloqueados/Suspendidos)
+     - Block button (🔒) with reason field
+     - Unblock button (🔓) with seat validation
+     - Delete button (🗑️) with confirmation
+     - Real-time counter updates after actions
+  
+  5. **Files Modified:**
+     - `/app/backend/server.py` - New endpoints, UserStatus enum, session validation
+     - `/app/frontend/src/pages/UserManagementPage.js` - Complete UI overhaul
+     - `/app/frontend/src/services/api.js` - New API methods
+
 ### 2026-02-17 (Session 71) - Secure Password Change E2E Verification
 - **P1 Feature: Secure Password Change** - FULLY VERIFIED ✅
   - Backend Testing: 100% (9/9 tests passed)
