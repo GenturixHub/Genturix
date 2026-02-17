@@ -241,7 +241,7 @@ const CredentialsDialog = ({ open, onClose, credentials }) => {
                 Cópiala ahora y entrégala al usuario de forma segura.
               </div>
             </div>
-          )}}
+          )}
 
           {/* User Info */}
           <div className="p-4 rounded-lg bg-[#0A0A0F] border border-[#1E293B] space-y-3">
