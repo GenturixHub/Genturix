@@ -984,17 +984,17 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin, na
                 <div className="flex items-center gap-2">
                   <span>{condo.name}</span>
                   {(condo.environment === 'demo' || condo.is_demo) && (
-                    <Badge className="bg-blue-500/20 text-blue-400 text-[10px] px-1.5">DEMO</Badge>
+                    <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-[10px] px-1.5">DEMO</Badge>
                   )}
                   {condo.environment === 'production' && !condo.is_demo && (
-                    <Badge className="bg-green-500/20 text-green-400 text-[10px] px-1.5">PROD</Badge>
+                    <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px] px-1.5">PROD</Badge>
                   )}
                 </div>
               }
               subtitle={condo.contact_email}
               icon={Building2}
               status={statusConfig.label}
-              statusColor={condo.status === 'active' ? 'green' : condo.status === 'demo' ? 'blue' : 'red'}
+              statusColor={condo.status === 'active' ? 'green' : condo.status === 'demo' ? 'yellow' : 'red'}
               details={[
                 { label: 'Usuarios', value: `${userCount} / ${condo.max_users || 100}` },
                 { label: 'MRR', value: `$${mrr.toFixed(2)}${condo.discount_percent > 0 ? ` (-${condo.discount_percent}%)` : ''}` },
