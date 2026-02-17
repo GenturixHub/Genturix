@@ -517,7 +517,7 @@ const BillingSummarySection = ({ billingOverview }) => {
           </div>
         </div>
 
-        {/* Condominiums List - Collapsible */}
+        {/* Condominiums List - Collapsible with Scroll */}
         <div className="pt-2">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-sm font-medium text-muted-foreground">
@@ -530,11 +530,15 @@ const BillingSummarySection = ({ billingOverview }) => {
             )}
           </div>
           
-          {/* Animated List Container */}
+          {/* Scrollable List Container - Production Safe */}
           <div 
-            className="space-y-2 transition-all duration-300 ease-in-out overflow-hidden"
+            className="space-y-2 transition-all duration-300 ease-in-out"
             style={{ 
-              maxHeight: isExpanded ? `${condominiums.length * 80}px` : `${INITIAL_DISPLAY_COUNT * 80}px`
+              maxHeight: isExpanded ? 'min(60vh, 600px)' : `${INITIAL_DISPLAY_COUNT * 80}px`,
+              overflowY: isExpanded && condominiums.length > 6 ? 'auto' : 'hidden',
+              overscrollBehavior: 'contain',
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#3B82F6 #1E293B'
             }}
           >
             {displayedCondos.map((condo, index) => (
