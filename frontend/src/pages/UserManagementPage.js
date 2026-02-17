@@ -406,8 +406,9 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
     try {
       const response = await api.createUserByAdmin(form);
       
-      // In DEV_MODE, the API returns the actual password
-      // In production, password is masked
+      // Tenant environment determines if we show passwords
+      // Demo tenants: Always show password (no emails sent)
+      // Production tenants: Show only if email toggle disabled or email not requested
       const displayPassword = response.credentials?.show_password 
         ? response.credentials.password 
         : (form.send_credentials_email ? '(enviada por email)' : form.password);
@@ -420,7 +421,8 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
         email_sent: form.send_credentials_email,
         email_status: response.email_status,
         email_message: response.email_message,
-        dev_mode: response.dev_mode,
+        tenant_environment: response.tenant_environment,  // "demo" or "production"
+        demo_mode_notice: response.demo_mode_notice,  // Message for demo tenants
         show_password: response.credentials?.show_password
       });
       // Reset form
