@@ -9364,17 +9364,6 @@ async def verify_reset_token_endpoint(token: str):
 # ==================== END PASSWORD RESET SYSTEM ====================
 
 @api_router.put("/users/{user_id}/status")
-        request.client.host if request.client else "unknown",
-        request.headers.get("user-agent", "unknown")
-    )
-    
-    return {
-        "message": "Contraseña restablecida exitosamente",
-        "email_status": email_result.get("status"),
-        "email_sent_to": user["email"] if email_result.get("status") == "success" else None
-    }
-
-@api_router.put("/users/{user_id}/status")
 async def update_user_status_legacy(user_id: str, is_active: bool, current_user = Depends(require_role("Administrador"))):
     """Legacy endpoint - use PATCH /admin/users/{user_id}/status instead"""
     result = await db.users.update_one(
