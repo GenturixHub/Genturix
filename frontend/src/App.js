@@ -226,6 +226,9 @@ function AppRoutes() {
       
       {/* Public Join/Access Request Page */}
       <Route path="/join/:token" element={<JoinPage />} />
+      
+      {/* Password Reset Page (Public - accessed via email link) */}
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* Role-based entry point */}
       <Route path="/" element={<RoleBasedRedirect />} />
