@@ -588,7 +588,8 @@ class ApiService {
   };
   getAuthorizationStats = () => this.get('/authorizations/stats');
   // ==================== CONFIG ====================
-  getDevModeStatus = () => this.get('/config/dev-mode');
+  getDevModeStatus = () => this.get('/config/dev-mode');  // DEPRECATED: Use getTenantEnvironment
+  getTenantEnvironment = () => this.get('/config/tenant-environment');
   getEmailStatus = () => this.get('/config/email-status');
   setEmailStatus = (enabled) => this.post('/config/email-status', { email_enabled: enabled });
 }
