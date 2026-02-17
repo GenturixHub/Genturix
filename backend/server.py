@@ -1167,10 +1167,44 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
             detail="User not found or inactive"
         )
     
+    # Security: Check user status (blocked/suspended users cannot access)
+    user_status = user.get("status", "active")
+    if user_status in ["blocked", "suspended"]:
+        status_messages = {
+            "blocked": "Tu cuenta ha sido bloqueada. Contacta al administrador.",
+            "suspended": "Tu cuenta ha sido suspendida temporalmente. Contacta al administrador."
+        }
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=status_messages.get(user_status, "Cuenta no disponible"),
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Security: Check if token was issued before status was changed (session invalidation)
+    status_changed_at = user.get("status_changed_at")
+    token_iat = payload.get("iat")
+    
+    if status_changed_at and token_iat:
+        try:
+            status_time = datetime.fromisoformat(status_changed_at.replace("Z", "+00:00"))
+            status_timestamp = status_time.timestamp()
+            
+            if token_iat < status_timestamp:
+                logger.info(f"[JWT-CHECK] Rejecting token - issued before status change. User: {user_id}")
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Session expired due to account status change. Please login again.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.warning(f"[JWT-CHECK] Error parsing status_changed_at: {e}")
+            pass
+    
     # Security: Check if token was issued before password was changed
     # This invalidates all sessions after a password change
     password_changed_at = user.get("password_changed_at")
-    token_iat = payload.get("iat")  # Token issued at timestamp
     
     if password_changed_at and token_iat:
         try:
