@@ -67,51 +67,149 @@ VAPID_CLAIMS_EMAIL = os.environ.get('VAPID_CLAIMS_EMAIL', 'admin@genturix.com')
 # Security
 security = HTTPBearer()
 
-# Configure logging
+# ==================== PHASE 3: LOGGING CONFIGURATION ====================
+LOG_LEVEL = os.environ.get('LOG_LEVEL', 'DEBUG' if ENVIRONMENT == 'development' else 'INFO').upper()
+
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=getattr(logging, LOG_LEVEL, logging.INFO),
+    format='%(asctime)s | %(levelname)s | %(name)s | %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
 )
 logger = logging.getLogger(__name__)
+logger.info(f"[STARTUP] Logging configured: level={LOG_LEVEL}, environment={ENVIRONMENT}")
 
 # Create the main app
-app = FastAPI(title="GENTURIX Enterprise Platform", version="1.0.0")
+app = FastAPI(
+    title="GENTURIX Enterprise Platform", 
+    version="1.0.0",
+    # Phase 4: Disable docs in production
+    docs_url="/docs" if ENVIRONMENT != "production" else None,
+    redoc_url="/redoc" if ENVIRONMENT != "production" else None
+)
 
-# ==================== GLOBAL EXCEPTION HANDLERS ====================
+# ==================== PHASE 2: REQUEST ID MIDDLEWARE ====================
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next):
+    """
+    Middleware that generates a unique request_id for each request.
+    - Stores in request.state.request_id for access in handlers
+    - Adds X-Request-ID header to response for client tracking
+    """
+    request_id = str(uuid.uuid4())
+    request.state.request_id = request_id
+    
+    # Optional: Log request start (debug level)
+    if LOG_LEVEL == 'DEBUG':
+        logger.debug(f"[REQUEST-START] {request_id} | {request.method} {request.url.path}")
+    
+    # Process request
+    response = await call_next(request)
+    
+    # Add request_id header to response
+    response.headers["X-Request-ID"] = request_id
+    
+    # Optional: Log request completion (debug level)
+    if LOG_LEVEL == 'DEBUG':
+        logger.debug(f"[REQUEST-END] {request_id} | Status: {response.status_code}")
+    
+    return response
+
+# ==================== PHASE 1: GLOBAL EXCEPTION HANDLERS ====================
 from starlette.exceptions import HTTPException as StarletteHTTPException
+import traceback
+
+def get_user_id_from_request(request: Request) -> str:
+    """Extract user_id from request state if available"""
+    try:
+        if hasattr(request.state, 'user'):
+            return request.state.user.get('id', 'anonymous')
+    except:
+        pass
+    return 'anonymous'
 
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    """Pass through HTTP exceptions unchanged."""
+    """
+    Handler for HTTP exceptions (4xx, 5xx).
+    - Logs warning for client errors (4xx)
+    - Logs error for server errors (5xx)
+    - Includes request_id for traceability
+    """
+    request_id = getattr(request.state, 'request_id', str(uuid.uuid4()))
+    user_id = get_user_id_from_request(request)
+    
+    # Log based on status code severity
+    log_data = {
+        "request_id": request_id,
+        "path": request.url.path,
+        "method": request.method,
+        "status_code": exc.status_code,
+        "detail": exc.detail,
+        "user_id": user_id
+    }
+    
+    if exc.status_code >= 500:
+        logger.error(f"[HTTP-ERROR] {log_data}")
+    elif exc.status_code >= 400:
+        logger.warning(f"[HTTP-WARN] {log_data}")
+    
+    # Return clean response with request_id
     return JSONResponse(
         status_code=exc.status_code,
-        content={"detail": exc.detail}
+        content={
+            "error": exc.detail if isinstance(exc.detail, str) else "Request failed",
+            "detail": exc.detail,
+            "request_id": request_id
+        },
+        headers={"X-Request-ID": request_id}
     )
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """
     Production-grade global exception handler.
-    - Logs full error details for debugging
+    - Generates unique request_id for tracking
+    - Logs full error details including traceback (internal only)
     - Returns safe JSON response without exposing internals
+    - Adjusts detail level based on environment
     """
-    # Generate unique error ID for tracking
-    error_id = str(uuid.uuid4())
+    request_id = getattr(request.state, 'request_id', str(uuid.uuid4()))
+    user_id = get_user_id_from_request(request)
     
-    # Log full error details (internal only)
+    # Get full traceback for logging
+    tb_str = traceback.format_exc()
+    
+    # Log complete error information (internal only)
     logger.error(
-        f"[ERROR-{error_id}] Unhandled exception: {type(exc).__name__}: {str(exc)} | "
-        f"Path: {request.url.path} | Method: {request.method}",
-        exc_info=True
+        f"[UNHANDLED-EXCEPTION]\n"
+        f"  request_id: {request_id}\n"
+        f"  path: {request.url.path}\n"
+        f"  method: {request.method}\n"
+        f"  user_id: {user_id}\n"
+        f"  exception_type: {type(exc).__name__}\n"
+        f"  exception_msg: {str(exc)}\n"
+        f"  traceback:\n{tb_str}"
     )
     
-    # Return safe response (no stack trace exposed)
+    # Phase 4: Production protection - minimal details in response
+    if ENVIRONMENT == "production":
+        response_content = {
+            "error": "Internal Server Error",
+            "request_id": request_id
+        }
+    else:
+        # Development: include more context (but never stacktrace)
+        response_content = {
+            "error": "Internal Server Error",
+            "request_id": request_id,
+            "detail": "An unexpected error occurred",
+            "exception_type": type(exc).__name__
+        }
+    
     return JSONResponse(
         status_code=500,
-        content={
-            "detail": "Internal server error",
-            "error_id": error_id
-        }
+        content=response_content,
+        headers={"X-Request-ID": request_id}
     )
 
 # Create a router with the /api prefix
