@@ -2689,13 +2689,18 @@ async def trigger_panic(event: PanicEventCreate, request: Request, current_user 
     )
     
     # Send PUSH NOTIFICATIONS to all subscribed guards in this condominium
-    push_result = await notify_guards_of_panic(condo_id, {
-        "event_id": panic_event["id"],
-        "panic_type": panic_type_display_map.get(event.panic_type.value, "general"),
-        "resident_name": current_user["full_name"],
-        "apartment": apartment,
-        "timestamp": panic_event["created_at"]
-    })
+    # SECURITY: Backend decides who receives - ONLY guards in same condo, excluding sender
+    push_result = await notify_guards_of_panic(
+        condominium_id=condo_id,
+        panic_data={
+            "event_id": panic_event["id"],
+            "panic_type": panic_type_display_map.get(event.panic_type.value, "general"),
+            "resident_name": current_user["full_name"],
+            "apartment": apartment,
+            "timestamp": panic_event["created_at"]
+        },
+        sender_id=current_user["id"]  # Exclude sender from notifications
+    )
     
     # Log to audit
     await log_audit_event(
