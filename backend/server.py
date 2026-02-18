@@ -5969,9 +5969,9 @@ async def get_evaluable_employees(
 
 @api_router.get("/hr/guards/{guard_id}")
 async def get_guard(guard_id: str, current_user = Depends(require_role_and_module("Administrador", "Supervisor", "HR", module="hr"))):
-    guard = await db.guards.find_one({"id": guard_id}, {"_id": 0})
-    if not guard:
-        raise HTTPException(status_code=404, detail="Guard not found")
+    """Get a single guard by ID - must belong to user's condominium"""
+    # Use get_tenant_resource for automatic 404/403 handling
+    guard = await get_tenant_resource(db.guards, guard_id, current_user)
     return guard
 
 @api_router.put("/hr/guards/{guard_id}")
@@ -5981,10 +5981,9 @@ async def update_guard(
     request: Request,
     current_user = Depends(require_role_and_module("Administrador", module="hr"))
 ):
-    """Update guard/employee details"""
-    guard = await db.guards.find_one({"id": guard_id})
-    if not guard:
-        raise HTTPException(status_code=404, detail="Guard not found")
+    """Update guard/employee details - must belong to user's condominium"""
+    # Use get_tenant_resource for tenant validation
+    guard = await get_tenant_resource(db.guards, guard_id, current_user)
     
     # Build update dict with only provided fields
     update_data = {}
