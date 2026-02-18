@@ -726,6 +726,19 @@ class PushNotificationPayload(BaseModel):
     requireInteraction: bool = True
     urgency: str = "high"
 
+# ==================== PUSH SUBSCRIPTION DOCUMENT SCHEMA ====================
+# Each push_subscription document MUST have:
+# - id: str (UUID)
+# - user_id: str (REQUIRED - owner of subscription)
+# - role: str (REQUIRED - user's primary role at subscription time)
+# - condominium_id: str (REQUIRED - tenant scope)
+# - endpoint: str (push service URL)
+# - keys: { p256dh: str, auth: str }
+# - is_active: bool
+# - created_at: str (ISO datetime)
+# - updated_at: str (ISO datetime)
+# ===========================================================================
+
 # ==================== INVITATION & ACCESS REQUEST MODELS ====================
 class InvitationUsageLimitEnum(str, Enum):
     SINGLE = "single"           # 1 uso (default)
