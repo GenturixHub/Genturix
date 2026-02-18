@@ -1180,22 +1180,28 @@ const CreateCondoDialog = ({ open, onClose, onSuccess }) => {
               />
             </div>
           </div>
-          <div>
-            <Label>Máximo de Usuarios</Label>
-            <Input
-              type="number"
-              value={form.max_users}
-              onChange={(e) => setForm({...form, max_users: parseInt(e.target.value) || 100})}
-              className="bg-[#0A0A0F] border-[#1E293B] mt-1"
-            />
-          </div>
+          
+          {/* Seat Limit - only shown for production */}
+          {form.environment === 'production' && (
+            <div>
+              <Label>Asientos Iniciales (Paid Seats)</Label>
+              <Input
+                type="number"
+                value={form.paid_seats}
+                onChange={(e) => setForm({...form, paid_seats: parseInt(e.target.value) || 10, max_users: parseInt(e.target.value) || 100})}
+                className="bg-[#0A0A0F] border-[#1E293B] mt-1"
+                min={1}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Número de usuarios facturables</p>
+            </div>
+          )}
           
           {/* Environment Selector */}
           <div className="space-y-2">
             <Label>Tipo de Tenant</Label>
             <Select 
               value={form.environment} 
-              onValueChange={(v) => setForm({...form, environment: v, max_users: v === 'demo' ? 10 : 100})}
+              onValueChange={(v) => setForm({...form, environment: v, paid_seats: v === 'demo' ? 10 : form.paid_seats})}
             >
               <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B]">
                 <SelectValue placeholder="Seleccionar tipo" />
