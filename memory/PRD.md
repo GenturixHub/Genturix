@@ -1,8 +1,51 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 18, 2026 (Push Notifications Refactor)
+## Last Updated: February 18, 2026 (Push Notifications Frontend Refactor)
 
 ## Changelog
+### 2026-02-18 (Session 73) - Push Notifications Frontend Refactor ⭐⭐⭐⭐⭐
+
+- **Frontend Push System Completely Refactored** ✅
+  - Aligned with new secure backend architecture
+  
+  **1. Service Worker Simplified (v5):**
+  - Only receives push → shows notification
+  - Removed: audio logic, locks, role checks, cross-tab coordination
+  - Sends `NEW_PANIC_ALERT` message to app for UI update
+  - Clean notification click handling
+  
+  **2. Push Registration in AuthContext:**
+  - On login: if `user.role === 'Guarda'` → auto-register push
+  - Other roles: no auto-registration
+  - Checks `Notification.permission` before prompting
+  - Uses VAPID key from backend `/api/config/vapid`
+  
+  **3. Logout Cleanup:**
+  - Calls `DELETE /api/push/unsubscribe-all`
+  - Unsubscribes local Service Worker subscription
+  
+  **4. AlertSoundManager Simplified (v4):**
+  - Simple `play()` / `stop()` methods
+  - No locks, no cross-tab communication
+  - HTML5 Audio element (most reliable)
+  
+  **5. GuardUI Audio Logic Simplified:**
+  - Plays sound only if `document.visibilityState === 'visible'`
+  - Shows unlock banner if autoplay blocked
+  - Stops sound on notification click/close
+  
+  **6. PushPermissionBanner Updated:**
+  - Uses static methods from PushNotificationManager
+  - For non-Guard roles who want notifications
+  
+  **Files Modified:**
+  - `/app/frontend/public/service-worker.js` - Simplified v5
+  - `/app/frontend/src/utils/AlertSoundManager.js` - Simplified v4
+  - `/app/frontend/src/utils/PushNotificationManager.js` - Static methods
+  - `/app/frontend/src/contexts/AuthContext.js` - Push registration on login
+  - `/app/frontend/src/pages/GuardUI.js` - Simplified audio handling
+  - `/app/frontend/src/components/PushPermissionBanner.jsx` - Updated API
+
 ### 2026-02-18 (Session 73) - Push Notifications Security Refactor ⭐⭐⭐⭐⭐
 
 - **Push Notifications System Completely Refactored** ✅
