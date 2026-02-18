@@ -4142,14 +4142,8 @@ async def get_authorization(
     current_user = Depends(get_current_user)
 ):
     """Get a specific authorization by ID"""
-    auth = await db.visitor_authorizations.find_one({"id": auth_id}, {"_id": 0})
-    if not auth:
-        raise HTTPException(status_code=404, detail="Autorización no encontrada")
-    
-    # Multi-tenant check
-    if "SuperAdmin" not in current_user.get("roles", []):
-        if auth.get("condominium_id") != current_user.get("condominium_id"):
-            raise HTTPException(status_code=403, detail="No tienes acceso a esta autorización")
+    # Use get_tenant_resource for automatic 404/403 handling
+    auth = await get_tenant_resource(db.visitor_authorizations, auth_id, current_user)
     
     validity = check_authorization_validity(auth)
     auth["validity_status"] = validity["status"]
