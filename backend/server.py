@@ -1528,9 +1528,26 @@ async def log_audit_event(
 
 # ==================== PUSH NOTIFICATION HELPERS ====================
 async def send_push_notification(subscription_info: dict, payload: dict) -> bool:
-    """Send a push notification to a single subscriber"""
+    """
+    Send a push notification to a single subscriber.
+    
+    SECURITY: This is a low-level function. Caller MUST validate:
+    - User is authenticated
+    - Condominium exists
+    - Role is valid
+    
+    ERROR HANDLING:
+    - 404/410 Gone: Auto-delete stale subscription from DB
+    - 401/403: Log but keep subscription (might be temporary)
+    - Other errors: Log and continue
+    """
     if not VAPID_PUBLIC_KEY or not VAPID_PRIVATE_KEY:
         logger.warning("VAPID keys not configured, skipping push notification")
+        return False
+    
+    endpoint = subscription_info.get("endpoint", "")
+    if not endpoint:
+        logger.warning("Push subscription missing endpoint")
         return False
     
     try:
@@ -1542,11 +1559,21 @@ async def send_push_notification(subscription_info: dict, payload: dict) -> bool
         )
         return True
     except WebPushException as e:
-        logger.error(f"Push notification failed: {e}")
-        # If subscription is expired or invalid, remove it
-        if e.response and e.response.status_code in [404, 410]:
-            await db.push_subscriptions.delete_one({"endpoint": subscription_info.get("endpoint")})
-            logger.info(f"Removed expired subscription: {subscription_info.get('endpoint')[:50]}...")
+        status_code = e.response.status_code if e.response else None
+        logger.error(f"Push notification failed (status={status_code}): {e}")
+        
+        # Handle 410 Gone and 404 Not Found - subscription is invalid/expired
+        if status_code in [404, 410]:
+            delete_result = await db.push_subscriptions.delete_one({"endpoint": endpoint})
+            if delete_result.deleted_count > 0:
+                logger.info(f"[PUSH-CLEANUP] Removed stale subscription (410/404): {endpoint[:50]}...")
+            return False
+        
+        # Handle 401/403 - might be temporary auth issue, don't delete
+        if status_code in [401, 403]:
+            logger.warning(f"[PUSH-AUTH] Auth error for endpoint (keeping subscription): {endpoint[:50]}...")
+            return False
+        
         return False
     except Exception as e:
         logger.error(f"Unexpected push error: {e}")
