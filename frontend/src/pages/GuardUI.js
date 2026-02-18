@@ -2116,8 +2116,22 @@ const GuardUI = () => {
   
   // Audio unlock banner state
   const [showAudioBanner, setShowAudioBanner] = useState(false);
+  
+  // Track if this tab has audio lock
+  const [hasAudioLock, setHasAudioLock] = useState(false);
 
   // ==================== AUDIO SYSTEM ====================
+  // Initialize AlertSoundManager and acquire tab lock
+  useEffect(() => {
+    const gotLock = AlertSoundManager.init();
+    setHasAudioLock(gotLock);
+    
+    // Cleanup on unmount
+    return () => {
+      AlertSoundManager.cleanup();
+    };
+  }, []);
+
   // Stop alert sound
   const stopAlertSound = useCallback(() => {
     AlertSoundManager.stop();
@@ -2126,13 +2140,15 @@ const GuardUI = () => {
 
   // Play alert sound (called when panic alert arrives)
   const playAlertSound = useCallback(() => {
+    if (!hasAudioLock) return false;
+    
     const result = AlertSoundManager.play();
     // If audio is blocked, show unlock banner
     if (!AlertSoundManager.getIsPlaying() && !AlertSoundManager.getIsUnlocked()) {
       setShowAudioBanner(true);
     }
     return result;
-  }, []);
+  }, [hasAudioLock]);
 
   // Handle user click on unlock banner
   const handleUnlockAudio = useCallback(() => {
@@ -2146,6 +2162,8 @@ const GuardUI = () => {
 
   // Unlock audio on first user interaction (browser requirement)
   useEffect(() => {
+    if (!hasAudioLock) return;
+    
     const unlockAudioOnInteraction = () => {
       AlertSoundManager.unlock();
     };
@@ -2161,7 +2179,7 @@ const GuardUI = () => {
         document.removeEventListener(event, unlockAudioOnInteraction);
       });
     };
-  }, []);
+  }, [hasAudioLock]);
   // ==================== END AUDIO SYSTEM ====================
 
   // Handle URL parameters
