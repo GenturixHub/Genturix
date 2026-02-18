@@ -27,6 +27,11 @@
     - 3 sample residents with apartments (optional)
     - Gym and Pool reservation areas (optional)
   - Shows all credentials in result table with copy button
+  - **QR Code with credentials** - Scannable code containing:
+    - Demo name
+    - All user credentials (email/password)
+    - Login URL
+    - Perfect for sharing with clients during demos
   - Ideal for quick client demonstrations
 
 ### 2026-02-18 (Session 73) - Demo vs Production Condominium Endpoint Separation ⭐⭐⭐⭐⭐
