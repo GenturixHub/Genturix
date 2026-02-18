@@ -1,118 +1,210 @@
 /**
- * AlertSoundManager v4 - Simplified
+ * AlertSoundManager - Sistema Definitivo de Audio para Alertas de Pánico
  * 
- * Simple audio playback for panic alerts.
- * NO locks, NO cross-tab communication, NO complex state.
+ * CARACTERÍSTICAS:
+ * - Singleton: Una única instancia en toda la aplicación
+ * - Pre-carga: Audio cargado al inicio para reproducción instantánea
+ * - Loop: Reproduce en bucle hasta que se detenga manualmente
+ * - Sin errores de consola: Todos los errores son silenciosos
+ * - Sin múltiples instancias: Evita reproducción simultánea
+ * - Independiente del Service Worker: No depende de visibilityState
  * 
- * Usage:
- *   AlertSoundManager.play()  - Play alert sound
- *   AlertSoundManager.stop()  - Stop alert sound
+ * USO:
+ *   AlertSoundManager.unlock()  - Desbloquear audio (requiere gesto de usuario)
+ *   AlertSoundManager.play()    - Iniciar reproducción
+ *   AlertSoundManager.stop()    - Detener reproducción
+ * 
+ * IMPORTANTE:
+ * - Solo debe usarse en el rol Guarda
+ * - Llamar unlock() en el primer click/touch del usuario
  */
 
-class AlertSoundManagerClass {
+class AlertSoundManagerSingleton {
   constructor() {
-    this.audio = null;
+    // Singleton check
+    if (AlertSoundManagerSingleton.instance) {
+      return AlertSoundManagerSingleton.instance;
+    }
+    
+    // State
     this.isPlaying = false;
+    this.isUnlocked = false;
+    this.audio = null;
+    
+    // Initialize audio element
+    this._initAudio();
+    
+    // Store singleton instance
+    AlertSoundManagerSingleton.instance = this;
   }
 
   /**
-   * Play alert sound - simple Audio element approach
+   * Initialize the audio element with proper settings
+   * @private
    */
-  play() {
-    console.log('[AlertSound] play()');
-    
-    // Stop any existing sound first
-    this.stop();
-    
+  _initAudio() {
     try {
-      // Use simple HTML5 Audio (most reliable)
-      this.audio = new Audio('/alert.mp3');
+      this.audio = new Audio('/sounds/panic-alert.mp3');
       this.audio.loop = true;
+      this.audio.preload = 'auto';
       this.audio.volume = 0.8;
       
+      // Pre-load the audio
+      this.audio.load();
+      
+      // Handle audio errors silently
+      this.audio.onerror = () => {
+        // Silent error handling - do not log
+      };
+      
+      // Track when audio ends (shouldn't happen with loop=true, but safety)
+      this.audio.onended = () => {
+        this.isPlaying = false;
+      };
+      
+      // Track when audio is paused externally
+      this.audio.onpause = () => {
+        if (this.isPlaying) {
+          this.isPlaying = false;
+        }
+      };
+      
+    } catch (e) {
+      // Silent error - audio not available
+      this.audio = null;
+    }
+  }
+
+  /**
+   * Unlock audio playback (must be called from user gesture)
+   * Browsers require user interaction before allowing audio playback.
+   * Call this on first click/touch event.
+   * 
+   * @returns {boolean} True if unlock was successful
+   */
+  unlock() {
+    if (this.isUnlocked) {
+      return true;
+    }
+    
+    if (!this.audio) {
+      return false;
+    }
+    
+    try {
+      // Play and immediately pause to unlock audio context
+      const playPromise = this.audio.play();
+      
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            this.audio.pause();
+            this.audio.currentTime = 0;
+            this.isUnlocked = true;
+          })
+          .catch(() => {
+            // Silent catch - autoplay not allowed yet
+          });
+      }
+      
+      return true;
+    } catch (e) {
+      // Silent error
+      return false;
+    }
+  }
+
+  /**
+   * Start playing the alert sound
+   * Will loop until stop() is called
+   * 
+   * @returns {boolean} True if playback started successfully
+   */
+  play() {
+    // Already playing - do nothing
+    if (this.isPlaying) {
+      return true;
+    }
+    
+    if (!this.audio) {
+      return false;
+    }
+    
+    try {
+      // Reset to beginning
+      this.audio.currentTime = 0;
+      
+      // Attempt to play
       const playPromise = this.audio.play();
       
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
             this.isPlaying = true;
-            console.log('[AlertSound] Playing');
           })
-          .catch((error) => {
-            console.warn('[AlertSound] Autoplay blocked:', error.message);
+          .catch(() => {
+            // Silent catch - autoplay blocked
+            // User needs to click unlock banner
             this.isPlaying = false;
-            // Return blocked status for UI to show unlock prompt
-            return { success: false, blocked: true };
           });
       }
       
-      return { success: true, blocked: false };
+      return true;
     } catch (e) {
-      console.error('[AlertSound] Error:', e);
-      return { success: false, blocked: true };
+      // Silent error
+      return false;
     }
   }
 
   /**
-   * Stop alert sound
+   * Stop playing the alert sound
    */
   stop() {
-    console.log('[AlertSound] stop()');
-    
-    if (this.audio) {
-      try {
-        this.audio.pause();
-        this.audio.currentTime = 0;
-        this.audio = null;
-      } catch (e) {
-        console.warn('[AlertSound] Stop error:', e);
-      }
+    if (!this.audio) {
+      return;
     }
     
-    this.isPlaying = false;
+    try {
+      this.audio.pause();
+      this.audio.currentTime = 0;
+      this.isPlaying = false;
+    } catch (e) {
+      // Silent error
+    }
   }
 
   /**
-   * Check if currently playing
+   * Check if audio is currently playing
+   * @returns {boolean}
    */
   getIsPlaying() {
     return this.isPlaying;
   }
 
   /**
-   * Check if audio is available (always true with HTML5 Audio)
+   * Check if audio has been unlocked by user gesture
+   * @returns {boolean}
    */
-  isUnlocked() {
-    return true;
+  getIsUnlocked() {
+    return this.isUnlocked;
   }
 
   /**
-   * Unlock audio - play silent sound to enable autoplay
-   * Call this from a user gesture (click, tap)
+   * Force re-initialization of audio (use if audio gets corrupted)
    */
-  async unlock() {
-    console.log('[AlertSound] unlock()');
-    try {
-      const audio = new Audio('/alert.mp3');
-      audio.volume = 0;
-      await audio.play();
-      audio.pause();
-      console.log('[AlertSound] Unlocked');
-      return true;
-    } catch (e) {
-      console.warn('[AlertSound] Unlock failed:', e);
-      return false;
-    }
+  reset() {
+    this.stop();
+    this._initAudio();
+    this.isUnlocked = false;
   }
 }
 
-// Singleton
-const AlertSoundManager = new AlertSoundManagerClass();
+// Create and export the singleton instance
+const AlertSoundManager = new AlertSoundManagerSingleton();
 
-// Global access for debugging
+// Expose to window for debugging (optional, can be removed in production)
 if (typeof window !== 'undefined') {
   window.AlertSoundManager = AlertSoundManager;
-  window.stopPanicSound = () => AlertSoundManager.stop();
 }
 
 export default AlertSoundManager;
