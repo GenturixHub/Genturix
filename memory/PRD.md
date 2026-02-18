@@ -1,8 +1,51 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 17, 2026 (P1 Feature: Password Change UI for All Roles)
+## Last Updated: February 18, 2026 (P0 Feature: Demo vs Production Endpoint Separation)
 
 ## Changelog
+### 2026-02-18 (Session 73) - Demo vs Production Condominium Endpoint Separation ⭐⭐⭐⭐⭐
+- **P0 Feature: Separate Endpoints for Demo vs Production Condominiums** - FULLY VERIFIED ✅
+  - Backend Testing: 100% (12/12 tests passed)
+  - Frontend Testing: 100% (all features working)
+  - Test report: `/app/test_reports/iteration_73.json`
+  
+  **Key Implementation:**
+  
+  1. **New Backend Models:**
+     - `DemoCondominiumCreate` - Simplified model for demo condos (no billing fields)
+     - `CondominiumCreate` - Production model with billing fields (paid_seats, etc.)
+  
+  2. **Separate Backend Endpoints:**
+     - **`POST /api/superadmin/condominiums/demo`** - Creates DEMO condominiums:
+       - Fixed 10 seats (hardcoded)
+       - `billing_enabled=false`
+       - `billing_status='demo'`
+       - `environment='demo'`
+       - `is_demo=true`
+       - No Stripe integration
+     - **`POST /api/condominiums`** - Creates PRODUCTION condominiums:
+       - Configurable `paid_seats`
+       - `billing_enabled=true`
+       - `billing_status='active'`
+       - `environment='production'`
+       - `is_demo=false`
+       - Stripe integration ready
+  
+  3. **Frontend Updates (api.js):**
+     - `api.createDemoCondominium(data)` - Calls demo endpoint
+     - `api.createCondominium(data)` - Calls production endpoint
+  
+  4. **Frontend Updates (CreateCondoDialog):**
+     - Environment selector: DEMO / PRODUCCIÓN
+     - "Asientos Iniciales (Paid Seats)" field - Only visible for production
+     - Info panels: Yellow for demo, Green for production
+     - Calls correct endpoint based on selection
+  
+  5. **Files Modified:**
+     - `/app/backend/server.py` - New models and separate endpoints
+     - `/app/frontend/src/services/api.js` - New API function `createDemoCondominium()`
+     - `/app/frontend/src/pages/SuperAdminDashboard.js` - CreateCondoDialog uses correct endpoint
+
 ### 2026-02-17 (Session 71) - Password Change UI for All Roles ⭐⭐⭐⭐⭐
 - **P1 Feature: Password Change UI in All User Profiles** - FULLY VERIFIED ✅
   - Backend Testing: 100% (14/14 tests passed)
