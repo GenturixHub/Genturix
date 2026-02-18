@@ -1087,6 +1087,7 @@ const CreateCondoDialog = ({ open, onClose, onSuccess }) => {
     contact_email: '',
     contact_phone: '',
     max_users: 100,
+    paid_seats: 10,
     environment: 'production'  // "demo" or "production"
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1096,11 +1097,31 @@ const CreateCondoDialog = ({ open, onClose, onSuccess }) => {
     
     setIsSubmitting(true);
     try {
-      await api.createCondominium(form);
+      // Use different endpoint based on environment selection
+      if (form.environment === 'demo') {
+        // Demo endpoint - simplified payload (no billing fields)
+        await api.createDemoCondominium({
+          name: form.name,
+          address: form.address || 'Demo Address',
+          contact_email: form.contact_email,
+          contact_phone: form.contact_phone || ''
+        });
+      } else {
+        // Production endpoint - full payload with billing
+        await api.createCondominium({
+          name: form.name,
+          address: form.address,
+          contact_email: form.contact_email,
+          contact_phone: form.contact_phone,
+          max_users: form.max_users,
+          paid_seats: form.paid_seats
+        });
+      }
+      toast.success(`Condominio ${form.environment === 'demo' ? 'DEMO' : 'de PRODUCCIÓN'} creado exitosamente`);
       onSuccess();
-      setForm({ name: '', address: '', contact_email: '', contact_phone: '', max_users: 100, environment: 'production' });
+      setForm({ name: '', address: '', contact_email: '', contact_phone: '', max_users: 100, paid_seats: 10, environment: 'production' });
     } catch (error) {
-      alert('Error creating condominium');
+      toast.error(error.message || 'Error al crear condominio');
     } finally {
       setIsSubmitting(false);
     }
