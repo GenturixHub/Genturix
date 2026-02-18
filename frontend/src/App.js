@@ -23,7 +23,6 @@ import ProfilePage from './pages/ProfilePage';
 import JoinPage from './pages/JoinPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import CondominiumSettingsPage from './pages/CondominiumSettingsPage';
-import AlertSoundManager from './utils/AlertSoundManager';
 import './App.css';
 
 // Suppress PostHog errors in development
