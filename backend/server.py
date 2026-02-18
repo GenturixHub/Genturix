@@ -10369,6 +10369,284 @@ async def create_demo_condominium(
         plan="demo"
     )
 
+
+class DemoWithDataRequest(BaseModel):
+    """Request model for creating a demo condominium with pre-loaded test data"""
+    name: str = Field(..., min_length=2, max_length=100)
+    admin_email: EmailStr
+    admin_name: str = Field(default="Admin Demo")
+    include_guards: bool = Field(default=True)
+    include_residents: bool = Field(default=True)
+    include_areas: bool = Field(default=True)
+
+
+@api_router.post("/superadmin/condominiums/demo-with-data")
+async def create_demo_with_test_data(
+    request_data: DemoWithDataRequest,
+    request: Request,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
+):
+    """
+    Create a DEMO condominium with pre-loaded test data for quick demonstrations.
+    
+    This endpoint creates:
+    - Demo condominium (10 seats, no billing)
+    - Admin user with credentials
+    - Optional: 2 sample guards
+    - Optional: 3 sample residents  
+    - Optional: 2 reservation areas (Gym, Pool)
+    
+    Returns all created credentials for immediate use.
+    """
+    # Validate admin email not in use
+    existing_user = await db.users.find_one({"email": request_data.admin_email.lower()})
+    if existing_user:
+        raise HTTPException(status_code=400, detail=f"El email {request_data.admin_email} ya está registrado")
+    
+    # Generate IDs
+    condo_id = str(uuid.uuid4())
+    admin_id = str(uuid.uuid4())
+    
+    # Generate passwords
+    admin_password = generate_temporary_password(12)
+    guard1_password = generate_temporary_password(10)
+    guard2_password = generate_temporary_password(10)
+    
+    created_users = []
+    created_areas = []
+    
+    try:
+        # === STEP 1: Create Demo Condominium ===
+        modules = CondominiumModules()
+        condo_doc = {
+            "id": condo_id,
+            "name": request_data.name,
+            "address": "Dirección Demo - Para pruebas",
+            "contact_email": request_data.admin_email.lower(),
+            "contact_phone": "",
+            "max_users": 10,
+            "current_users": 0,
+            "modules": modules.model_dump(),
+            "status": "demo",
+            "is_demo": True,
+            "environment": "demo",
+            "is_active": True,
+            "paid_seats": 10,
+            "billing_enabled": False,
+            "billing_status": "demo",
+            "stripe_customer_id": None,
+            "price_per_user": 0,
+            "discount_percent": 100,
+            "free_modules": ["security", "visitors", "hr", "reservations", "school", "payments"],
+            "plan": "demo",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.condominiums.insert_one(condo_doc)
+        
+        # Create settings
+        settings_doc = {
+            "condominium_id": condo_id,
+            "condominium_name": request_data.name,
+            **get_default_condominium_settings(),
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.condominium_settings.insert_one(settings_doc)
+        
+        # === STEP 2: Create Admin User ===
+        admin_doc = {
+            "id": admin_id,
+            "email": request_data.admin_email.lower(),
+            "hashed_password": hash_password(admin_password),
+            "full_name": request_data.admin_name,
+            "roles": [RoleEnum.ADMINISTRADOR.value],
+            "condominium_id": condo_id,
+            "is_active": True,
+            "status": "active",
+            "is_locked": False,
+            "password_reset_required": False,  # Demo doesn't require reset
+            "created_by": current_user["id"],
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.users.insert_one(admin_doc)
+        created_users.append({
+            "role": "Administrador",
+            "email": request_data.admin_email.lower(),
+            "password": admin_password,
+            "name": request_data.admin_name
+        })
+        
+        user_count = 1  # Admin
+        
+        # === STEP 3: Create Guards (optional) ===
+        if request_data.include_guards:
+            guard1_id = str(uuid.uuid4())
+            guard1_email = f"guardia1.{condo_id[:8]}@demo.genturix.com"
+            guard1_doc = {
+                "id": guard1_id,
+                "email": guard1_email,
+                "hashed_password": hash_password(guard1_password),
+                "full_name": "Carlos Seguridad",
+                "roles": [RoleEnum.GUARDIA.value],
+                "condominium_id": condo_id,
+                "is_active": True,
+                "status": "active",
+                "is_locked": False,
+                "password_reset_required": False,
+                "created_by": admin_id,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.users.insert_one(guard1_doc)
+            created_users.append({
+                "role": "Guardia",
+                "email": guard1_email,
+                "password": guard1_password,
+                "name": "Carlos Seguridad"
+            })
+            
+            guard2_id = str(uuid.uuid4())
+            guard2_email = f"guardia2.{condo_id[:8]}@demo.genturix.com"
+            guard2_doc = {
+                "id": guard2_id,
+                "email": guard2_email,
+                "hashed_password": hash_password(guard2_password),
+                "full_name": "María Vigilancia",
+                "roles": [RoleEnum.GUARDIA.value],
+                "condominium_id": condo_id,
+                "is_active": True,
+                "status": "active",
+                "is_locked": False,
+                "password_reset_required": False,
+                "created_by": admin_id,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.users.insert_one(guard2_doc)
+            created_users.append({
+                "role": "Guardia",
+                "email": guard2_email,
+                "password": guard2_password,
+                "name": "María Vigilancia"
+            })
+            user_count += 2
+        
+        # === STEP 4: Create Residents (optional) ===
+        if request_data.include_residents:
+            residents_data = [
+                {"name": "Roberto Pérez", "apartment": "A-101"},
+                {"name": "Ana García", "apartment": "B-202"},
+                {"name": "Luis Martínez", "apartment": "C-303"}
+            ]
+            for resident in residents_data:
+                res_id = str(uuid.uuid4())
+                res_password = generate_temporary_password(10)
+                res_email = f"residente.{res_id[:8]}@demo.genturix.com"
+                res_doc = {
+                    "id": res_id,
+                    "email": res_email,
+                    "hashed_password": hash_password(res_password),
+                    "full_name": resident["name"],
+                    "roles": [RoleEnum.RESIDENTE.value],
+                    "condominium_id": condo_id,
+                    "apartment": resident["apartment"],
+                    "is_active": True,
+                    "status": "active",
+                    "is_locked": False,
+                    "password_reset_required": False,
+                    "created_by": admin_id,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }
+                await db.users.insert_one(res_doc)
+                created_users.append({
+                    "role": "Residente",
+                    "email": res_email,
+                    "password": res_password,
+                    "name": resident["name"],
+                    "apartment": resident["apartment"]
+                })
+            user_count += 3
+        
+        # === STEP 5: Create Reservation Areas (optional) ===
+        if request_data.include_areas:
+            areas_data = [
+                {"name": "Gimnasio", "capacity": 15, "open_time": "06:00", "close_time": "22:00"},
+                {"name": "Piscina", "capacity": 25, "open_time": "08:00", "close_time": "20:00"}
+            ]
+            for area in areas_data:
+                area_id = str(uuid.uuid4())
+                area_doc = {
+                    "id": area_id,
+                    "condominium_id": condo_id,
+                    "name": area["name"],
+                    "capacity": area["capacity"],
+                    "requires_approval": False,
+                    "available_days": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
+                    "open_time": area["open_time"],
+                    "close_time": area["close_time"],
+                    "is_active": True,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+                await db.reservation_areas.insert_one(area_doc)
+                created_areas.append({
+                    "id": area_id,
+                    "name": area["name"],
+                    "capacity": area["capacity"],
+                    "schedule": f"{area['open_time']} - {area['close_time']}"
+                })
+        
+        # Update user count
+        await db.condominiums.update_one(
+            {"id": condo_id},
+            {"$set": {"current_users": user_count}}
+        )
+        
+        # Audit log
+        await log_audit_event(
+            AuditEventType.CONDO_CREATED,
+            current_user["id"],
+            "super_admin",
+            {
+                "action": "demo_with_data_created",
+                "condo_id": condo_id,
+                "name": request_data.name,
+                "users_created": len(created_users),
+                "areas_created": len(created_areas)
+            },
+            request.client.host if request.client else "unknown",
+            request.headers.get("user-agent", "unknown")
+        )
+        
+        logger.info(f"Demo condominium with data created: {request_data.name} by {current_user['email']} ({len(created_users)} users, {len(created_areas)} areas)")
+        
+        return {
+            "success": True,
+            "message": f"Demo '{request_data.name}' creado con datos de prueba",
+            "condominium": {
+                "id": condo_id,
+                "name": request_data.name,
+                "environment": "demo",
+                "seat_limit": 10,
+                "users_created": user_count
+            },
+            "credentials": created_users,
+            "areas_created": created_areas,
+            "warning": "⚠️ Guarda estas credenciales. Este es un ambiente DEMO sin emails."
+        }
+        
+    except Exception as e:
+        # Rollback on error
+        logger.error(f"Demo with data creation failed, rolling back: {str(e)}")
+        await db.condominiums.delete_one({"id": condo_id})
+        await db.users.delete_many({"condominium_id": condo_id})
+        await db.reservation_areas.delete_many({"condominium_id": condo_id})
+        await db.condominium_settings.delete_one({"condominium_id": condo_id})
+        raise HTTPException(status_code=500, detail=f"Error al crear demo: {str(e)}")
+
+
 @api_router.get("/condominiums")
 async def list_condominiums(
     current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
