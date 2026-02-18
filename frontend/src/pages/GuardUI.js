@@ -2187,42 +2187,34 @@ const GuardUI = () => {
     }
   }, [searchParams, navigate, stopAlertSound]);
 
-  // Service Worker message handler - SIMPLIFIED
+  // Service Worker message handler for push notifications
   useEffect(() => {
     const handleServiceWorkerMessage = (event) => {
       const messageType = event.data?.type;
       
-      // Handle new panic alert
+      // Handle new panic alert from push notification
       if (messageType === 'NEW_PANIC_ALERT') {
-        console.log('[GuardUI] New panic alert received');
-        
-        // Only play sound if document is visible
-        if (document.visibilityState === 'visible') {
-          const result = AlertSoundManager.play();
-          if (result.blocked) {
-            setShowAudioBanner(true);
-          }
-        }
+        // Play alert sound (no visibility check - always play for guards)
+        playAlertSound();
         
         // Refresh alerts list
-        if (typeof loadAlerts === 'function') {
-          loadAlerts();
+        fetchAlerts();
+      }
+      
+      // Handle notification clicked - stop sound and navigate
+      if (messageType === 'NOTIFICATION_CLICKED') {
+        stopAlertSound();
+        setActiveTab('alerts');
+        const eventId = event.data?.data?.event_id;
+        if (eventId) {
+          setHighlightedAlertId(eventId);
+          setTimeout(() => setHighlightedAlertId(null), 5000);
         }
       }
       
-      // Handle notification clicked/closed - stop sound
-      if (messageType === 'NOTIFICATION_CLICKED' || messageType === 'NOTIFICATION_CLOSED') {
-        console.log(`[GuardUI] ${messageType} - stopping sound`);
+      // Handle notification closed - stop sound
+      if (messageType === 'NOTIFICATION_CLOSED') {
         stopAlertSound();
-        
-        if (messageType === 'NOTIFICATION_CLICKED') {
-          setActiveTab('alerts');
-          const eventId = event.data?.data?.event_id;
-          if (eventId) {
-            setHighlightedAlertId(eventId);
-            setTimeout(() => setHighlightedAlertId(null), 5000);
-          }
-        }
       }
     };
 
