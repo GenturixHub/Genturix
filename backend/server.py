@@ -2112,12 +2112,6 @@ async def log_billing_event(
 
 # ==================== AUTH ROUTES ====================
 
-# Temporary test endpoint for exception handler verification (REMOVE IN PRODUCTION)
-@api_router.get("/test/exception")
-async def test_exception_handler():
-    """Test endpoint to verify global exception handler. Remove before production deployment."""
-    raise ValueError("This is a test exception to verify the global exception handler")
-
 @api_router.post("/auth/register", response_model=UserResponse)
 async def register(user_data: UserCreate, request: Request):
     existing = await db.users.find_one({"email": user_data.email})
