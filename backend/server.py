@@ -77,19 +77,24 @@ logger = logging.getLogger(__name__)
 # Create the main app
 app = FastAPI(title="GENTURIX Enterprise Platform", version="1.0.0")
 
-# ==================== GLOBAL EXCEPTION HANDLER ====================
+# ==================== GLOBAL EXCEPTION HANDLERS ====================
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """Pass through HTTP exceptions unchanged."""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """
     Production-grade global exception handler.
     - Logs full error details for debugging
     - Returns safe JSON response without exposing internals
-    - Preserves HTTPException behavior
     """
-    # Let HTTPException pass through unchanged
-    if isinstance(exc, HTTPException):
-        raise exc
-    
     # Generate unique error ID for tracking
     error_id = str(uuid.uuid4())
     
