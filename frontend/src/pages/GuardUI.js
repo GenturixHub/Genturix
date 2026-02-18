@@ -2197,8 +2197,10 @@ const GuardUI = () => {
         // Play alert sound (no visibility check - always play for guards)
         playAlertSound();
         
-        // Refresh alerts list
-        fetchAlerts();
+        // Refresh alerts list using direct API call
+        api.getPanicEvents().then(events => {
+          setAlerts(events);
+        }).catch(() => {});
       }
       
       // Handle notification clicked - stop sound and navigate
