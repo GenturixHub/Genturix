@@ -2453,7 +2453,7 @@ const GuardUI = () => {
       )}
 
       {/* Audio Unlock Banner - Required for sound to work */}
-      {showAudioBanner && !audioUnlocked && (
+      {showAudioBanner && (
         <div 
           className="px-3 py-3 bg-red-500/20 border-b border-red-500/30 cursor-pointer hover:bg-red-500/30 transition-colors"
           onClick={handleUnlockAudio}
