@@ -1688,31 +1688,151 @@ def require_module(module_name: str):
         return current_user
     return check_module
 
-# ==================== TENANT VALIDATION HELPER ====================
-def enforce_same_condominium(resource_condo_id: str, current_user: dict) -> None:
+# ==================== MULTI-TENANT ENFORCEMENT SYSTEM ====================
+
+# -------------------- PHASE 1: Centralized Validation --------------------
+async def validate_tenant_resource(resource: dict, current_user: dict) -> None:
     """
-    Validate that the current user belongs to the same condominium as the resource.
-    Prevents cross-tenant data access.
+    Validate that the current user has access to the resource's tenant.
+    
+    Rules:
+    - SuperAdmin → always allowed
+    - resource.condominium_id must match current_user.condominium_id
+    - Missing condominium_id on either side → 403
     
     Args:
-        resource_condo_id: The condominium_id of the resource being accessed
-        current_user: The authenticated user dictionary from get_current_user()
+        resource: The resource document from database
+        current_user: The authenticated user from get_current_user()
     
     Raises:
-        HTTPException 403: If user's condominium doesn't match resource's condominium
+        HTTPException 403: If tenant validation fails
+    """
+    # SuperAdmin bypasses all tenant checks
+    user_roles = current_user.get("roles", [])
+    if "SuperAdmin" in user_roles:
+        return
     
-    Note:
-        - SuperAdmin users bypass this check (they have no condominium_id)
-        - Should be called in endpoints that access tenant-specific resources
+    user_condo_id = current_user.get("condominium_id")
+    resource_condo_id = resource.get("condominium_id") if resource else None
+    
+    # Validate both have condominium_id
+    if not user_condo_id:
+        logger.warning(
+            f"[TENANT-BLOCK] User {current_user.get('id')} has no condominium_id"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: user not assigned to a condominium"
+        )
+    
+    if not resource_condo_id:
+        logger.warning(
+            f"[TENANT-BLOCK] Resource has no condominium_id. "
+            f"User: {current_user.get('id')}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: resource has no tenant association"
+        )
+    
+    # Validate match
+    if user_condo_id != resource_condo_id:
+        logger.warning(
+            f"[TENANT-BLOCK] Cross-tenant access attempt: "
+            f"user={current_user.get('id')} (condo={user_condo_id}) "
+            f"tried to access resource in condo={resource_condo_id}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: cross-tenant access blocked"
+        )
+
+# -------------------- PHASE 2: Resource Getter with Validation --------------------
+async def get_tenant_resource(
+    collection, 
+    resource_id: str, 
+    current_user: dict,
+    id_field: str = "id"
+) -> dict:
+    """
+    Fetch a resource by ID and validate tenant access.
+    
+    Args:
+        collection: MongoDB collection to query
+        resource_id: The ID of the resource to fetch
+        current_user: The authenticated user from get_current_user()
+        id_field: The field name for ID (default: "id")
+    
+    Returns:
+        The resource document if found and authorized
+    
+    Raises:
+        HTTPException 404: If resource not found
+        HTTPException 403: If tenant validation fails
+    """
+    resource = await collection.find_one({id_field: resource_id}, {"_id": 0})
+    
+    if not resource:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Resource not found"
+        )
+    
+    await validate_tenant_resource(resource, current_user)
+    
+    return resource
+
+# -------------------- PHASE 3: Automatic Tenant Filter --------------------
+def tenant_filter(current_user: dict, extra_filter: dict = None) -> dict:
+    """
+    Generate a MongoDB filter that enforces tenant isolation.
+    
+    Args:
+        current_user: The authenticated user from get_current_user()
+        extra_filter: Additional filter conditions to merge
+    
+    Returns:
+        MongoDB filter dict with condominium_id constraint (unless SuperAdmin)
     
     Usage:
-        @api_router.get("/some-resource/{resource_id}")
-        async def get_resource(resource_id: str, current_user = Depends(get_current_user)):
-            resource = await db.resources.find_one({"id": resource_id})
-            enforce_same_condominium(resource["condominium_id"], current_user)
-            return resource
+        # In list endpoints:
+        results = await db.reservations.find(
+            tenant_filter(current_user, {"status": "active"})
+        ).to_list(100)
     """
-    # SuperAdmin bypasses tenant check (they manage all condominiums)
+    user_roles = current_user.get("roles", [])
+    
+    # SuperAdmin sees all data
+    if "SuperAdmin" in user_roles:
+        return extra_filter or {}
+    
+    # Regular users see only their condominium's data
+    user_condo_id = current_user.get("condominium_id")
+    
+    if not user_condo_id:
+        logger.warning(
+            f"[TENANT-FILTER] User {current_user.get('id')} has no condominium_id, "
+            f"returning empty filter (will match nothing)"
+        )
+        # Return impossible filter to prevent data leakage
+        return {"condominium_id": "__INVALID_NO_CONDO__"}
+    
+    base_filter = {"condominium_id": user_condo_id}
+    
+    if extra_filter:
+        return {**base_filter, **extra_filter}
+    
+    return base_filter
+
+# -------------------- LEGACY HELPER (kept for compatibility) --------------------
+def enforce_same_condominium(resource_condo_id: str, current_user: dict) -> None:
+    """
+    LEGACY: Use validate_tenant_resource() or get_tenant_resource() instead.
+    
+    Validate that the current user belongs to the same condominium as the resource.
+    Prevents cross-tenant data access.
+    """
+    # SuperAdmin bypasses tenant check
     user_roles = current_user.get("roles", [])
     if "SuperAdmin" in user_roles:
         return
