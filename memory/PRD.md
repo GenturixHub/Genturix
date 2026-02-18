@@ -1,8 +1,34 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 18, 2026 (P0 Feature: Demo vs Production Endpoint Separation)
+## Last Updated: February 18, 2026 (P2 Fixes + Demo Wizard with Test Data)
 
 ## Changelog
+### 2026-02-18 (Session 73) - Bug Fixes + Demo Wizard Enhancement ⭐⭐⭐⭐⭐
+
+- **P2 Fix: bcrypt Warning Eliminated** ✅
+  - Replaced `passlib.CryptContext` with direct `bcrypt` module usage
+  - Eliminates "AttributeError: module 'bcrypt' has no attribute '__about__'" warning
+  - Functions `hash_password()` and `verify_password()` now use bcrypt directly
+  - No compatibility issues with bcrypt 4.x
+
+- **P2 Fix: PostHog Console Errors Suppressed** ✅
+  - Added comprehensive error suppression for PostHog-related console errors
+  - Wrapped PostHog init in try-catch with silent fail
+  - Added onerror handler for script loading
+  - Analytics are non-critical, failures now silent
+
+- **Enhancement: Demo Wizard with Pre-loaded Test Data** ✅
+  - New endpoint: `POST /api/superadmin/condominiums/demo-with-data`
+  - Creates demo condominium + admin + optional guards/residents/areas
+  - New `DemoWizardDialog` component in SuperAdminDashboard
+  - Features:
+    - Admin user with credentials
+    - 2 sample guards (optional)
+    - 3 sample residents with apartments (optional)
+    - Gym and Pool reservation areas (optional)
+  - Shows all credentials in result table with copy button
+  - Ideal for quick client demonstrations
+
 ### 2026-02-18 (Session 73) - Demo vs Production Condominium Endpoint Separation ⭐⭐⭐⭐⭐
 - **P0 Feature: Separate Endpoints for Demo vs Production Condominiums** - FULLY VERIFIED ✅
   - Backend Testing: 100% (12/12 tests passed)
