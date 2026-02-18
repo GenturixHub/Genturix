@@ -56,8 +56,8 @@ VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
 VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', '')
 VAPID_CLAIMS_EMAIL = os.environ.get('VAPID_CLAIMS_EMAIL', 'admin@genturix.com')
 
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Password hashing using bcrypt directly (avoids passlib compatibility issues)
+# No pwd_context needed - using bcrypt module directly
 
 # Security
 security = HTTPBearer()
