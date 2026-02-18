@@ -2374,6 +2374,15 @@ async def login(credentials: UserLogin, request: Request):
     # Check if password reset is required
     password_reset_required = user.get("password_reset_required", False)
     
+    # Phase 3: Generate refresh_token_id for rotation tracking
+    refresh_token_id = str(uuid.uuid4())
+    
+    # Store refresh_token_id in user document
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"refresh_token_id": refresh_token_id}}
+    )
+    
     # Include condominium_id in token for tenant-aware requests
     token_data = {
         "sub": user["id"], 
@@ -2382,7 +2391,7 @@ async def login(credentials: UserLogin, request: Request):
         "condominium_id": user.get("condominium_id")
     }
     access_token = create_access_token(token_data)
-    refresh_token = create_refresh_token(token_data)
+    refresh_token = create_refresh_token(token_data, refresh_token_id)
     
     await log_audit_event(
         AuditEventType.LOGIN_SUCCESS,
