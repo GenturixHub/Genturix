@@ -226,8 +226,24 @@
             });
         </script>
         
-        <!-- PostHog Analytics (with error suppression) -->
+        <!-- PostHog Analytics (with comprehensive error suppression) -->
         <script>
+            // Suppress PostHog-related console errors
+            (function() {
+                var originalConsoleError = console.error;
+                console.error = function(...args) {
+                    var message = args.join(' ');
+                    // Suppress PostHog-related errors
+                    if (message.includes('posthog') || 
+                        message.includes('PostHog') || 
+                        message.includes('array.js') ||
+                        message.includes('us.i.posthog.com')) {
+                        return; // Silently ignore
+                    }
+                    return originalConsoleError.apply(console, args);
+                };
+            })();
+            
             !(function (t, e) {
                 var o, n, p, r;
                 e.__SV ||
@@ -245,6 +261,7 @@
                             (p.crossOrigin = "anonymous"),
                             (p.async = !0),
                             (p.src = s.api_host.replace(".i.posthog.com", "-assets.i.posthog.com") + "/static/array.js"),
+                            (p.onerror = function() { /* Silent fail */ }),
                             (r = t.getElementsByTagName("script")[0]).parentNode.insertBefore(p, r);
                         var u = e;
                         for (
@@ -273,10 +290,12 @@
                     api_host: "https://us.i.posthog.com",
                     person_profiles: "identified_only",
                     autocapture: false,
-                    capture_pageview: false
+                    capture_pageview: false,
+                    disable_session_recording: true,
+                    opt_out_capturing_by_default: false
                 });
             } catch (e) {
-                console.warn('PostHog init error (non-critical):', e);
+                // Silent fail - analytics are non-critical
             }
         </script>
     </body>
