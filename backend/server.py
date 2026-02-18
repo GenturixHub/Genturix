@@ -6581,18 +6581,15 @@ async def get_absences(
     current_user = Depends(require_role("Administrador", "Supervisor", "Guarda", "HR"))
 ):
     """Get absence requests with filters - scoped by condominium"""
-    query = {}
-    
-    # Multi-tenant filtering
-    if "SuperAdmin" not in current_user.get("roles", []):
-        condo_id = current_user.get("condominium_id")
-        if condo_id:
-            query["condominium_id"] = condo_id
-    
+    # Build extra filters
+    extra = {}
     if status:
         if status not in ["pending", "approved", "rejected"]:
             raise HTTPException(status_code=400, detail="Estado inválido")
-        query["status"] = status
+        extra["status"] = status
+    
+    # Use tenant_filter for multi-tenant scoping
+    query = tenant_filter(current_user, extra if extra else None)
     
     # Guards can only see their own absences
     if "Guarda" in current_user.get("roles", []) and "Administrador" not in current_user.get("roles", []):
@@ -6608,9 +6605,8 @@ async def get_absences(
 @api_router.get("/hr/absences/{absence_id}")
 async def get_absence(absence_id: str, current_user = Depends(require_role("Administrador", "Supervisor", "Guarda", "HR"))):
     """Get a single absence request - must belong to user's condominium"""
-    absence = await db.hr_absences.find_one({"id": absence_id}, {"_id": 0})
-    if not absence:
-        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+    # Use get_tenant_resource for automatic 404/403 handling
+    absence = await get_tenant_resource(db.hr_absences, absence_id, current_user)
     return absence
 
 @api_router.put("/hr/absences/{absence_id}/approve")
@@ -6621,9 +6617,8 @@ async def approve_absence(
     current_user = Depends(require_role("Administrador", "Supervisor", "HR"))
 ):
     """Approve an absence request"""
-    absence = await db.hr_absences.find_one({"id": absence_id})
-    if not absence:
-        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+    # Use get_tenant_resource for tenant validation
+    absence = await get_tenant_resource(db.hr_absences, absence_id, current_user)
     
     if absence["status"] != "pending":
         raise HTTPException(status_code=400, detail=f"La solicitud ya fue {absence['status']}")
