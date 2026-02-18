@@ -24,6 +24,7 @@ import { Label } from '../components/ui/label';
 import { Switch } from '../components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { ScrollArea } from '../components/ui/scroll-area';
+import { QRCodeSVG } from 'qrcode.react';
 import {
   Select,
   SelectContent,
