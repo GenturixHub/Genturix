@@ -6103,21 +6103,15 @@ async def get_shifts(
     if not any(role in current_user.get("roles", []) for role in allowed_roles):
         raise HTTPException(status_code=403, detail="Acceso denegado")
     
-    query = {}
-    
-    # Multi-tenant filtering - non-SuperAdmin sees only their condo
-    if "SuperAdmin" not in current_user.get("roles", []):
-        condo_id = current_user.get("condominium_id")
-        if condo_id:
-            query["condominium_id"] = condo_id
-    
-    # Filter by status if provided
+    # Build extra filters
+    extra = {}
     if status:
-        query["status"] = status
-    
-    # Filter by guard if provided
+        extra["status"] = status
     if guard_id:
-        query["guard_id"] = guard_id
+        extra["guard_id"] = guard_id
+    
+    # Use tenant_filter for multi-tenant scoping
+    query = tenant_filter(current_user, extra if extra else None)
     
     # Guards can only see their own shifts
     if "Guarda" in current_user.get("roles", []) and "Administrador" not in current_user.get("roles", []):
@@ -6131,15 +6125,8 @@ async def get_shifts(
 @api_router.get("/hr/shifts/{shift_id}")
 async def get_shift(shift_id: str, current_user = Depends(require_role("Administrador", "Supervisor", "Guarda", "HR"))):
     """Get a single shift by ID - must belong to user's condominium"""
-    shift = await db.shifts.find_one({"id": shift_id}, {"_id": 0})
-    if not shift:
-        raise HTTPException(status_code=404, detail="Turno no encontrado")
-    
-    # Verify shift belongs to user's condominium
-    if "SuperAdmin" not in current_user.get("roles", []):
-        if shift.get("condominium_id") != current_user.get("condominium_id"):
-            raise HTTPException(status_code=403, detail="No tienes permiso para ver este turno")
-    
+    # Use get_tenant_resource for automatic 404/403 handling
+    shift = await get_tenant_resource(db.shifts, shift_id, current_user)
     return shift
 
 @api_router.put("/hr/shifts/{shift_id}")
