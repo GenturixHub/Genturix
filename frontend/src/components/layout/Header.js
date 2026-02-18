@@ -88,11 +88,12 @@ const Header = ({ onMenuClick, title }) => {
   const handleDropdownOpenChange = async (open) => {
     setIsDropdownOpen(open);
     
-    // CRITICAL: Stop panic sound when opening notifications dropdown (only for Guards)
+    // When opening the dropdown and user is a guard, dispatch event to stop sound
+    // This allows GuardUI to handle sound stop without importing AlertSoundManager here
     if (open) {
       const isGuard = user?.roles?.includes('Guarda') || user?.roles?.includes('Guardia');
       if (isGuard) {
-        AlertSoundManager.stop();
+        window.dispatchEvent(new CustomEvent('panicAlertAcknowledged'));
       }
     }
     
