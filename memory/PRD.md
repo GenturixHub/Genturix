@@ -1,8 +1,53 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 18, 2026 (P2 Fixes + Demo Wizard with Test Data)
+## Last Updated: February 18, 2026 (Push Notifications Refactor)
 
 ## Changelog
+### 2026-02-18 (Session 73) - Push Notifications Security Refactor ⭐⭐⭐⭐⭐
+
+- **Push Notifications System Completely Refactored** ✅
+  - Backend is now the ONLY authority for push notification routing
+  
+  **1. Model push_subscriptions - Required Fields:**
+  ```
+  - id: str (UUID)
+  - user_id: str (REQUIRED)
+  - role: str (REQUIRED - primary role at subscription time)
+  - condominium_id: str (REQUIRED for non-SuperAdmin)
+  - endpoint: str (push service URL)
+  - keys: { p256dh, auth }
+  - is_active: bool
+  - created_at, updated_at
+  ```
+  
+  **2. Endpoint POST /api/push/subscribe:**
+  - Validates user is authenticated
+  - Validates user has condominium_id (except SuperAdmin)
+  - Validates user is active (not blocked/suspended)
+  - Saves role with subscription for targeting
+  - Updates existing if user_id + endpoint match
+  
+  **3. Endpoint DELETE /api/push/unsubscribe:**
+  - Removes specific subscription for current user
+  - DELETE /api/push/unsubscribe-all for logout cleanup
+  
+  **4. Panic Alert Push - SECURITY RULES:**
+  ✅ SENDS TO: Guards (role='Guarda') in SAME condo, ACTIVE only
+  ❌ DOES NOT SEND TO: Sender, Residents, Admins, SuperAdmins, HR, other condos
+  
+  **5. Error 410 Gone Handling:**
+  - Auto-deletes stale subscriptions on 404/410 response
+  - Logs cleanup for monitoring
+  
+  **6. Security Validations:**
+  - All push functions validate condominium exists
+  - User must be authenticated and active
+  - Role filtering enforced at backend level
+  
+  **7. New Maintenance Endpoint:**
+  - POST /api/push/cleanup (SuperAdmin only)
+  - Removes subscriptions without user_id or deleted/inactive users
+
 ### 2026-02-18 (Session 73) - Bug Fixes + Demo Wizard Enhancement ⭐⭐⭐⭐⭐
 
 - **P2 Fix: bcrypt Warning Eliminated** ✅
