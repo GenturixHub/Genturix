@@ -3535,11 +3535,8 @@ async def get_access_logs(
     - visitor_entries (check-ins from guards)
     Scoped by condominium for non-SuperAdmin users
     """
-    query = {}
-    if "SuperAdmin" not in current_user.get("roles", []):
-        condo_id = current_user.get("condominium_id")
-        if condo_id:
-            query["condominium_id"] = condo_id
+    # Use tenant_filter for automatic condominium scoping
+    query = tenant_filter(current_user)
     
     # Get manual access logs
     manual_logs = await db.access_logs.find(query, {"_id": 0}).sort("timestamp", -1).to_list(limit // 2)
