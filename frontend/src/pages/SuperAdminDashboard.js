@@ -1086,6 +1086,256 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin, na
 };
 
 // ============================================
+// DEMO WIZARD DIALOG - Creates demo with test data
+// ============================================
+const DemoWizardDialog = ({ open, onClose, onSuccess }) => {
+  const [form, setForm] = useState({
+    name: '',
+    admin_email: '',
+    admin_name: 'Admin Demo',
+    include_guards: true,
+    include_residents: true,
+    include_areas: true
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const handleSubmit = async () => {
+    if (!form.name || !form.admin_email) return;
+    
+    setIsSubmitting(true);
+    try {
+      const response = await api.createDemoWithTestData(form);
+      setResult(response);
+      toast.success(`Demo "${form.name}" creado con ${response.credentials?.length || 0} usuarios`);
+    } catch (error) {
+      toast.error(error.message || 'Error al crear demo');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleClose = () => {
+    setForm({
+      name: '',
+      admin_email: '',
+      admin_name: 'Admin Demo',
+      include_guards: true,
+      include_residents: true,
+      include_areas: true
+    });
+    setResult(null);
+    onClose();
+    if (result) onSuccess();
+  };
+
+  const copyCredentials = () => {
+    if (!result?.credentials) return;
+    const text = result.credentials.map(c => 
+      `${c.role}: ${c.email} / ${c.password}${c.apartment ? ` (${c.apartment})` : ''}`
+    ).join('\n');
+    navigator.clipboard.writeText(text);
+    toast.success('Credenciales copiadas al portapapeles');
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Zap className="w-5 h-5 text-yellow-400" />
+            Demo Rápido con Datos
+          </DialogTitle>
+          <DialogDescription>
+            Crea un condominio demo con usuarios y áreas de prueba pre-cargados
+          </DialogDescription>
+        </DialogHeader>
+
+        {!result ? (
+          <>
+            <div className="space-y-4 py-4">
+              <div>
+                <Label>Nombre del Condominio *</Label>
+                <Input
+                  value={form.name}
+                  onChange={(e) => setForm({...form, name: e.target.value})}
+                  placeholder="Demo Residencial XYZ"
+                  className="bg-[#0A0A0F] border-[#1E293B] mt-1"
+                  data-testid="demo-wizard-name"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Email Admin *</Label>
+                  <Input
+                    type="email"
+                    value={form.admin_email}
+                    onChange={(e) => setForm({...form, admin_email: e.target.value})}
+                    placeholder="admin@cliente.com"
+                    className="bg-[#0A0A0F] border-[#1E293B] mt-1"
+                    data-testid="demo-wizard-email"
+                  />
+                </div>
+                <div>
+                  <Label>Nombre Admin</Label>
+                  <Input
+                    value={form.admin_name}
+                    onChange={(e) => setForm({...form, admin_name: e.target.value})}
+                    placeholder="Admin Demo"
+                    className="bg-[#0A0A0F] border-[#1E293B] mt-1"
+                  />
+                </div>
+              </div>
+
+              {/* Data Options */}
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 space-y-3">
+                <p className="text-sm font-medium text-yellow-400 flex items-center gap-2">
+                  <Zap className="w-4 h-4" />
+                  Datos de Prueba Incluidos
+                </p>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <Shield className="w-4 h-4 text-blue-400" />
+                      Guardias de prueba (2)
+                    </Label>
+                    <Switch
+                      checked={form.include_guards}
+                      onCheckedChange={(v) => setForm({...form, include_guards: v})}
+                      data-testid="demo-wizard-guards-switch"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <Label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <Users className="w-4 h-4 text-green-400" />
+                      Residentes de prueba (3)
+                    </Label>
+                    <Switch
+                      checked={form.include_residents}
+                      onCheckedChange={(v) => setForm({...form, include_residents: v})}
+                      data-testid="demo-wizard-residents-switch"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <Label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <Calendar className="w-4 h-4 text-pink-400" />
+                      Áreas comunes (Gym, Piscina)
+                    </Label>
+                    <Switch
+                      checked={form.include_areas}
+                      onCheckedChange={(v) => setForm({...form, include_areas: v})}
+                      data-testid="demo-wizard-areas-switch"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Info Box */}
+              <div className="bg-[#0A0A0F] border border-[#1E293B] rounded-lg p-3 text-xs text-muted-foreground space-y-1">
+                <p>• Límite fijo de <strong className="text-yellow-400">10 residentes</strong></p>
+                <p>• Sin integración con Stripe (facturación deshabilitada)</p>
+                <p>• Credenciales visibles solo una vez después de crear</p>
+                <p>• Ideal para demostraciones a clientes</p>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={handleClose}>Cancelar</Button>
+              <Button 
+                onClick={handleSubmit} 
+                disabled={!form.name || !form.admin_email || isSubmitting}
+                className="bg-yellow-500 hover:bg-yellow-600 text-black"
+                data-testid="demo-wizard-submit"
+              >
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
+                Crear Demo
+              </Button>
+            </DialogFooter>
+          </>
+        ) : (
+          /* Result View - Show Credentials */
+          <div className="space-y-4 py-4">
+            <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 text-center">
+              <CheckCircle className="w-10 h-10 text-green-400 mx-auto mb-2" />
+              <p className="text-green-400 font-semibold">Demo creado exitosamente</p>
+              <p className="text-sm text-muted-foreground">{result.condominium?.name}</p>
+            </div>
+
+            {/* Credentials Table */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-yellow-400 flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4" />
+                  Credenciales (guárdalas ahora)
+                </Label>
+                <Button size="sm" variant="outline" onClick={copyCredentials} className="gap-1">
+                  <Copy className="w-3 h-3" />
+                  Copiar
+                </Button>
+              </div>
+              
+              <div className="bg-[#0A0A0F] border border-[#1E293B] rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-[#1E293B]">
+                      <TableHead className="text-xs">Rol</TableHead>
+                      <TableHead className="text-xs">Email</TableHead>
+                      <TableHead className="text-xs">Contraseña</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {result.credentials?.map((cred, idx) => (
+                      <TableRow key={idx} className="border-[#1E293B]">
+                        <TableCell className="py-2">
+                          <Badge variant="outline" className={
+                            cred.role === 'Administrador' ? 'border-purple-500/30 text-purple-400' :
+                            cred.role === 'Guardia' ? 'border-blue-500/30 text-blue-400' :
+                            'border-green-500/30 text-green-400'
+                          }>
+                            {cred.role}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="py-2 text-xs font-mono">{cred.email}</TableCell>
+                        <TableCell className="py-2 text-xs font-mono text-yellow-400">{cred.password}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            {/* Areas Created */}
+            {result.areas_created?.length > 0 && (
+              <div className="bg-pink-500/10 border border-pink-500/20 rounded-lg p-3">
+                <p className="text-sm font-medium text-pink-400 mb-2">Áreas Creadas</p>
+                <div className="flex gap-2 flex-wrap">
+                  {result.areas_created.map((area, idx) => (
+                    <Badge key={idx} variant="outline" className="border-pink-500/30 text-pink-300">
+                      {area.name} ({area.capacity} cap.)
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button onClick={handleClose} className="w-full">
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Cerrar
+              </Button>
+            </DialogFooter>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// ============================================
 // CREATE CONDO DIALOG
 // ============================================
 const CreateCondoDialog = ({ open, onClose, onSuccess }) => {
