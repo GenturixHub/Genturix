@@ -7849,23 +7849,27 @@ async def get_reservations(
 ):
     """Get reservations for the condominium"""
     condo_id = current_user.get("condominium_id")
-    if not condo_id:
+    if not condo_id and "SuperAdmin" not in current_user.get("roles", []):
         raise HTTPException(status_code=400, detail="Usuario no asignado a condominio")
     
-    await check_module_enabled(condo_id, "reservations")
+    if condo_id:
+        await check_module_enabled(condo_id, "reservations")
     
-    query = {"condominium_id": condo_id}
+    # Build extra filters
+    extra = {}
+    if date:
+        extra["date"] = date
+    if area_id:
+        extra["area_id"] = area_id
+    if status:
+        extra["status"] = status
+    
+    # Use tenant_filter for automatic scoping
+    query = tenant_filter(current_user, extra if extra else None)
     
     # Non-admins only see their own reservations
-    if "Administrador" not in current_user.get("roles", []) and "Guarda" not in current_user.get("roles", []):
+    if "Administrador" not in current_user.get("roles", []) and "Guarda" not in current_user.get("roles", []) and "SuperAdmin" not in current_user.get("roles", []):
         query["resident_id"] = current_user["id"]
-    
-    if date:
-        query["date"] = date
-    if area_id:
-        query["area_id"] = area_id
-    if status:
-        query["status"] = status
     
     reservations = await db.reservations.find(query, {"_id": 0}).sort("date", 1).to_list(200)
     
