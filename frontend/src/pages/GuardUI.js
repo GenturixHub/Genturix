@@ -2446,26 +2446,7 @@ const GuardUI = () => {
         </div>
       )}
 
-      {/* Audio Unlock Banner - Required for sound to work */}
-      {showAudioBanner && (
-        <div 
-          className="px-3 py-3 bg-red-500/20 border-b border-red-500/30 cursor-pointer hover:bg-red-500/30 transition-colors"
-          onClick={handleUnlockAudio}
-          data-testid="audio-unlock-banner"
-        >
-          <div className="flex items-center justify-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-red-500/30 flex items-center justify-center animate-pulse">
-              <Volume2 className="w-5 h-5 text-red-400" />
-            </div>
-            <div className="text-center">
-              <p className="text-red-400 font-semibold text-sm">¡Hay una alerta activa!</p>
-              <p className="text-red-300/80 text-xs">Toca aquí para activar el sonido de emergencia</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tabs - Hidden on mobile, visible on desktop */}
+      {/* Push Notification Permission Banner */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1 flex flex-col min-h-0">
         {/* Desktop Tabs - hidden on mobile */}
         {!isMobile && (
