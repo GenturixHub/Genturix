@@ -853,10 +853,21 @@ def get_default_condominium_settings() -> dict:
 
 # ==================== HELPER FUNCTIONS ====================
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    """Hash password using bcrypt directly"""
+    password_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password_bytes, salt).decode('utf-8')
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    """Verify password against hash using bcrypt directly"""
+    if not hashed_password:
+        return False
+    try:
+        password_bytes = plain_password.encode('utf-8')
+        hashed_bytes = hashed_password.encode('utf-8')
+        return bcrypt.checkpw(password_bytes, hashed_bytes)
+    except Exception:
+        return False
 
 def generate_temporary_password(length: int = 12) -> str:
     """Generate a secure temporary password"""
