@@ -2209,46 +2209,8 @@ const GuardUI = () => {
     };
   }, [stopAlertSound]);
 
-  // Auto-subscribe to push notifications for guards - REMOVED
-  // Push registration is now handled in AuthContext on login
-        
-        if (!PushNotificationManager.isSupported()) {
-          console.log('[Guard] Push notifications not supported');
-          return;
-        }
-        
-        // Request permission
-        const permission = await pushManager.requestPermission();
-        if (permission !== 'granted') {
-          console.log('[Guard] Push permission not granted:', permission);
-          return;
-        }
-        
-        // Get VAPID key
-        const vapidResponse = await api.getVapidPublicKey();
-        if (!vapidResponse?.publicKey) {
-          console.log('[Guard] No VAPID key from server');
-          return;
-        }
-        
-        // Subscribe
-        const subscriptionData = await pushManager.subscribe(vapidResponse.publicKey);
-        await api.subscribeToPush(subscriptionData);
-        console.log('[Guard] Successfully subscribed to push notifications');
-        
-      } catch (error) {
-        console.error('[Guard] Error subscribing to push:', error);
-      }
-    };
-    
-    // Delay to not interfere with initial load
-    const timer = setTimeout(subscribeGuardToPush, 2000);
-    return () => clearTimeout(timer);
-  }, []);
-
   // Handler for tab changes - stops panic sound when navigating to alerts tab
   const handleTabChange = useCallback((newTab) => {
-    // Stop panic sound when navigating to alerts tab
     if (newTab === 'alerts') {
       stopAlertSound();
     }
@@ -2260,7 +2222,6 @@ const GuardUI = () => {
     if (tabId === 'panic') {
       setShowPanicModal(true);
     } else {
-      // Use the handler that stops sound
       handleTabChange(tabId);
     }
   };
