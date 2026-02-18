@@ -3837,19 +3837,9 @@ async def get_all_visitors(
     current_user = Depends(require_role("Administrador", "Supervisor", "Guarda"))
 ):
     """Admin/Guard gets visitor records for audit - SCOPED BY CONDOMINIUM"""
-    query = {}
-    
-    # CRITICAL: Multi-tenant filtering - REQUIRED
-    if "SuperAdmin" not in current_user.get("roles", []):
-        condo_id = current_user.get("condominium_id")
-        if condo_id:
-            query["condominium_id"] = condo_id
-        else:
-            # No condominium = no data (strict isolation)
-            return []
-    
-    if status:
-        query["status"] = status
+    # Use tenant_filter for automatic multi-tenant filtering
+    extra = {"status": status} if status else None
+    query = tenant_filter(current_user, extra)
     
     visitors = await db.visitors.find(query, {"_id": 0}).sort("created_at", -1).to_list(200)
     return visitors
