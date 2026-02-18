@@ -12561,29 +12561,48 @@ app.add_middleware(
 # ==================== MONGODB INDEX INITIALIZATION ====================
 async def initialize_indexes():
     """Initialize MongoDB indexes for performance and data integrity.
-    Safe to call multiple times - indexes are created only if they don't exist."""
-    try:
-        # Users collection indexes
-        await db.users.create_index("email", unique=True, background=True)
-        await db.users.create_index("condominium_id", background=True)
-        logger.info("[DB-INDEX] Created indexes for 'users' collection")
-        
-        # Push subscriptions indexes
-        await db.push_subscriptions.create_index("user_id", background=True)
-        await db.push_subscriptions.create_index("condominium_id", background=True)
-        logger.info("[DB-INDEX] Created indexes for 'push_subscriptions' collection")
-        
-        # Audit logs indexes
-        await db.audit_logs.create_index("user_id", background=True)
-        logger.info("[DB-INDEX] Created indexes for 'audit_logs' collection")
-        
-        # Reservations indexes
-        await db.reservations.create_index("condominium_id", background=True)
-        logger.info("[DB-INDEX] Created indexes for 'reservations' collection")
-        
-        logger.info("[DB-INDEX] All MongoDB indexes initialized successfully")
-    except Exception as e:
-        logger.error(f"[DB-INDEX] Error creating indexes: {e}")
+    Safe to call multiple times - indexes are created only if they don't exist.
+    Each index is created independently to avoid partial failures."""
+    
+    async def safe_create_index(collection, keys, **kwargs):
+        """Create index safely, handling existing indexes and duplicates"""
+        try:
+            index_name = await collection.create_index(keys, **kwargs)
+            return True, index_name
+        except Exception as e:
+            error_code = getattr(e, 'code', None)
+            # 85 = IndexOptionsConflict (index already exists with different options)
+            # 11000 = DuplicateKey (can't create unique index due to duplicates)
+            if error_code == 85:
+                return True, f"already exists"
+            elif error_code == 11000:
+                return False, f"duplicate key error - clean data first"
+            return False, str(e)
+    
+    indexes_to_create = [
+        # Users collection
+        (db.users, "email", {"unique": True, "background": True}),
+        (db.users, "condominium_id", {"background": True}),
+        # Push subscriptions
+        (db.push_subscriptions, "user_id", {"background": True}),
+        (db.push_subscriptions, "condominium_id", {"background": True}),
+        # Audit logs
+        (db.audit_logs, "user_id", {"background": True}),
+        # Reservations
+        (db.reservations, "condominium_id", {"background": True}),
+    ]
+    
+    success_count = 0
+    for collection, keys, options in indexes_to_create:
+        collection_name = collection.name
+        success, result = await safe_create_index(collection, keys, **options)
+        if success:
+            logger.info(f"[DB-INDEX] {collection_name}.{keys}: {result}")
+            success_count += 1
+        else:
+            logger.warning(f"[DB-INDEX] {collection_name}.{keys}: FAILED - {result}")
+    
+    logger.info(f"[DB-INDEX] Initialization complete: {success_count}/{len(indexes_to_create)} indexes ready")
 
 @app.on_event("startup")
 async def startup_event():
