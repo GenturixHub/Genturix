@@ -6649,10 +6649,9 @@ async def reject_absence(
     admin_notes: Optional[str] = None,
     current_user = Depends(require_role("Administrador", "Supervisor", "HR"))
 ):
-    """Reject an absence request"""
-    absence = await db.hr_absences.find_one({"id": absence_id})
-    if not absence:
-        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+    """Reject an absence request - must belong to user's condominium"""
+    # Use get_tenant_resource for tenant validation
+    absence = await get_tenant_resource(db.hr_absences, absence_id, current_user)
     
     if absence["status"] != "pending":
         raise HTTPException(status_code=400, detail=f"La solicitud ya fue {absence['status']}")
@@ -6682,11 +6681,8 @@ async def reject_absence(
 @api_router.get("/hr/payroll")
 async def get_payroll(current_user = Depends(require_role("Administrador", "HR"))):
     """Get payroll data - scoped by condominium"""
-    query = {}
-    if "SuperAdmin" not in current_user.get("roles", []):
-        condo_id = current_user.get("condominium_id")
-        if condo_id:
-            query["condominium_id"] = condo_id
+    # Use tenant_filter for multi-tenant scoping
+    query = tenant_filter(current_user)
     guards = await db.guards.find(query, {"_id": 0}).to_list(100)
     payroll = []
     for guard in guards:
