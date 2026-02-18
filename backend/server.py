@@ -6462,28 +6462,27 @@ async def get_clock_history(
     current_user = Depends(require_role("Administrador", "Supervisor", "Guarda", "HR"))
 ):
     """Get clock history with filters - scoped by condominium"""
-    condo_id = current_user.get("condominium_id")
-    query = {}
-    
-    # Add condominium filter for non-SuperAdmin users
-    if "SuperAdmin" not in current_user.get("roles", []) and condo_id:
-        query["condominium_id"] = condo_id
+    # Build extra filters
+    extra = {}
     
     # Guards can only see their own history
     if "Guarda" in current_user.get("roles", []) and "Administrador" not in current_user.get("roles", []):
         guard = await db.guards.find_one({"user_id": current_user["id"]})
         if guard:
-            query["employee_id"] = guard["id"]
+            extra["employee_id"] = guard["id"]
     elif employee_id:
-        query["employee_id"] = employee_id
+        extra["employee_id"] = employee_id
     
     if start_date:
-        query["date"] = {"$gte": start_date}
+        extra["date"] = {"$gte": start_date}
     if end_date:
-        if "date" in query:
-            query["date"]["$lte"] = end_date
+        if "date" in extra:
+            extra["date"]["$lte"] = end_date
         else:
-            query["date"] = {"$lte": end_date}
+            extra["date"] = {"$lte": end_date}
+    
+    # Use tenant_filter for multi-tenant scoping
+    query = tenant_filter(current_user, extra if extra else None)
     
     logs = await db.hr_clock_logs.find(query, {"_id": 0}).sort("timestamp", -1).to_list(500)
     return logs
