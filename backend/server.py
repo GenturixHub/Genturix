@@ -5703,17 +5703,13 @@ async def get_guards(
     if not any(role in current_user.get("roles", []) for role in ["Administrador", "Supervisor", "HR", "SuperAdmin"]):
         raise HTTPException(status_code=403, detail="Se requiere rol de Administrador, Supervisor o HR")
     
-    query = {}
-    # Filter by condominium for non-super-admins
-    if "SuperAdmin" not in current_user.get("roles", []):
-        condo_id = current_user.get("condominium_id")
-        if condo_id:
-            query["condominium_id"] = condo_id
-    
-    # By default, only return valid guards (with user_id and active)
+    # Use tenant_filter with extra conditions
+    extra = {}
     if not include_invalid:
-        query["user_id"] = {"$ne": None, "$exists": True}
-        query["is_active"] = True
+        extra["user_id"] = {"$ne": None, "$exists": True}
+        extra["is_active"] = True
+    
+    query = tenant_filter(current_user, extra if extra else None)
     
     guards = await db.guards.find(query, {"_id": 0}).to_list(100)
     
