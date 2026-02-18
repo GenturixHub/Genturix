@@ -1,8 +1,50 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 18, 2026 (Push Notifications Frontend Refactor)
+## Last Updated: February 18, 2026 (AlertSoundManager Sistema Definitivo)
 
 ## Changelog
+### 2026-02-18 (Session 73) - AlertSoundManager Sistema Definitivo ⭐⭐⭐⭐⭐
+
+- **AlertSoundManager Profesional Implementado** ✅
+  
+  **Características:**
+  - Clase Singleton - una única instancia global
+  - Pre-carga de audio (`preload='auto'`)
+  - Loop automático (`loop=true`)
+  - Sin errores de consola - todos los catch son silenciosos
+  - Sin múltiples instancias simultáneas
+  - Independiente del Service Worker
+  - No depende de `document.visibilityState`
+  
+  **API:**
+  - `unlock()` - Desbloquea audio (llamar en primer gesto de usuario)
+  - `play()` - Inicia reproducción en loop
+  - `stop()` - Detiene reproducción
+  - `getIsPlaying()` - Estado de reproducción
+  - `getIsUnlocked()` - Estado de desbloqueo
+  
+  **Integración en GuardUI:**
+  - Desbloqueo automático en primer click/touch/keydown
+  - Reproducción al recibir `NEW_PANIC_ALERT` del Service Worker
+  - Detención al: marcar alerta como atendida, cerrar notificación, cambiar a tab Alertas
+  - Banner de desbloqueo si autoplay está bloqueado
+  
+  **Seguridad:**
+  - Solo rol Guarda importa/usa AlertSoundManager
+  - Header.js condiciona stop() al rol Guarda
+  - App.js no importa AlertSoundManager
+  
+  **Archivo de Audio:**
+  - Ubicación: `/public/sounds/panic-alert.mp3`
+  - Generado con patrón de alerta clásico (880Hz/440Hz alternado)
+  
+  **Archivos Modificados:**
+  - `/app/frontend/src/utils/AlertSoundManager.js` - Sistema definitivo
+  - `/app/frontend/src/pages/GuardUI.js` - Integración completa
+  - `/app/frontend/src/components/layout/Header.js` - Condicional a rol Guarda
+  - `/app/frontend/src/App.js` - Eliminado import no usado
+  - `/app/frontend/public/sounds/panic-alert.mp3` - Archivo de audio creado
+
 ### 2026-02-18 (Session 73) - Push Notifications Frontend Refactor ⭐⭐⭐⭐⭐
 
 - **Frontend Push System Completely Refactored** ✅
