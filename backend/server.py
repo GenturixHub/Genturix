@@ -3411,14 +3411,8 @@ async def get_panic_events(current_user = Depends(require_module("security"))):
 @api_router.put("/security/panic/{event_id}/resolve")
 async def resolve_panic(event_id: str, resolve_data: PanicResolveRequest, request: Request, current_user = Depends(require_role_and_module("Administrador", "Supervisor", "Guarda", module="security"))):
     """Resolve a panic event and save to guard_history"""
-    # Verify event exists and belongs to user's condominium
-    event = await db.panic_events.find_one({"id": event_id})
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-    
-    if "SuperAdmin" not in current_user.get("roles", []):
-        if event.get("condominium_id") != current_user.get("condominium_id"):
-            raise HTTPException(status_code=403, detail="No tienes permiso para resolver esta alerta")
+    # Use get_tenant_resource for automatic 404/403 handling
+    event = await get_tenant_resource(db.panic_events, event_id, current_user)
     
     resolved_at = datetime.now(timezone.utc).isoformat()
     resolution_notes = resolve_data.notes if resolve_data.notes else None
