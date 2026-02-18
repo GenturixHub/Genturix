@@ -2497,11 +2497,24 @@ async def refresh_token(token_request: RefreshTokenRequest, request: Request):
 
 @api_router.post("/auth/logout")
 async def logout(request: Request, current_user = Depends(get_current_user)):
+    """
+    Logout and invalidate refresh tokens.
+    
+    Phase 4: Logout Hardening
+    - Sets refresh_token_id to None
+    - Invalidates any future refresh attempts with old tokens
+    """
+    # Invalidate refresh token by clearing refresh_token_id
+    await db.users.update_one(
+        {"id": current_user["id"]},
+        {"$set": {"refresh_token_id": None}}
+    )
+    
     await log_audit_event(
         AuditEventType.LOGOUT,
         current_user["id"],
         "auth",
-        {},
+        {"refresh_token_invalidated": True},
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
     )
