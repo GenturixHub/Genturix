@@ -857,11 +857,11 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin, na
         <div className="flex gap-2 w-full sm:w-auto">
           <Button 
             variant="outline" 
-            onClick={() => setShowCreateDialog(true)} 
+            onClick={() => setShowDemoWizard(true)} 
             className="gap-2 flex-1 sm:flex-none border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10" 
             data-testid="condos-quick-create-btn"
           >
-            <Plus className="w-4 h-4" />
+            <Zap className="w-4 h-4" />
             Demo Rápido
           </Button>
           <Button 
