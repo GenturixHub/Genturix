@@ -624,16 +624,23 @@ class CondominiumModules(BaseModel):
     messaging: ModuleConfig = ModuleConfig(enabled=False)
 
 class CondominiumCreate(BaseModel):
+    """Model for creating PRODUCTION condominiums only"""
     name: str = Field(..., min_length=2, max_length=100)
     address: str = Field(..., min_length=5)
     contact_email: EmailStr
     contact_phone: str
     max_users: int = Field(default=100, ge=1)
     modules: Optional[CondominiumModules] = None
-    # Billing fields
+    # Billing fields for production
     paid_seats: int = Field(default=10, ge=1)  # Default 10 seats for new condos
-    # Environment field: "demo" or "production"
-    environment: str = Field(default="production", pattern="^(demo|production)$")
+
+class DemoCondominiumCreate(BaseModel):
+    """Model for creating DEMO condominiums - simplified, no billing"""
+    name: str = Field(..., min_length=2, max_length=100)
+    address: str = Field(default="Demo Address")
+    contact_email: EmailStr
+    contact_phone: str = Field(default="")
+    # Demo always has fixed 10 seats, no billing
 
 class CondominiumUpdate(BaseModel):
     name: Optional[str] = None
