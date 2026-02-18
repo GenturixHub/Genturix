@@ -7710,15 +7710,16 @@ async def check_module_enabled(condo_id: str, module_name: str):
 async def get_areas(current_user = Depends(get_current_user)):
     """Get all areas for reservations in the user's condominium"""
     condo_id = current_user.get("condominium_id")
-    if not condo_id:
+    if not condo_id and "SuperAdmin" not in current_user.get("roles", []):
         raise HTTPException(status_code=400, detail="Usuario no asignado a condominio")
     
-    await check_module_enabled(condo_id, "reservations")
+    if condo_id:
+        await check_module_enabled(condo_id, "reservations")
     
-    areas = await db.reservation_areas.find(
-        {"condominium_id": condo_id, "is_active": True},
-        {"_id": 0}
-    ).to_list(100)
+    # Use tenant_filter for automatic scoping
+    query = tenant_filter(current_user, {"is_active": True})
+    
+    areas = await db.reservation_areas.find(query, {"_id": 0}).to_list(100)
     
     return areas
 
