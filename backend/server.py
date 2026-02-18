@@ -2437,8 +2437,27 @@ async def refresh_token(token_request: RefreshTokenRequest, request: Request):
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
     
     user = await db.users.find_one({"id": payload["sub"]})
-    if not user or not user.get("is_active"):
-        raise HTTPException(status_code=401, detail="User not found or inactive")
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    
+    # Phase 4: Validate user status - reject blocked/suspended/inactive users
+    user_status = user.get("status", "active")
+    is_active = user.get("is_active", True)
+    
+    if not is_active or user_status in ["blocked", "suspended", "inactive"]:
+        logger.warning(
+            f"[SECURITY] Refresh attempt by inactive/blocked user {user['id']}. "
+            f"Status: {user_status}, is_active: {is_active}"
+        )
+        # Clear refresh token to prevent further attempts
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {"refresh_token_id": None}}
+        )
+        raise HTTPException(
+            status_code=401, 
+            detail="Account is not active. Please contact support."
+        )
     
     # Phase 2 & 3: Validate refresh_token_id matches what's stored in DB
     token_jti = payload.get("jti")
