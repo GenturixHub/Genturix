@@ -1,12 +1,14 @@
 /**
  * GENTURIX Push Permission Request Component
  * Shows a friendly banner to request push notification permission
+ * 
+ * Note: For Guards, push is auto-registered on login via AuthContext.
+ * This banner is for other roles (Residents) who want notifications.
  */
 import React, { useState, useEffect } from 'react';
 import { Bell, X } from 'lucide-react';
 import { Button } from './ui/button';
-import pushManager, { PushNotificationManager } from '../utils/PushNotificationManager';
-import api from '../services/api';
+import { PushNotificationManager } from '../utils/PushNotificationManager';
 
 const PushPermissionBanner = ({ onSubscribed }) => {
   const [show, setShow] = useState(false);
@@ -14,20 +16,19 @@ const PushPermissionBanner = ({ onSubscribed }) => {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    // Check if we should show the banner
-    const checkPermission = async () => {
+    const checkPermission = () => {
       // Don't show if not supported
       if (!PushNotificationManager.isSupported()) {
         return;
       }
 
       // Don't show if already granted or denied
-      const permission = PushNotificationManager.getPermission();
+      const permission = PushNotificationManager.getPermissionStatus();
       if (permission === 'granted' || permission === 'denied') {
         return;
       }
 
-      // Don't show if user dismissed recently
+      // Don't show if user dismissed recently (1 hour cooldown)
       const dismissedAt = localStorage.getItem('push_banner_dismissed');
       if (dismissedAt) {
         const dismissedTime = new Date(dismissedAt).getTime();
@@ -47,20 +48,14 @@ const PushPermissionBanner = ({ onSubscribed }) => {
   const handleEnable = async () => {
     setIsLoading(true);
     try {
-      // Request permission
-      const permission = await pushManager.requestPermission();
+      const permission = await PushNotificationManager.requestPermission();
       
       if (permission === 'granted') {
-        // Get VAPID key and subscribe
-        const vapidResponse = await api.getVapidPublicKey();
-        if (vapidResponse?.publicKey) {
-          const subscriptionData = await pushManager.subscribe(vapidResponse.publicKey);
-          await api.subscribeToPush(subscriptionData);
-          onSubscribed?.();
-        }
+        // Push registration will happen on next login for Guards
+        // For other roles, they can subscribe manually
+        onSubscribed?.();
         setShow(false);
       } else if (permission === 'denied') {
-        // User denied, hide banner
         setShow(false);
       }
     } catch (error) {
