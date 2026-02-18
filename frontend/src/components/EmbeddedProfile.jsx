@@ -376,6 +376,7 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
             </CardHeader>
             <CardContent className="p-3 pt-0">
               <ChangePasswordForm 
+                embedded={true}
                 onSuccess={() => {
                   setSuccess(t('profile.passwordChanged', 'Contraseña actualizada. Tu sesión será cerrada.'));
                 }}
