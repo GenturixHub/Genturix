@@ -791,6 +791,7 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin, na
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showDemoWizard, setShowDemoWizard] = useState(false);
   const [selectedCondo, setSelectedCondo] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showCreateAdminDialog, setShowCreateAdminDialog] = useState(false);
