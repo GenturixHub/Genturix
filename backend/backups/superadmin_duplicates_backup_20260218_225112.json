@@ -1,0 +1,89 @@
+{
+  "backup_timestamp": "2026-02-18T22:51:12.917341+00:00",
+  "operation": "SYSTEM_CLEANUP_SUPERADMIN_DUPLICATES",
+  "kept_record_id": "1f0884cd-8121-419c-90a0-94dc556bf912",
+  "deleted_count": 6,
+  "records": [
+    {
+      "id": "66739e50-ce06-4e24-8959-7d9f62681bc4",
+      "email": "superadmin@genturix.com",
+      "full_name": "Super Administrador",
+      "hashed_password": "$2b$12$u2ApStGVnAdI7qogweX42.wtJxhfLj9h1gPO2CJFFhAu0LcbveQDm",
+      "roles": [
+        "SuperAdmin"
+      ],
+      "condominium_id": null,
+      "is_active": true,
+      "created_at": "2026-01-29T02:18:12.700487+00:00",
+      "updated_at": "2026-01-29T02:18:12.700502+00:00",
+      "password_reset_required": false
+    },
+    {
+      "id": "a7dffc38-4943-4dd2-8641-22e7c085299e",
+      "email": "superadmin@genturix.com",
+      "full_name": "Super Administrador",
+      "hashed_password": "$2b$12$u2ApStGVnAdI7qogweX42.wtJxhfLj9h1gPO2CJFFhAu0LcbveQDm",
+      "roles": [
+        "SuperAdmin"
+      ],
+      "condominium_id": null,
+      "is_active": true,
+      "created_at": "2026-01-29T03:08:28.311671+00:00",
+      "updated_at": "2026-01-29T03:08:28.311686+00:00",
+      "password_reset_required": false
+    },
+    {
+      "id": "d5e6354f-8201-4a4a-a7e6-acae78eb5305",
+      "email": "superadmin@genturix.com",
+      "full_name": "Super Administrador",
+      "hashed_password": "$2b$12$u2ApStGVnAdI7qogweX42.wtJxhfLj9h1gPO2CJFFhAu0LcbveQDm",
+      "roles": [
+        "SuperAdmin"
+      ],
+      "condominium_id": null,
+      "is_active": true,
+      "created_at": "2026-01-29T06:51:22.343845+00:00",
+      "updated_at": "2026-01-29T06:51:22.343862+00:00",
+      "password_reset_required": false
+    },
+    {
+      "id": "36dbc952-6269-4864-834a-137acb7266dd",
+      "email": "superadmin@genturix.com",
+      "full_name": "Super Administrador",
+      "hashed_password": "$2b$12$.YRT9R53Wko9.V4aauLzBeKM9CyILFaFc9dwfYmlpjaCCFFwaQJmC",
+      "roles": [
+        "SuperAdmin"
+      ],
+      "condominium_id": null,
+      "is_active": true,
+      "created_at": "2026-01-31T05:59:09.467569+00:00",
+      "updated_at": "2026-01-31T05:59:09.467584+00:00"
+    },
+    {
+      "id": "0f162296-8cfd-4dac-9262-4389d1fae812",
+      "email": "superadmin@genturix.com",
+      "full_name": "Super Administrador",
+      "hashed_password": "$2b$12$FOI9rUwG5CTSaNCax2TTS.3uEa3EMxMPpwZ5Tw85UcKb4ZgDAEKCK",
+      "roles": [
+        "SuperAdmin"
+      ],
+      "condominium_id": null,
+      "is_active": true,
+      "created_at": "2026-01-31T11:10:08.433329+00:00",
+      "updated_at": "2026-01-31T11:10:08.433343+00:00"
+    },
+    {
+      "id": "73daa081-ce3e-4439-be79-65fc86be9e9b",
+      "email": "superadmin@genturix.com",
+      "full_name": "Super Administrador",
+      "hashed_password": "$2b$12$b0PTZPtHr6PHmgQYXPuGHeHV6DPgf5IAR9198xuIN0Sc6DKR/dMWa",
+      "roles": [
+        "SuperAdmin"
+      ],
+      "condominium_id": null,
+      "is_active": true,
+      "created_at": "2026-01-31T21:01:12.777575+00:00",
+      "updated_at": "2026-01-31T21:01:12.777589+00:00"
+    }
+  ]
+}
