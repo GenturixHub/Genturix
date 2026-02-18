@@ -2113,74 +2113,28 @@ const GuardUI = () => {
   
   // Highlighted alert from push notification
   const [highlightedAlertId, setHighlightedAlertId] = useState(null);
-  
-  // Audio unlock banner state
-  const [showAudioBanner, setShowAudioBanner] = useState(false);
-  
-  // Track if this tab has audio lock
-  const [hasAudioLock, setHasAudioLock] = useState(false);
 
-  // ==================== AUDIO SYSTEM ====================
-  // Initialize AlertSoundManager and acquire tab lock
-  useEffect(() => {
-    const gotLock = AlertSoundManager.init();
-    setHasAudioLock(gotLock);
-    
-    // Cleanup on unmount
-    return () => {
-      AlertSoundManager.cleanup();
-    };
-  }, []);
-
-  // Stop alert sound
+  // ==================== AUDIO SYSTEM (SIMPLE) ====================
   const stopAlertSound = useCallback(() => {
     AlertSoundManager.stop();
-    setShowAudioBanner(false);
   }, []);
 
-  // Play alert sound (called when panic alert arrives)
   const playAlertSound = useCallback(() => {
-    if (!hasAudioLock) return false;
-    
-    const result = AlertSoundManager.play();
-    // If audio is blocked, show unlock banner
-    if (!AlertSoundManager.getIsPlaying() && !AlertSoundManager.getIsUnlocked()) {
-      setShowAudioBanner(true);
-    }
-    return result;
-  }, [hasAudioLock]);
-
-  // Handle user click on unlock banner
-  const handleUnlockAudio = useCallback(() => {
-    AlertSoundManager.unlock();
-    setShowAudioBanner(false);
-    // Try to play after unlock
-    setTimeout(() => {
-      AlertSoundManager.play();
-    }, 100);
+    AlertSoundManager.play();
   }, []);
 
-  // Unlock audio on first user interaction (browser requirement)
+  // Unlock audio on first user interaction
   useEffect(() => {
-    if (!hasAudioLock) return;
-    
-    const unlockAudioOnInteraction = () => {
-      AlertSoundManager.unlock();
-    };
+    const unlockAudio = () => AlertSoundManager.unlock();
+    document.addEventListener('click', unlockAudio, { once: true });
+    return () => document.removeEventListener('click', unlockAudio);
+  }, []);
 
-    // Add listeners for first interaction
-    const events = ['click', 'touchstart', 'keydown'];
-    events.forEach(event => {
-      document.addEventListener(event, unlockAudioOnInteraction, { once: true, passive: true });
-    });
-
-    return () => {
-      events.forEach(event => {
-        document.removeEventListener(event, unlockAudioOnInteraction);
-      });
-    };
-  }, [hasAudioLock]);
-  // ==================== END AUDIO SYSTEM ====================
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => AlertSoundManager.stop();
+  }, []);
+  // ==================== END AUDIO ====================
 
   // Handle URL parameters
   useEffect(() => {
