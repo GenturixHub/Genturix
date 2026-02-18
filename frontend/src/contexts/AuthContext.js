@@ -198,7 +198,121 @@ export const AuthProvider = ({ children }) => {
       console.warn('[Auth] Could not load language preference:', langError);
     }
 
+    // === PUSH NOTIFICATIONS: Only for Guards ===
+    const userRoles = data.user?.roles || [];
+    const isGuard = userRoles.includes('Guarda') || userRoles.includes('Guardia');
+    
+    if (isGuard) {
+      console.log('[Auth] User is Guard - registering push subscription');
+      registerPushForGuard(data.access_token);
+    } else {
+      console.log('[Auth] User is not Guard - skipping push registration');
+    }
+
     return { user: data.user, passwordResetRequired: data.password_reset_required };
+  };
+
+  /**
+   * Register push subscription for Guards only
+   * Called after successful login if user is a Guard
+   */
+  const registerPushForGuard = async (token) => {
+    try {
+      // Check if push is supported
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        console.log('[Push] Not supported in this browser');
+        return;
+      }
+
+      // Check if permission already granted - don't prompt repeatedly
+      if (Notification.permission === 'denied') {
+        console.log('[Push] Permission denied - not prompting');
+        return;
+      }
+
+      // Only request permission if not already granted
+      if (Notification.permission !== 'granted') {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          console.log('[Push] Permission not granted');
+          return;
+        }
+      }
+
+      // Get VAPID key from backend
+      const configResponse = await fetch(`${API_URL}/api/config/vapid`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!configResponse.ok) {
+        console.warn('[Push] Could not get VAPID key');
+        return;
+      }
+      
+      const { vapid_public_key } = await configResponse.json();
+      if (!vapid_public_key) {
+        console.warn('[Push] No VAPID key configured');
+        return;
+      }
+
+      // Get service worker registration
+      const registration = await navigator.serviceWorker.ready;
+      
+      // Check for existing subscription
+      let subscription = await registration.pushManager.getSubscription();
+      
+      if (!subscription) {
+        // Create new subscription
+        const applicationServerKey = urlBase64ToUint8Array(vapid_public_key);
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey
+        });
+        console.log('[Push] New subscription created');
+      } else {
+        console.log('[Push] Existing subscription found');
+      }
+
+      // Send subscription to backend
+      const subData = formatSubscription(subscription);
+      await fetch(`${API_URL}/api/push/subscribe`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ subscription: subData })
+      });
+      
+      console.log('[Push] Subscription registered with backend');
+    } catch (error) {
+      console.warn('[Push] Registration failed:', error);
+    }
+  };
+
+  // Helper: Convert VAPID key
+  const urlBase64ToUint8Array = (base64String) => {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  };
+
+  // Helper: Format subscription for API
+  const formatSubscription = (subscription) => {
+    const key = subscription.getKey('p256dh');
+    const auth = subscription.getKey('auth');
+    return {
+      endpoint: subscription.endpoint,
+      keys: {
+        p256dh: key ? btoa(String.fromCharCode.apply(null, new Uint8Array(key))) : '',
+        auth: auth ? btoa(String.fromCharCode.apply(null, new Uint8Array(auth))) : ''
+      }
+    };
   };
 
   const changePassword = async (currentPassword, newPassword) => {
