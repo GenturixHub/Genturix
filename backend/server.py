@@ -2420,6 +2420,15 @@ async def login(credentials: UserLogin, request: Request):
 
 @api_router.post("/auth/refresh")
 async def refresh_token(token_request: RefreshTokenRequest, request: Request):
+    """
+    Refresh access token with rotation security.
+    
+    Phase 2: Refresh Token Rotation
+    - Validates refresh_token_id (jti) against DB
+    - Generates new tokens on each refresh
+    - Invalidates previous refresh token automatically
+    - Prevents reuse of stolen refresh tokens
+    """
     payload = verify_refresh_token(token_request.refresh_token)
     
     if not payload:
@@ -2429,15 +2438,57 @@ async def refresh_token(token_request: RefreshTokenRequest, request: Request):
     if not user or not user.get("is_active"):
         raise HTTPException(status_code=401, detail="User not found or inactive")
     
-    token_data = {"sub": user["id"], "email": user["email"], "roles": user["roles"]}
+    # Phase 2 & 3: Validate refresh_token_id matches what's stored in DB
+    token_jti = payload.get("jti")
+    stored_jti = user.get("refresh_token_id")
+    
+    if token_jti and stored_jti and token_jti != stored_jti:
+        # Possible token reuse attack - log and reject
+        logger.warning(
+            f"[SECURITY] Refresh token reuse detected for user {user['id']}. "
+            f"Token JTI: {token_jti}, Stored JTI: {stored_jti}"
+        )
+        # Invalidate all sessions for this user (security measure)
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {"refresh_token_id": None}}
+        )
+        await log_audit_event(
+            AuditEventType.SECURITY_ALERT,
+            user["id"],
+            "auth",
+            {"reason": "refresh_token_reuse_detected", "token_jti": token_jti},
+            request.client.host if request.client else "unknown",
+            request.headers.get("user-agent", "unknown")
+        )
+        raise HTTPException(
+            status_code=401, 
+            detail="Session invalidated. Please login again."
+        )
+    
+    # Generate new refresh_token_id for rotation
+    new_refresh_token_id = str(uuid.uuid4())
+    
+    # Update stored refresh_token_id (invalidates previous token)
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {"refresh_token_id": new_refresh_token_id}}
+    )
+    
+    token_data = {
+        "sub": user["id"], 
+        "email": user["email"], 
+        "roles": user["roles"],
+        "condominium_id": user.get("condominium_id")
+    }
     new_access_token = create_access_token(token_data)
-    new_refresh_token = create_refresh_token(token_data)
+    new_refresh_token = create_refresh_token(token_data, new_refresh_token_id)
     
     await log_audit_event(
         AuditEventType.TOKEN_REFRESH,
         user["id"],
         "auth",
-        {},
+        {"rotated": True},
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
     )
