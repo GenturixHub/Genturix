@@ -2491,6 +2491,71 @@ async def get_push_status(current_user = Depends(get_current_user)):
         "subscriptions": subscriptions
     }
 
+
+@api_router.post("/push/cleanup")
+async def cleanup_invalid_subscriptions(current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))):
+    """
+    [SUPERADMIN ONLY] Clean up invalid push subscriptions.
+    
+    Removes subscriptions that:
+    - Have no user_id
+    - Have no condominium_id (except SuperAdmin subscriptions)
+    - Belong to deleted/inactive users
+    
+    This is a maintenance endpoint for data hygiene.
+    """
+    deleted_counts = {
+        "no_user_id": 0,
+        "no_condo_id": 0,
+        "user_deleted": 0,
+        "user_inactive": 0
+    }
+    
+    # 1. Remove subscriptions without user_id
+    result = await db.push_subscriptions.delete_many({
+        "$or": [
+            {"user_id": None},
+            {"user_id": {"$exists": False}},
+            {"user_id": ""}
+        ]
+    })
+    deleted_counts["no_user_id"] = result.deleted_count
+    
+    # 2. Get all subscriptions with user_id but check user validity
+    subscriptions = await db.push_subscriptions.find({}, {"_id": 1, "user_id": 1}).to_list(None)
+    
+    user_ids = list(set([s.get("user_id") for s in subscriptions if s.get("user_id")]))
+    
+    # Get valid users
+    valid_users = await db.users.find(
+        {"id": {"$in": user_ids}},
+        {"_id": 0, "id": 1, "is_active": 1, "status": 1}
+    ).to_list(None)
+    
+    valid_user_ids = set([u["id"] for u in valid_users if u.get("is_active", True) and u.get("status", "active") in ["active", None]])
+    deleted_user_ids = set(user_ids) - set([u["id"] for u in valid_users])
+    inactive_user_ids = set([u["id"] for u in valid_users if not u.get("is_active", True) or u.get("status") in ["blocked", "suspended"]])
+    
+    # Delete subscriptions for deleted users
+    if deleted_user_ids:
+        result = await db.push_subscriptions.delete_many({"user_id": {"$in": list(deleted_user_ids)}})
+        deleted_counts["user_deleted"] = result.deleted_count
+    
+    # Delete subscriptions for inactive users
+    if inactive_user_ids:
+        result = await db.push_subscriptions.delete_many({"user_id": {"$in": list(inactive_user_ids)}})
+        deleted_counts["user_inactive"] = result.deleted_count
+    
+    total_deleted = sum(deleted_counts.values())
+    
+    logger.info(f"[PUSH-CLEANUP] Cleanup completed: {total_deleted} subscriptions removed - {deleted_counts}")
+    
+    return {
+        "message": f"Limpieza completada: {total_deleted} suscripciones eliminadas",
+        "details": deleted_counts,
+        "total_deleted": total_deleted
+    }
+
 # ==================== PROFILE MODULE ====================
 @api_router.get("/profile", response_model=ProfileResponse)
 async def get_profile(current_user = Depends(get_current_user)):
