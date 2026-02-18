@@ -6135,10 +6135,9 @@ async def update_shift(
     request: Request,
     current_user = Depends(require_role("Administrador", "Supervisor", "HR"))
 ):
-    """Update an existing shift"""
-    shift = await db.shifts.find_one({"id": shift_id})
-    if not shift:
-        raise HTTPException(status_code=404, detail="Turno no encontrado")
+    """Update an existing shift - must belong to user's condominium"""
+    # Use get_tenant_resource for tenant validation
+    shift = await get_tenant_resource(db.shifts, shift_id, current_user)
     
     update_data = {}
     
@@ -6207,10 +6206,9 @@ async def delete_shift(
     request: Request,
     current_user = Depends(require_role("Administrador", "HR", "Supervisor", "SuperAdmin"))
 ):
-    """Delete (cancel) a shift"""
-    shift = await db.shifts.find_one({"id": shift_id})
-    if not shift:
-        raise HTTPException(status_code=404, detail="Turno no encontrado")
+    """Delete (cancel) a shift - must belong to user's condominium"""
+    # Use get_tenant_resource for tenant validation
+    shift = await get_tenant_resource(db.shifts, shift_id, current_user)
     
     # Soft delete - mark as cancelled
     await db.shifts.update_one(
