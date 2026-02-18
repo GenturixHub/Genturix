@@ -2274,12 +2274,6 @@ const GuardUI = () => {
   useEffect(() => {
     const activeCount = alerts.filter(a => a.status === 'active').length;
     
-    // If we have more active alerts than before, reset acknowledgement
-    // so the next push notification can play sound
-    if (activeCount > prevActiveCountRef.current) {
-      soundAcknowledgedRef.current = false;
-    }
-    
     // Vibrate on active alerts
     if (activeCount > 0 && navigator.vibrate) {
       navigator.vibrate([200, 100, 200]);
