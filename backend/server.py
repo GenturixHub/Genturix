@@ -1579,29 +1579,97 @@ async def send_push_notification(subscription_info: dict, payload: dict) -> bool
         logger.error(f"Unexpected push error: {e}")
         return False
 
-async def notify_guards_of_panic(condominium_id: str, panic_data: dict):
-    """Send push notifications to all guards in the condominium about a panic alert"""
-    if not condominium_id:
-        return {"sent": 0, "failed": 0, "total": 0}
+async def notify_guards_of_panic(condominium_id: str, panic_data: dict, sender_id: str = None):
+    """
+    Send push notifications to guards about a panic alert.
     
-    # Get all push subscriptions for guards in this condominium
+    SECURITY RULES (Backend is the ONLY authority):
+    ✅ SEND TO:
+       - Guards (role='Guarda') in the SAME condominium
+       - Only ACTIVE guards (status='active')
+       - Only users with valid push subscriptions
+    
+    ❌ DO NOT SEND TO:
+       - The sender (user who triggered the alert)
+       - Residents
+       - Administrators
+       - SuperAdmins
+       - Supervisors
+       - HR
+       - Guards from OTHER condominiums
+       - Inactive/blocked users
+    
+    Args:
+        condominium_id: Target condominium (REQUIRED)
+        panic_data: Alert information
+        sender_id: User ID of panic trigger (to exclude from notifications)
+    
+    Returns:
+        dict with sent, failed, total, excluded counts
+    """
+    result = {"sent": 0, "failed": 0, "total": 0, "excluded": 0, "reason": None}
+    
+    # VALIDATION 1: Condominium is required
+    if not condominium_id:
+        result["reason"] = "No condominium_id provided"
+        logger.warning("[PANIC-PUSH] Cannot notify guards: missing condominium_id")
+        return result
+    
+    # VALIDATION 2: Verify condominium exists
+    condo = await db.condominiums.find_one({"id": condominium_id}, {"_id": 0, "id": 1, "is_active": 1})
+    if not condo:
+        result["reason"] = "Condominium not found"
+        logger.warning(f"[PANIC-PUSH] Condominium {condominium_id} not found")
+        return result
+    
+    if not condo.get("is_active", True):
+        result["reason"] = "Condominium is inactive"
+        logger.warning(f"[PANIC-PUSH] Condominium {condominium_id} is inactive")
+        return result
+    
+    # STEP 1: Get ACTIVE guard user IDs for this condominium ONLY
+    guard_query = {
+        "condominium_id": condominium_id,
+        "roles": {"$in": ["Guarda"]},  # ONLY Guarda role
+        "is_active": True,
+        "status": {"$in": ["active", None]}  # Active or no status field (legacy)
+    }
+    
+    # Exclude sender if provided
+    if sender_id:
+        guard_query["id"] = {"$ne": sender_id}
+    
+    guards = await db.users.find(guard_query, {"_id": 0, "id": 1, "full_name": 1}).to_list(None)
+    guard_ids = [g["id"] for g in guards]
+    
+    logger.info(f"[PANIC-PUSH] Found {len(guard_ids)} active guards in condo {condominium_id[:8]}...")
+    
+    if not guard_ids:
+        result["reason"] = "No active guards found in this condominium"
+        return result
+    
+    # STEP 2: Get push subscriptions for these guards ONLY
+    # Filter by user_id AND condominium_id for extra security
     subscriptions = await db.push_subscriptions.find({
+        "user_id": {"$in": guard_ids},
         "condominium_id": condominium_id,
         "is_active": True
     }).to_list(None)
     
-    if not subscriptions:
-        logger.info(f"No push subscriptions found for condominium {condominium_id}")
-        return {"sent": 0, "failed": 0, "total": 0}
+    result["total"] = len(subscriptions)
     
-    # Format panic type for display
+    if not subscriptions:
+        result["reason"] = "No push subscriptions for guards"
+        logger.info(f"[PANIC-PUSH] No push subscriptions found for {len(guard_ids)} guards")
+        return result
+    
+    # STEP 3: Build notification payload
     panic_type_display = {
         "medical": "🚑 Emergencia Médica",
         "suspicious": "👁️ Actividad Sospechosa", 
         "general": "🚨 Alerta General"
     }.get(panic_data.get("panic_type", "general"), "🚨 Alerta")
     
-    # Build notification payload
     payload = {
         "title": f"¡ALERTA DE PÁNICO! - {panic_type_display}",
         "body": f"{panic_data.get('resident_name', 'Residente')} - {panic_data.get('apartment', 'N/A')}",
@@ -1621,10 +1689,13 @@ async def notify_guards_of_panic(condominium_id: str, panic_data: dict):
         }
     }
     
-    sent = 0
-    failed = 0
-    
+    # STEP 4: Send notifications
     for sub in subscriptions:
+        # Extra validation: ensure subscription belongs to a guard in this condo
+        if sub.get("user_id") not in guard_ids:
+            result["excluded"] += 1
+            continue
+        
         subscription_info = {
             "endpoint": sub.get("endpoint"),
             "keys": {
@@ -1635,9 +1706,12 @@ async def notify_guards_of_panic(condominium_id: str, panic_data: dict):
         
         success = await send_push_notification(subscription_info, payload)
         if success:
-            sent += 1
+            result["sent"] += 1
         else:
-            failed += 1
+            result["failed"] += 1
+    
+    logger.info(f"[PANIC-PUSH] Notifications sent: {result['sent']}, failed: {result['failed']}, excluded: {result['excluded']}")
+    return result
     
     logger.info(f"Panic notifications - Sent: {sent}, Failed: {failed}, Total: {len(subscriptions)}")
     return {"sent": sent, "failed": failed, "total": len(subscriptions)}
