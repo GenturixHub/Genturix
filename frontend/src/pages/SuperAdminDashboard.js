@@ -1323,6 +1323,38 @@ const DemoWizardDialog = ({ open, onClose, onSuccess }) => {
               </div>
             )}
 
+            {/* QR Code with Credentials */}
+            <div className="bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-lg p-4">
+              <div className="flex items-start gap-4">
+                <div className="bg-white p-2 rounded-lg flex-shrink-0">
+                  <QRCodeSVG 
+                    value={`GENTURIX Demo: ${result.condominium?.name}\n\n${result.credentials?.map(c => 
+                      `${c.role}: ${c.email} / ${c.password}${c.apartment ? ` (${c.apartment})` : ''}`
+                    ).join('\n')}\n\nURL: ${window.location.origin}/login`}
+                    size={120}
+                    level="M"
+                    includeMargin={false}
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-cyan-400 flex items-center gap-2 mb-1">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                    </svg>
+                    QR para compartir
+                  </p>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Escanea este código para obtener las credenciales del demo
+                  </p>
+                  <ul className="text-xs text-cyan-200/70 space-y-0.5">
+                    <li>• Comparte con tu cliente durante la demo</li>
+                    <li>• Incluye URL de login + todas las credenciales</li>
+                    <li>• Captura o imprime para referencia</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
             <DialogFooter>
               <Button onClick={handleClose} className="w-full">
                 <CheckCircle className="w-4 h-4 mr-2" />
