@@ -3,21 +3,27 @@
  * 
  * CARACTERÍSTICAS:
  * - Singleton: Una única instancia en toda la aplicación
+ * - Tab Lock: Solo una pestaña puede reproducir audio a la vez
  * - Pre-carga: Audio cargado al inicio para reproducción instantánea
  * - Loop: Reproduce en bucle hasta que se detenga manualmente
  * - Sin errores de consola: Todos los errores son silenciosos
  * - Sin múltiples instancias: Evita reproducción simultánea
- * - Independiente del Service Worker: No depende de visibilityState
+ * - Visibilidad: Solo reproduce si la pestaña está visible
  * 
  * USO:
- *   AlertSoundManager.unlock()  - Desbloquear audio (requiere gesto de usuario)
- *   AlertSoundManager.play()    - Iniciar reproducción
- *   AlertSoundManager.stop()    - Detener reproducción
+ *   AlertSoundManager.init()      - Inicializar y adquirir lock (llamar una vez)
+ *   AlertSoundManager.unlock()    - Desbloquear audio (requiere gesto de usuario)
+ *   AlertSoundManager.play()      - Iniciar reproducción
+ *   AlertSoundManager.stop()      - Detener reproducción
+ *   AlertSoundManager.cleanup()   - Limpiar al cerrar sesión
  * 
  * IMPORTANTE:
  * - Solo debe usarse en el rol Guarda
- * - Llamar unlock() en el primer click/touch del usuario
+ * - Llamar init() al montar GuardUI
+ * - Llamar cleanup() al desmontar GuardUI o cerrar sesión
  */
+
+import { acquireLock, releaseLock, hasLock, refreshLock } from './GuardTabLock';
 
 class AlertSoundManagerSingleton {
   constructor() {
@@ -29,13 +35,40 @@ class AlertSoundManagerSingleton {
     // State
     this.isPlaying = false;
     this.isUnlocked = false;
+    this.isInitialized = false;
+    this.tabHasLock = false;
     this.audio = null;
-    
-    // Initialize audio element
-    this._initAudio();
+    this.refreshInterval = null;
     
     // Store singleton instance
     AlertSoundManagerSingleton.instance = this;
+  }
+
+  /**
+   * Initialize the manager and acquire tab lock
+   * Call this once when GuardUI mounts
+   * @returns {boolean} True if initialization successful
+   */
+  init() {
+    if (this.isInitialized) {
+      return this.tabHasLock;
+    }
+    
+    // Try to acquire tab lock
+    this.tabHasLock = acquireLock();
+    
+    if (this.tabHasLock) {
+      // Initialize audio element
+      this._initAudio();
+      
+      // Start refresh interval to keep lock alive
+      this.refreshInterval = setInterval(() => {
+        refreshLock();
+      }, 10000); // Refresh every 10 seconds
+    }
+    
+    this.isInitialized = true;
+    return this.tabHasLock;
   }
 
   /**
@@ -54,19 +87,17 @@ class AlertSoundManagerSingleton {
       
       // Handle audio errors silently
       this.audio.onerror = () => {
-        // Silent error handling - do not log
+        // Silent error handling
       };
       
-      // Track when audio ends (shouldn't happen with loop=true, but safety)
+      // Track when audio ends (shouldn't happen with loop=true)
       this.audio.onended = () => {
         this.isPlaying = false;
       };
       
       // Track when audio is paused externally
       this.audio.onpause = () => {
-        if (this.isPlaying) {
-          this.isPlaying = false;
-        }
+        this.isPlaying = false;
       };
       
     } catch (e) {
@@ -77,9 +108,6 @@ class AlertSoundManagerSingleton {
 
   /**
    * Unlock audio playback (must be called from user gesture)
-   * Browsers require user interaction before allowing audio playback.
-   * Call this on first click/touch event.
-   * 
    * @returns {boolean} True if unlock was successful
    */
   unlock() {
@@ -87,12 +115,11 @@ class AlertSoundManagerSingleton {
       return true;
     }
     
-    if (!this.audio) {
+    if (!this.audio || !this.tabHasLock) {
       return false;
     }
     
     try {
-      // Play and immediately pause to unlock audio context
       const playPromise = this.audio.play();
       
       if (playPromise !== undefined) {
@@ -103,25 +130,38 @@ class AlertSoundManagerSingleton {
             this.isUnlocked = true;
           })
           .catch(() => {
-            // Silent catch - autoplay not allowed yet
+            // Silent catch
           });
       }
       
       return true;
     } catch (e) {
-      // Silent error
       return false;
     }
   }
 
   /**
    * Start playing the alert sound
-   * Will loop until stop() is called
+   * Will only play if:
+   * - This tab has the lock
+   * - Document is visible
+   * - Not already playing
    * 
-   * @returns {boolean} True if playback started successfully
+   * @returns {boolean} True if playback started
    */
   play() {
-    // Already playing - do nothing
+    // Check tab lock
+    if (!this.tabHasLock || !hasLock()) {
+      this.isPlaying = false;
+      return false;
+    }
+    
+    // Check visibility
+    if (document.visibilityState !== 'visible') {
+      return false;
+    }
+    
+    // Already playing
     if (this.isPlaying) {
       return true;
     }
@@ -143,15 +183,13 @@ class AlertSoundManagerSingleton {
             this.isPlaying = true;
           })
           .catch(() => {
-            // Silent catch - autoplay blocked
-            // User needs to click unlock banner
             this.isPlaying = false;
           });
       }
       
       return true;
     } catch (e) {
-      // Silent error
+      this.isPlaying = false;
       return false;
     }
   }
@@ -161,6 +199,7 @@ class AlertSoundManagerSingleton {
    */
   stop() {
     if (!this.audio) {
+      this.isPlaying = false;
       return;
     }
     
@@ -169,7 +208,36 @@ class AlertSoundManagerSingleton {
       this.audio.currentTime = 0;
       this.isPlaying = false;
     } catch (e) {
-      // Silent error
+      this.isPlaying = false;
+    }
+  }
+
+  /**
+   * Cleanup - call on logout or component unmount
+   * Releases tab lock and stops audio
+   */
+  cleanup() {
+    // Stop any playing audio
+    this.stop();
+    
+    // Clear refresh interval
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+      this.refreshInterval = null;
+    }
+    
+    // Release tab lock
+    releaseLock();
+    
+    // Reset state
+    this.tabHasLock = false;
+    this.isInitialized = false;
+    this.isUnlocked = false;
+    
+    // Clear audio reference
+    if (this.audio) {
+      this.audio.src = '';
+      this.audio = null;
     }
   }
 
@@ -190,19 +258,18 @@ class AlertSoundManagerSingleton {
   }
 
   /**
-   * Force re-initialization of audio (use if audio gets corrupted)
+   * Check if this tab has the lock
+   * @returns {boolean}
    */
-  reset() {
-    this.stop();
-    this._initAudio();
-    this.isUnlocked = false;
+  getHasLock() {
+    return this.tabHasLock && hasLock();
   }
 }
 
 // Create and export the singleton instance
 const AlertSoundManager = new AlertSoundManagerSingleton();
 
-// Expose to window for debugging (optional, can be removed in production)
+// Expose to window for debugging
 if (typeof window !== 'undefined') {
   window.AlertSoundManager = AlertSoundManager;
 }
