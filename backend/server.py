@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field, EmailStr, field_validator
 from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime, timezone, timedelta
-from passlib.context import CryptContext
+import bcrypt
 import jwt
 from enum import Enum
 from bson import ObjectId
