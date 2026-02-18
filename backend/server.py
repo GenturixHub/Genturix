@@ -1578,6 +1578,49 @@ def require_module(module_name: str):
         return current_user
     return check_module
 
+# ==================== TENANT VALIDATION HELPER ====================
+def enforce_same_condominium(resource_condo_id: str, current_user: dict) -> None:
+    """
+    Validate that the current user belongs to the same condominium as the resource.
+    Prevents cross-tenant data access.
+    
+    Args:
+        resource_condo_id: The condominium_id of the resource being accessed
+        current_user: The authenticated user dictionary from get_current_user()
+    
+    Raises:
+        HTTPException 403: If user's condominium doesn't match resource's condominium
+    
+    Note:
+        - SuperAdmin users bypass this check (they have no condominium_id)
+        - Should be called in endpoints that access tenant-specific resources
+    
+    Usage:
+        @api_router.get("/some-resource/{resource_id}")
+        async def get_resource(resource_id: str, current_user = Depends(get_current_user)):
+            resource = await db.resources.find_one({"id": resource_id})
+            enforce_same_condominium(resource["condominium_id"], current_user)
+            return resource
+    """
+    # SuperAdmin bypasses tenant check (they manage all condominiums)
+    user_roles = current_user.get("roles", [])
+    if "SuperAdmin" in user_roles:
+        return
+    
+    user_condo_id = current_user.get("condominium_id")
+    
+    # Block access if condominiums don't match
+    if user_condo_id != resource_condo_id:
+        logger.warning(
+            f"[TENANT-BLOCK] Cross-tenant access attempt: "
+            f"user={current_user.get('id')} (condo={user_condo_id}) "
+            f"tried to access resource in condo={resource_condo_id}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: cross-tenant access blocked"
+        )
+
 async def log_audit_event(
     event_type: AuditEventType,
     user_id: Optional[str],
