@@ -2166,10 +2166,8 @@ const GuardUI = () => {
       
       // Handle new panic alert from push notification
       if (messageType === 'NEW_PANIC_ALERT') {
-        // Play alert sound (only if this tab has lock)
-        if (hasAudioLock) {
-          playAlertSound();
-        }
+        // Play alert sound directly - simple approach
+        playAlertSound();
         
         // Refresh alerts list using direct API call
         api.getPanicEvents().then(events => {
@@ -2209,7 +2207,7 @@ const GuardUI = () => {
       window.removeEventListener('panicAlertAcknowledged', handleGlobalAcknowledge);
       AlertSoundManager.stop();
     };
-  }, [stopAlertSound, playAlertSound, hasAudioLock]);
+  }, [stopAlertSound, playAlertSound]);
 
   // Handler for tab changes - stops panic sound when navigating to alerts tab
   const handleTabChange = useCallback((newTab) => {
