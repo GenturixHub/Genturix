@@ -27,6 +27,7 @@ import {
 import api from '../services/api';
 import { PushNotificationToggle } from './PushNotificationBanner';
 import LanguageSelector from './LanguageSelector';
+import ChangePasswordForm from './ChangePasswordForm';
 import { 
   User,
   Mail,
@@ -46,7 +47,8 @@ import {
   X,
   ZoomIn,
   LogOut,
-  ArrowLeft
+  ArrowLeft,
+  Key
 } from 'lucide-react';
 
 // Role configuration with i18n keys
