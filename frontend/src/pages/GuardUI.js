@@ -2231,7 +2231,7 @@ const GuardUI = () => {
       navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
       window.removeEventListener('panicAlertAcknowledged', handleGlobalAcknowledge);
     };
-  }, [stopAlertSound]);
+  }, [stopAlertSound, playAlertSound, fetchAlerts]);
 
   // Handler for tab changes - stops panic sound when navigating to alerts tab
   const handleTabChange = useCallback((newTab) => {
