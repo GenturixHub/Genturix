@@ -2114,130 +2114,89 @@ const GuardUI = () => {
   // Highlighted alert from push notification
   const [highlightedAlertId, setHighlightedAlertId] = useState(null);
   
-  // Audio unlock state - browsers require user gesture
-  const [audioUnlocked, setAudioUnlocked] = useState(AlertSoundManager.isUnlocked());
+  // Simple audio state
   const [showAudioBanner, setShowAudioBanner] = useState(false);
-  const [pendingAlertSound, setPendingAlertSound] = useState(false);
-  
-  // Track if sound has been acknowledged for current alert batch
-  const soundAcknowledgedRef = React.useRef(false);
-  const soundTimeoutRef = React.useRef(null);
 
-  // Unlock audio on user interaction
-  const handleUnlockAudio = useCallback(async () => {
-    console.log('[GuardUI] User clicked to unlock audio');
-    const success = await AlertSoundManager.unlock();
-    if (success) {
-      setAudioUnlocked(true);
-      setShowAudioBanner(false);
-      // If there was a pending alert, play it now
-      if (pendingAlertSound) {
-        setPendingAlertSound(false);
-        AlertSoundManager.play();
-      }
-    }
-  }, [pendingAlertSound]);
-
-  // CENTRALIZED sound stop function
+  // Simple stop sound function
   const stopAlertSound = useCallback(() => {
     console.log('[GuardUI] Stopping alert sound');
-    soundAcknowledgedRef.current = true;
-    setPendingAlertSound(false);
-    if (soundTimeoutRef.current) {
-      clearTimeout(soundTimeoutRef.current);
-      soundTimeoutRef.current = null;
-    }
     AlertSoundManager.stop();
   }, []);
 
-  // Handle URL parameters (alert from push notification, tab from redirect)
+  // Unlock audio on user click
+  const handleUnlockAudio = useCallback(async () => {
+    console.log('[GuardUI] User unlocking audio');
+    await AlertSoundManager.unlock();
+    setShowAudioBanner(false);
+    // Try to play after unlock
+    AlertSoundManager.play();
+  }, []);
+
+  // Handle URL parameters
   useEffect(() => {
     const alertId = searchParams.get('alert');
     const tabParam = searchParams.get('tab');
     
     if (alertId) {
-      // Stop sound when navigating to alerts via URL param
       stopAlertSound();
       setActiveTab('alerts');
       setHighlightedAlertId(alertId);
-      // Clear highlight after animation
       setTimeout(() => setHighlightedAlertId(null), 5000);
-      // Clean URL
       navigate('/guard', { replace: true });
     }
     
-    // Handle tab parameter (e.g., from profile redirect)
     if (tabParam) {
       const validTabs = ['alerts', 'checkin', 'history', 'profile'];
       if (validTabs.includes(tabParam)) {
-        // Stop sound if navigating to alerts
-        if (tabParam === 'alerts') {
-          stopAlertSound();
-        }
+        if (tabParam === 'alerts') stopAlertSound();
         setActiveTab(tabParam);
       }
-      // Clean URL
       navigate('/guard', { replace: true });
     }
   }, [searchParams, navigate, stopAlertSound]);
 
-  // SINGLE service worker listener for ALL sound-related messages
+  // Service Worker message handler - SIMPLIFIED
   useEffect(() => {
     const handleServiceWorkerMessage = (event) => {
       const messageType = event.data?.type;
       
-      // Handle sound play request
-      if (messageType === 'PLAY_PANIC_SOUND') {
-        console.log('[GuardUI] New alert received - PLAY_PANIC_SOUND');
+      // Handle new panic alert
+      if (messageType === 'NEW_PANIC_ALERT') {
+        console.log('[GuardUI] New panic alert received');
         
-        // Reset acknowledged state
-        soundAcknowledgedRef.current = false;
-        
-        // ALWAYS try to play - AlertSoundManager will restart if already playing
-        // This ensures every alert produces sound
-        const result = AlertSoundManager.play();
-        console.log('[GuardUI] play() result:', result);
-        
-        if (result.blocked) {
-          // Audio blocked by browser - show banner
-          console.log('[GuardUI] Audio blocked - showing unlock banner');
-          setShowAudioBanner(true);
-          setPendingAlertSound(true);
-        } else if (result.success) {
-          // Clear any existing timeout and set new one
-          if (soundTimeoutRef.current) {
-            clearTimeout(soundTimeoutRef.current);
+        // Only play sound if document is visible
+        if (document.visibilityState === 'visible') {
+          const result = AlertSoundManager.play();
+          if (result.blocked) {
+            setShowAudioBanner(true);
           }
-          soundTimeoutRef.current = setTimeout(() => {
-            AlertSoundManager.stop();
-            soundTimeoutRef.current = null;
-          }, 30000);
+        }
+        
+        // Refresh alerts list
+        if (typeof loadAlerts === 'function') {
+          loadAlerts();
         }
       }
       
-      // Handle all stop requests
-      if (messageType === 'PANIC_ALERT_CLICK' || 
-          messageType === 'STOP_PANIC_SOUND' || 
-          messageType === 'NOTIFICATION_CLICKED' ||
-          messageType === 'NOTIFICATION_CLOSED') {
-        console.log(`[GuardUI] Received ${messageType}, stopping sound`);
+      // Handle notification clicked/closed - stop sound
+      if (messageType === 'NOTIFICATION_CLICKED' || messageType === 'NOTIFICATION_CLOSED') {
+        console.log(`[GuardUI] ${messageType} - stopping sound`);
         stopAlertSound();
         
-        // Handle navigation for PANIC_ALERT_CLICK
-        if (messageType === 'PANIC_ALERT_CLICK') {
-          const data = event.data.data;
+        if (messageType === 'NOTIFICATION_CLICKED') {
           setActiveTab('alerts');
-          if (data?.event_id) {
-            setHighlightedAlertId(data.event_id);
+          const eventId = event.data?.data?.event_id;
+          if (eventId) {
+            setHighlightedAlertId(eventId);
             setTimeout(() => setHighlightedAlertId(null), 5000);
           }
         }
       }
     };
 
-    // Listen for global acknowledgement events from AlertsTab modal
+    // Global acknowledge event (from AlertsTab modal)
     const handleGlobalAcknowledge = () => {
-      console.log('[GuardUI] Global acknowledge event received');
+      console.log('[GuardUI] Alert acknowledged - stopping sound');
       stopAlertSound();
     };
 
@@ -2247,17 +2206,11 @@ const GuardUI = () => {
     return () => {
       navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
       window.removeEventListener('panicAlertAcknowledged', handleGlobalAcknowledge);
-      if (soundTimeoutRef.current) {
-        clearTimeout(soundTimeoutRef.current);
-      }
     };
   }, [stopAlertSound]);
 
-  // Auto-subscribe to push notifications for guards
-  useEffect(() => {
-    const subscribeGuardToPush = async () => {
-      try {
-        const { PushNotificationManager } = await import('../utils/PushNotificationManager');
+  // Auto-subscribe to push notifications for guards - REMOVED
+  // Push registration is now handled in AuthContext on login
         
         if (!PushNotificationManager.isSupported()) {
           console.log('[Guard] Push notifications not supported');
