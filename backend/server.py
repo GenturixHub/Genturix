@@ -38,6 +38,10 @@ db = client[os.environ['DB_NAME']]
 # - Return generated password in API response for testing
 DEV_MODE = os.environ.get('DEV_MODE', 'false').lower() == 'true'
 
+# Environment Configuration for CORS
+ENVIRONMENT = os.environ.get('ENVIRONMENT', 'development').lower()
+FRONTEND_URL = os.environ.get('FRONTEND_URL', '')
+
 # JWT Configuration
 JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'default-secret-change-in-production')
 JWT_REFRESH_SECRET_KEY = os.environ.get('JWT_REFRESH_SECRET_KEY', 'default-refresh-secret')
@@ -12528,13 +12532,63 @@ async def reset_all_data(
 # Include the router in the main app
 app.include_router(api_router)
 
+# ==================== CORS CONFIGURATION ====================
+def get_cors_origins() -> list:
+    """Get allowed origins based on environment"""
+    if ENVIRONMENT == "production":
+        if FRONTEND_URL:
+            return [FRONTEND_URL.rstrip('/')]
+        logger.warning("[CORS] ENVIRONMENT=production but FRONTEND_URL not set, defaulting to empty list")
+        return []
+    else:
+        # Development mode - allow localhost
+        return [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000"
+        ]
+
+cors_origins = get_cors_origins()
+logger.info(f"[CORS] Environment: {ENVIRONMENT}, Allowed origins: {cors_origins}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ==================== MONGODB INDEX INITIALIZATION ====================
+async def initialize_indexes():
+    """Initialize MongoDB indexes for performance and data integrity.
+    Safe to call multiple times - indexes are created only if they don't exist."""
+    try:
+        # Users collection indexes
+        await db.users.create_index("email", unique=True, background=True)
+        await db.users.create_index("condominium_id", background=True)
+        logger.info("[DB-INDEX] Created indexes for 'users' collection")
+        
+        # Push subscriptions indexes
+        await db.push_subscriptions.create_index("user_id", background=True)
+        await db.push_subscriptions.create_index("condominium_id", background=True)
+        logger.info("[DB-INDEX] Created indexes for 'push_subscriptions' collection")
+        
+        # Audit logs indexes
+        await db.audit_logs.create_index("user_id", background=True)
+        logger.info("[DB-INDEX] Created indexes for 'audit_logs' collection")
+        
+        # Reservations indexes
+        await db.reservations.create_index("condominium_id", background=True)
+        logger.info("[DB-INDEX] Created indexes for 'reservations' collection")
+        
+        logger.info("[DB-INDEX] All MongoDB indexes initialized successfully")
+    except Exception as e:
+        logger.error(f"[DB-INDEX] Error creating indexes: {e}")
+
+@app.on_event("startup")
+async def startup_event():
+    """Application startup tasks"""
+    await initialize_indexes()
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
