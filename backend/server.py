@@ -1450,14 +1450,23 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     })
     return jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
-def create_refresh_token(data: dict) -> str:
+def create_refresh_token(data: dict, refresh_token_id: str) -> str:
+    """
+    Create a refresh token with rotation support.
+    
+    Phase 2 & 3: Refresh Token Rotation
+    - Includes refresh_token_id in payload
+    - This ID is stored in DB and validated on refresh
+    - Prevents reuse of stolen refresh tokens
+    """
     to_encode = data.copy()
     now = datetime.now(timezone.utc)
     expire = now + timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
     to_encode.update({
         "exp": expire, 
-        "iat": int(now.timestamp()),  # Issued at timestamp
-        "type": "refresh"
+        "iat": int(now.timestamp()),
+        "type": "refresh",
+        "jti": refresh_token_id  # JWT ID for rotation tracking
     })
     return jwt.encode(to_encode, JWT_REFRESH_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
