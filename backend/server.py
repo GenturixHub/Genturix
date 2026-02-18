@@ -2444,7 +2444,19 @@ async def refresh_token(token_request: RefreshTokenRequest, request: Request):
     token_jti = payload.get("jti")
     stored_jti = user.get("refresh_token_id")
     
-    if token_jti and stored_jti and token_jti != stored_jti:
+    # Phase 4: If stored_jti is None, user has logged out - reject refresh
+    if stored_jti is None:
+        logger.warning(
+            f"[SECURITY] Refresh attempt after logout for user {user['id']}. "
+            f"Token JTI: {token_jti}"
+        )
+        raise HTTPException(
+            status_code=401, 
+            detail="Session expired. Please login again."
+        )
+    
+    # If token has jti, it must match stored jti
+    if token_jti and token_jti != stored_jti:
         # Possible token reuse attack - log and reject
         logger.warning(
             f"[SECURITY] Refresh token reuse detected for user {user['id']}. "
