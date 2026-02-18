@@ -9382,10 +9382,12 @@ async def get_audit_stats(current_user = Depends(require_module("audit"))):
 @api_router.get("/dashboard/stats")
 async def get_dashboard_stats(current_user = Depends(get_current_user)):
     """Dashboard stats - scoped by condominium for Admin, global for SuperAdmin"""
-    condo_id = current_user.get("condominium_id")
     roles = current_user.get("roles", [])
     
-    # SuperAdmin sees global data
+    # Use tenant_filter for consistent scoping
+    condo_filter = tenant_filter(current_user)
+    
+    # SuperAdmin sees global data (empty filter)
     if "SuperAdmin" in roles:
         stats = {
             "total_users": await db.users.count_documents({}),
@@ -9396,13 +9398,12 @@ async def get_dashboard_stats(current_user = Depends(get_current_user)):
         }
     else:
         # Admin/others see only their condominium data
-        condo_filter = {"condominium_id": condo_id} if condo_id else {"condominium_id": None}
         stats = {
             "total_users": await db.users.count_documents(condo_filter),
-            "active_guards": await db.guards.count_documents({**condo_filter, "status": "active"}),
-            "active_alerts": await db.panic_events.count_documents({**condo_filter, "status": "active"}),
+            "active_guards": await db.guards.count_documents(tenant_filter(current_user, {"status": "active"})),
+            "active_alerts": await db.panic_events.count_documents(tenant_filter(current_user, {"status": "active"})),
             "total_courses": await db.courses.count_documents(condo_filter),
-            "pending_payments": await db.payment_transactions.count_documents({**condo_filter, "payment_status": "pending"})
+            "pending_payments": await db.payment_transactions.count_documents(tenant_filter(current_user, {"payment_status": "pending"}))
         }
     return stats
 
@@ -9416,14 +9417,12 @@ async def get_recent_activity(current_user = Depends(get_current_user)):
     - Reservations
     Scoped by condominium for Admin, global for SuperAdmin
     """
-    condo_id = current_user.get("condominium_id")
     roles = current_user.get("roles", [])
-    is_super_admin = "SuperAdmin" in roles
     
     activities = []
     
-    # Build query for scoping
-    condo_query = {} if is_super_admin else ({"condominium_id": condo_id} if condo_id else {})
+    # Use tenant_filter for consistent scoping
+    condo_query = tenant_filter(current_user)
     
     # 1. Audit logs (logins, user actions)
     audit_logs = await db.audit_logs.find(condo_query, {"_id": 0}).sort("timestamp", -1).to_list(10)
