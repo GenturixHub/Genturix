@@ -36,7 +36,7 @@ const PASSWORD_REQUIREMENTS = [
   { id: 'number', label: 'Un número', test: (pwd) => /\d/.test(pwd) },
 ];
 
-const ChangePasswordForm = ({ onSuccess }) => {
+const ChangePasswordForm = ({ onSuccess, embedded = false }) => {
   const { logout } = useAuth();
   const [formData, setFormData] = useState({
     currentPassword: '',
