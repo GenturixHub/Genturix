@@ -2283,95 +2283,179 @@ async def get_vapid_public_key():
         raise HTTPException(status_code=503, detail="Push notifications not configured")
     return {"publicKey": VAPID_PUBLIC_KEY}
 
+# ==================== PUSH NOTIFICATION ENDPOINTS (REFACTORED) ====================
+# Backend is the ONLY authority for push notification routing.
+# All subscriptions MUST have: user_id, role, condominium_id
+
+def get_primary_role(roles: list) -> str:
+    """Get the primary role for a user (for push targeting)"""
+    role_priority = ["SuperAdmin", "Administrador", "Supervisor", "Guarda", "Guardia", "HR", "Residente"]
+    for role in role_priority:
+        if role in roles:
+            return role
+    return roles[0] if roles else "unknown"
+
+
 @api_router.post("/push/subscribe")
 async def subscribe_to_push(
     request: PushSubscriptionRequest,
     current_user = Depends(get_current_user)
 ):
-    """Subscribe to push notifications - Available for Guards, Admins, and Residents"""
-    user_roles = current_user.get("roles", [])
+    """
+    Register a push notification subscription for the authenticated user.
     
-    # Allow guards, admins, supervisors and residents to subscribe
-    allowed_roles = ["Guardia", "Guarda", "Administrador", "SuperAdmin", "Supervisor", "Residente"]
-    if not any(role in user_roles for role in allowed_roles):
-        raise HTTPException(status_code=403, detail="No tienes permiso para suscribirte a notificaciones push")
+    REQUIREMENTS:
+    - User MUST be authenticated
+    - User MUST have a valid condominium_id (except SuperAdmin)
+    - Saves: user_id, role, condominium_id, endpoint, keys
+    
+    If subscription already exists for user_id + endpoint → UPDATE it.
+    """
+    user_id = current_user.get("id")
+    user_roles = current_user.get("roles", [])
+    condo_id = current_user.get("condominium_id")
+    
+    # VALIDATION 1: User must have roles
+    if not user_roles:
+        raise HTTPException(
+            status_code=403, 
+            detail="Usuario sin roles asignados. Contacta al administrador."
+        )
+    
+    # VALIDATION 2: Non-SuperAdmin users MUST have condominium_id
+    is_super_admin = "SuperAdmin" in user_roles
+    if not is_super_admin and not condo_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Usuario no asignado a un condominio. Contacta al administrador."
+        )
+    
+    # VALIDATION 3: Verify user is active
+    db_user = await db.users.find_one(
+        {"id": user_id}, 
+        {"_id": 0, "is_active": 1, "status": 1}
+    )
+    if not db_user or not db_user.get("is_active", True):
+        raise HTTPException(
+            status_code=403,
+            detail="Cuenta de usuario inactiva."
+        )
+    
+    if db_user.get("status") in ["blocked", "suspended"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Cuenta bloqueada o suspendida."
+        )
     
     subscription = request.subscription
+    primary_role = get_primary_role(user_roles)
     
-    # Check if subscription already exists
+    # Check if subscription already exists for this user + endpoint
     existing = await db.push_subscriptions.find_one({
-        "endpoint": subscription.endpoint,
-        "user_id": current_user["id"]
+        "user_id": user_id,
+        "endpoint": subscription.endpoint
     })
     
+    now = datetime.now(timezone.utc).isoformat()
+    
     if existing:
-        # Update existing subscription
+        # UPDATE existing subscription
         await db.push_subscriptions.update_one(
             {"_id": existing["_id"]},
             {"$set": {
+                "role": primary_role,  # Update role in case it changed
+                "condominium_id": condo_id,  # Update condo in case transferred
                 "p256dh": subscription.keys.p256dh,
                 "auth": subscription.keys.auth,
-                "updated_at": datetime.now(timezone.utc).isoformat(),
-                "is_active": True
+                "expiration_time": subscription.expirationTime,
+                "is_active": True,
+                "updated_at": now
             }}
         )
-        return {"message": "Suscripción actualizada", "status": "updated"}
+        logger.info(f"[PUSH] Subscription UPDATED for user {user_id} (role={primary_role})")
+        return {
+            "message": "Suscripción actualizada",
+            "status": "updated",
+            "role": primary_role
+        }
     
-    # Create new subscription
+    # CREATE new subscription with all required fields
     sub_doc = {
         "id": str(uuid.uuid4()),
-        "user_id": current_user["id"],
-        "condominium_id": current_user.get("condominium_id"),
+        "user_id": user_id,
+        "role": primary_role,
+        "condominium_id": condo_id,
         "endpoint": subscription.endpoint,
         "p256dh": subscription.keys.p256dh,
         "auth": subscription.keys.auth,
         "expiration_time": subscription.expirationTime,
         "is_active": True,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat()
+        "created_at": now,
+        "updated_at": now
     }
     
     await db.push_subscriptions.insert_one(sub_doc)
     
-    logger.info(f"New push subscription for user {current_user['id']}")
-    return {"message": "Suscripción exitosa", "status": "created"}
+    logger.info(f"[PUSH] Subscription CREATED for user {user_id} (role={primary_role}, condo={condo_id[:8] if condo_id else 'N/A'}...)")
+    return {
+        "message": "Suscripción exitosa",
+        "status": "created",
+        "role": primary_role
+    }
+
 
 @api_router.delete("/push/unsubscribe")
 async def unsubscribe_from_push(
     request: PushSubscriptionRequest,
     current_user = Depends(get_current_user)
 ):
-    """Unsubscribe from push notifications"""
+    """
+    Remove a specific push subscription for the authenticated user.
+    Used when user manually disables notifications.
+    """
+    user_id = current_user.get("id")
     subscription = request.subscription
     
     result = await db.push_subscriptions.delete_one({
-        "endpoint": subscription.endpoint,
-        "user_id": current_user["id"]
+        "user_id": user_id,
+        "endpoint": subscription.endpoint
     })
     
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Suscripción no encontrada")
     
-    logger.info(f"Push subscription removed for user {current_user['id']}")
-    return {"message": "Suscripción eliminada"}
+    logger.info(f"[PUSH] Subscription REMOVED for user {user_id}")
+    return {"message": "Suscripción eliminada", "deleted_count": 1}
+
 
 @api_router.delete("/push/unsubscribe-all")
 async def unsubscribe_all_push(current_user = Depends(get_current_user)):
-    """Unsubscribe ALL push subscriptions for current user (used on logout)"""
+    """
+    Remove ALL push subscriptions for the current user.
+    MUST be called on logout to clean up stale subscriptions.
+    """
+    user_id = current_user.get("id")
+    
     result = await db.push_subscriptions.delete_many({
-        "user_id": current_user["id"]
+        "user_id": user_id
     })
     
-    logger.info(f"All push subscriptions removed for user {current_user['id']}: {result.deleted_count} deleted")
-    return {"message": f"{result.deleted_count} suscripciones eliminadas", "deleted_count": result.deleted_count}
+    logger.info(f"[PUSH] ALL subscriptions REMOVED for user {user_id}: {result.deleted_count} deleted")
+    return {
+        "message": f"{result.deleted_count} suscripciones eliminadas",
+        "deleted_count": result.deleted_count
+    }
+
 
 @api_router.get("/push/status")
 async def get_push_status(current_user = Depends(get_current_user)):
     """Get current user's push notification subscription status"""
+    user_id = current_user.get("id")
+    
     subscriptions = await db.push_subscriptions.find({
-        "user_id": current_user["id"],
+        "user_id": user_id,
         "is_active": True
-    }, {"_id": 0, "endpoint": 1, "created_at": 1}).to_list(None)
+    }, {"_id": 0, "id": 1, "endpoint": 1, "role": 1, "created_at": 1}).to_list(None)
     
     return {
         "is_subscribed": len(subscriptions) > 0,
