@@ -1815,31 +1815,41 @@ async def send_push_to_guards(condominium_id: str, payload: dict, exclude_user_i
     return result
 
 async def send_push_to_admins(condominium_id: str, payload: dict) -> dict:
-    """Send push notification to admins in a condominium"""
-    if not condominium_id:
-        return {"sent": 0, "failed": 0, "total": 0}
+    """
+    Send push notification to admins in a condominium.
     
+    SECURITY: Only sends to users with role 'Administrador' or 'Supervisor'
+    in the specified condominium.
+    """
+    result = {"sent": 0, "failed": 0, "total": 0}
+    
+    if not condominium_id:
+        return result
+    
+    # Get admin user IDs for this condominium
     admins = await db.users.find({
         "condominium_id": condominium_id,
         "roles": {"$in": ["Administrador", "Supervisor"]},
-        "is_active": True
-    }, {"id": 1}).to_list(None)
+        "is_active": True,
+        "status": {"$in": ["active", None]}
+    }, {"_id": 0, "id": 1}).to_list(None)
     
     admin_ids = [a["id"] for a in admins]
     
     if not admin_ids:
-        return {"sent": 0, "failed": 0, "total": 0}
+        return result
     
+    # Get subscriptions filtered by user_id AND condominium_id
     subscriptions = await db.push_subscriptions.find({
         "user_id": {"$in": admin_ids},
+        "condominium_id": condominium_id,
         "is_active": True
     }).to_list(None)
     
-    if not subscriptions:
-        return {"sent": 0, "failed": 0, "total": 0}
+    result["total"] = len(subscriptions)
     
-    sent = 0
-    failed = 0
+    if not subscriptions:
+        return result
     
     for sub in subscriptions:
         subscription_info = {
@@ -1851,11 +1861,12 @@ async def send_push_to_admins(condominium_id: str, payload: dict) -> dict:
         }
         success = await send_push_notification(subscription_info, payload)
         if success:
-            sent += 1
+            result["sent"] += 1
         else:
-            failed += 1
+            result["failed"] += 1
     
-    return {"sent": sent, "failed": failed, "total": len(subscriptions)}
+    logger.info(f"[PUSH-ADMINS] Sent: {result['sent']}, Failed: {result['failed']}")
+    return result
 
 async def create_and_send_notification(
     user_id: str,
