@@ -6749,19 +6749,16 @@ async def get_candidates(
     position: Optional[str] = None,
     current_user = Depends(require_role("Administrador", "HR"))
 ):
-    """List recruitment candidates"""
-    query = {}
-    
-    # Filter by condominium for non-super-admins
-    if "SuperAdmin" not in current_user.get("roles", []):
-        condo_id = current_user.get("condominium_id")
-        if condo_id:
-            query["condominium_id"] = condo_id
-    
+    """List recruitment candidates - scoped by condominium"""
+    # Build extra filters
+    extra = {}
     if status:
-        query["status"] = status
+        extra["status"] = status
     if position:
-        query["position"] = position
+        extra["position"] = position
+    
+    # Use tenant_filter for multi-tenant scoping
+    query = tenant_filter(current_user, extra if extra else None)
     
     candidates = await db.hr_candidates.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
     return candidates
@@ -6771,10 +6768,9 @@ async def get_candidate(
     candidate_id: str,
     current_user = Depends(require_role("Administrador", "HR"))
 ):
-    """Get a single candidate"""
-    candidate = await db.hr_candidates.find_one({"id": candidate_id}, {"_id": 0})
-    if not candidate:
-        raise HTTPException(status_code=404, detail="Candidato no encontrado")
+    """Get a single candidate - must belong to user's condominium"""
+    # Use get_tenant_resource for tenant validation
+    candidate = await get_tenant_resource(db.hr_candidates, candidate_id, current_user)
     return candidate
 
 @api_router.put("/hr/candidates/{candidate_id}")
@@ -6784,10 +6780,9 @@ async def update_candidate(
     request: Request,
     current_user = Depends(require_role("Administrador", "HR"))
 ):
-    """Update candidate information"""
-    candidate = await db.hr_candidates.find_one({"id": candidate_id})
-    if not candidate:
-        raise HTTPException(status_code=404, detail="Candidato no encontrado")
+    """Update candidate information - must belong to user's condominium"""
+    # Use get_tenant_resource for tenant validation
+    candidate = await get_tenant_resource(db.hr_candidates, candidate_id, current_user)
     
     update_data = {}
     if update.full_name is not None:
@@ -6832,10 +6827,9 @@ async def hire_candidate(
     request: Request,
     current_user = Depends(require_role("Administrador", "HR"))
 ):
-    """Hire a candidate - creates user account and guard record"""
-    candidate = await db.hr_candidates.find_one({"id": candidate_id})
-    if not candidate:
-        raise HTTPException(status_code=404, detail="Candidato no encontrado")
+    """Hire a candidate - must belong to user's condominium"""
+    # Use get_tenant_resource for tenant validation
+    candidate = await get_tenant_resource(db.hr_candidates, candidate_id, current_user)
     
     if candidate["status"] == "hired":
         raise HTTPException(status_code=400, detail="Este candidato ya fue contratado")
