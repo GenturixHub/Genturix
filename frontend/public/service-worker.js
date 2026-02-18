@@ -1,193 +1,114 @@
 // =========================================================================
-// GENTURIX Service Worker v5 - Simplified Push Notifications
+// GENTURIX Service Worker v6 - MINIMAL PUSH ONLY
 // =========================================================================
-// Backend is the ONLY authority for push routing.
-// Service Worker only: receives push → shows notification
-// NO audio, NO locks, NO role logic
+// Este Service Worker SOLO maneja notificaciones push.
+// NO intercepta fetch, NO usa cache, NO tiene lógica offline.
 // =========================================================================
 
-const CACHE_NAME = 'genturix-v5';
-const OFFLINE_URL = '/offline.html';
-
-const STATIC_ASSETS = [
-  '/',
-  '/manifest.json',
-  '/logo192.png',
-  '/favicon.ico'
-];
-
 // =========================================================================
-// INSTALL
+// INSTALL - Solo skipWaiting
 // =========================================================================
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing Service Worker v5');
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(STATIC_ASSETS))
-      .then(() => self.skipWaiting())
-  );
+  self.skipWaiting();
 });
 
 // =========================================================================
-// ACTIVATE
+// ACTIVATE - Solo clients.claim
 // =========================================================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating Service Worker v5');
-  event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames
-            .filter((name) => name !== CACHE_NAME)
-            .map((name) => caches.delete(name))
-        );
-      })
-      .then(() => self.clients.claim())
-  );
+  event.waitUntil(self.clients.claim());
 });
 
 // =========================================================================
-// FETCH - Network first, fallback to cache
-// =========================================================================
-self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET' || event.request.url.includes('/api/')) {
-    return;
-  }
-
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        if (response.ok) {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
-        }
-        return response;
-      })
-      .catch(() => {
-        return caches.match(event.request)
-          .then((cached) => cached || caches.match('/'));
-      })
-  );
-});
-
-// =========================================================================
-// PUSH - Simple handler: receive → show notification
-// NO audio logic, NO role checks (backend already filtered)
+// PUSH - Recibir y mostrar notificación
 // =========================================================================
 self.addEventListener('push', (event) => {
-  console.log('[SW] Push received');
-
-  let notification = {
+  let data = {
     title: 'GENTURIX',
     body: 'Nueva notificación',
     icon: '/logo192.png',
     badge: '/logo192.png',
-    tag: 'genturix-notification',
-    data: { url: '/' }
+    tag: 'genturix',
+    data: {}
   };
 
   if (event.data) {
     try {
       const payload = event.data.json();
-      notification = {
-        title: payload.title || notification.title,
-        body: payload.body || notification.body,
-        icon: payload.icon || notification.icon,
-        badge: payload.badge || notification.badge,
-        tag: payload.tag || notification.tag,
-        data: payload.data || notification.data
+      data = {
+        title: payload.title || data.title,
+        body: payload.body || data.body,
+        icon: payload.icon || data.icon,
+        badge: payload.badge || data.badge,
+        tag: payload.tag || data.tag,
+        data: payload.data || {}
       };
     } catch (e) {
-      console.error('[SW] Error parsing push:', e);
+      // Parse error - use defaults
     }
   }
 
-  const isPanic = notification.data?.type === 'panic_alert';
-
   const options = {
-    body: notification.body,
-    icon: notification.icon,
-    badge: notification.badge,
-    tag: notification.tag,
+    body: data.body,
+    icon: data.icon,
+    badge: data.badge,
+    tag: data.tag,
     renotify: true,
-    requireInteraction: isPanic,
-    silent: false,
-    vibrate: isPanic ? [300, 100, 300, 100, 300] : [100, 50, 100],
-    data: notification.data,
-    actions: isPanic ? [
-      { action: 'view', title: '👁️ Ver' },
-      { action: 'dismiss', title: '✕' }
-    ] : []
+    requireInteraction: data.data?.type === 'panic_alert',
+    vibrate: data.data?.type === 'panic_alert' ? [300, 100, 300] : [100],
+    data: data.data
   };
 
   event.waitUntil(
-    self.registration.showNotification(notification.title, options)
+    self.registration.showNotification(data.title, options)
       .then(() => {
-        // Notify app about new alert (for UI update, not sound)
-        if (isPanic) {
-          return self.clients.matchAll({ type: 'window' })
-            .then((clients) => {
-              clients.forEach((client) => {
-                client.postMessage({
-                  type: 'NEW_PANIC_ALERT',
-                  data: notification.data
-                });
-              });
+        // Notify open tabs about new alert
+        if (data.data?.type === 'panic_alert') {
+          return self.clients.matchAll({ type: 'window' }).then((clients) => {
+            clients.forEach((client) => {
+              client.postMessage({ type: 'NEW_PANIC_ALERT', data: data.data });
             });
+          });
         }
       })
   );
 });
 
 // =========================================================================
-// NOTIFICATION CLICK
+// NOTIFICATION CLICK - Abrir o enfocar ventana
 // =========================================================================
 self.addEventListener('notificationclick', (event) => {
-  const notification = event.notification;
-  const data = notification.data || {};
-  
-  notification.close();
+  event.notification.close();
 
   if (event.action === 'dismiss') return;
 
-  let targetUrl = '/';
-  
-  switch (data.type) {
-    case 'panic_alert':
-      targetUrl = '/guard?tab=alerts';
-      break;
-    case 'visitor_arrival':
-    case 'visitor_exit':
-      targetUrl = '/resident?tab=history';
-      break;
-    default:
-      targetUrl = data.url || '/';
+  const data = event.notification.data || {};
+  let url = '/';
+
+  if (data.type === 'panic_alert') {
+    url = '/guard?tab=alerts';
+  } else if (data.url) {
+    url = data.url;
   }
 
   event.waitUntil(
-    self.clients.matchAll({ type: 'window' })
-      .then((clients) => {
-        for (const client of clients) {
-          if (client.url.includes(self.location.origin) && 'focus' in client) {
-            return client.navigate(targetUrl).then(() => client.focus());
-          }
+    self.clients.matchAll({ type: 'window' }).then((clients) => {
+      // Try to focus existing window
+      for (const client of clients) {
+        if ('focus' in client) {
+          return client.navigate(url).then(() => client.focus());
         }
-        return self.clients.openWindow(targetUrl);
-      })
-      .then(() => {
-        // Notify app that notification was clicked
-        return self.clients.matchAll({ type: 'window' });
-      })
-      .then((clients) => {
+      }
+      // Open new window if none exists
+      return self.clients.openWindow(url);
+    }).then(() => {
+      // Notify that notification was clicked
+      return self.clients.matchAll({ type: 'window' }).then((clients) => {
         clients.forEach((client) => {
-          client.postMessage({
-            type: 'NOTIFICATION_CLICKED',
-            data: data
-          });
+          client.postMessage({ type: 'NOTIFICATION_CLICKED', data: data });
         });
-      })
+      });
+    })
   );
 });
 
@@ -197,21 +118,7 @@ self.addEventListener('notificationclick', (event) => {
 self.addEventListener('notificationclose', (event) => {
   self.clients.matchAll({ type: 'window' }).then((clients) => {
     clients.forEach((client) => {
-      client.postMessage({
-        type: 'NOTIFICATION_CLOSED',
-        data: event.notification.data
-      });
+      client.postMessage({ type: 'NOTIFICATION_CLOSED', data: event.notification.data });
     });
   });
 });
-
-// =========================================================================
-// MESSAGE
-// =========================================================================
-self.addEventListener('message', (event) => {
-  if (event.data?.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-});
-
-console.log('[SW] Service Worker v5 loaded');
