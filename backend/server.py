@@ -77,6 +77,38 @@ logger = logging.getLogger(__name__)
 # Create the main app
 app = FastAPI(title="GENTURIX Enterprise Platform", version="1.0.0")
 
+# ==================== GLOBAL EXCEPTION HANDLER ====================
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """
+    Production-grade global exception handler.
+    - Logs full error details for debugging
+    - Returns safe JSON response without exposing internals
+    - Preserves HTTPException behavior
+    """
+    # Let HTTPException pass through unchanged
+    if isinstance(exc, HTTPException):
+        raise exc
+    
+    # Generate unique error ID for tracking
+    error_id = str(uuid.uuid4())
+    
+    # Log full error details (internal only)
+    logger.error(
+        f"[ERROR-{error_id}] Unhandled exception: {type(exc).__name__}: {str(exc)} | "
+        f"Path: {request.url.path} | Method: {request.method}",
+        exc_info=True
+    )
+    
+    # Return safe response (no stack trace exposed)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Internal server error",
+            "error_id": error_id
+        }
+    )
+
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
