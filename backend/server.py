@@ -117,6 +117,36 @@ async def global_exception_handler(request: Request, exc: Exception):
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# ==================== HEALTH CHECK ENDPOINT ====================
+@app.get("/health")
+async def health_check():
+    """
+    Production health check endpoint.
+    Tests MongoDB connectivity and returns system status.
+    No authentication required - used by load balancers and monitoring.
+    """
+    try:
+        # Test MongoDB connection with a simple command
+        await db.command("ping")
+        
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "ok",
+                "version": "1.0.0",
+                "database": "connected"
+            }
+        )
+    except Exception as e:
+        logger.error(f"[HEALTH] Database connection failed: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "error",
+                "database": "disconnected"
+            }
+        )
+
 # ==================== ENUMS ====================
 class RoleEnum(str, Enum):
     SUPER_ADMIN = "SuperAdmin"
