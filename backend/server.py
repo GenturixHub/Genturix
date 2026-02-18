@@ -8465,20 +8465,17 @@ async def update_reservation_status(
     current_user = Depends(get_current_user)
 ):
     """Update reservation status (Admin approves/rejects, Resident cancels own)"""
-    condo_id = current_user.get("condominium_id")
-    is_admin = "Administrador" in current_user.get("roles", [])
+    is_admin = "Administrador" in current_user.get("roles", []) or "SuperAdmin" in current_user.get("roles", [])
     
-    query = {"id": reservation_id, "condominium_id": condo_id}
+    # Use get_tenant_resource for tenant validation
+    reservation = await get_tenant_resource(db.reservations, reservation_id, current_user)
     
     # Non-admin can only cancel their own reservations
     if not is_admin:
         if update.status != ReservationStatusEnum.CANCELLED:
             raise HTTPException(status_code=403, detail="Solo puedes cancelar tus propias reservaciones")
-        query["resident_id"] = current_user["id"]
-    
-    reservation = await db.reservations.find_one(query)
-    if not reservation:
-        raise HTTPException(status_code=404, detail="Reservación no encontrada")
+        if reservation.get("resident_id") != current_user["id"]:
+            raise HTTPException(status_code=403, detail="No puedes modificar reservaciones de otros usuarios")
     
     update_fields = {
         "status": update.status.value,
