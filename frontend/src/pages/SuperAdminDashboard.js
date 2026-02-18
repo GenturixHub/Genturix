@@ -1045,6 +1045,13 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin, na
         onSuccess={() => { setShowCreateDialog(false); onRefresh(); }}
       />
 
+      {/* Demo Wizard Dialog */}
+      <DemoWizardDialog 
+        open={showDemoWizard} 
+        onClose={() => setShowDemoWizard(false)} 
+        onSuccess={() => { setShowDemoWizard(false); onRefresh(); }}
+      />
+
       {/* Edit Dialog */}
       {selectedCondo && (
         <EditCondoDialog
