@@ -152,6 +152,174 @@ const ChangePasswordForm = ({ onSuccess, embedded = false }) => {
     setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
   };
 
+  // Form content - shared between embedded and standalone
+  const formContent = (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Current Password */}
+      <div className="space-y-2">
+        <Label htmlFor="currentPassword" className="text-sm">
+          Contraseña Actual
+        </Label>
+        <div className="relative">
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            id="currentPassword"
+            type={showPasswords.current ? 'text' : 'password'}
+            value={formData.currentPassword}
+            onChange={(e) => handleInputChange('currentPassword', e.target.value)}
+            placeholder="Tu contraseña actual"
+            className="bg-[#0A0A0F] border-[#1E293B] pl-10 pr-10"
+            autoComplete="current-password"
+            data-testid="current-password-input"
+          />
+          <button
+            type="button"
+            onClick={() => togglePasswordVisibility('current')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
+          >
+            {showPasswords.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+        </div>
+      </div>
+
+      {/* New Password */}
+      <div className="space-y-2">
+        <Label htmlFor="newPassword" className="text-sm">
+          Nueva Contraseña
+        </Label>
+        <div className="relative">
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            id="newPassword"
+            type={showPasswords.new ? 'text' : 'password'}
+            value={formData.newPassword}
+            onChange={(e) => handleInputChange('newPassword', e.target.value)}
+            placeholder="Tu nueva contraseña"
+            className={`bg-[#0A0A0F] border-[#1E293B] pl-10 pr-10 ${
+              touched.newPassword && !allRequirementsMet ? 'border-yellow-500/50' : ''
+            } ${touched.newPassword && allRequirementsMet ? 'border-green-500/50' : ''}`}
+            autoComplete="new-password"
+            data-testid="new-password-input"
+          />
+          <button
+            type="button"
+            onClick={() => togglePasswordVisibility('new')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
+          >
+            {showPasswords.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+        </div>
+        
+        {/* Password Requirements */}
+        {touched.newPassword && (
+          <div className="mt-2 p-2 rounded-lg bg-[#0A0A0F] border border-[#1E293B] space-y-1.5">
+            <p className="text-xs text-muted-foreground mb-1">Requisitos:</p>
+            {passwordValidation.map(req => (
+              <div key={req.id} className="flex items-center gap-2 text-xs">
+                {req.passed ? (
+                  <Check className="w-3 h-3 text-green-400" />
+                ) : (
+                  <X className="w-3 h-3 text-red-400" />
+                )}
+                <span className={req.passed ? 'text-green-400' : 'text-muted-foreground'}>
+                  {req.label}
+                </span>
+              </div>
+            ))}
+            
+            {/* Different from current warning */}
+            {formData.currentPassword && formData.newPassword && !passwordIsDifferent && (
+              <div className="flex items-center gap-2 text-xs mt-1 pt-1 border-t border-[#1E293B]">
+                <AlertTriangle className="w-3 h-3 text-yellow-400" />
+                <span className="text-yellow-400">Debe ser diferente a la actual</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Confirm Password */}
+      <div className="space-y-2">
+        <Label htmlFor="confirmPassword" className="text-sm">
+          Confirmar Nueva Contraseña
+        </Label>
+        <div className="relative">
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            id="confirmPassword"
+            type={showPasswords.confirm ? 'text' : 'password'}
+            value={formData.confirmPassword}
+            onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+            placeholder="Confirma tu nueva contraseña"
+            className={`bg-[#0A0A0F] border-[#1E293B] pl-10 pr-10 ${
+              touched.confirmPassword && formData.confirmPassword && !passwordsMatch ? 'border-red-500/50' : ''
+            } ${touched.confirmPassword && passwordsMatch ? 'border-green-500/50' : ''}`}
+            autoComplete="new-password"
+            data-testid="confirm-password-input"
+          />
+          <button
+            type="button"
+            onClick={() => togglePasswordVisibility('confirm')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
+          >
+            {showPasswords.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+        </div>
+        
+        {/* Match indicator */}
+        {touched.confirmPassword && formData.confirmPassword && (
+          <div className="flex items-center gap-2 text-xs mt-1">
+            {passwordsMatch ? (
+              <>
+                <CheckCircle className="w-3 h-3 text-green-400" />
+                <span className="text-green-400">Las contraseñas coinciden</span>
+              </>
+            ) : (
+              <>
+                <X className="w-3 h-3 text-red-400" />
+                <span className="text-red-400">Las contraseñas no coinciden</span>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Security Notice - Compact for embedded */}
+      <div className={`p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-start gap-2 ${embedded ? 'text-xs' : ''}`}>
+        <Shield className="w-3.5 h-3.5 text-blue-400 flex-shrink-0 mt-0.5" />
+        <div className="text-xs text-blue-400">
+          Al cambiar tu contraseña, se cerrarán las sesiones en otros dispositivos.
+        </div>
+      </div>
+
+      {/* Submit Button */}
+      <Button
+        type="submit"
+        disabled={!isFormValid || isSubmitting}
+        className="w-full"
+        data-testid="change-password-btn"
+      >
+        {isSubmitting ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Actualizando...
+          </>
+        ) : (
+          <>
+            <Shield className="w-4 h-4 mr-2" />
+            Cambiar Contraseña
+          </>
+        )}
+      </Button>
+    </form>
+  );
+
+  // If embedded mode, return just the form
+  if (embedded) {
+    return formContent;
+  }
+
+  // Standalone mode with Card wrapper
   return (
     <Card className="bg-[#0F111A] border-[#1E293B]">
       <CardHeader>
@@ -164,160 +332,7 @@ const ChangePasswordForm = ({ onSuccess, embedded = false }) => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Current Password */}
-          <div className="space-y-2">
-            <Label htmlFor="currentPassword" className="text-sm">
-              Contraseña Actual
-            </Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="currentPassword"
-                type={showPasswords.current ? 'text' : 'password'}
-                value={formData.currentPassword}
-                onChange={(e) => handleInputChange('currentPassword', e.target.value)}
-                placeholder="Tu contraseña actual"
-                className="bg-[#0A0A0F] border-[#1E293B] pl-10 pr-10"
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                onClick={() => togglePasswordVisibility('current')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
-              >
-                {showPasswords.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          {/* New Password */}
-          <div className="space-y-2">
-            <Label htmlFor="newPassword" className="text-sm">
-              Nueva Contraseña
-            </Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="newPassword"
-                type={showPasswords.new ? 'text' : 'password'}
-                value={formData.newPassword}
-                onChange={(e) => handleInputChange('newPassword', e.target.value)}
-                placeholder="Tu nueva contraseña"
-                className={`bg-[#0A0A0F] border-[#1E293B] pl-10 pr-10 ${
-                  touched.newPassword && !allRequirementsMet ? 'border-yellow-500/50' : ''
-                } ${touched.newPassword && allRequirementsMet ? 'border-green-500/50' : ''}`}
-                autoComplete="new-password"
-              />
-              <button
-                type="button"
-                onClick={() => togglePasswordVisibility('new')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
-              >
-                {showPasswords.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-            
-            {/* Password Requirements */}
-            {touched.newPassword && (
-              <div className="mt-3 p-3 rounded-lg bg-[#0A0A0F] border border-[#1E293B] space-y-2">
-                <p className="text-xs text-muted-foreground mb-2">Requisitos de contraseña:</p>
-                {passwordValidation.map(req => (
-                  <div key={req.id} className="flex items-center gap-2 text-xs">
-                    {req.passed ? (
-                      <Check className="w-3.5 h-3.5 text-green-400" />
-                    ) : (
-                      <X className="w-3.5 h-3.5 text-red-400" />
-                    )}
-                    <span className={req.passed ? 'text-green-400' : 'text-muted-foreground'}>
-                      {req.label}
-                    </span>
-                  </div>
-                ))}
-                
-                {/* Different from current warning */}
-                {formData.currentPassword && formData.newPassword && !passwordIsDifferent && (
-                  <div className="flex items-center gap-2 text-xs mt-2 pt-2 border-t border-[#1E293B]">
-                    <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" />
-                    <span className="text-yellow-400">Debe ser diferente a la actual</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Confirm Password */}
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword" className="text-sm">
-              Confirmar Nueva Contraseña
-            </Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                id="confirmPassword"
-                type={showPasswords.confirm ? 'text' : 'password'}
-                value={formData.confirmPassword}
-                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                placeholder="Confirma tu nueva contraseña"
-                className={`bg-[#0A0A0F] border-[#1E293B] pl-10 pr-10 ${
-                  touched.confirmPassword && formData.confirmPassword && !passwordsMatch ? 'border-red-500/50' : ''
-                } ${touched.confirmPassword && passwordsMatch ? 'border-green-500/50' : ''}`}
-                autoComplete="new-password"
-              />
-              <button
-                type="button"
-                onClick={() => togglePasswordVisibility('confirm')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
-              >
-                {showPasswords.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-            
-            {/* Match indicator */}
-            {touched.confirmPassword && formData.confirmPassword && (
-              <div className="flex items-center gap-2 text-xs mt-1">
-                {passwordsMatch ? (
-                  <>
-                    <CheckCircle className="w-3.5 h-3.5 text-green-400" />
-                    <span className="text-green-400">Las contraseñas coinciden</span>
-                  </>
-                ) : (
-                  <>
-                    <X className="w-3.5 h-3.5 text-red-400" />
-                    <span className="text-red-400">Las contraseñas no coinciden</span>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Security Notice */}
-          <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-start gap-2">
-            <Shield className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
-            <div className="text-xs text-blue-400">
-              <strong>Nota de seguridad:</strong> Al cambiar tu contraseña, todas las sesiones activas en otros dispositivos serán cerradas automáticamente.
-            </div>
-          </div>
-
-          {/* Submit Button */}
-          <Button
-            type="submit"
-            disabled={!isFormValid || isSubmitting}
-            className="w-full"
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Actualizando...
-              </>
-            ) : (
-              <>
-                <Shield className="w-4 h-4 mr-2" />
-                Cambiar Contraseña
-              </>
-            )}
-          </Button>
-        </form>
+        {formContent}
       </CardContent>
     </Card>
   );
