@@ -325,6 +325,8 @@ class AuditEventType(str, Enum):
     # Password reset events
     PASSWORD_RESET_BY_ADMIN = "password_reset_by_admin"
     PASSWORD_RESET_TOKEN_USED = "password_reset_token_used"
+    # Security events
+    SECURITY_ALERT = "security_alert"
 
 # ==================== USER STATUS ENUM ====================
 class UserStatus(str, Enum):
