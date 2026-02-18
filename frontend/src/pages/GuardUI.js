@@ -2114,23 +2114,55 @@ const GuardUI = () => {
   // Highlighted alert from push notification
   const [highlightedAlertId, setHighlightedAlertId] = useState(null);
   
-  // Simple audio state
+  // Audio unlock banner state
   const [showAudioBanner, setShowAudioBanner] = useState(false);
 
-  // Simple stop sound function
+  // ==================== AUDIO SYSTEM ====================
+  // Stop alert sound
   const stopAlertSound = useCallback(() => {
-    console.log('[GuardUI] Stopping alert sound');
     AlertSoundManager.stop();
+    setShowAudioBanner(false);
   }, []);
 
-  // Unlock audio on user click
-  const handleUnlockAudio = useCallback(async () => {
-    console.log('[GuardUI] User unlocking audio');
-    await AlertSoundManager.unlock();
+  // Play alert sound (called when panic alert arrives)
+  const playAlertSound = useCallback(() => {
+    const result = AlertSoundManager.play();
+    // If audio is blocked, show unlock banner
+    if (!AlertSoundManager.getIsPlaying() && !AlertSoundManager.getIsUnlocked()) {
+      setShowAudioBanner(true);
+    }
+    return result;
+  }, []);
+
+  // Handle user click on unlock banner
+  const handleUnlockAudio = useCallback(() => {
+    AlertSoundManager.unlock();
     setShowAudioBanner(false);
     // Try to play after unlock
-    AlertSoundManager.play();
+    setTimeout(() => {
+      AlertSoundManager.play();
+    }, 100);
   }, []);
+
+  // Unlock audio on first user interaction (browser requirement)
+  useEffect(() => {
+    const unlockAudioOnInteraction = () => {
+      AlertSoundManager.unlock();
+    };
+
+    // Add listeners for first interaction
+    const events = ['click', 'touchstart', 'keydown'];
+    events.forEach(event => {
+      document.addEventListener(event, unlockAudioOnInteraction, { once: true, passive: true });
+    });
+
+    return () => {
+      events.forEach(event => {
+        document.removeEventListener(event, unlockAudioOnInteraction);
+      });
+    };
+  }, []);
+  // ==================== END AUDIO SYSTEM ====================
 
   // Handle URL parameters
   useEffect(() => {
