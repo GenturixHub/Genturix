@@ -1,8 +1,44 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 17, 2026 (P1 Feature: Demo vs Production Environments)
+## Last Updated: February 17, 2026 (P1 Feature: Password Change UI for All Roles)
 
 ## Changelog
+### 2026-02-17 (Session 71) - Password Change UI for All Roles ⭐⭐⭐⭐⭐
+- **P1 Feature: Password Change UI in All User Profiles** - FULLY VERIFIED ✅
+  - Backend Testing: 100% (14/14 tests passed)
+  - Frontend Testing: 100% (all UI flows verified)
+  - Test report: `/app/test_reports/iteration_72.json`
+  
+  **Implementation:**
+  
+  1. **Security Section in EmbeddedProfile:**
+     - Added to Guard, Resident, HR, Supervisor profiles
+     - Uses ChangePasswordForm with `embedded={true}` mode
+     - Visible only when viewing own profile (`isOwnProfile`)
+  
+  2. **Form Features:**
+     - Current Password field with lock icon & eye toggle
+     - New Password field with real-time validation
+     - Confirm Password field with match indicator
+     - Security notice about session invalidation
+     - Submit button disabled until valid
+  
+  3. **Validations (Frontend + Backend):**
+     - ✅ Minimum 8 characters
+     - ✅ At least one uppercase letter
+     - ✅ At least one number
+     - ✅ New password != current password
+     - ✅ Confirm password matches new
+  
+  4. **Mobile Responsive:**
+     - Vertical layout on small screens
+     - Full-width button (100% container)
+     - Clean spacing, no overflow
+  
+  5. **Files Modified:**
+     - `/app/frontend/src/components/EmbeddedProfile.jsx` - Security section
+     - `/app/frontend/src/components/ChangePasswordForm.jsx` - Embedded mode
+
 ### 2026-02-17 (Session 71) - Demo vs Production Environment Separation ⭐⭐⭐⭐⭐
 - **P1 Feature: Demo vs Production Condominium Environments** - FULLY VERIFIED ✅
   - Backend Testing: 100% (12/12 tests passed)
