@@ -461,7 +461,10 @@ class ApiService {
   // Condominiums (Multi-tenant)
   getCondominiums = () => this.get('/condominiums');
   getCondominium = (id) => this.get(`/condominiums/${id}`);
+  // Production condominium (with billing)
   createCondominium = (data) => this.post('/condominiums', data);
+  // Demo condominium (no billing, fixed seats)
+  createDemoCondominium = (data) => this.post('/superadmin/condominiums/demo', data);
   updateCondominium = (id, data) => this.patch(`/condominiums/${id}`, data);
   deleteCondominium = (id) => this.delete(`/condominiums/${id}`);
   getCondominiumUsers = (id) => this.get(`/condominiums/${id}/users`);
