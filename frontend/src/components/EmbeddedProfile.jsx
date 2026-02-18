@@ -362,6 +362,28 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
           </CardContent>
         </Card>
 
+        {/* Security Section - Change Password (Available for all users on their own profile) */}
+        {isOwnProfile && (
+          <Card className="bg-[#0F111A] border-[#1E293B]">
+            <CardHeader className="p-3 pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Key className="w-4 h-4 text-cyan-400" />
+                {t('profile.security', 'Seguridad')}
+              </CardTitle>
+              <CardDescription className="text-xs">
+                {t('profile.securityDescription', 'Administra tu contraseña y seguridad de cuenta')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+              <ChangePasswordForm 
+                onSuccess={() => {
+                  setSuccess(t('profile.passwordChanged', 'Contraseña actualizada. Tu sesión será cerrada.'));
+                }}
+              />
+            </CardContent>
+          </Card>
+        )}
+
         {/* Push Notifications - Only for security roles */}
         {isOwnProfile && profile?.roles?.some(role => ['Guarda', 'Guardia', 'Administrador', 'Supervisor', 'SuperAdmin'].includes(role)) && (
           <Card className="bg-[#0F111A] border-[#1E293B]">
