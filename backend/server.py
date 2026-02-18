@@ -215,6 +215,24 @@ async def global_exception_handler(request: Request, exc: Exception):
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# ==================== TEST ENDPOINT (REMOVE BEFORE PRODUCTION) ====================
+@api_router.get("/test/exception")
+async def test_exception_endpoint():
+    """
+    Test endpoint to verify global exception handler.
+    Throws an intentional exception for testing purposes.
+    REMOVE THIS ENDPOINT BEFORE PRODUCTION DEPLOYMENT.
+    """
+    raise Exception("This is a test exception to verify the global exception handler")
+
+@api_router.get("/test/http-error")
+async def test_http_error_endpoint():
+    """
+    Test endpoint to verify HTTP exception handler.
+    REMOVE THIS ENDPOINT BEFORE PRODUCTION DEPLOYMENT.
+    """
+    raise HTTPException(status_code=400, detail="This is a test HTTP error")
+
 # ==================== HEALTH CHECK ENDPOINT ====================
 @api_router.get("/health")
 async def health_check():
