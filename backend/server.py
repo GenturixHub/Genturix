@@ -10174,36 +10174,28 @@ async def get_public_condominium_settings(
 # Condominium/Tenant Management Endpoints (Super Admin)
 
 @api_router.post("/condominiums", response_model=CondominiumResponse)
-async def create_condominium(
+async def create_production_condominium(
     condo_data: CondominiumCreate,
     request: Request,
     current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
 ):
-    """Create a new condominium/tenant (Super Admin only)"""
+    """
+    Create a new PRODUCTION condominium/tenant (Super Admin only).
+    
+    This endpoint is for PRODUCTION tenants only:
+    - Billing enabled (Stripe integration)
+    - Configurable seat limit via paid_seats
+    - Full module access
+    
+    For DEMO tenants, use POST /api/superadmin/condominiums/demo instead.
+    """
     condo_id = str(uuid.uuid4())
     
     # Initialize module config with defaults
     modules = condo_data.modules if condo_data.modules else CondominiumModules()
     
-    # Determine if this is a demo tenant
-    is_demo = condo_data.environment == "demo"
-    
-    # ==================== DEMO VS PRODUCTION CONFIG ====================
-    # Demo condominiums have:
-    # - Fixed seat_limit of 10
-    # - billing_enabled = false
-    # - No Stripe integration
-    if is_demo:
-        paid_seats = 10  # Hardcoded for demo
-        billing_enabled = False
-        billing_status = "demo"
-        stripe_customer_id = None
-    else:
-        paid_seats = condo_data.max_users if condo_data.max_users else 10
-        billing_enabled = True
-        billing_status = "active"
-        stripe_customer_id = None  # Will be set when subscription is created
-    # ==================================================================
+    # PRODUCTION configuration
+    paid_seats = condo_data.paid_seats if condo_data.paid_seats else condo_data.max_users
     
     condo_doc = {
         "id": condo_id,
@@ -10214,19 +10206,19 @@ async def create_condominium(
         "max_users": condo_data.max_users,
         "current_users": 0,
         "modules": modules.model_dump(),
-        "status": "demo" if is_demo else "active",
-        "is_demo": is_demo,
-        "environment": condo_data.environment,  # "demo" or "production"
+        "status": "active",
+        "is_demo": False,
+        "environment": "production",
         "is_active": True,
-        # Billing configuration
+        # Billing configuration (Production)
         "paid_seats": paid_seats,
-        "billing_enabled": billing_enabled,
-        "billing_status": billing_status,
-        "stripe_customer_id": stripe_customer_id,
+        "billing_enabled": True,
+        "billing_status": "active",
+        "stripe_customer_id": None,  # Will be set when subscription is created
         "price_per_user": 1.0,
         "discount_percent": 0,
         "free_modules": [],
-        "plan": "demo" if is_demo else "basic",
+        "plan": "basic",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat()
     }
@@ -10247,7 +10239,7 @@ async def create_condominium(
         AuditEventType.CONDO_CREATED,
         current_user["id"],
         "super_admin",
-        {"condo_id": condo_id, "name": condo_data.name, "action": "created"},
+        {"condo_id": condo_id, "name": condo_data.name, "action": "created", "environment": "production"},
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
     )
@@ -10263,13 +10255,107 @@ async def create_condominium(
         modules=modules.model_dump(),
         is_active=True,
         created_at=condo_doc["created_at"],
-        # Environment and billing fields
-        environment=condo_data.environment,
-        is_demo=is_demo,
+        environment="production",
+        is_demo=False,
         paid_seats=paid_seats,
-        billing_status=billing_status,
-        status="demo" if is_demo else "active",
-        plan="demo" if is_demo else "basic"
+        billing_status="active",
+        status="active",
+        plan="basic"
+    )
+
+
+@api_router.post("/superadmin/condominiums/demo", response_model=CondominiumResponse)
+async def create_demo_condominium(
+    condo_data: DemoCondominiumCreate,
+    request: Request,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
+):
+    """
+    Create a new DEMO condominium (Super Admin only).
+    
+    DEMO tenants have:
+    - Fixed seat limit of 10 users
+    - NO billing (billing_enabled = false)
+    - NO Stripe integration
+    - Default modules enabled
+    - Simplified creation process
+    
+    For PRODUCTION tenants with billing, use POST /api/condominiums instead.
+    """
+    condo_id = str(uuid.uuid4())
+    
+    # Initialize all modules enabled by default for demo
+    modules = CondominiumModules()
+    
+    # DEMO configuration - fixed values
+    DEMO_SEAT_LIMIT = 10
+    
+    condo_doc = {
+        "id": condo_id,
+        "name": condo_data.name,
+        "address": condo_data.address,
+        "contact_email": condo_data.contact_email,
+        "contact_phone": condo_data.contact_phone or "",
+        "max_users": DEMO_SEAT_LIMIT,
+        "current_users": 0,
+        "modules": modules.model_dump(),
+        "status": "demo",
+        "is_demo": True,
+        "environment": "demo",
+        "is_active": True,
+        # Billing configuration (DEMO - disabled)
+        "paid_seats": DEMO_SEAT_LIMIT,
+        "billing_enabled": False,
+        "billing_status": "demo",
+        "stripe_customer_id": None,
+        "price_per_user": 0,  # Free for demo
+        "discount_percent": 100,  # 100% discount = free
+        "free_modules": ["security", "visitors", "hr", "reservations", "school", "payments"],
+        "plan": "demo",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.condominiums.insert_one(condo_doc)
+    
+    # Create default condominium settings
+    settings_doc = {
+        "condominium_id": condo_id,
+        "condominium_name": condo_data.name,
+        **get_default_condominium_settings(),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.condominium_settings.insert_one(settings_doc)
+    
+    await log_audit_event(
+        AuditEventType.CONDO_CREATED,
+        current_user["id"],
+        "super_admin",
+        {"condo_id": condo_id, "name": condo_data.name, "action": "created", "environment": "demo"},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    logger.info(f"Demo condominium created: {condo_data.name} by {current_user['email']}")
+    
+    return CondominiumResponse(
+        id=condo_id,
+        name=condo_data.name,
+        address=condo_data.address,
+        contact_email=condo_data.contact_email,
+        contact_phone=condo_data.contact_phone or "",
+        max_users=DEMO_SEAT_LIMIT,
+        current_users=0,
+        modules=modules.model_dump(),
+        is_active=True,
+        created_at=condo_doc["created_at"],
+        environment="demo",
+        is_demo=True,
+        paid_seats=DEMO_SEAT_LIMIT,
+        billing_status="demo",
+        status="demo",
+        plan="demo"
     )
 
 @api_router.get("/condominiums")
