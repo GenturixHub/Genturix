@@ -2212,8 +2212,10 @@ const GuardUI = () => {
       
       // Handle new panic alert from push notification
       if (messageType === 'NEW_PANIC_ALERT') {
-        // Play alert sound (no visibility check - always play for guards)
-        playAlertSound();
+        // Play alert sound (only if this tab has lock)
+        if (hasAudioLock) {
+          playAlertSound();
+        }
         
         // Refresh alerts list using direct API call
         api.getPanicEvents().then(events => {
@@ -2240,18 +2242,20 @@ const GuardUI = () => {
 
     // Global acknowledge event (from AlertsTab modal)
     const handleGlobalAcknowledge = () => {
-      console.log('[GuardUI] Alert acknowledged - stopping sound');
       stopAlertSound();
     };
 
+    // Add listeners
     navigator.serviceWorker?.addEventListener('message', handleServiceWorkerMessage);
     window.addEventListener('panicAlertAcknowledged', handleGlobalAcknowledge);
     
+    // Cleanup: remove listeners and stop audio
     return () => {
       navigator.serviceWorker?.removeEventListener('message', handleServiceWorkerMessage);
       window.removeEventListener('panicAlertAcknowledged', handleGlobalAcknowledge);
+      AlertSoundManager.stop();
     };
-  }, [stopAlertSound, playAlertSound]);
+  }, [stopAlertSound, playAlertSound, hasAudioLock]);
 
   // Handler for tab changes - stops panic sound when navigating to alerts tab
   const handleTabChange = useCallback((newTab) => {
