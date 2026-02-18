@@ -1752,33 +1752,50 @@ async def send_push_to_user(user_id: str, payload: dict) -> dict:
     
     return {"sent": sent, "failed": failed, "total": len(subscriptions)}
 
-async def send_push_to_guards(condominium_id: str, payload: dict) -> dict:
-    """Send push notification to all guards in a condominium"""
+async def send_push_to_guards(condominium_id: str, payload: dict, exclude_user_id: str = None) -> dict:
+    """
+    Send push notification to all guards in a condominium.
+    
+    SECURITY: Only sends to users with role 'Guarda' in the specified condominium.
+    Uses push_subscriptions filtered by user_id AND condominium_id.
+    
+    Args:
+        condominium_id: Target condominium (REQUIRED)
+        payload: Notification payload
+        exclude_user_id: Optional user ID to exclude from notifications
+    """
+    result = {"sent": 0, "failed": 0, "total": 0}
+    
     if not condominium_id:
-        return {"sent": 0, "failed": 0, "total": 0}
+        return result
     
-    # Get guard user IDs for this condominium
-    guards = await db.users.find({
+    # Get ACTIVE guard user IDs for this condominium
+    guard_query = {
         "condominium_id": condominium_id,
-        "roles": {"$in": ["Guarda", "Guardia"]},
+        "roles": {"$in": ["Guarda"]},
         "is_active": True
-    }, {"id": 1}).to_list(None)
+    }
     
+    if exclude_user_id:
+        guard_query["id"] = {"$ne": exclude_user_id}
+    
+    guards = await db.users.find(guard_query, {"_id": 0, "id": 1}).to_list(None)
     guard_ids = [g["id"] for g in guards]
     
     if not guard_ids:
-        return {"sent": 0, "failed": 0, "total": 0}
+        return result
     
+    # Get subscriptions for these guards only, filtered by condo
     subscriptions = await db.push_subscriptions.find({
         "user_id": {"$in": guard_ids},
+        "condominium_id": condominium_id,
         "is_active": True
     }).to_list(None)
     
-    if not subscriptions:
-        return {"sent": 0, "failed": 0, "total": 0}
+    result["total"] = len(subscriptions)
     
-    sent = 0
-    failed = 0
+    if not subscriptions:
+        return result
     
     for sub in subscriptions:
         subscription_info = {
@@ -1790,12 +1807,12 @@ async def send_push_to_guards(condominium_id: str, payload: dict) -> dict:
         }
         success = await send_push_notification(subscription_info, payload)
         if success:
-            sent += 1
+            result["sent"] += 1
         else:
-            failed += 1
+            result["failed"] += 1
     
-    logger.info(f"Guard notifications - Sent: {sent}, Failed: {failed}")
-    return {"sent": sent, "failed": failed, "total": len(subscriptions)}
+    logger.info(f"[PUSH-GUARDS] Sent: {result['sent']}, Failed: {result['failed']}")
+    return result
 
 async def send_push_to_admins(condominium_id: str, payload: dict) -> dict:
     """Send push notification to admins in a condominium"""
