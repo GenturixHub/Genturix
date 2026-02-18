@@ -118,7 +118,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 api_router = APIRouter(prefix="/api")
 
 # ==================== HEALTH CHECK ENDPOINT ====================
-@app.get("/health")
+@api_router.get("/health")
 async def health_check():
     """
     Production health check endpoint.
