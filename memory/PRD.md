@@ -1,49 +1,43 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 18, 2026 (AlertSoundManager con Tab Lock)
+## Last Updated: February 18, 2026 (Audio System ROLLBACK - Simple Version)
 
 ## Changelog
-### 2026-02-18 (Session 73) - AlertSoundManager con Tab Lock ⭐⭐⭐⭐⭐
 
-- **Sistema de Tab Lock Implementado** ✅
-  - Evita audio duplicado en múltiples pestañas
-  - Solo UNA pestaña puede reproducir audio a la vez
-  
-  **GuardTabLock.js:**
-  - `acquireLock()` - Adquiere lock para esta pestaña
-  - `releaseLock()` - Libera lock (automático en beforeunload)
-  - `hasLock()` - Verifica si esta pestaña tiene el lock
-  - `refreshLock()` - Refresca timestamp (cada 10s)
-  - Timeout de 30s para locks abandonados
-  
-  **AlertSoundManager Actualizado:**
-  - `init()` - Inicializa y adquiere tab lock (llamar al montar GuardUI)
-  - `cleanup()` - Libera lock y detiene audio (llamar al desmontar/logout)
-  - `play()` - Solo reproduce si: tiene lock + visible + no reproduciendo
-  - `stop()` - Detiene audio y resetea estado
-  - Protección contra estados inconsistentes
-  
-  **GuardUI Integración:**
-  - `useEffect` inicial llama `init()` y retorna `cleanup()`
-  - Estado `hasAudioLock` controla si esta pestaña puede reproducir
-  - Listeners de Service Worker solo reproducen si `hasAudioLock`
-  - Cleanup correcto en unmount
-  
-  **Protección Extra:**
-  - Header.js no importa AlertSoundManager
-  - Usa `window.dispatchEvent('panicAlertAcknowledged')` en su lugar
-  - Solo GuardUI.js importa AlertSoundManager
-  - App.js sin import de AlertSoundManager
-  
-  **Archivos Modificados/Creados:**
-  - `/app/frontend/src/utils/GuardTabLock.js` - NUEVO
-  - `/app/frontend/src/utils/AlertSoundManager.js` - Actualizado con tab lock
-  - `/app/frontend/src/pages/GuardUI.js` - Integración con init/cleanup
-  - `/app/frontend/src/components/layout/Header.js` - Eliminado import
+### 2026-02-18 (Session 74) - ROLLBACK: Sistema de Audio Simplificado ✅
 
-### 2026-02-18 (Session 73) - AlertSoundManager Sistema Definitivo ⭐⭐⭐⭐⭐
+- **Sistema de Audio Rollback Completado** ✅
+  - Eliminada toda la lógica compleja de tab locks
+  - Sistema simple y estable que cumple requisitos básicos
+  
+  **Cambios Realizados:**
+  1. **GuardTabLock.js** - ELIMINADO completamente
+  2. **AlertSoundManager.js** - Simplificado a versión mínima:
+     - `play()` - Reproduce audio en loop
+     - `stop()` - Detiene audio
+     - `unlock()` - Desbloquea audio en primer gesto
+     - Sin tab locks, sin coordinación entre pestañas
+  3. **GuardUI.js** - Simplificado:
+     - Eliminadas referencias a `hasAudioLock`
+     - Eliminado banner de audio complejo
+     - Audio se reproduce directamente cuando llega alerta push
+     - Audio se detiene al: abrir alerta, resolver alerta, cambiar a tab Alertas
+  
+  **Archivos Modificados:**
+  - `/app/frontend/src/utils/AlertSoundManager.js` - Versión simple
+  - `/app/frontend/src/pages/GuardUI.js` - Sin tab locks
+  - `/app/frontend/src/utils/GuardTabLock.js` - ELIMINADO
+  
+  **Comportamiento Actual:**
+  - Sonido se reproduce cuando llega alerta de pánico
+  - Sonido se detiene cuando el guardia atiende la alerta
+  - Simple, estable, mantenible
+  
+---
 
-- **AlertSoundManager Profesional Implementado** ✅
+### 2026-02-18 (Session 73) - AlertSoundManager Sistema Definitivo (SUPERSEDED)
+
+- **AlertSoundManager Profesional Implementado** (REVERTIDO)
   
   **Características:**
   - Clase Singleton - una única instancia global
