@@ -2122,32 +2122,60 @@ async def notify_guards_of_panic(condominium_id: str, panic_data: dict, sender_i
         }
     }
     
-    # STEP 4: Send notifications
+    # ==================== PHASE 3: PARALLEL PUSH DELIVERY ====================
+    # Build push tasks, filtering invalid entries
+    push_tasks = []
     for sub in subscriptions:
         # Extra validation: ensure subscription belongs to a guard in this condo
         if sub.get("user_id") not in guard_ids:
             result["excluded"] += 1
             continue
         
+        endpoint = sub.get("endpoint")
+        if not endpoint:
+            result["excluded"] += 1
+            continue
+        
         subscription_info = {
-            "endpoint": sub.get("endpoint"),
+            "endpoint": endpoint,
             "keys": {
                 "p256dh": sub.get("p256dh"),
                 "auth": sub.get("auth")
             }
         }
+        push_tasks.append(send_push_notification_with_cleanup(subscription_info, payload))
+    
+    # Execute all push notifications in parallel
+    deleted_count = 0
+    if push_tasks:
+        push_results = await asyncio.gather(*push_tasks, return_exceptions=True)
         
-        success = await send_push_notification(subscription_info, payload)
-        if success:
-            result["sent"] += 1
-        else:
-            result["failed"] += 1
+        # Process results
+        for res in push_results:
+            if isinstance(res, Exception):
+                result["failed"] += 1
+            elif isinstance(res, dict):
+                if res.get("success"):
+                    result["sent"] += 1
+                else:
+                    result["failed"] += 1
+                if res.get("deleted"):
+                    deleted_count += 1
+    # ======================================================================
     
-    logger.info(f"[PANIC-PUSH] Notifications sent: {result['sent']}, failed: {result['failed']}, excluded: {result['excluded']}")
+    # PHASE 4: STRUCTURED LOGGING
+    logger.info(
+        f"[PANIC-PUSH] Complete | "
+        f"condo={condominium_id[:8]}... | "
+        f"guards_found={len(guard_ids)} | "
+        f"total_subs={result['total']} | "
+        f"sent={result['sent']} | "
+        f"failed={result['failed']} | "
+        f"excluded={result['excluded']} | "
+        f"deleted_invalid={deleted_count}"
+    )
+    
     return result
-    
-    logger.info(f"Panic notifications - Sent: {sent}, Failed: {failed}, Total: {len(subscriptions)}")
-    return {"sent": sent, "failed": failed, "total": len(subscriptions)}
 
 # ==================== CONTEXTUAL PUSH NOTIFICATION HELPERS ====================
 
