@@ -1,8 +1,58 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 19, 2026 (Dynamic Push Targeting System)
+## Last Updated: February 19, 2026 (Resident Direct Push Notifications)
 
 ## Changelog
+
+### 2026-02-19 (Session 75) - Notificaciones Push Directas al Residente ✅
+
+- **Notificaciones Push con `target_user_ids`** ✅
+  - El residente dueño del evento recibe push directo usando `target_user_ids=[resident_id]`
+  - Implementado en 4 escenarios:
+  
+  **FASE 1 - Check-in de visitante:**
+  ```python
+  await send_targeted_push_notification(
+      condominium_id=condo_id,
+      title="🚪 Tu visitante ha llegado",
+      body=f"{visitor_name} ha ingresado al condominio",
+      target_user_ids=[resident_id],
+      exclude_user_ids=[current_user["id"]]
+  )
+  ```
+  
+  **FASE 2 - Check-out de visitante:**
+  ```python
+  await send_targeted_push_notification(
+      condominium_id=condo_id,
+      title="👋 Tu visitante ha salido",
+      body=f"{visitor_name} ha salido del condominio{duration_text}",
+      target_user_ids=[resident_id],
+      exclude_user_ids=[current_user["id"]]
+  )
+  ```
+  
+  **FASE 3 - Reservación aprobada/rechazada:**
+  ```python
+  await send_targeted_push_notification(
+      condominium_id=condo_id,
+      title="✅ Reservación aprobada" / "❌ Reservación rechazada",
+      body=f"Tu reservación de {area_name}...",
+      target_user_ids=[resident_id],
+      exclude_user_ids=[current_user["id"]]
+  )
+  ```
+  
+  **Seguridad implementada:**
+  - `exclude_user_ids=[current_user["id"]]` - Evita autonotificaciones
+  - `create_and_send_notification` usa `send_push=False` para evitar duplicados
+  
+  **NO modificado:** `notify_guards_of_panic()` - sigue funcionando igual
+
+- **Testing:** 27/27 pruebas pasadas (100%)
+- **Test Report:** `/app/test_reports/iteration_76.json`
+
+---
 
 ### 2026-02-19 (Session 75) - Dynamic Push Notification Targeting ✅
 
