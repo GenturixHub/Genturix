@@ -83,6 +83,33 @@ VAPID_CLAIMS_EMAIL = os.environ.get('VAPID_CLAIMS_EMAIL', 'admin@genturix.com')
 # Security
 security = HTTPBearer()
 
+# ==================== RATE LIMITING CONFIGURATION ====================
+# In-memory rate limiting for login brute-force protection
+LOGIN_ATTEMPTS: Dict[str, list] = {}
+MAX_ATTEMPTS_PER_MINUTE = 5
+BLOCK_WINDOW_SECONDS = 60
+
+def check_rate_limit(identifier: str) -> None:
+    """
+    Check if the identifier (email:ip) has exceeded rate limits.
+    Raises HTTPException 429 if too many attempts.
+    """
+    now = get_time()
+    attempts = LOGIN_ATTEMPTS.get(identifier, [])
+    
+    # Filter out old attempts outside the window
+    attempts = [ts for ts in attempts if now - ts < BLOCK_WINDOW_SECONDS]
+    
+    if len(attempts) >= MAX_ATTEMPTS_PER_MINUTE:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many login attempts. Please try again later."
+        )
+    
+    # Record this attempt
+    attempts.append(now)
+    LOGIN_ATTEMPTS[identifier] = attempts
+
 # ==================== PHASE 3: LOGGING CONFIGURATION ====================
 LOG_LEVEL = os.environ.get('LOG_LEVEL', 'DEBUG' if ENVIRONMENT == 'development' else 'INFO').upper()
 
