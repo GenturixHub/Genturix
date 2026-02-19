@@ -1,8 +1,46 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 19, 2026 (Resident Direct Push Notifications)
+## Last Updated: February 19, 2026 (Duplicate Entry Prevention)
 
 ## Changelog
+
+### 2026-02-19 (Session 75) - Prevención de Entradas Duplicadas ✅
+
+- **Validación Backend para Evitar Doble Check-in** ✅
+  
+  **FASE 1 - Validación por Authorization ID:**
+  ```python
+  existing_inside = await db.visitor_entries.find_one({
+      "authorization_id": authorization_id,
+      "status": "inside",
+      "exit_at": None
+  })
+  # Si existe → HTTP 400: "El visitante ya se encuentra dentro del condominio"
+  ```
+  
+  **FASE 2 - Validación para Entradas Manuales:**
+  ```python
+  existing_manual = await db.visitor_entries.find_one({
+      "condominium_id": condo_id,
+      "status": "inside",
+      "exit_at": None,
+      "authorization_id": None,
+      "visitor_name": {"$regex": f"^{re.escape(name)}$", "$options": "i"}
+  })
+  # Si existe → HTTP 400: "Ya existe un visitante con el nombre 'X' dentro"
+  ```
+  
+  **FASE 3 - Frontend UI:**
+  - Campo `is_visitor_inside` agregado a GET /guard/authorizations
+  - Badge azul: "Ya se encuentra dentro del condominio"
+  - Botón deshabilitado con texto "YA DENTRO"
+  - Muestra hora de entrada si el visitante está dentro
+
+- **Testing:** 92% backend (12/13 - 1 rate limit), 100% frontend
+- **Test Report:** `/app/test_reports/iteration_77.json`
+- **Bug Fixed:** Query PHASE 2 ahora usa regex case-insensitive directo
+
+---
 
 ### 2026-02-19 (Session 75) - Notificaciones Push Directas al Residente ✅
 
