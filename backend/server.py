@@ -13599,8 +13599,8 @@ async def initialize_indexes():
         # Users collection
         (db.users, "email", {"unique": True, "background": True}),
         (db.users, "condominium_id", {"background": True}),
-        # Push subscriptions
-        (db.push_subscriptions, "user_id", {"background": True}),
+        # Push subscriptions - compound unique index for deduplication
+        (db.push_subscriptions, [("user_id", 1), ("endpoint", 1)], {"unique": True, "background": True}),
         (db.push_subscriptions, "condominium_id", {"background": True}),
         # Audit logs
         (db.audit_logs, "user_id", {"background": True}),
