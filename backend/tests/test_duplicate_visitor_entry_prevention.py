@@ -143,7 +143,7 @@ class TestPhase1AuthorizationDuplicatePrevention:
         
         assert checkin_response.status_code in [200, 201], f"First check-in failed: {checkin_response.text}"
         checkin_data = checkin_response.json()
-        entry_id = checkin_data.get("id") or checkin_data.get("entry_id")
+        entry_id = TestSetup.extract_entry_id(checkin_data)
         print(f"✓ First check-in successful, entry_id: {entry_id}")
         
         # Step 3: Second check-in with SAME authorization should be BLOCKED (PHASE 1)
