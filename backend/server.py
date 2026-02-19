@@ -8790,8 +8790,27 @@ async def update_reservation_status(
                     "start_time": reservation.get("start_time"),
                     "end_time": reservation.get("end_time")
                 },
-                send_push=True,
+                send_push=False,  # Disable old push, use targeted instead
                 url="/resident?tab=reservations"
+            )
+            
+            # PHASE 3: Send targeted push notification to resident owner
+            await send_targeted_push_notification(
+                condominium_id=condo_id,
+                title="✅ Reservación aprobada",
+                body=f"Tu reservación de {area_name} para el {reservation.get('date')} fue aprobada",
+                target_user_ids=[resident_id],
+                exclude_user_ids=[current_user["id"]],
+                data={
+                    "type": "reservation_approved",
+                    "reservation_id": reservation_id,
+                    "area_name": area_name,
+                    "date": reservation.get("date"),
+                    "start_time": reservation.get("start_time"),
+                    "end_time": reservation.get("end_time"),
+                    "url": "/resident?tab=reservations"
+                },
+                tag=f"reservation-approved-{reservation_id[:8]}"
             )
         elif update.status == ReservationStatusEnum.REJECTED:
             reason = update.admin_notes or "Sin motivo especificado"
@@ -8807,8 +8826,26 @@ async def update_reservation_status(
                     "date": reservation.get("date"),
                     "reason": reason
                 },
-                send_push=True,
+                send_push=False,  # Disable old push, use targeted instead
                 url="/resident?tab=reservations"
+            )
+            
+            # Send targeted push notification to resident owner for rejection too
+            await send_targeted_push_notification(
+                condominium_id=condo_id,
+                title="❌ Reservación rechazada",
+                body=f"Tu reservación de {area_name} fue rechazada. Motivo: {reason}",
+                target_user_ids=[resident_id],
+                exclude_user_ids=[current_user["id"]],
+                data={
+                    "type": "reservation_rejected",
+                    "reservation_id": reservation_id,
+                    "area_name": area_name,
+                    "date": reservation.get("date"),
+                    "reason": reason,
+                    "url": "/resident?tab=reservations"
+                },
+                tag=f"reservation-rejected-{reservation_id[:8]}"
             )
     
     await log_audit_event(
