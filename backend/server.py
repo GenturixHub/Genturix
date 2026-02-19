@@ -4063,21 +4063,14 @@ async def get_authorization_history(
     Get visitor entry/exit history for audit.
     Filterable by authorization, resident, visitor name, date range.
     """
-    condo_id = current_user.get("condominium_id")
-    
-    query = {}
-    if "SuperAdmin" not in current_user.get("roles", []):
-        if condo_id:
-            query["condominium_id"] = condo_id
-        else:
-            return []
-    
+    # Build extra filters
+    extra = {}
     if auth_id:
-        query["authorization_id"] = auth_id
+        extra["authorization_id"] = auth_id
     if resident_id:
-        query["resident_id"] = resident_id
+        extra["resident_id"] = resident_id
     if visitor_name:
-        query["visitor_name"] = {"$regex": visitor_name, "$options": "i"}
+        extra["visitor_name"] = {"$regex": visitor_name, "$options": "i"}
     
     # Date filtering
     if date_from or date_to:
@@ -4087,7 +4080,10 @@ async def get_authorization_history(
         if date_to:
             date_query["$lte"] = f"{date_to}T23:59:59"
         if date_query:
-            query["entry_at"] = date_query
+            extra["entry_at"] = date_query
+    
+    # Use tenant_filter for multi-tenant scoping
+    query = tenant_filter(current_user, extra if extra else None)
     
     entries = await db.visitor_entries.find(query, {"_id": 0}).sort("entry_at", -1).to_list(500)
     return entries
