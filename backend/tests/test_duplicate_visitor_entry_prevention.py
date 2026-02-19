@@ -335,8 +335,10 @@ class TestPhase2ManualEntryDuplicatePrevention:
             json={"visitor_name": unique_name}
         )
         assert checkin1.status_code in [200, 201], f"First check-in failed: {checkin1.text}"
-        entry_id = checkin1.json().get("id") or checkin1.json().get("entry_id")
-        print(f"✓ First manual check-in: {unique_name}")
+        checkin1_data = checkin1.json()
+        entry_id = checkin1_data.get("id") or checkin1_data.get("entry_id")
+        print(f"✓ First manual check-in: {unique_name}, entry_id: {entry_id}")
+        print(f"  Full response: {checkin1_data}")
         
         # Check-out
         checkout = requests.post(
