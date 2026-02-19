@@ -1,8 +1,48 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 19, 2026 (Duplicate Entry Prevention)
+## Last Updated: February 19, 2026 (Multi-Role Push Notifications)
 
 ## Changelog
+
+### 2026-02-19 (Session 75) - Push Notifications para Todos los Roles ✅
+
+- **Habilitado registro push para TODOS los roles** ✅
+  - Antes: Solo guardias podían registrarse a push notifications
+  - Ahora: Residentes, Admin, HR, Supervisor también pueden
+  
+  **Cambios realizados:**
+  
+  1. **PushPermissionBanner.jsx actualizado:**
+     - Usa `usePushNotifications` hook correctamente
+     - Envía suscripción al servidor via `api.subscribeToPush()`
+     - Muestra para TODOS los usuarios autenticados
+     - Console log: `[Push] Subscription created for role: ${roles}`
+  
+  2. **ResidentUI.js simplificado:**
+     - Eliminado código de suscripción automática antiguo
+     - El banner maneja todo el flujo de suscripción
+  
+  3. **Flujo de suscripción:**
+     ```
+     Banner aparece (3s después de login)
+     → Usuario hace clic "Activar"
+     → Navegador pide permiso
+     → Si permiso granted:
+       → GET /api/push/vapid-public-key
+       → PushManager.subscribe()
+       → POST /api/push/subscribe
+       → Banner de éxito "¡Notificaciones activadas!"
+     ```
+  
+  **NO modificado:**
+  - Backend (targeting sigue igual)
+  - Service Worker
+  - Lógica de audio
+
+- **Testing:** Verificado via code review (push API no funciona en navegador headless)
+- **Test Report:** `/app/test_reports/iteration_78.json`
+
+---
 
 ### 2026-02-19 (Session 75) - Prevención de Entradas Duplicadas ✅
 
