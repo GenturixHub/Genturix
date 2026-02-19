@@ -45,7 +45,7 @@ import {
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
 import api from '../services/api';
-import pushManager from '../utils/PushNotificationManager';
+// Push initialization is handled in AuthContext - no push logic needed here
 import ProfileDirectory from '../components/ProfileDirectory';
 import EmbeddedProfile from '../components/EmbeddedProfile';
 import ResidentVisitsModule from '../components/ResidentVisitsModule';
