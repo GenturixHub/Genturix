@@ -9934,6 +9934,9 @@ async def get_all_condominiums_billing(current_user = Depends(require_role("Supe
     """SuperAdmin: Get billing overview for all condominiums"""
     condos = await db.condominiums.find({"is_active": True}, {"_id": 0}).to_list(1000)
     
+    # Get global pricing for comparison
+    global_config = await get_global_pricing()
+    
     overview = []
     total_revenue = 0
     total_users = 0
@@ -9943,7 +9946,10 @@ async def get_all_condominiums_billing(current_user = Depends(require_role("Supe
         condo_id = condo.get("id")
         active_users = await count_active_users(condo_id)
         paid_seats = condo.get("paid_seats", 10)
-        monthly_revenue = paid_seats * GENTURIX_PRICE_PER_USER
+        
+        # PHASE 4: Use dynamic pricing per condo
+        price_per_seat = await get_effective_seat_price(condo_id)
+        monthly_revenue = round(paid_seats * price_per_seat, 2)
         
         overview.append({
             "condominium_id": condo_id,
@@ -9953,6 +9959,8 @@ async def get_all_condominiums_billing(current_user = Depends(require_role("Supe
             "remaining_seats": max(0, paid_seats - active_users),
             "billing_status": condo.get("billing_status", "active"),
             "monthly_revenue": monthly_revenue,
+            "price_per_seat": price_per_seat,
+            "uses_override": condo.get("seat_price_override") is not None and condo.get("seat_price_override") > 0,
             "stripe_customer_id": condo.get("stripe_customer_id"),
             "stripe_subscription_id": condo.get("stripe_subscription_id")
         })
