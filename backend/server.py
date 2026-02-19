@@ -2255,6 +2255,211 @@ async def send_push_to_admins(condominium_id: str, payload: dict) -> dict:
     logger.info(f"[PUSH-ADMINS] Sent: {result['sent']}, Failed: {result['failed']}")
     return result
 
+# ==================== DYNAMIC PUSH TARGETING SYSTEM ====================
+
+async def send_targeted_push_notification(
+    condominium_id: str,
+    title: str,
+    body: str,
+    target_roles: List[str] = None,
+    target_user_ids: List[str] = None,
+    exclude_user_ids: List[str] = None,
+    data: dict = None,
+    tag: str = None,
+    require_interaction: bool = False
+) -> dict:
+    """
+    Send push notifications with dynamic targeting.
+    
+    This is a unified function that supports multiple targeting strategies:
+    - By specific user IDs (e.g., notify reservation owner)
+    - By roles (e.g., notify all guards, all admins)
+    - Combined exclusions (e.g., all guards except sender)
+    
+    TARGETING RULES:
+    - If target_user_ids is provided: Send to those specific users only
+    - If target_roles is provided: Send to users with those roles in the condo
+    - If NEITHER is provided: Return without sending (fail-safe)
+    
+    SECURITY:
+    - All queries are scoped to condominium_id
+    - Only sends to is_active=True subscriptions
+    - Validates condominium exists before sending
+    
+    Args:
+        condominium_id: Target condominium (REQUIRED)
+        title: Notification title
+        body: Notification body text
+        target_roles: List of roles to target (e.g., ["Guarda", "Administrador"])
+        target_user_ids: List of specific user IDs to target
+        exclude_user_ids: List of user IDs to exclude from notifications
+        data: Additional data payload for the notification
+        tag: Notification tag for grouping/deduplication
+        require_interaction: Whether notification requires user action
+    
+    Returns:
+        dict with sent, failed, total, skipped counts and targeting info
+    """
+    result = {
+        "sent": 0,
+        "failed": 0,
+        "total": 0,
+        "skipped": 0,
+        "target_type": None,
+        "reason": None
+    }
+    
+    # VALIDATION 1: VAPID keys required
+    if not VAPID_PUBLIC_KEY or not VAPID_PRIVATE_KEY:
+        result["reason"] = "VAPID keys not configured"
+        logger.warning("[PUSH-TARGETED] VAPID keys not configured, skipping")
+        return result
+    
+    # VALIDATION 2: Condominium is required
+    if not condominium_id:
+        result["reason"] = "No condominium_id provided"
+        logger.warning("[PUSH-TARGETED] Missing condominium_id")
+        return result
+    
+    # VALIDATION 3: At least one targeting method must be provided
+    if not target_user_ids and not target_roles:
+        result["reason"] = "No targeting specified (target_roles or target_user_ids required)"
+        logger.warning("[PUSH-TARGETED] No targeting specified, aborting")
+        return result
+    
+    # VALIDATION 4: Verify condominium exists and is active
+    condo = await db.condominiums.find_one(
+        {"id": condominium_id}, 
+        {"_id": 0, "id": 1, "is_active": 1, "name": 1}
+    )
+    if not condo:
+        result["reason"] = "Condominium not found"
+        logger.warning(f"[PUSH-TARGETED] Condominium {condominium_id} not found")
+        return result
+    
+    if not condo.get("is_active", True):
+        result["reason"] = "Condominium is inactive"
+        logger.warning(f"[PUSH-TARGETED] Condominium {condominium_id} is inactive")
+        return result
+    
+    # BUILD SUBSCRIPTION QUERY
+    subscription_query = {
+        "condominium_id": condominium_id,
+        "is_active": True
+    }
+    
+    # TARGETING STRATEGY 1: Specific user IDs
+    if target_user_ids:
+        result["target_type"] = "user_ids"
+        
+        # Filter out excluded users if any
+        effective_user_ids = [uid for uid in target_user_ids if uid not in (exclude_user_ids or [])]
+        
+        if not effective_user_ids:
+            result["reason"] = "All target users were excluded"
+            return result
+        
+        subscription_query["user_id"] = {"$in": effective_user_ids}
+        
+        logger.info(
+            f"[PUSH-TARGETED] Targeting {len(effective_user_ids)} specific users "
+            f"in condo {condominium_id[:8]}..."
+        )
+    
+    # TARGETING STRATEGY 2: By roles
+    elif target_roles:
+        result["target_type"] = "roles"
+        
+        # First, get user IDs that match the role criteria
+        user_query = {
+            "condominium_id": condominium_id,
+            "roles": {"$in": target_roles},
+            "is_active": True,
+            "status": {"$in": ["active", None]}
+        }
+        
+        # Apply exclusions at user level
+        if exclude_user_ids:
+            user_query["id"] = {"$nin": exclude_user_ids}
+        
+        matching_users = await db.users.find(user_query, {"_id": 0, "id": 1}).to_list(None)
+        matching_user_ids = [u["id"] for u in matching_users]
+        
+        if not matching_user_ids:
+            result["reason"] = f"No active users with roles {target_roles} in this condominium"
+            logger.info(
+                f"[PUSH-TARGETED] No users found with roles {target_roles} "
+                f"in condo {condominium_id[:8]}..."
+            )
+            return result
+        
+        subscription_query["user_id"] = {"$in": matching_user_ids}
+        
+        logger.info(
+            f"[PUSH-TARGETED] Targeting roles {target_roles}: "
+            f"found {len(matching_user_ids)} users in condo {condominium_id[:8]}..."
+        )
+    
+    # FETCH SUBSCRIPTIONS
+    subscriptions = await db.push_subscriptions.find(subscription_query).to_list(None)
+    result["total"] = len(subscriptions)
+    
+    if not subscriptions:
+        result["reason"] = "No push subscriptions found for target"
+        logger.info(f"[PUSH-TARGETED] No subscriptions found for query")
+        return result
+    
+    # BUILD NOTIFICATION PAYLOAD
+    payload = {
+        "title": title,
+        "body": body,
+        "icon": "/logo192.png",
+        "badge": "/logo192.png",
+        "requireInteraction": require_interaction,
+        "data": data or {}
+    }
+    
+    if tag:
+        payload["tag"] = tag
+    
+    # SEND NOTIFICATIONS
+    for sub in subscriptions:
+        # Final validation: ensure subscription has required fields
+        endpoint = sub.get("endpoint")
+        if not endpoint:
+            result["skipped"] += 1
+            continue
+        
+        subscription_info = {
+            "endpoint": endpoint,
+            "keys": {
+                "p256dh": sub.get("p256dh"),
+                "auth": sub.get("auth")
+            }
+        }
+        
+        success = await send_push_notification(subscription_info, payload)
+        if success:
+            result["sent"] += 1
+        else:
+            result["failed"] += 1
+    
+    # STRUCTURED LOGGING
+    logger.info(
+        f"[PUSH-TARGETED] Complete | "
+        f"condo={condominium_id[:8]}... | "
+        f"target_type={result['target_type']} | "
+        f"target_roles={target_roles} | "
+        f"target_users={len(target_user_ids) if target_user_ids else 0} | "
+        f"sent={result['sent']} | "
+        f"failed={result['failed']} | "
+        f"total={result['total']}"
+    )
+    
+    return result
+
+# ==================== END DYNAMIC PUSH TARGETING ====================
+
 async def create_and_send_notification(
     user_id: str,
     condominium_id: str,
