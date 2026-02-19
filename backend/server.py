@@ -13002,8 +13002,15 @@ async def initialize_indexes():
         (db.push_subscriptions, "condominium_id", {"background": True}),
         # Audit logs
         (db.audit_logs, "user_id", {"background": True}),
+        (db.audit_logs, "created_at", {"background": True, "expireAfterSeconds": 60*60*24*90}),  # 90-day TTL
         # Reservations
         (db.reservations, "condominium_id", {"background": True}),
+        (db.reservations, "start_time", {"background": True}),
+        # Visitor authorizations (multi-tenant queries)
+        (db.visitor_authorizations, "condominium_id", {"background": True}),
+        (db.visitor_authorizations, "created_by", {"background": True}),
+        # Visitor entries (multi-tenant queries)
+        (db.visitor_entries, "condominium_id", {"background": True}),
     ]
     
     success_count = 0
