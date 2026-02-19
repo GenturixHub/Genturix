@@ -11,6 +11,7 @@ import secrets
 import string
 import json
 import hashlib
+import re
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr, field_validator
 from typing import List, Optional, Dict, Any
