@@ -5282,11 +5282,9 @@ async def mark_all_guard_notifications_read(
 @api_router.get("/security/logbook")
 async def get_guard_logbook(current_user = Depends(require_role_and_module("Administrador", "Supervisor", "Guarda", module="security"))):
     """Get logbook entries for guards - scoped by condominium"""
-    query = {}
-    if "SuperAdmin" not in current_user.get("roles", []):
-        condo_id = current_user.get("condominium_id")
-        if condo_id:
-            query["condominium_id"] = condo_id
+    # Use tenant_filter for multi-tenant scoping
+    query = tenant_filter(current_user)
+    
     logs = await db.access_logs.find(query, {"_id": 0}).sort("timestamp", -1).to_list(50)
     
     # Format as logbook entries
