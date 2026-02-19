@@ -2757,6 +2757,9 @@ async def get_billing_info(condominium_id: str) -> dict:
     # Demo condos have billing disabled regardless of other settings
     billing_enabled = not (environment == "demo" or is_demo)
     
+    # PHASE 4: Use dynamic pricing
+    price_per_seat = await get_effective_seat_price(condominium_id)
+    
     return {
         "condominium_id": condominium_id,
         "condominium_name": condo.get("name", ""),
@@ -2767,8 +2770,8 @@ async def get_billing_info(condominium_id: str) -> dict:
         "stripe_customer_id": condo.get("stripe_customer_id"),
         "stripe_subscription_id": condo.get("stripe_subscription_id"),
         "billing_period_end": condo.get("billing_period_end"),
-        "price_per_seat": GENTURIX_PRICE_PER_USER,
-        "monthly_cost": paid_seats * GENTURIX_PRICE_PER_USER,
+        "price_per_seat": price_per_seat,
+        "monthly_cost": round(paid_seats * price_per_seat, 2),
         "can_create_users": active_users < paid_seats and billing_status in ["active", "trialing"],
         # Environment info
         "environment": environment,
