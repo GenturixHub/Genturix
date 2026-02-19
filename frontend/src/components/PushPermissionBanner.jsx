@@ -8,7 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, X, Check, AlertTriangle } from 'lucide-react';
 import { Button } from './ui/button';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import usePushNotifications from '../hooks/usePushNotifications';
 
 const PushPermissionBanner = ({ onSubscribed }) => {
