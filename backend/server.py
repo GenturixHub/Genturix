@@ -9480,19 +9480,41 @@ async def get_condominium_pricing_info(condominium_id: str) -> dict:
 # Legacy constant for backward compatibility (will be replaced with dynamic pricing)
 GENTURIX_PRICE_PER_USER = 1.00  # DEPRECATED: Use get_effective_seat_price() instead
 
+async def calculate_subscription_price_dynamic(user_count: int, condominium_id: str) -> dict:
+    """
+    PHASE 4: Calculate price using dynamic pricing system.
+    Returns: {"total": float, "price_per_seat": float, "currency": str}
+    """
+    price_per_seat = await get_effective_seat_price(condominium_id)
+    total = round(user_count * price_per_seat, 2)
+    global_config = await get_global_pricing()
+    
+    return {
+        "total": total,
+        "price_per_seat": price_per_seat,
+        "currency": global_config["currency"]
+    }
+
 def calculate_subscription_price(user_count: int) -> float:
-    """Calculate price: $1 per user per month"""
+    """DEPRECATED: Use calculate_subscription_price_dynamic() instead"""
     return round(user_count * GENTURIX_PRICE_PER_USER, 2)
 
 @api_router.get("/payments/pricing")
 async def get_pricing_info(current_user = Depends(get_current_user)):
-    """Get GENTURIX pricing model: $1 per user per month"""
+    """
+    Get GENTURIX pricing model for current user's condominium.
+    PHASE 4: Uses dynamic pricing system.
+    """
+    condo_id = current_user.get("condominium_id")
+    pricing_info = await get_condominium_pricing_info(condo_id)
+    
     return {
         "model": "per_user",
-        "price_per_user": GENTURIX_PRICE_PER_USER,
-        "currency": "usd",
+        "price_per_user": pricing_info["effective_price"],
+        "currency": pricing_info["currency"].lower(),
         "billing_period": "monthly",
-        "description": "$1 por usuario al mes",
+        "uses_override": pricing_info["uses_override"],
+        "description": f"${pricing_info['effective_price']} por usuario al mes",
         "features": [
             "Acceso completo a GENTURIX",
             "Botón de pánico (3 tipos de emergencia)",
@@ -9510,26 +9532,36 @@ async def get_pricing_info(current_user = Depends(get_current_user)):
 
 @api_router.post("/payments/calculate")
 async def calculate_price(subscription: UserSubscriptionCreate, current_user = Depends(get_current_user)):
-    """Calculate subscription price based on user count"""
+    """
+    Calculate subscription price based on user count.
+    PHASE 4: Uses dynamic pricing system.
+    """
     if subscription.user_count < 1:
         raise HTTPException(status_code=400, detail="Minimum 1 user required")
     
-    total = calculate_subscription_price(subscription.user_count)
+    condo_id = current_user.get("condominium_id")
+    pricing = await calculate_subscription_price_dynamic(subscription.user_count, condo_id)
+    
     return {
         "user_count": subscription.user_count,
-        "price_per_user": GENTURIX_PRICE_PER_USER,
-        "total": total,
-        "currency": "usd",
+        "price_per_user": pricing["price_per_seat"],
+        "total": pricing["total"],
+        "currency": pricing["currency"].lower(),
         "billing_period": "monthly"
     }
 
 @api_router.post("/payments/checkout")
 async def create_checkout(request: Request, current_user = Depends(get_current_user), user_count: int = 1, origin_url: str = ""):
-    """Create checkout session for $1/user subscription"""
+    """
+    Create checkout session for subscription.
+    PHASE 4: Uses dynamic pricing system.
+    """
     if user_count < 1:
         raise HTTPException(status_code=400, detail="Minimum 1 user required")
     
-    total_amount = calculate_subscription_price(user_count)
+    condo_id = current_user.get("condominium_id")
+    pricing = await calculate_subscription_price_dynamic(user_count, condo_id)
+    total_amount = pricing["total"]
     
     stripe_api_key = os.environ.get('STRIPE_API_KEY')
     if not stripe_api_key:
@@ -9544,7 +9576,7 @@ async def create_checkout(request: Request, current_user = Depends(get_current_u
     
     checkout_request = CheckoutSessionRequest(
         amount=total_amount,
-        currency="usd",
+        currency=pricing["currency"].lower(),
         success_url=success_url,
         cancel_url=cancel_url,
         metadata={
