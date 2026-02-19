@@ -12645,6 +12645,122 @@ async def update_condo_pricing(
     
     return {"message": "Pricing updated successfully"}
 
+# ==================== GLOBAL PRICING ENDPOINTS ====================
+
+class GlobalPricingUpdate(BaseModel):
+    default_seat_price: float = Field(..., gt=0, description="Default price per seat (must be > 0)")
+    currency: str = Field(default="USD", description="Currency code")
+
+@api_router.get("/super-admin/pricing/global")
+async def get_global_pricing_config(
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
+):
+    """
+    Get global pricing configuration.
+    Only SuperAdmin can view global pricing.
+    """
+    config = await db.system_config.find_one({"id": "global_pricing"}, {"_id": 0})
+    
+    if not config:
+        # Initialize if missing
+        await ensure_global_pricing_config()
+        config = await db.system_config.find_one({"id": "global_pricing"}, {"_id": 0})
+    
+    return {
+        "default_seat_price": config.get("default_seat_price", FALLBACK_PRICE_PER_SEAT),
+        "currency": config.get("currency", DEFAULT_CURRENCY),
+        "updated_at": config.get("updated_at")
+    }
+
+@api_router.put("/super-admin/pricing/global")
+async def update_global_pricing(
+    pricing: GlobalPricingUpdate,
+    request: Request,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
+):
+    """
+    PHASE 3: Update global pricing configuration.
+    Only SuperAdmin can update global pricing.
+    
+    This affects ALL condominiums that don't have a seat_price_override.
+    """
+    # Validate price
+    if pricing.default_seat_price <= 0:
+        raise HTTPException(status_code=400, detail="Price must be greater than 0")
+    
+    # Validate currency
+    if pricing.currency.upper() not in ["USD", "EUR", "MXN"]:
+        raise HTTPException(status_code=400, detail="Currency must be USD, EUR, or MXN")
+    
+    update_data = {
+        "default_seat_price": round(pricing.default_seat_price, 2),
+        "currency": pricing.currency.upper(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Upsert global pricing config
+    await db.system_config.update_one(
+        {"id": "global_pricing"},
+        {"$set": update_data, "$setOnInsert": {"id": "global_pricing", "created_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    
+    # Log audit event
+    await log_audit_event(
+        AuditEventType.PRICING_GLOBAL_UPDATED,
+        current_user["id"],
+        "system_config",
+        {"old_price": "see_previous_logs", "new_price": update_data["default_seat_price"], "currency": update_data["currency"]},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    logger.info(f"[PRICING] Global pricing updated: ${update_data['default_seat_price']} {update_data['currency']} by {current_user['email']}")
+    
+    return {
+        "message": "Global pricing updated successfully",
+        "default_seat_price": update_data["default_seat_price"],
+        "currency": update_data["currency"]
+    }
+
+@api_router.get("/super-admin/pricing/condominiums")
+async def get_all_condominiums_pricing(
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
+):
+    """
+    PHASE 5: Get pricing info for all condominiums.
+    Shows effective price and whether each condo uses override or global.
+    """
+    global_config = await get_global_pricing()
+    
+    condos = await db.condominiums.find(
+        {},
+        {"_id": 0, "id": 1, "name": 1, "seat_price_override": 1, "seat_limit": 1}
+    ).to_list(None)
+    
+    result = []
+    for condo in condos:
+        override = condo.get("seat_price_override")
+        uses_override = override is not None and override > 0
+        effective_price = override if uses_override else global_config["default_seat_price"]
+        
+        result.append({
+            "id": condo["id"],
+            "name": condo.get("name", "Unknown"),
+            "effective_price": effective_price,
+            "uses_override": uses_override,
+            "override_price": override if uses_override else None,
+            "global_price": global_config["default_seat_price"],
+            "seat_limit": condo.get("seat_limit", 0),
+            "currency": global_config["currency"]
+        })
+    
+    return {
+        "global_pricing": global_config,
+        "condominiums": result,
+        "total": len(result)
+    }
+
 @api_router.patch("/super-admin/condominiums/{condo_id}/status")
 async def update_condo_status(
     condo_id: str,
