@@ -291,19 +291,6 @@ export const AuthProvider = ({ children }) => {
     return outputArray;
   };
 
-  // Helper: Format subscription for API
-  const formatSubscription = (subscription) => {
-    const key = subscription.getKey('p256dh');
-    const auth = subscription.getKey('auth');
-    return {
-      endpoint: subscription.endpoint,
-      keys: {
-        p256dh: key ? btoa(String.fromCharCode.apply(null, new Uint8Array(key))) : '',
-        auth: auth ? btoa(String.fromCharCode.apply(null, new Uint8Array(auth))) : ''
-      }
-    };
-  };
-
   const changePassword = async (currentPassword, newPassword) => {
     if (!accessToken) throw new Error('Not authenticated');
     
