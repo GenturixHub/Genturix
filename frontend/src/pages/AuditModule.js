@@ -86,6 +86,58 @@ const AuditModule = () => {
     fetchData();
   };
 
+  // Export audit logs to PDF
+  const handleExportPDF = async () => {
+    setIsExporting(true);
+    try {
+      const accessToken = localStorage.getItem('access_token');
+      if (!accessToken) {
+        toast.error('No se encontró token de autenticación');
+        return;
+      }
+
+      // Build query params from current filters
+      const params = new URLSearchParams();
+      if (filters.event_type) {
+        params.append('event_type', filters.event_type);
+      }
+
+      const url = `${API_URL}/api/audit/export${params.toString() ? '?' + params.toString() : ''}`;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Error al exportar');
+      }
+
+      // Get the blob from response
+      const blob = await response.blob();
+      
+      // Create download link
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `audit-report-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      toast.success('Reporte PDF descargado exitosamente');
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast.error('Error al exportar el reporte PDF');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const formatTimestamp = (timestamp) => {
     return new Date(timestamp).toLocaleString('es-ES', {
       day: '2-digit',
