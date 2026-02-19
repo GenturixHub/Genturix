@@ -2,34 +2,52 @@
  * GENTURIX Push Permission Request Component
  * Shows a friendly banner to request push notification permission
  * 
- * Note: For Guards, push is auto-registered on login via AuthContext.
- * This banner is for other roles (Residents) who want notifications.
+ * Works for ALL roles - Guards, Residents, Admins, etc.
+ * Uses usePushNotifications hook for proper subscription handling.
  */
 import React, { useState, useEffect } from 'react';
-import { Bell, X } from 'lucide-react';
+import { Bell, X, Check, AlertTriangle } from 'lucide-react';
 import { Button } from './ui/button';
-import { PushNotificationManager } from '../utils/PushNotificationManager';
+import { useAuth } from '../context/AuthContext';
+import usePushNotifications from '../hooks/usePushNotifications';
 
 const PushPermissionBanner = ({ onSubscribed }) => {
+  const { user } = useAuth();
+  const {
+    isSupported,
+    permission,
+    isSubscribed,
+    isLoading,
+    error,
+    subscribe
+  } = usePushNotifications();
+  
   const [show, setShow] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     const checkPermission = () => {
       // Don't show if not supported
-      if (!PushNotificationManager.isSupported()) {
+      if (!isSupported) {
+        console.log('[Push] Not supported in this browser');
         return;
       }
 
-      // Don't show if already granted or denied
-      const permission = PushNotificationManager.getPermissionStatus();
-      if (permission === 'granted' || permission === 'denied') {
+      // Don't show if already subscribed
+      if (isSubscribed) {
+        console.log('[Push] Already subscribed');
+        return;
+      }
+
+      // Don't show if permission denied
+      if (permission === 'denied') {
+        console.log('[Push] Permission denied by user');
         return;
       }
 
       // Don't show if user dismissed recently (1 hour cooldown)
-      const dismissedAt = localStorage.getItem('push_banner_dismissed');
+      const dismissedAt = localStorage.getItem('push_banner_dismissed_v2');
       if (dismissedAt) {
         const dismissedTime = new Date(dismissedAt).getTime();
         const hourAgo = Date.now() - (60 * 60 * 1000);
@@ -38,40 +56,66 @@ const PushPermissionBanner = ({ onSubscribed }) => {
         }
       }
 
-      // Show banner after a delay
+      // Show banner after a delay for ALL authenticated users
+      console.log(`[Push] Showing banner for role: ${user?.roles?.join(', ')}`);
       setTimeout(() => setShow(true), 3000);
     };
 
-    checkPermission();
-  }, []);
+    if (user) {
+      checkPermission();
+    }
+  }, [isSupported, isSubscribed, permission, user]);
 
   const handleEnable = async () => {
-    setIsLoading(true);
     try {
-      const permission = await PushNotificationManager.requestPermission();
+      const success = await subscribe();
       
-      if (permission === 'granted') {
-        // Push registration will happen on next login for Guards
-        // For other roles, they can subscribe manually
+      if (success) {
+        console.log(`[Push] Subscription created for role: ${user?.roles?.join(', ')}`);
+        setShowSuccess(true);
         onSubscribed?.();
-        setShow(false);
-      } else if (permission === 'denied') {
-        setShow(false);
+        setTimeout(() => setShow(false), 2000);
       }
-    } catch (error) {
-      console.error('Error enabling push:', error);
-    } finally {
-      setIsLoading(false);
+    } catch (err) {
+      console.error('[Push] Error enabling push:', err);
     }
   };
 
   const handleDismiss = () => {
-    localStorage.setItem('push_banner_dismissed', new Date().toISOString());
+    localStorage.setItem('push_banner_dismissed_v2', new Date().toISOString());
     setDismissed(true);
     setTimeout(() => setShow(false), 300);
   };
 
   if (!show) return null;
+
+  if (showSuccess) {
+    return (
+      <div 
+        className={`
+          fixed bottom-20 left-4 right-4 z-50 
+          sm:left-auto sm:right-4 sm:max-w-md
+          bg-gradient-to-r from-green-600 to-green-700
+          rounded-xl shadow-2xl border border-green-500/30
+          p-4 flex items-center gap-3
+          animate-in slide-in-from-bottom-4 duration-300
+        `}
+        data-testid="push-success-banner"
+      >
+        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+          <Check className="w-5 h-5 text-white" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-white font-semibold text-sm">
+            ¡Notificaciones activadas!
+          </p>
+          <p className="text-white/80 text-xs mt-0.5">
+            Recibirás alertas de visitas y reservaciones
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 
@@ -85,6 +129,7 @@ const PushPermissionBanner = ({ onSubscribed }) => {
         ${dismissed ? 'opacity-0 translate-y-4' : ''}
         transition-all
       `}
+      data-testid="push-permission-banner"
     >
       {/* Icon */}
       <div className="flex-shrink-0 w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
@@ -99,6 +144,12 @@ const PushPermissionBanner = ({ onSubscribed }) => {
         <p className="text-white/80 text-xs mt-0.5">
           Recibe alertas de visitas y reservaciones
         </p>
+        {error && (
+          <p className="text-red-200 text-xs mt-1 flex items-center gap-1">
+            <AlertTriangle className="w-3 h-3" />
+            {error}
+          </p>
+        )}
       </div>
       
       {/* Actions */}
@@ -109,6 +160,7 @@ const PushPermissionBanner = ({ onSubscribed }) => {
           className="bg-white/20 hover:bg-white/30 text-white border-0 text-xs px-3"
           onClick={handleEnable}
           disabled={isLoading}
+          data-testid="enable-push-btn"
         >
           {isLoading ? 'Activando...' : 'Activar'}
         </Button>
@@ -116,6 +168,7 @@ const PushPermissionBanner = ({ onSubscribed }) => {
           onClick={handleDismiss}
           className="p-1 rounded-full hover:bg-white/20 transition-colors"
           aria-label="Cerrar"
+          data-testid="dismiss-push-btn"
         >
           <X className="w-4 h-4 text-white/80" />
         </button>
