@@ -9915,8 +9915,8 @@ async def export_audit_logs_pdf(
                 ip_address
             ])
         
-        # Create table
-        col_widths = [90, 100, 120, 80, 80]
+        # Create table with adjusted column widths
+        col_widths = [85, 110, 130, 70, 80]
         table = Table(table_data, colWidths=col_widths)
         
         # Table style
