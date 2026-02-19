@@ -4678,7 +4678,6 @@ async def fast_checkin(
         
         # Check if same visitor name is already inside this condo (case-insensitive)
         # Use regex for case-insensitive match on visitor_name
-        import re
         existing_manual = await db.visitor_entries.find_one({
             "condominium_id": condo_id,
             "status": "inside",
