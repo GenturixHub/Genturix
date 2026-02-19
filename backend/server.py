@@ -4097,14 +4097,12 @@ async def get_authorization_stats(
     current_user = Depends(require_role("Administrador", "Supervisor"))
 ):
     """Get statistics about visitor authorizations and entries"""
-    condo_id = current_user.get("condominium_id")
+    # Use tenant_filter for multi-tenant scoping
+    query = tenant_filter(current_user)
     
-    query = {}
-    if "SuperAdmin" not in current_user.get("roles", []):
-        if condo_id:
-            query["condominium_id"] = condo_id
-        else:
-            return {}
+    if not query and "SuperAdmin" not in current_user.get("roles", []):
+        # No condominium assigned
+        return {}
     
     # Count active authorizations by type
     auth_pipeline = [
