@@ -4598,6 +4598,17 @@ async def get_authorizations_for_guard(
         auth["validity_status"] = validity["status"]
         auth["validity_message"] = validity["message"]
         auth["is_currently_valid"] = validity["is_valid"]
+        
+        # PHASE 3: Add is_visitor_inside flag for frontend
+        active_entry = await db.visitor_entries.find_one({
+            "authorization_id": auth.get("id"),
+            "status": "inside",
+            "exit_at": None
+        }, {"_id": 0, "id": 1, "entry_at": 1})
+        auth["is_visitor_inside"] = active_entry is not None
+        if active_entry:
+            auth["active_entry_id"] = active_entry.get("id")
+            auth["entry_at"] = active_entry.get("entry_at")
     
     # Filter by search if provided
     if search:
