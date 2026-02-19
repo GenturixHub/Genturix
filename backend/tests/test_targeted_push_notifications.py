@@ -353,7 +353,8 @@ class TestTargetedPushValidations:
         assert 'VAPID_PUBLIC_KEY' in content and 'VAPID_PRIVATE_KEY' in content, \
             "VAPID key validation not found"
         
-        assert '"reason": "VAPID keys not configured"' in content, \
+        # Check for the assignment format used in code
+        assert 'result["reason"] = "VAPID keys not configured"' in content, \
             "VAPID validation reason message not found"
         
         print("✓ VAPID key validation present")
@@ -365,8 +366,9 @@ class TestTargetedPushValidations:
         with open(server_path, 'r') as f:
             content = f.read()
         
-        assert '"reason": "No condominium_id provided"' in content or \
-               '"reason": "Condominium not found"' in content, \
+        # Check for the assignment format used in code
+        assert 'result["reason"] = "No condominium_id provided"' in content or \
+               'result["reason"] = "Condominium not found"' in content, \
             "Condominium validation not found"
         
         print("✓ Condominium validation present")
@@ -378,7 +380,8 @@ class TestTargetedPushValidations:
         with open(server_path, 'r') as f:
             content = f.read()
         
-        assert '"reason": "No targeting specified (target_roles or target_user_ids required)"' in content, \
+        # Check for the assignment format used in code
+        assert 'result["reason"] = "No targeting specified (target_roles or target_user_ids required)"' in content, \
             "Targeting requirement validation not found"
         
         print("✓ Targeting requirement validation present")
