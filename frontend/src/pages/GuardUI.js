@@ -50,7 +50,7 @@ import { Textarea } from '../components/ui/textarea';
 import { toast } from 'sonner';
 import api from '../services/api';
 import AlertSoundManager from '../utils/AlertSoundManager';
-import pushManager from '../utils/PushNotificationManager';
+// Push initialization is handled in AuthContext - no push logic needed here
 import PushNotificationBanner from '../components/PushNotificationBanner';
 import PushPermissionBanner from '../components/PushPermissionBanner';
 import VisitorCheckInGuard from '../components/VisitorCheckInGuard';
