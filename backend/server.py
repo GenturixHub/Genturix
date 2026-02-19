@@ -13480,10 +13480,6 @@ async def cleanup_used_authorizations(
 async def root():
     return {"message": "GENTURIX Enterprise Platform API", "version": "1.0.0"}
 
-@api_router.get("/health")
-async def health_check():
-    return {"status": "healthy", "timestamp": datetime.now(timezone.utc).isoformat()}
-
 @api_router.get("/config/dev-mode")
 async def get_dev_mode_status():
     """
