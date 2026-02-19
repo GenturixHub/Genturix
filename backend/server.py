@@ -32,6 +32,15 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
+# ==================== PHASE 1: ENVIRONMENT VALIDATION ====================
+# Environment Configuration - MUST be validated first
+ENVIRONMENT = os.environ.get('ENVIRONMENT', 'development').lower()
+
+if ENVIRONMENT not in ["development", "production"]:
+    raise RuntimeError("ENVIRONMENT must be 'development' or 'production'")
+
+FRONTEND_URL = os.environ.get('FRONTEND_URL', '')
+
 # Development Mode Configuration
 # When DEV_MODE=true:
 # - Disable mandatory password reset on first login
@@ -39,13 +48,18 @@ db = client[os.environ['DB_NAME']]
 # - Return generated password in API response for testing
 DEV_MODE = os.environ.get('DEV_MODE', 'false').lower() == 'true'
 
-# Environment Configuration for CORS
-ENVIRONMENT = os.environ.get('ENVIRONMENT', 'development').lower()
-FRONTEND_URL = os.environ.get('FRONTEND_URL', '')
+# SECURITY: DEV_MODE cannot be enabled in production
+if ENVIRONMENT == "production" and DEV_MODE:
+    raise RuntimeError("DEV_MODE cannot be enabled in production")
 
-# JWT Configuration
-JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'default-secret-change-in-production')
-JWT_REFRESH_SECRET_KEY = os.environ.get('JWT_REFRESH_SECRET_KEY', 'default-refresh-secret')
+# ==================== PHASE 2: JWT SECRETS HARDENING ====================
+# JWT Configuration - NO FALLBACK DEFAULTS (security requirement)
+JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY')
+JWT_REFRESH_SECRET_KEY = os.environ.get('JWT_REFRESH_SECRET_KEY')
+
+if not JWT_SECRET_KEY or not JWT_REFRESH_SECRET_KEY:
+    raise RuntimeError("JWT_SECRET_KEY and JWT_REFRESH_SECRET_KEY must be defined in environment variables")
+
 JWT_ALGORITHM = os.environ.get('JWT_ALGORITHM', 'HS256')
 # Phase 1: Reduced TTL from 30 to 15 minutes for better security
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get('ACCESS_TOKEN_EXPIRE_MINUTES', 15))
