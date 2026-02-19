@@ -375,9 +375,19 @@ const AuditModule = () => {
                 {filteredLogs.length} eventos encontrados
               </CardDescription>
             </div>
-            <Button variant="outline" className="border-[#1E293B]" data-testid="export-logs-btn">
-              <Download className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Exportar</span>
+            <Button 
+              variant="outline" 
+              className="border-[#1E293B]" 
+              data-testid="export-logs-btn"
+              onClick={handleExportPDF}
+              disabled={isExporting}
+            >
+              {isExporting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Download className="w-4 h-4 mr-2" />
+              )}
+              <span className="hidden sm:inline">{isExporting ? 'Exportando...' : 'Exportar PDF'}</span>
             </Button>
           </CardHeader>
           <CardContent>
