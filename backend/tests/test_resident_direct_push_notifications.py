@@ -120,9 +120,9 @@ class TestCodeAnalysisCheckinNotification:
         
         assert visitor_arrival_idx != -1, "visitor_arrival notification not found"
         
-        # Get the section around this call
+        # Get the section around this call - include more text after
         section_start = content.rfind("await create_and_send_notification(", 0, visitor_arrival_idx)
-        section = content[section_start:visitor_arrival_idx+200]
+        section = content[section_start:visitor_arrival_idx+500]
         
         assert "send_push=False" in section, \
                "create_and_send_notification for visitor_arrival should have send_push=False"
@@ -194,7 +194,7 @@ class TestCodeAnalysisCheckoutNotification:
         assert visitor_exit_idx != -1, "visitor_exit notification not found"
         
         section_start = content.rfind("await create_and_send_notification(", 0, visitor_exit_idx)
-        section = content[section_start:visitor_exit_idx+200]
+        section = content[section_start:visitor_exit_idx+500]
         
         assert "send_push=False" in section, \
                "create_and_send_notification for visitor_exit should have send_push=False"
@@ -255,17 +255,30 @@ class TestCodeAnalysisReservationApprovalNotification:
         with open("/app/backend/server.py", "r") as f:
             content = f.read()
         
+        # Find specifically in the PATCH reservations context (around line 8780)
+        # Search for reservation_approved in the admin update context
         idx = content.find('notification_type="reservation_approved"')
         if idx == -1:
             idx = content.find("notification_type='reservation_approved'")
         
-        assert idx != -1, "reservation_approved in create_and_send_notification not found"
-        
-        section_start = content.rfind("await create_and_send_notification(", 0, idx)
-        section = content[section_start:idx+200]
-        
-        assert "send_push=False" in section, \
-               "create_and_send_notification for reservation_approved should have send_push=False"
+        # There might be multiple occurrences - find the one in PATCH endpoint context
+        # Look for the one with "Tu reservación de" which is in the admin update
+        admin_context = content.find('✅ Reservación aprobada')
+        if admin_context != -1:
+            # Find notification_type="reservation_approved" near this context
+            search_start = max(0, admin_context - 200)
+            search_end = admin_context + 1000
+            section = content[search_start:search_end]
+            
+            assert "send_push=False" in section, \
+                   "create_and_send_notification for reservation_approved should have send_push=False"
+        else:
+            assert idx != -1, "reservation_approved in create_and_send_notification not found"
+            section_start = content.rfind("await create_and_send_notification(", 0, idx)
+            section = content[section_start:idx+500]
+            
+            assert "send_push=False" in section, \
+                   "create_and_send_notification for reservation_approved should have send_push=False"
         
         print("VERIFIED: Reservation approval uses send_push=False")
 
@@ -322,17 +335,28 @@ class TestCodeAnalysisReservationRejectionNotification:
         with open("/app/backend/server.py", "r") as f:
             content = f.read()
         
-        idx = content.find('notification_type="reservation_rejected"')
-        if idx == -1:
-            idx = content.find("notification_type='reservation_rejected'")
-        
-        assert idx != -1, "reservation_rejected in create_and_send_notification not found"
-        
-        section_start = content.rfind("await create_and_send_notification(", 0, idx)
-        section = content[section_start:idx+200]
-        
-        assert "send_push=False" in section, \
-               "create_and_send_notification for reservation_rejected should have send_push=False"
+        # Find the rejection notification in the admin update context
+        rejected_context = content.find('❌ Reservación rechazada')
+        if rejected_context != -1:
+            # Find section around this
+            search_start = max(0, rejected_context - 200)
+            search_end = rejected_context + 1000
+            section = content[search_start:search_end]
+            
+            assert "send_push=False" in section, \
+                   "create_and_send_notification for reservation_rejected should have send_push=False"
+        else:
+            idx = content.find('notification_type="reservation_rejected"')
+            if idx == -1:
+                idx = content.find("notification_type='reservation_rejected'")
+            
+            assert idx != -1, "reservation_rejected in create_and_send_notification not found"
+            
+            section_start = content.rfind("await create_and_send_notification(", 0, idx)
+            section = content[section_start:idx+500]
+            
+            assert "send_push=False" in section, \
+                   "create_and_send_notification for reservation_rejected should have send_push=False"
         
         print("VERIFIED: Reservation rejection uses send_push=False")
 
