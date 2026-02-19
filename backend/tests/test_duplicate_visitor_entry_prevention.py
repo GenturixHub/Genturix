@@ -562,7 +562,7 @@ class TestErrorHandling:
             entry_id = response.json().get("id") or response.json().get("entry_id")
             if entry_id:
                 # Cleanup
-                requests.post(f"{BASE_URL}/api/guard/checkout/{entry_id}", headers=self.guard_headers)
+                requests.post(f"{BASE_URL}/api/guard/checkout/{entry_id}", headers=self.guard_headers, json={})
             print("Note: Empty visitor name was accepted (may be allowed)")
         else:
             print(f"✓ Empty visitor name rejected with status {response.status_code}")
