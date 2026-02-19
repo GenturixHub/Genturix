@@ -237,7 +237,7 @@ class TestPushNotificationHardening:
         
         self.session.headers.update({"Authorization": f"Bearer {token}"})
         
-        response = self.session.delete(f"{BASE_URL}/api/push/unsubscribe/all")
+        response = self.session.delete(f"{BASE_URL}/api/push/unsubscribe-all")
         assert response.status_code == 200
         data = response.json()
         
