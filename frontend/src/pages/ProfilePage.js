@@ -619,6 +619,11 @@ const ProfilePage = () => {
         {/* Role-specific Information (only for own profile) */}
         {getRoleSpecificInfo()}
 
+        {/* Push Notifications Toggle (only for own profile) */}
+        {isOwnProfile && (
+          <PushNotificationToggle />
+        )}
+
         {/* Security Section - Change Password (only for own profile) */}
         {isOwnProfile && (
           <ChangePasswordForm 
