@@ -292,19 +292,41 @@ const AuthorizationSearchCard = ({ auth, onCheckIn, isProcessing, isRecentlyProc
           </p>
         </div>
       )}
+      
+      {/* Already Inside Badge */}
+      {isVisitorInside && (
+        <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30 mb-3">
+          <p className="text-sm text-blue-400 flex items-center gap-2 font-medium">
+            <CheckCircle className="w-4 h-4" />
+            Ya se encuentra dentro del condominio
+          </p>
+          {auth.entry_at && (
+            <p className="text-xs text-blue-400/70 mt-1 ml-6">
+              Ingresó: {new Date(auth.entry_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Check-in Button */}
       <Button 
         className={`w-full h-14 text-lg font-bold ${
-          isValid 
-            ? 'bg-green-600 hover:bg-green-700' 
-            : 'bg-yellow-600 hover:bg-yellow-700'
+          isVisitorInside
+            ? 'bg-blue-600 hover:bg-blue-600 cursor-not-allowed'
+            : isValid 
+              ? 'bg-green-600 hover:bg-green-700' 
+              : 'bg-yellow-600 hover:bg-yellow-700'
         } ${isDisabled ? 'cursor-not-allowed' : ''}`}
         onClick={() => !isDisabled && onCheckIn(auth)}
         disabled={isDisabled}
         data-testid={`checkin-btn-${auth.id}`}
       >
-        {isDisabled ? (
+        {isVisitorInside ? (
+          <>
+            <CheckCircle className="w-6 h-6 mr-2" />
+            YA DENTRO
+          </>
+        ) : isDisabled ? (
           <>
             <Loader2 className="w-6 h-6 mr-2 animate-spin" />
             {isRecentlyProcessed ? 'YA PROCESADO' : 'PROCESANDO...'}
