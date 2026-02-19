@@ -9762,10 +9762,14 @@ async def upgrade_seats(
     if not stripe_api_key:
         raise HTTPException(status_code=500, detail="Stripe no configurado")
     
-    # Calculate new total and amount to charge
+    # Calculate new total and amount to charge using dynamic pricing
     current_seats = condo.get("paid_seats", 10)
     new_total_seats = current_seats + upgrade.additional_seats
-    upgrade_cost = upgrade.additional_seats * GENTURIX_PRICE_PER_USER
+    
+    # PHASE 4: Use dynamic pricing
+    pricing = await calculate_subscription_price_dynamic(upgrade.additional_seats, condo_id)
+    upgrade_cost = pricing["total"]
+    currency = pricing["currency"].lower()
     
     host_url = origin_url.rstrip('/') if origin_url else str(request.base_url).rstrip('/')
     webhook_url = f"{host_url}/api/webhook/stripe-subscription"
@@ -9776,7 +9780,7 @@ async def upgrade_seats(
     
     checkout_request = CheckoutSessionRequest(
         amount=upgrade_cost,
-        currency="usd",
+        currency=currency,
         success_url=success_url,
         cancel_url=cancel_url,
         metadata={
@@ -9788,7 +9792,7 @@ async def upgrade_seats(
             "current_seats": str(current_seats),
             "additional_seats": str(upgrade.additional_seats),
             "new_total_seats": str(new_total_seats),
-            "price_per_seat": str(GENTURIX_PRICE_PER_USER)
+            "price_per_seat": str(pricing["price_per_seat"])
         }
     )
     
@@ -9806,7 +9810,7 @@ async def upgrade_seats(
         "additional_seats": upgrade.additional_seats,
         "new_total_seats": new_total_seats,
         "amount": upgrade_cost,
-        "currency": "usd",
+        "currency": currency,
         "payment_status": "pending",
         "created_at": datetime.now(timezone.utc).isoformat()
     }
