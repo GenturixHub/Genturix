@@ -8295,19 +8295,19 @@ async def create_reservation(
             url="/resident?tab=reservations"
         )
     else:
-        # Notify admins about pending reservation
-        await send_push_to_admins(condo_id, {
-            "title": "📅 Nueva reservación pendiente",
-            "body": f"{current_user.get('full_name', 'Residente')} solicitó {area['name']} para {reservation.date}",
-            "icon": "/logo192.png",
-            "badge": "/logo192.png",
-            "tag": f"reservation-pending-{reservation_id[:8]}",
-            "data": {
+        # Notify admins about pending reservation using dynamic targeting
+        await send_targeted_push_notification(
+            condominium_id=condo_id,
+            title="📅 Nueva reservación pendiente",
+            body=f"{current_user.get('full_name', 'Residente')} solicitó {area['name']} para {reservation.date}",
+            target_roles=["Administrador", "Supervisor"],
+            data={
                 "type": "reservation_pending",
                 "reservation_id": reservation_id,
                 "url": "/admin/reservations"
-            }
-        })
+            },
+            tag=f"reservation-pending-{reservation_id[:8]}"
+        )
     
     await log_audit_event(
         AuditEventType.ACCESS_GRANTED,
