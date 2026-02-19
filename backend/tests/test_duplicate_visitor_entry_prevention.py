@@ -159,7 +159,8 @@ class TestPhase1AuthorizationDuplicatePrevention:
         if entry_id:
             checkout_response = requests.post(
                 f"{BASE_URL}/api/guard/checkout/{entry_id}",
-                headers=self.guard_headers
+                headers=self.guard_headers,
+                json={"notes": "Test cleanup"}  # FastCheckOutRequest requires body
             )
             print(f"✓ Cleanup: Checkout status {checkout_response.status_code}")
     
@@ -285,7 +286,8 @@ class TestPhase2ManualEntryDuplicatePrevention:
         if entry_id:
             checkout_response = requests.post(
                 f"{BASE_URL}/api/guard/checkout/{entry_id}",
-                headers=self.guard_headers
+                headers=self.guard_headers,
+                json={"notes": "Test cleanup"}  # FastCheckOutRequest requires body
             )
             print(f"✓ Cleanup: Checkout status {checkout_response.status_code}")
     
@@ -316,9 +318,9 @@ class TestPhase2ManualEntryDuplicatePrevention:
         
         # Cleanup
         if entry_id1:
-            requests.post(f"{BASE_URL}/api/guard/checkout/{entry_id1}", headers=self.guard_headers)
+            requests.post(f"{BASE_URL}/api/guard/checkout/{entry_id1}", headers=self.guard_headers, json={})
         if entry_id2:
-            requests.post(f"{BASE_URL}/api/guard/checkout/{entry_id2}", headers=self.guard_headers)
+            requests.post(f"{BASE_URL}/api/guard/checkout/{entry_id2}", headers=self.guard_headers, json={})
         print("✓ Cleanup completed")
     
     def test_manual_entry_after_checkout_allowed(self):
@@ -338,7 +340,8 @@ class TestPhase2ManualEntryDuplicatePrevention:
         # Check-out
         checkout = requests.post(
             f"{BASE_URL}/api/guard/checkout/{entry_id}",
-            headers=self.guard_headers
+            headers=self.guard_headers,
+            json={}  # FastCheckOutRequest body
         )
         assert checkout.status_code in [200, 201], f"Checkout failed: {checkout.text}"
         print(f"✓ Checkout successful")
@@ -355,7 +358,7 @@ class TestPhase2ManualEntryDuplicatePrevention:
         
         # Cleanup
         if entry_id2:
-            requests.post(f"{BASE_URL}/api/guard/checkout/{entry_id2}", headers=self.guard_headers)
+            requests.post(f"{BASE_URL}/api/guard/checkout/{entry_id2}", headers=self.guard_headers, json={})
 
 
 class TestPhase3IsVisitorInsideFlag:
@@ -470,7 +473,8 @@ class TestPhase3IsVisitorInsideFlag:
         if entry_id:
             checkout_response = requests.post(
                 f"{BASE_URL}/api/guard/checkout/{entry_id}",
-                headers=self.guard_headers
+                headers=self.guard_headers,
+                json={"notes": "Test cleanup"}  # FastCheckOutRequest requires body
             )
             print(f"✓ Cleanup: Checkout status {checkout_response.status_code}")
             
