@@ -4675,24 +4675,25 @@ async def fast_checkin(
         # Normalize visitor name for comparison
         normalized_name = checkin_data.visitor_name.strip().lower()
         
-        # Check if same visitor name is already inside this condo
+        # Check if same visitor name is already inside this condo (case-insensitive)
+        # Use regex for case-insensitive match on visitor_name
+        import re
         existing_manual = await db.visitor_entries.find_one({
             "condominium_id": condo_id,
             "status": "inside",
             "exit_at": None,
-            "authorization_id": None  # Only manual entries
+            "authorization_id": None,  # Only manual entries
+            "visitor_name": {"$regex": f"^{re.escape(normalized_name)}$", "$options": "i"}
         })
         
         if existing_manual:
-            existing_name = (existing_manual.get("visitor_name") or "").strip().lower()
-            if existing_name == normalized_name:
-                logger.warning(
-                    f"[check-in] BLOCKED - Manual visitor '{checkin_data.visitor_name}' already inside condo {condo_id[:8]}"
-                )
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Ya existe un visitante con el nombre '{checkin_data.visitor_name}' dentro del condominio. Verifique si es la misma persona."
-                )
+            logger.warning(
+                f"[check-in] BLOCKED - Manual visitor '{checkin_data.visitor_name}' already inside condo {condo_id[:8]}"
+            )
+            raise HTTPException(
+                status_code=400,
+                detail=f"Ya existe un visitante con el nombre '{checkin_data.visitor_name}' dentro del condominio. Verifique si es la misma persona."
+            )
     # ==========================================================================================
     
     # If authorization provided, validate it
