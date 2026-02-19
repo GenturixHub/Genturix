@@ -912,49 +912,9 @@ const ResidentUI = () => {
     }
   };
 
-  // Auto-subscribe to push notifications
-  useEffect(() => {
-    const subscribeToPushNotifications = async () => {
-      try {
-        // Use PushNotificationManager for clean subscription
-        const { PushNotificationManager } = await import('../utils/PushNotificationManager');
-        
-        if (!PushNotificationManager.isSupported()) {
-          console.log('[Resident] Push notifications not supported');
-          return;
-        }
-        
-        // Request permission
-        const permission = await pushManager.requestPermission();
-        if (permission !== 'granted') {
-          console.log('[Resident] Push permission not granted:', permission);
-          return;
-        }
-        
-        // Get VAPID key from server
-        const vapidResponse = await api.getVapidPublicKey();
-        if (!vapidResponse?.publicKey) {
-          console.log('[Resident] No VAPID key from server');
-          return;
-        }
-        
-        // Subscribe to push
-        const subscriptionData = await pushManager.subscribe(vapidResponse.publicKey);
-        
-        // Send subscription to server
-        await api.subscribeToPush(subscriptionData);
-        console.log('[Resident] Successfully subscribed to push notifications');
-        
-      } catch (error) {
-        console.error('[Resident] Error subscribing to push:', error);
-      }
-    };
-    
-    // Delay to not interfere with initial load
-    const timer = setTimeout(subscribeToPushNotifications, 2000);
-    return () => clearTimeout(timer);
-  }, []);
-
+  // Push notifications are handled by PushPermissionBanner component
+  // which shows a banner for ALL roles to subscribe to push notifications
+  
   // GPS Location tracking
   useEffect(() => {
     if (!navigator.geolocation) {
