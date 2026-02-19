@@ -133,29 +133,34 @@ class TestLoginWithValidCredentials:
         assert response.status_code == 401, f"Expected 401, got {response.status_code}"
 
 
-class TestRateLimiting:
-    """Rate limiting tests - MAX 5 attempts per minute per email+IP"""
+class TestRateLimitingLocalhost:
+    """
+    Rate limiting tests - MAX 5 attempts per minute per email+IP
     
-    def test_rate_limiting_blocks_after_5_failed_attempts(self):
+    NOTE: Rate limiting is per email+IP combination. Through external proxy,
+    IPs may vary, so these tests use localhost:8001 for consistent IP.
+    """
+    
+    # Use localhost for rate limiting tests (consistent IP)
+    LOCAL_URL = "http://localhost:8001"
+    
+    def test_rate_limiting_blocks_after_5_failed_attempts_localhost(self):
         """
-        After 5 failed login attempts with same email, the 6th should return HTTP 429
-        
-        NOTE: Rate limiting is implemented per email+IP combination.
-        Due to proxy/ingress, IP may vary in production, but the email component
-        should still trigger rate limiting when same IP is used.
+        After 5 failed login attempts with same email+IP, the 6th should return HTTP 429
+        Testing against localhost:8001 where IP is consistent.
         """
         # Use a unique test email to avoid interference from other tests
         test_email = f"ratelimit_test_{int(time.time())}@genturix.com"
         wrong_password = "WrongPassword123!"
         
-        print(f"\n=== Rate Limiting Test ===")
+        print(f"\n=== Rate Limiting Test (localhost) ===")
         print(f"Testing email: {test_email}")
-        print(f"Making 6 failed login attempts...")
+        print(f"Making 6 failed login attempts against localhost:8001...")
         
         # Make 5 failed attempts
         for i in range(5):
             response = requests.post(
-                f"{BASE_URL}/api/auth/login",
+                f"{self.LOCAL_URL}/api/auth/login",
                 json={"email": test_email, "password": wrong_password}
             )
             print(f"Attempt {i+1}: Status {response.status_code}")
@@ -164,7 +169,7 @@ class TestRateLimiting:
         
         # 6th attempt should be rate limited (429)
         response = requests.post(
-            f"{BASE_URL}/api/auth/login",
+            f"{self.LOCAL_URL}/api/auth/login",
             json={"email": test_email, "password": wrong_password}
         )
         print(f"Attempt 6 (should be blocked): Status {response.status_code}")
@@ -178,21 +183,21 @@ class TestRateLimiting:
         error_msg = data.get("detail") or data.get("error", "")
         print(f"Rate limit error message: {error_msg}")
     
-    def test_rate_limiting_message_content(self):
-        """Verify rate limit error message is informative"""
+    def test_rate_limiting_message_content_localhost(self):
+        """Verify rate limit error message is informative (via localhost)"""
         test_email = f"ratelimit_msg_test_{int(time.time())}@genturix.com"
         wrong_password = "WrongPassword123!"
         
         # Exhaust rate limit
         for i in range(5):
             requests.post(
-                f"{BASE_URL}/api/auth/login",
+                f"{self.LOCAL_URL}/api/auth/login",
                 json={"email": test_email, "password": wrong_password}
             )
         
         # Get the rate limited response
         response = requests.post(
-            f"{BASE_URL}/api/auth/login",
+            f"{self.LOCAL_URL}/api/auth/login",
             json={"email": test_email, "password": wrong_password}
         )
         
@@ -202,6 +207,27 @@ class TestRateLimiting:
         error_text = str(data.get("detail", "")).lower()
         assert "too many" in error_text or "login attempts" in error_text, \
             f"Error message should mention rate limiting: {error_text}"
+    
+    def test_rate_limiting_7th_attempt_still_blocked(self):
+        """Verify rate limiting continues to block after 6th attempt"""
+        test_email = f"ratelimit_persist_{int(time.time())}@genturix.com"
+        wrong_password = "WrongPassword123!"
+        
+        # Exhaust rate limit (5 attempts)
+        for i in range(5):
+            requests.post(
+                f"{self.LOCAL_URL}/api/auth/login",
+                json={"email": test_email, "password": wrong_password}
+            )
+        
+        # 6th and 7th attempts should both be blocked
+        for i in range(6, 8):
+            response = requests.post(
+                f"{self.LOCAL_URL}/api/auth/login",
+                json={"email": test_email, "password": wrong_password}
+            )
+            print(f"Attempt {i}: Status {response.status_code}")
+            assert response.status_code == 429, f"Attempt {i}: Expected 429, got {response.status_code}"
 
 
 class TestJWTSecurityHeaders:
