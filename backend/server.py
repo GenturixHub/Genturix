@@ -4796,8 +4796,26 @@ async def fast_checkin(
                 "entry_at": now_iso,
                 "guard_name": current_user.get("full_name")
             },
-            send_push=True,
+            send_push=False,  # Disable old push, use targeted instead
             url="/resident?tab=history"
+        )
+        
+        # PHASE 1: Send targeted push notification to resident owner
+        await send_targeted_push_notification(
+            condominium_id=condo_id,
+            title="🚪 Tu visitante ha llegado",
+            body=f"{visitor_name} ha ingresado al condominio",
+            target_user_ids=[resident_id],
+            exclude_user_ids=[current_user["id"]],
+            data={
+                "type": "visitor_arrival",
+                "entry_id": entry_id,
+                "visitor_name": visitor_name,
+                "entry_at": now_iso,
+                "guard_name": current_user.get("full_name"),
+                "url": "/resident?tab=history"
+            },
+            tag=f"checkin-{entry_id[:8]}"
         )
         
         await log_audit_event(
