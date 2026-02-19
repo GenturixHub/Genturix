@@ -9378,7 +9378,104 @@ async def get_student_progress(student_id: str, current_user = Depends(get_curre
 class UserSubscriptionCreate(BaseModel):
     user_count: int = 1
 
-GENTURIX_PRICE_PER_USER = 1.00  # $1 USD per user per month
+# ==================== PRICING SYSTEM (SaaS) ====================
+# Default fallback price - used ONLY if database config is missing
+FALLBACK_PRICE_PER_SEAT = 1.50
+DEFAULT_CURRENCY = "USD"
+
+async def ensure_global_pricing_config():
+    """
+    Ensure global pricing configuration exists in database.
+    Called on startup to initialize default config if missing.
+    """
+    existing = await db.system_config.find_one({"id": "global_pricing"})
+    if not existing:
+        default_config = {
+            "id": "global_pricing",
+            "default_seat_price": FALLBACK_PRICE_PER_SEAT,
+            "currency": DEFAULT_CURRENCY,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.system_config.insert_one(default_config)
+        logger.info(f"[PRICING] Global pricing config initialized: ${FALLBACK_PRICE_PER_SEAT}/seat")
+
+async def get_global_pricing() -> dict:
+    """
+    Get global pricing configuration from database.
+    Returns: {"default_seat_price": float, "currency": str}
+    """
+    config = await db.system_config.find_one({"id": "global_pricing"}, {"_id": 0})
+    if config:
+        return {
+            "default_seat_price": config.get("default_seat_price", FALLBACK_PRICE_PER_SEAT),
+            "currency": config.get("currency", DEFAULT_CURRENCY)
+        }
+    # Fallback if config missing (should not happen after startup)
+    return {
+        "default_seat_price": FALLBACK_PRICE_PER_SEAT,
+        "currency": DEFAULT_CURRENCY
+    }
+
+async def get_effective_seat_price(condominium_id: str) -> float:
+    """
+    PHASE 2: Get effective seat price for a condominium.
+    
+    Logic:
+    1. Look up condominium's seat_price_override
+    2. If override exists and > 0 → return override
+    3. If not → return global default_seat_price
+    4. If nothing found → safe fallback = 1.50
+    
+    NEVER hardcode price in endpoints. Always use this function.
+    """
+    # Step 1: Check condominium for override
+    if condominium_id:
+        condo = await db.condominiums.find_one(
+            {"id": condominium_id},
+            {"_id": 0, "seat_price_override": 1}
+        )
+        if condo:
+            override = condo.get("seat_price_override")
+            if override is not None and override > 0:
+                logger.debug(f"[PRICING] Using override ${override}/seat for condo {condominium_id[:8]}...")
+                return float(override)
+    
+    # Step 2: Get global default
+    global_config = await get_global_pricing()
+    return global_config["default_seat_price"]
+
+async def get_condominium_pricing_info(condominium_id: str) -> dict:
+    """
+    Get complete pricing info for a condominium.
+    Returns: {"effective_price": float, "uses_override": bool, "override_price": float|None, "global_price": float, "currency": str}
+    """
+    global_config = await get_global_pricing()
+    
+    override_price = None
+    uses_override = False
+    
+    if condominium_id:
+        condo = await db.condominiums.find_one(
+            {"id": condominium_id},
+            {"_id": 0, "seat_price_override": 1}
+        )
+        if condo and condo.get("seat_price_override") is not None and condo.get("seat_price_override") > 0:
+            override_price = condo.get("seat_price_override")
+            uses_override = True
+    
+    effective_price = override_price if uses_override else global_config["default_seat_price"]
+    
+    return {
+        "effective_price": effective_price,
+        "uses_override": uses_override,
+        "override_price": override_price,
+        "global_price": global_config["default_seat_price"],
+        "currency": global_config["currency"]
+    }
+
+# Legacy constant for backward compatibility (will be replaced with dynamic pricing)
+GENTURIX_PRICE_PER_USER = 1.00  # DEPRECATED: Use get_effective_seat_price() instead
 
 def calculate_subscription_price(user_count: int) -> float:
     """Calculate price: $1 per user per month"""
