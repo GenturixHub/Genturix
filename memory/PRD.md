@@ -4,6 +4,46 @@
 
 ## Changelog
 
+### 2026-02-19 (Session 75) - Sistema Profesional de Pricing SaaS ✅
+
+- **FASE 1: Modelo de Datos** ✅
+  - Colección `system_config` con documento `global_pricing`:
+    ```json
+    {"id": "global_pricing", "default_seat_price": 1.50, "currency": "USD"}
+    ```
+  - Campo `seat_price_override` opcional en `condominiums`
+
+- **FASE 2: Función Centralizada** ✅
+  ```python
+  async def get_effective_seat_price(condominium_id: str) -> float:
+      # 1. Check condo seat_price_override
+      # 2. If override > 0 → return override
+      # 3. Else → return global default_seat_price
+      # 4. Safe fallback = $1.50
+  ```
+
+- **FASE 3: Endpoints SuperAdmin** ✅
+  - `GET /api/super-admin/pricing/global` - Ver precio global
+  - `PUT /api/super-admin/pricing/global` - Actualizar precio global
+  - `GET /api/super-admin/pricing/condominiums` - Ver pricing de todos los condos
+  - `PATCH /api/super-admin/condominiums/{id}/pricing` - Set/remove override
+
+- **FASE 4: Integración Stripe** ✅
+  - Todos los endpoints de pago usan `get_effective_seat_price()`
+  - `GET /api/payments/pricing` incluye `uses_override`
+  - `POST /api/payments/calculate` usa precio dinámico
+  - `POST /api/payments/checkout` usa precio dinámico
+  - Billing overview incluye `price_per_seat` por condo
+
+- **FASE 5: Frontend SuperAdmin** ⏳ (Pendiente UI)
+
+- **Audit Events:** `PRICING_GLOBAL_UPDATED`, `PRICING_OVERRIDE_UPDATED`
+
+- **Testing:** 100% backend (15/15 tests passed)
+- **Test Report:** `/app/test_reports/iteration_85.json`
+
+---
+
 ### 2026-02-19 (Session 75) - Sistema Profesional de Health & Readiness ✅
 
 - **FASE 1: Health Endpoint Básico** ✅
