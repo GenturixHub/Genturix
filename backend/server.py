@@ -3089,6 +3089,23 @@ async def subscribe_to_push(
     subscription = request.subscription
     primary_role = get_primary_role(user_roles)
     
+    # ==================== PHASE 2: CLEANUP SAFETY ====================
+    # Before insert/update, clean up invalid subscriptions for this user:
+    # 1. Remove inactive subscriptions
+    # 2. Remove entries with missing/empty endpoint
+    cleanup_result = await db.push_subscriptions.delete_many({
+        "user_id": user_id,
+        "$or": [
+            {"is_active": False},
+            {"endpoint": None},
+            {"endpoint": ""},
+            {"endpoint": {"$exists": False}}
+        ]
+    })
+    if cleanup_result.deleted_count > 0:
+        logger.info(f"[PUSH-CLEANUP] Removed {cleanup_result.deleted_count} invalid subscriptions for user {user_id}")
+    # ==================================================================
+    
     # Check if subscription already exists for this user + endpoint
     existing = await db.push_subscriptions.find_one({
         "user_id": user_id,
