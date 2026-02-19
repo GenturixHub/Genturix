@@ -1,8 +1,56 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 19, 2026 (Audit Export PDF)
+## Last Updated: February 19, 2026 (Push Notification Persistence)
 
 ## Changelog
+
+### 2026-02-19 (Session 75) - Persistencia Profesional de Push Notifications ✅
+
+- **FASE 1: Logout NO elimina suscripción** ✅
+  - Removido `DELETE /api/push/unsubscribe-all` de logout
+  - Removido `subscription.unsubscribe()` de logout
+  - Solo limpia: access_token, refresh_token, user state
+  - Push es dispositivo, NO sesión
+
+- **FASE 2: Sync Inteligente en Login** ✅
+  - Nueva función `syncPushSubscription()` llamada para TODOS los roles
+  - Si `Notification.permission === 'granted'` Y existe suscripción:
+    - Sincroniza silenciosamente con `POST /api/push/subscribe`
+    - NO pide permiso otra vez
+  - Si no existe suscripción → muestra banner para activación manual
+
+- **FASE 3: Activación Manual Única** ✅
+  - `PushPermissionBanner.jsx` solo se muestra si NO hay suscripción activa
+  - NO recrea suscripción si ya existe
+  - `localStorage.genturix_push_enabled = 'true'` al activar
+
+- **FASE 4: Toggle en Perfil** ✅
+  - Nuevo componente `PushNotificationToggle.jsx`
+  - Ubicación: ProfilePage después de información de rol
+  - Toggle permite activar/desactivar manualmente
+  - Al desactivar: `DELETE /api/push/unsubscribe-all` + `subscription.unsubscribe()`
+
+- **FASE 5: Backend NO modificado** ✅
+  - `notify_guards_of_panic()` intacta
+  - Targeting dinámico intacto
+  - Multi-tenant enforcement intacto
+
+**Archivos modificados:**
+- `/app/frontend/src/contexts/AuthContext.js` - logout(), syncPushSubscription()
+- `/app/frontend/src/components/PushNotificationToggle.jsx` - NUEVO
+- `/app/frontend/src/pages/ProfilePage.js` - Import y uso de toggle
+
+**Funciones removidas:**
+- En `logout()`: código de unsubscribe push (líneas 377-403 antiguas)
+
+**Funciones añadidas:**
+- `syncPushSubscription(token, userData)` - sync silencioso post-login
+- Componente `PushNotificationToggle` - toggle manual en perfil
+
+- **Testing:** 100% frontend (7/7 features)
+- **Test Report:** `/app/test_reports/iteration_81.json`
+
+---
 
 ### 2026-02-19 (Session 75) - Exportación de Auditoría a PDF ✅
 
