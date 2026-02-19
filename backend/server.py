@@ -2517,8 +2517,14 @@ async def register(user_data: UserCreate, request: Request):
 
 @api_router.post("/auth/login", response_model=TokenResponse)
 async def login(credentials: UserLogin, request: Request):
-    # CRITICAL: Normalize email to lowercase (industry standard)
+    # ==================== RATE LIMITING CHECK ====================
+    client_ip = request.client.host if request.client else "unknown"
     normalized_email = credentials.email.lower().strip()
+    rate_limit_identifier = f"{normalized_email}:{client_ip}"
+    
+    check_rate_limit(rate_limit_identifier)
+    
+    # ==================== AUTHENTICATION ====================
     user = await db.users.find_one({"email": normalized_email})
     
     if not user or not verify_password(credentials.password, user.get("hashed_password", "")):
