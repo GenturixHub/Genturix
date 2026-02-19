@@ -12600,10 +12600,17 @@ async def update_condo_pricing(
     discount_percent: Optional[int] = None,
     free_modules: Optional[List[str]] = None,
     plan: Optional[str] = None,
+    seat_price_override: Optional[float] = None,
     request: Request = None,
     current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
 ):
-    """Update pricing/plan for a condominium"""
+    """
+    Update pricing/plan for a condominium.
+    
+    PHASE 3: seat_price_override
+    - Set to a value > 0 to override global price for this condo
+    - Set to 0 or omit to use global default price
+    """
     update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
     
     if discount_percent is not None:
@@ -12613,6 +12620,14 @@ async def update_condo_pricing(
     if plan is not None:
         update_data["plan"] = plan
     
+    # PHASE 3: Handle seat price override
+    if seat_price_override is not None:
+        if seat_price_override <= 0:
+            # Remove override (use global default)
+            update_data["seat_price_override"] = None
+        else:
+            update_data["seat_price_override"] = round(seat_price_override, 2)
+    
     result = await db.condominiums.update_one({"id": condo_id}, {"$set": update_data})
     
     if result.modified_count == 0:
@@ -12620,7 +12635,7 @@ async def update_condo_pricing(
     
     if request:
         await log_audit_event(
-            AuditEventType.PLAN_UPDATED,
+            AuditEventType.PRICING_OVERRIDE_UPDATED if seat_price_override is not None else AuditEventType.PLAN_UPDATED,
             current_user["id"],
             "super_admin",
             {"condo_id": condo_id, "changes": update_data},
