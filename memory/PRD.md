@@ -1,8 +1,57 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 19, 2026 (Push Notification Persistence)
+## Last Updated: February 19, 2026 (Push Notification Production Hardening)
 
 ## Changelog
+
+### 2026-02-19 (Session 75) - Push Notification Production Hardening ✅
+
+- **PHASE 1: Índice Único Compuesto** ✅
+  ```python
+  # En initialize_indexes():
+  (db.push_subscriptions, [("user_id", 1), ("endpoint", 1)], {"unique": True, "background": True})
+  ```
+  - Previene suscripciones duplicadas a nivel de DB
+  - Log de startup: `[DB-INDEX] push_subscriptions.[('user_id', 1), ('endpoint', 1)]: user_id_1_endpoint_1`
+
+- **PHASE 2: Cleanup Safety** ✅
+  ```python
+  # En POST /api/push/subscribe, antes de insert:
+  await db.push_subscriptions.delete_many({
+      "user_id": user_id,
+      "$or": [
+          {"is_active": False},
+          {"endpoint": None},
+          {"endpoint": ""},
+          {"endpoint": {"$exists": False}}
+      ]
+  })
+  ```
+
+- **PHASE 3: Parallel Push Delivery** ✅
+  ```python
+  # En send_targeted_push_notification y notify_guards_of_panic:
+  push_tasks = [send_push_notification_with_cleanup(sub, payload) for sub in subs]
+  push_results = await asyncio.gather(*push_tasks, return_exceptions=True)
+  ```
+  - Nueva función `send_push_notification_with_cleanup()` retorna `{success, deleted, endpoint}`
+  - 404/410 responses siguen eliminando suscripciones inválidas
+
+- **PHASE 4: Structured Logging** ✅
+  ```
+  [PUSH-TARGETED] Complete | condo={id} | target_type={type} | 
+  total_found={n} | sent={n} | failed={n} | deleted_invalid={n}
+  
+  [PANIC-PUSH] Complete | condo={id} | guards_found={n} | 
+  sent={n} | failed={n} | excluded={n} | deleted_invalid={n}
+  ```
+
+- **NO modificado:** API responses, targeting logic, auth system, multi-tenant
+
+- **Testing:** 100% backend (13/13 tests passed)
+- **Test Report:** `/app/test_reports/iteration_83.json`
+
+---
 
 ### 2026-02-19 (Session 75) - Persistencia Profesional de Push Notifications ✅
 
