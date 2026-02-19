@@ -111,7 +111,7 @@ class TestPhase1AuthorizationDuplicatePrevention:
         unique_name = f"TEST_Visitor_Auth_{int(time.time())}"
         
         auth_response = requests.post(
-            f"{BASE_URL}/api/visitor-authorizations",
+            f"{BASE_URL}/api/authorizations",
             headers=self.resident_headers,
             json={
                 "visitor_name": unique_name,
@@ -178,7 +178,7 @@ class TestPhase1AuthorizationDuplicatePrevention:
         unique_name = f"TEST_Recurring_Visitor_{int(time.time())}"
         
         auth_response = requests.post(
-            f"{BASE_URL}/api/visitor-authorizations",
+            f"{BASE_URL}/api/authorizations",
             headers=self.resident_headers,
             json={
                 "visitor_name": unique_name,
@@ -412,7 +412,7 @@ class TestPhase3IsVisitorInsideFlag:
         
         # Create authorization
         auth_response = requests.post(
-            f"{BASE_URL}/api/visitor-authorizations",
+            f"{BASE_URL}/api/authorizations",
             headers=self.resident_headers,
             json={
                 "visitor_name": unique_name,
