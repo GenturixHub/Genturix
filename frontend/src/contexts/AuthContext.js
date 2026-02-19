@@ -209,33 +209,47 @@ export const AuthProvider = ({ children }) => {
   /**
    * Smart Push Sync - silently syncs existing subscription with backend
    * Called after successful login for ALL roles
-   * Does NOT prompt for permission - only syncs if already granted
+   * 
+   * IMPORTANT: This function NEVER calls:
+   * - Notification.requestPermission() 
+   * - pushManager.subscribe()
+   * 
+   * It ONLY syncs an EXISTING subscription if permission is already granted.
+   * Manual activation happens ONLY in PushNotificationToggle component.
    */
   const syncPushSubscription = async (token, userData) => {
     try {
       // Check if push is supported
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        console.log('[Push-Sync] Not supported in this browser');
+        console.log('[Push] Not supported in this browser');
         return;
       }
 
-      // Only sync if permission already granted
+      // Log current permission state
+      console.log('[Push] Permission:', Notification.permission);
+
+      // Only sync if permission already granted - NEVER request permission here
       if (Notification.permission !== 'granted') {
-        console.log('[Push-Sync] Permission not granted - will show banner for manual activation');
+        console.log('[Push] Permission not granted - user can activate manually from profile');
         return;
       }
 
-      // Get existing subscription
+      // Await service worker
       const registration = await navigator.serviceWorker.ready;
+      
+      // Get existing subscription - DO NOT create new one
       const existingSubscription = await registration.pushManager.getSubscription();
+      
+      // Log subscription state
+      console.log('[Push] Existing subscription:', !!existingSubscription);
 
       if (!existingSubscription) {
-        console.log('[Push-Sync] No existing subscription - user can activate manually');
+        console.log('[Push] No existing subscription - user can activate manually from profile');
         return;
       }
 
-      // Silently sync with backend
-      console.log(`[Push-Sync] Syncing existing subscription for role: ${userData?.roles?.join(', ')}`);
+      // Silently sync existing subscription with backend
+      console.log(`[Push] Syncing existing subscription for role: ${userData?.roles?.join(', ')}`);
       
       const subscriptionJson = existingSubscription.toJSON();
       const response = await fetch(`${API_URL}/api/push/subscribe`, {
@@ -255,95 +269,17 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (response.ok) {
-        console.log(`[Push-Sync] Subscription synced successfully for: ${userData?.roles?.join(', ')}`);
+        console.log(`[Push] Subscription synced successfully for: ${userData?.roles?.join(', ')}`);
         localStorage.setItem('genturix_push_enabled', 'true');
       } else {
-        console.warn('[Push-Sync] Failed to sync subscription:', response.status);
+        console.warn('[Push] Failed to sync subscription:', response.status);
       }
     } catch (error) {
-      console.error('[Push-Sync] Error syncing subscription:', error);
+      console.error('[Push] Error syncing subscription:', error);
     }
   };
 
-  /**
-   * Register push subscription for Guards only (legacy - kept for backward compatibility)
-   * Called after successful login if user is a Guard
-   */
-  const registerPushForGuard = async (token) => {
-    try {
-      // Check if push is supported
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        console.log('[Push] Not supported in this browser');
-        return;
-      }
-
-      // Check if permission already granted - don't prompt repeatedly
-      if (Notification.permission === 'denied') {
-        console.log('[Push] Permission denied - not prompting');
-        return;
-      }
-
-      // Only request permission if not already granted
-      if (Notification.permission !== 'granted') {
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') {
-          console.log('[Push] Permission not granted');
-          return;
-        }
-      }
-
-      // Get VAPID key from backend
-      const configResponse = await fetch(`${API_URL}/api/config/vapid`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (!configResponse.ok) {
-        console.warn('[Push] Could not get VAPID key');
-        return;
-      }
-      
-      const { vapid_public_key } = await configResponse.json();
-      if (!vapid_public_key) {
-        console.warn('[Push] No VAPID key configured');
-        return;
-      }
-
-      // Get service worker registration
-      const registration = await navigator.serviceWorker.ready;
-      
-      // Check for existing subscription
-      let subscription = await registration.pushManager.getSubscription();
-      
-      if (!subscription) {
-        // Create new subscription
-        const applicationServerKey = urlBase64ToUint8Array(vapid_public_key);
-        subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey
-        });
-        console.log('[Push] New subscription created');
-      } else {
-        console.log('[Push] Existing subscription found');
-      }
-
-      // Send subscription to backend
-      const subData = formatSubscription(subscription);
-      await fetch(`${API_URL}/api/push/subscribe`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ subscription: subData })
-      });
-      
-      console.log('[Push] Subscription registered with backend');
-    } catch (error) {
-      console.warn('[Push] Registration failed:', error);
-    }
-  };
-
-  // Helper: Convert VAPID key
+  // Helper: Convert VAPID key (used by PushNotificationToggle)
   const urlBase64ToUint8Array = (base64String) => {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
     const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
