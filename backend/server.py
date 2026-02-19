@@ -9862,11 +9862,22 @@ async def export_audit_logs_pdf(
     elements.append(Spacer(1, 12))
     
     if logs:
+        # Pre-fetch user names for all user_ids in logs
+        user_ids = list(set(log.get("user_id") for log in logs if log.get("user_id")))
+        users_map = {}
+        if user_ids:
+            users = await db.users.find(
+                {"id": {"$in": user_ids}}, 
+                {"_id": 0, "id": 1, "full_name": 1, "email": 1}
+            ).to_list(None)
+            users_map = {u["id"]: u.get("full_name") or u.get("email", "Usuario") for u in users}
+        
         # Table header
-        table_data = [["Fecha", "Usuario", "Evento", "Recurso", "IP"]]
+        table_data = [["Fecha", "Usuario", "Evento", "Módulo", "IP"]]
         
         # Table rows
         for log in logs:
+            # Format timestamp
             timestamp = log.get("timestamp", "")
             if timestamp:
                 try:
@@ -9875,18 +9886,23 @@ async def export_audit_logs_pdf(
                 except:
                     timestamp = str(timestamp)[:16]
             
-            user_name = log.get("user_name", log.get("user_id", "Sistema"))
-            if len(str(user_name)) > 20:
-                user_name = str(user_name)[:17] + "..."
+            # Get user name from pre-fetched map or fallback
+            user_id = log.get("user_id", "")
+            user_name = users_map.get(user_id, log.get("user_name", "Sistema"))
+            if len(str(user_name)) > 25:
+                user_name = str(user_name)[:22] + "..."
             
+            # Event type
             event_type_val = log.get("event_type", "N/A")
-            if len(str(event_type_val)) > 20:
-                event_type_val = str(event_type_val)[:17] + "..."
+            if len(str(event_type_val)) > 25:
+                event_type_val = str(event_type_val)[:22] + "..."
             
-            resource = log.get("resource_type", log.get("module", "N/A"))
-            if len(str(resource)) > 15:
-                resource = str(resource)[:12] + "..."
+            # Module/Resource
+            module = log.get("module", log.get("resource_type", "N/A"))
+            if len(str(module)) > 15:
+                module = str(module)[:12] + "..."
             
+            # IP Address
             ip_address = log.get("ip_address", "N/A")
             if len(str(ip_address)) > 15:
                 ip_address = str(ip_address)[:12] + "..."
@@ -9895,7 +9911,7 @@ async def export_audit_logs_pdf(
                 timestamp,
                 user_name,
                 event_type_val,
-                resource,
+                module,
                 ip_address
             ])
         
