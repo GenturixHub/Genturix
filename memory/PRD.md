@@ -6,49 +6,46 @@
 
 ### 2026-02-19 (Session 75) - Persistencia Profesional de Push Notifications ✅
 
-- **FASE 1: Logout NO elimina suscripción** ✅
-  - Removido `DELETE /api/push/unsubscribe-all` de logout
-  - Removido `subscription.unsubscribe()` de logout
-  - Solo limpia: access_token, refresh_token, user state
-  - Push es dispositivo, NO sesión
+- **Refactor completo del ciclo de vida de Push Notifications** ✅
 
-- **FASE 2: Sync Inteligente en Login** ✅
-  - Nueva función `syncPushSubscription()` llamada para TODOS los roles
-  - Si `Notification.permission === 'granted'` Y existe suscripción:
-    - Sincroniza silenciosamente con `POST /api/push/subscribe`
-    - NO pide permiso otra vez
-  - Si no existe suscripción → muestra banner para activación manual
+  **REGLAS IMPLEMENTADAS:**
+  1. NUNCA llamar `Notification.requestPermission()` automáticamente
+  2. Solo pedir permiso cuando usuario activa push manualmente desde perfil
+  3. En login: solo sincronizar suscripción existente si `permission=granted`
+  4. Logout NO toca push (no unsubscribe, no remove service worker)
 
-- **FASE 3: Activación Manual Única** ✅
-  - `PushPermissionBanner.jsx` solo se muestra si NO hay suscripción activa
-  - NO recrea suscripción si ya existe
-  - `localStorage.genturix_push_enabled = 'true'` al activar
+  **Función `syncPushSubscription()` (AuthContext):**
+  ```javascript
+  // SOLO sincroniza, NUNCA:
+  // - Llama Notification.requestPermission()
+  // - Llama pushManager.subscribe()
+  
+  if (Notification.permission !== 'granted') return;
+  const existingSub = await pushManager.getSubscription();
+  if (!existingSub) return;
+  // Sync con backend...
+  ```
 
-- **FASE 4: Toggle en Perfil** ✅
-  - Nuevo componente `PushNotificationToggle.jsx`
-  - Ubicación: ProfilePage después de información de rol
-  - Toggle permite activar/desactivar manualmente
-  - Al desactivar: `DELETE /api/push/unsubscribe-all` + `subscription.unsubscribe()`
+  **Console debug logs agregados:**
+  ```javascript
+  console.log('[Push] Permission:', Notification.permission);
+  console.log('[Push] Existing subscription:', !!existingSub);
+  ```
 
-- **FASE 5: Backend NO modificado** ✅
-  - `notify_guards_of_panic()` intacta
-  - Targeting dinámico intacto
-  - Multi-tenant enforcement intacto
+  **Código eliminado:**
+  - `registerPushForGuard()` - llamaba requestPermission()
+  - `formatSubscription()` - ya no necesaria
+  - Import de `pushManager` en GuardUI y ResidentUI
 
-**Archivos modificados:**
-- `/app/frontend/src/contexts/AuthContext.js` - logout(), syncPushSubscription()
-- `/app/frontend/src/components/PushNotificationToggle.jsx` - NUEVO
-- `/app/frontend/src/pages/ProfilePage.js` - Import y uso de toggle
+  **Push activation manual:** Solo en `PushNotificationToggle.jsx` (perfil)
 
-**Funciones removidas:**
-- En `logout()`: código de unsubscribe push (líneas 377-403 antiguas)
+- **NO modificado:**
+  - Backend
+  - Sistema de targeting
+  - Sistema de alertas de pánico
 
-**Funciones añadidas:**
-- `syncPushSubscription(token, userData)` - sync silencioso post-login
-- Componente `PushNotificationToggle` - toggle manual en perfil
-
-- **Testing:** 100% frontend (7/7 features)
-- **Test Report:** `/app/test_reports/iteration_81.json`
+- **Testing:** 100% frontend (8/8 requirements)
+- **Test Report:** `/app/test_reports/iteration_82.json`
 
 ---
 
