@@ -2468,9 +2468,10 @@ async def send_targeted_push_notification(
     if tag:
         payload["tag"] = tag
     
-    # SEND NOTIFICATIONS
+    # ==================== PHASE 3: PARALLEL PUSH DELIVERY ====================
+    # Build subscription info list, filtering invalid entries
+    push_tasks = []
     for sub in subscriptions:
-        # Final validation: ensure subscription has required fields
         endpoint = sub.get("endpoint")
         if not endpoint:
             result["skipped"] += 1
@@ -2483,23 +2484,39 @@ async def send_targeted_push_notification(
                 "auth": sub.get("auth")
             }
         }
-        
-        success = await send_push_notification(subscription_info, payload)
-        if success:
-            result["sent"] += 1
-        else:
-            result["failed"] += 1
+        push_tasks.append(send_push_notification_with_cleanup(subscription_info, payload))
     
-    # STRUCTURED LOGGING
+    # Execute all push notifications in parallel
+    if push_tasks:
+        push_results = await asyncio.gather(*push_tasks, return_exceptions=True)
+        
+        # Process results
+        deleted_count = 0
+        for res in push_results:
+            if isinstance(res, Exception):
+                result["failed"] += 1
+            elif isinstance(res, dict):
+                if res.get("success"):
+                    result["sent"] += 1
+                else:
+                    result["failed"] += 1
+                if res.get("deleted"):
+                    deleted_count += 1
+        
+        result["deleted_invalid"] = deleted_count
+    # ======================================================================
+    
+    # PHASE 4: STRUCTURED LOGGING
     logger.info(
         f"[PUSH-TARGETED] Complete | "
         f"condo={condominium_id[:8]}... | "
         f"target_type={result['target_type']} | "
         f"target_roles={target_roles} | "
         f"target_users={len(target_user_ids) if target_user_ids else 0} | "
+        f"total_found={result['total']} | "
         f"sent={result['sent']} | "
         f"failed={result['failed']} | "
-        f"total={result['total']}"
+        f"deleted_invalid={result.get('deleted_invalid', 0)}"
     )
     
     return result
