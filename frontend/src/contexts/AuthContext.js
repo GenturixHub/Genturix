@@ -198,22 +198,75 @@ export const AuthProvider = ({ children }) => {
       console.warn('[Auth] Could not load language preference:', langError);
     }
 
-    // === PUSH NOTIFICATIONS: Only for Guards ===
-    const userRoles = data.user?.roles || [];
-    const isGuard = userRoles.includes('Guarda') || userRoles.includes('Guardia');
-    
-    if (isGuard) {
-      console.log('[Auth] User is Guard - registering push subscription');
-      registerPushForGuard(data.access_token);
-    } else {
-      console.log('[Auth] User is not Guard - skipping push registration');
-    }
+    // === PUSH NOTIFICATIONS: Smart Sync for ALL roles ===
+    // If permission already granted and subscription exists, silently sync with backend
+    // This ensures push works after logout/login without re-prompting
+    syncPushSubscription(data.access_token, data.user);
 
     return { user: data.user, passwordResetRequired: data.password_reset_required };
   };
 
   /**
-   * Register push subscription for Guards only
+   * Smart Push Sync - silently syncs existing subscription with backend
+   * Called after successful login for ALL roles
+   * Does NOT prompt for permission - only syncs if already granted
+   */
+  const syncPushSubscription = async (token, userData) => {
+    try {
+      // Check if push is supported
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        console.log('[Push-Sync] Not supported in this browser');
+        return;
+      }
+
+      // Only sync if permission already granted
+      if (Notification.permission !== 'granted') {
+        console.log('[Push-Sync] Permission not granted - will show banner for manual activation');
+        return;
+      }
+
+      // Get existing subscription
+      const registration = await navigator.serviceWorker.ready;
+      const existingSubscription = await registration.pushManager.getSubscription();
+
+      if (!existingSubscription) {
+        console.log('[Push-Sync] No existing subscription - user can activate manually');
+        return;
+      }
+
+      // Silently sync with backend
+      console.log(`[Push-Sync] Syncing existing subscription for role: ${userData?.roles?.join(', ')}`);
+      
+      const subscriptionJson = existingSubscription.toJSON();
+      const response = await fetch(`${API_URL}/api/push/subscribe`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          endpoint: subscriptionJson.endpoint,
+          keys: {
+            p256dh: subscriptionJson.keys.p256dh,
+            auth: subscriptionJson.keys.auth,
+          },
+          expirationTime: subscriptionJson.expirationTime,
+        }),
+      });
+
+      if (response.ok) {
+        console.log(`[Push-Sync] Subscription synced successfully for: ${userData?.roles?.join(', ')}`);
+        localStorage.setItem('genturix_push_enabled', 'true');
+      } else {
+        console.warn('[Push-Sync] Failed to sync subscription:', response.status);
+      }
+    } catch (error) {
+      console.error('[Push-Sync] Error syncing subscription:', error);
+    }
+  };
+
+  /**
+   * Register push subscription for Guards only (legacy - kept for backward compatibility)
    * Called after successful login if user is a Guard
    */
   const registerPushForGuard = async (token) => {
