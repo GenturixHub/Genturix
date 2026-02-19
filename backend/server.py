@@ -1974,6 +1974,44 @@ async def send_push_notification(subscription_info: dict, payload: dict) -> bool
         logger.error(f"Unexpected push error: {e}")
         return False
 
+async def send_push_notification_with_cleanup(subscription_info: dict, payload: dict) -> dict:
+    """
+    Send a push notification and return detailed result for parallel processing.
+    Returns: {"success": bool, "deleted": bool, "endpoint": str}
+    """
+    endpoint = subscription_info.get("endpoint", "")
+    result = {"success": False, "deleted": False, "endpoint": endpoint}
+    
+    if not VAPID_PUBLIC_KEY or not VAPID_PRIVATE_KEY:
+        return result
+    
+    if not endpoint:
+        return result
+    
+    try:
+        webpush(
+            subscription_info=subscription_info,
+            data=json.dumps(payload),
+            vapid_private_key=VAPID_PRIVATE_KEY,
+            vapid_claims={"sub": f"mailto:{VAPID_CLAIMS_EMAIL}"}
+        )
+        result["success"] = True
+        return result
+    except WebPushException as e:
+        status_code = e.response.status_code if e.response else None
+        
+        # Handle 410 Gone and 404 Not Found - subscription is invalid/expired
+        if status_code in [404, 410]:
+            delete_result = await db.push_subscriptions.delete_one({"endpoint": endpoint})
+            if delete_result.deleted_count > 0:
+                result["deleted"] = True
+                logger.debug(f"[PUSH-CLEANUP] Removed stale subscription: {endpoint[:40]}...")
+        
+        return result
+    except Exception as e:
+        logger.error(f"Unexpected push error: {e}")
+        return result
+
 async def notify_guards_of_panic(condominium_id: str, panic_data: dict, sender_id: str = None):
     """
     Send push notifications to guards about a panic alert.
