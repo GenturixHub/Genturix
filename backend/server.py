@@ -4952,8 +4952,27 @@ async def fast_checkout(
                 "duration_minutes": duration_minutes,
                 "guard_name": current_user.get("full_name")
             },
-            send_push=True,  # Optional - can be configured per user
+            send_push=False,  # Disable old push, use targeted instead
             url="/resident?tab=history"
+        )
+        
+        # PHASE 2: Send targeted push notification to resident owner
+        await send_targeted_push_notification(
+            condominium_id=condo_id,
+            title="👋 Tu visitante ha salido",
+            body=f"{entry.get('visitor_name')} ha salido del condominio{duration_text}",
+            target_user_ids=[resident_id],
+            exclude_user_ids=[current_user["id"]],
+            data={
+                "type": "visitor_exit",
+                "entry_id": entry_id,
+                "visitor_name": entry.get("visitor_name"),
+                "exit_at": now_iso,
+                "duration_minutes": duration_minutes,
+                "guard_name": current_user.get("full_name"),
+                "url": "/resident?tab=history"
+            },
+            tag=f"checkout-{entry_id[:8]}"
         )
         
         await log_audit_event(
