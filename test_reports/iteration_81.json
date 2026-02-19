@@ -1,0 +1,67 @@
+{
+  "summary": "Frontend testing of Push Notification Persistence implementation. All 7 features verified successfully via Playwright UI testing and code review.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "features_verified": {
+    "logout_no_unsubscribe_api": {
+      "status": "PASS",
+      "evidence": "Network request monitoring during logout showed NO calls to DELETE /api/push/unsubscribe-all",
+      "console_log": "[Auth] Logout complete - push subscription preserved"
+    },
+    "logout_no_subscription_unsubscribe": {
+      "status": "PASS",
+      "evidence": "Code review confirms logout() (lines 425-460) only clears auth state, does not call subscription.unsubscribe()",
+      "console_log": "No push unsubscribe logs during logout"
+    },
+    "login_sync_push_for_all_roles": {
+      "status": "PASS",
+      "roles_tested": ["Residente", "Guarda", "Administrador"],
+      "evidence": "All 3 roles show '[Push-Sync] Permission not granted - will show banner for manual activation' in console logs",
+      "code_line": "Line 204: syncPushSubscription(data.access_token, data.user) called unconditionally after login"
+    },
+    "push_notification_toggle_in_profile": {
+      "status": "PASS",
+      "evidence": "PushNotificationToggle card found at /profile page with data-testid='push-toggle-card'",
+      "display": "Shows 'Notificaciones Push' with status 'Bloqueadas por el navegador' when browser denies permission"
+    },
+    "manual_toggle_functionality": {
+      "status": "PASS (code review)",
+      "evidence": "handleEnable() creates/syncs subscription, handleDisable() calls DELETE /api/push/unsubscribe-all AND subscription.unsubscribe()",
+      "code_lines": "Lines 61-133 (enable), Lines 135-165 (disable)"
+    },
+    "localStorage_genturix_push_enabled": {
+      "status": "PASS (code review)",
+      "evidence": "syncPushSubscription sets 'true' on success (line 259), handleDisable sets 'false' (line 155), handleEnable sets 'true' (line 120)"
+    },
+    "sync_push_subscription_function": {
+      "status": "PASS",
+      "behavior": "Only syncs if Notification.permission === 'granted' AND existing subscription exists",
+      "no_prompt": "Does NOT request permission - silent sync only",
+      "code_lines": "Lines 214-266"
+    }
+  },
+  "test_credentials_used": {
+    "resident": "residente@genturix.com / Resi123!",
+    "guard": "guarda1@genturix.com / Guard123!",
+    "admin": "admin@genturix.com / Admin123!"
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [],
+  "success_rate": {
+    "frontend": "100% (7/7 features verified)"
+  },
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Push notification persistence fully implemented. Logout preserves push subscription. Login silently syncs existing subscription for ALL roles. PushNotificationToggle in /profile page allows manual enable/disable. Toggle is the ONLY place that calls unsubscribe-all and subscription.unsubscribe().",
+  "test_limitations": "Playwright browser does not support real push notifications (Notification.permission === 'denied'). Tests verified code execution paths via console logs and network monitoring. Full end-to-end push testing requires real browser with push support."
+}
