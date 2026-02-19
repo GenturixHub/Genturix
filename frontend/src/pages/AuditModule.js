@@ -23,6 +23,7 @@ import {
   TableRow,
 } from '../components/ui/table';
 import api from '../services/api';
+import { toast } from 'sonner';
 import { 
   FileText, 
   Search,
@@ -38,11 +39,14 @@ import {
   Globe
 } from 'lucide-react';
 
+const API_URL = process.env.REACT_APP_BACKEND_URL;
+
 const AuditModule = () => {
   const isMobile = useIsMobile();
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
   const [filters, setFilters] = useState({
     module: '',
     event_type: '',
