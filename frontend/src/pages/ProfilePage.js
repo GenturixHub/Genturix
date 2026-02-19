@@ -52,6 +52,7 @@ import {
   AlertDialogTitle,
 } from '../components/ui/alert-dialog';
 import ChangePasswordForm from '../components/ChangePasswordForm';
+import PushNotificationToggle from '../components/PushNotificationToggle';
 
 // Role configuration for display
 const ROLE_CONFIG = {
