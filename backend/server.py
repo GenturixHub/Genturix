@@ -9759,28 +9759,37 @@ async def export_audit_logs_pdf(
     if not any(role in roles for role in ["Administrador", "SuperAdmin"]):
         raise HTTPException(status_code=403, detail="Acceso denegado")
     
-    # Build query with tenant filter
+    # Build query - SuperAdmin sees all, others see their condo
     condo_id = current_user.get("condominium_id")
     query = {}
     
     # Apply tenant filter (SuperAdmin sees all, others see only their condo)
+    # Note: audit_logs may or may not have condominium_id depending on the event
     if "SuperAdmin" not in roles and condo_id:
-        query["condominium_id"] = condo_id
+        # For non-SuperAdmin, filter by condominium_id if present
+        # Some system events don't have condominium_id, so we include those too
+        query["$or"] = [
+            {"condominium_id": condo_id},
+            {"condominium_id": {"$exists": False}},
+            {"condominium_id": None}
+        ]
     
-    # Apply date filters
+    # Apply date filters (timestamp field is ISO string)
     if from_date:
         try:
-            from_dt = datetime.fromisoformat(from_date.replace('Z', '+00:00'))
+            # Validate date format
+            datetime.fromisoformat(from_date.replace('Z', '+00:00'))
             query["timestamp"] = query.get("timestamp", {})
-            query["timestamp"]["$gte"] = from_dt.isoformat()
+            query["timestamp"]["$gte"] = from_date
         except ValueError:
             pass
     
     if to_date:
         try:
-            to_dt = datetime.fromisoformat(to_date.replace('Z', '+00:00'))
+            # Validate date format
+            datetime.fromisoformat(to_date.replace('Z', '+00:00'))
             query["timestamp"] = query.get("timestamp", {})
-            query["timestamp"]["$lte"] = to_dt.isoformat()
+            query["timestamp"]["$lte"] = to_date
         except ValueError:
             pass
     
@@ -9788,8 +9797,14 @@ async def export_audit_logs_pdf(
     if event_type:
         query["event_type"] = event_type
     
+    # DIAGNOSTIC LOG
+    logger.info(f"[AUDIT-EXPORT] Query filter: {query}")
+    
     # Fetch logs (max 1000 to avoid huge PDFs)
     logs = await db.audit_logs.find(query, {"_id": 0}).sort("timestamp", -1).to_list(1000)
+    
+    # DIAGNOSTIC LOG
+    logger.info(f"[AUDIT-EXPORT] Total logs encontrados: {len(logs)}")
     
     # Get condominium name for the header
     condo_name = "Todos los Condominios"
@@ -9797,6 +9812,8 @@ async def export_audit_logs_pdf(
         condo = await db.condominiums.find_one({"id": condo_id}, {"_id": 0, "name": 1})
         if condo:
             condo_name = condo.get("name", "Condominio")
+    elif "SuperAdmin" in roles:
+        condo_name = "Todos los Condominios (SuperAdmin)"
     
     # Generate PDF
     buffer = io.BytesIO()
