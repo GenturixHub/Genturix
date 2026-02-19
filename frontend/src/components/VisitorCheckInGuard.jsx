@@ -196,7 +196,8 @@ const AuthorizationSearchCard = ({ auth, onCheckIn, isProcessing, isRecentlyProc
   const colorConfig = COLOR_CONFIG[auth.color_code] || COLOR_CONFIG.yellow;
   const IconComponent = TYPE_ICONS[auth.authorization_type] || Timer;
   const isValid = auth.is_currently_valid;
-  const isDisabled = isProcessing || isRecentlyProcessed;
+  const isVisitorInside = auth.is_visitor_inside;
+  const isDisabled = isProcessing || isRecentlyProcessed || isVisitorInside;
 
   const formatInfo = () => {
     if (auth.authorization_type === 'recurring' && auth.allowed_days?.length) {
