@@ -266,35 +266,117 @@ async def global_exception_handler(request: Request, exc: Exception):
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
-# ==================== HEALTH CHECK ENDPOINT ====================
+# ==================== HEALTH & READINESS ENDPOINTS ====================
+
+# Application version
+APP_VERSION = "1.0.0"
+APP_SERVICE_NAME = "genturix-api"
+
 @api_router.get("/health")
 async def health_check():
     """
-    Production health check endpoint.
-    Tests MongoDB connectivity and returns system status.
-    No authentication required - used by load balancers and monitoring.
+    Basic health check endpoint - ALWAYS returns 200 if server is alive.
+    
+    PHASE 1: Health Endpoint
+    - NO database checks
+    - NO external service validation
+    - Used by load balancers for basic liveness probe
+    
+    Returns:
+        200: {"status": "ok", "service": "genturix-api", "version": "1.0.0"}
     """
+    return JSONResponse(
+        status_code=200,
+        content={
+            "status": "ok",
+            "service": APP_SERVICE_NAME,
+            "version": APP_VERSION
+        }
+    )
+
+@api_router.get("/readiness")
+async def readiness_check(request: Request):
+    """
+    Readiness check endpoint - validates all critical dependencies.
+    
+    PHASE 2: Readiness Endpoint
+    Validates:
+    1. MongoDB connectivity (ping)
+    2. JWT secrets configured
+    3. Stripe API key present
+    4. Resend API key present
+    5. Valid ENVIRONMENT setting
+    
+    Returns:
+        200: {"status": "ready"} - all dependencies OK
+        503: {"status": "not_ready", "reason": "..."} - something failed
+    
+    SECURITY: Does NOT expose actual secret values, only presence check.
+    """
+    request_id = getattr(request.state, 'request_id', str(uuid.uuid4()))
+    checks_failed = []
+    
+    # CHECK 1: MongoDB connectivity
     try:
-        # Test MongoDB connection with a simple command
         await db.command("ping")
-        
-        return JSONResponse(
-            status_code=200,
-            content={
-                "status": "ok",
-                "version": "1.0.0",
-                "database": "connected"
-            }
-        )
     except Exception as e:
-        logger.error(f"[HEALTH] Database connection failed: {str(e)}")
+        checks_failed.append("MongoDB connection failed")
+        logger.error(
+            f"[READINESS] MongoDB ping failed | request_id={request_id} | error={str(e)}"
+        )
+    
+    # CHECK 2: JWT secrets present
+    if not JWT_SECRET_KEY:
+        checks_failed.append("JWT_SECRET_KEY not configured")
+        logger.error(f"[READINESS] JWT_SECRET_KEY missing | request_id={request_id}")
+    
+    if not JWT_REFRESH_SECRET_KEY:
+        checks_failed.append("JWT_REFRESH_SECRET_KEY not configured")
+        logger.error(f"[READINESS] JWT_REFRESH_SECRET_KEY missing | request_id={request_id}")
+    
+    # CHECK 3: Stripe API key present
+    stripe_key = os.environ.get("STRIPE_API_KEY", "")
+    if not stripe_key:
+        checks_failed.append("STRIPE_API_KEY not configured")
+        logger.error(f"[READINESS] STRIPE_API_KEY missing | request_id={request_id}")
+    
+    # CHECK 4: Resend API key present
+    resend_key = os.environ.get("RESEND_API_KEY", "")
+    if not resend_key:
+        checks_failed.append("RESEND_API_KEY not configured")
+        logger.error(f"[READINESS] RESEND_API_KEY missing | request_id={request_id}")
+    
+    # CHECK 5: Valid ENVIRONMENT setting
+    if ENVIRONMENT not in ["development", "production"]:
+        checks_failed.append(f"Invalid ENVIRONMENT: {ENVIRONMENT}")
+        logger.error(f"[READINESS] Invalid ENVIRONMENT | request_id={request_id} | value={ENVIRONMENT}")
+    
+    # Return result
+    if checks_failed:
+        # PHASE 3: Structured error logging
+        logger.error(
+            f"[READINESS] NOT READY | request_id={request_id} | "
+            f"failed_checks={len(checks_failed)} | reasons={checks_failed}"
+        )
+        
+        # PHASE 4: Security - generic message, no secrets exposed
         return JSONResponse(
-            status_code=500,
+            status_code=503,
             content={
-                "status": "error",
-                "database": "disconnected"
+                "status": "not_ready",
+                "reason": "One or more critical dependencies unavailable",
+                "failed_checks": len(checks_failed),
+                "request_id": request_id
             }
         )
+    
+    logger.debug(f"[READINESS] READY | request_id={request_id}")
+    return JSONResponse(
+        status_code=200,
+        content={
+            "status": "ready"
+        }
+    )
 
 # ==================== ENUMS ====================
 class RoleEnum(str, Enum):
