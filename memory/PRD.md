@@ -1,8 +1,36 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 19, 2026 (Multi-Role Push Notifications)
+## Last Updated: February 19, 2026 (Audit Export PDF)
 
 ## Changelog
+
+### 2026-02-19 (Session 75) - Exportación de Auditoría a PDF ✅
+
+- **Backend: Nuevo endpoint GET /api/audit/export** ✅
+  - Genera PDF real con reportlab
+  - Acepta query params: `from_date`, `to_date`, `event_type`
+  - Aplica `tenant_filter` (Admin ve solo su condo, SuperAdmin ve todo)
+  - Solo permite roles: Administrador, SuperAdmin
+  - Límite: 1000 registros máximo
+  - Retorna: `Response(content=pdf_bytes, media_type="application/pdf")`
+
+  **Estructura del PDF:**
+  - Título: "GENTURIX - Reporte de Auditoría"
+  - Subtítulo: Condominio + Fecha de generación
+  - Tabla: Fecha | Usuario | Evento | Recurso | IP
+  - Footer: Total de registros
+
+- **Frontend: Botón "Exportar PDF" actualizado** ✅
+  - Usa `fetch` + `blob` + `createObjectURL` para descarga directa
+  - Muestra toast de éxito/error
+  - Estado de loading durante exportación
+
+- **Bug corregido:** localStorage key `access_token` → `genturix_access_token`
+
+- **Testing:** 100% backend (14/14), 100% frontend
+- **Test Report:** `/app/test_reports/iteration_79.json`
+
+---
 
 ### 2026-02-19 (Session 75) - Push Notifications para Todos los Roles ✅
 
