@@ -1,8 +1,53 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 19, 2026 (Production Hardening Phase 1-3)
+## Last Updated: February 19, 2026 (Dynamic Push Targeting System)
 
 ## Changelog
+
+### 2026-02-19 (Session 75) - Dynamic Push Notification Targeting ✅
+
+- **Sistema de Targeting Dinámico para Push Notifications** ✅
+  - Nueva función `send_targeted_push_notification()` implementada
+  - Permite targeting por:
+    - **Roles específicos:** `target_roles=["Guarda", "Administrador"]`
+    - **IDs de usuario:** `target_user_ids=["user-id-1", "user-id-2"]`
+    - **Exclusiones:** `exclude_user_ids=["sender-id"]`
+  
+  **Firma de la función:**
+  ```python
+  async def send_targeted_push_notification(
+      condominium_id: str,
+      title: str,
+      body: str,
+      target_roles: List[str] = None,
+      target_user_ids: List[str] = None,
+      exclude_user_ids: List[str] = None,
+      data: dict = None,
+      tag: str = None,
+      require_interaction: bool = False
+  ) -> dict
+  ```
+  
+  **Validaciones de seguridad:**
+  - condominium_id es obligatorio
+  - Al menos target_roles o target_user_ids debe estar definido
+  - Verifica que el condominio existe y está activo
+  - Solo envía a suscripciones activas (is_active=True)
+  
+  **Uso migrado a 2 eventos:**
+  - Pre-registros de visitantes → target_roles=["Guarda"]
+  - Reservaciones pendientes → target_roles=["Administrador", "Supervisor"]
+  
+  **Funciones legacy preservadas (retrocompatibilidad):**
+  - `send_push_to_user()` - sigue funcionando
+  - `send_push_to_guards()` - sigue funcionando
+  - `send_push_to_admins()` - sigue funcionando
+  - `notify_guards_of_panic()` - **NO fue modificada**
+
+- **Testing:** 20/20 pruebas pasadas (100%)
+- **Test Report:** `/app/test_reports/iteration_75.json`
+
+---
 
 ### 2026-02-19 (Session 75) - Production Hardening Definitivo ✅
 
