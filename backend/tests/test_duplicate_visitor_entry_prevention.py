@@ -211,7 +211,7 @@ class TestPhase1AuthorizationDuplicatePrevention:
             print(f"Note: Check-in failed with {checkin1.status_code}: {checkin1.text}")
             return
         
-        entry_id = checkin1.json().get("id") or checkin1.json().get("entry_id")
+        entry_id = TestSetup.extract_entry_id(checkin1.json())
         print(f"✓ First check-in for recurring auth successful")
         
         # Check-out
@@ -234,7 +234,7 @@ class TestPhase1AuthorizationDuplicatePrevention:
         if checkin2.status_code in [200, 201]:
             print(f"✓ Second check-in allowed for recurring authorization")
             # Cleanup
-            entry_id2 = checkin2.json().get("id") or checkin2.json().get("entry_id")
+            entry_id2 = TestSetup.extract_entry_id(checkin2.json())
             if entry_id2:
                 requests.post(f"{BASE_URL}/api/guard/checkout/{entry_id2}", headers=self.guard_headers, json={})
         else:
@@ -270,7 +270,7 @@ class TestPhase2ManualEntryDuplicatePrevention:
         
         assert checkin1.status_code in [200, 201], f"First manual check-in failed: {checkin1.text}"
         entry_data = checkin1.json()
-        entry_id = entry_data.get("id") or entry_data.get("entry_id")
+        entry_id = TestSetup.extract_entry_id(entry_data)
         print(f"✓ First manual check-in successful: {unique_name}")
         
         # Second manual check-in with SAME name should be BLOCKED (PHASE 2)
@@ -312,7 +312,7 @@ class TestPhase2ManualEntryDuplicatePrevention:
             json={"visitor_name": name1, "destination": "Apt 101"}
         )
         assert checkin1.status_code in [200, 201], f"First check-in failed: {checkin1.text}"
-        entry_id1 = checkin1.json().get("id") or checkin1.json().get("entry_id")
+        entry_id1 = TestSetup.extract_entry_id(checkin1.json())
         print(f"✓ First visitor checked in: {name1}")
         
         # Second visitor with DIFFERENT name should be ALLOWED
@@ -322,7 +322,7 @@ class TestPhase2ManualEntryDuplicatePrevention:
             json={"visitor_name": name2, "destination": "Apt 102"}
         )
         assert checkin2.status_code in [200, 201], f"Second check-in should be allowed: {checkin2.text}"
-        entry_id2 = checkin2.json().get("id") or checkin2.json().get("entry_id")
+        entry_id2 = TestSetup.extract_entry_id(checkin2.json())
         print(f"✓ Second visitor (different name) allowed: {name2}")
         
         # Cleanup
@@ -345,9 +345,7 @@ class TestPhase2ManualEntryDuplicatePrevention:
         assert checkin1.status_code in [200, 201], f"First check-in failed: {checkin1.text}"
         checkin1_data = checkin1.json()
         # Entry ID can be at root, in entry_id field, or nested in entry.id
-        entry_id = checkin1_data.get("id") or checkin1_data.get("entry_id")
-        if not entry_id and "entry" in checkin1_data:
-            entry_id = checkin1_data["entry"].get("id")
+        entry_id = TestSetup.extract_entry_id(checkin1_data)
         print(f"✓ First manual check-in: {unique_name}, entry_id: {entry_id}")
         
         # Check-out
@@ -366,7 +364,7 @@ class TestPhase2ManualEntryDuplicatePrevention:
             json={"visitor_name": unique_name}
         )
         assert checkin2.status_code in [200, 201], f"Re-entry after checkout should be allowed: {checkin2.text}"
-        entry_id2 = checkin2.json().get("id") or checkin2.json().get("entry_id")
+        entry_id2 = TestSetup.extract_entry_id(checkin2.json())
         print(f"✓ Re-entry after checkout allowed")
         
         # Cleanup
@@ -459,7 +457,7 @@ class TestPhase3IsVisitorInsideFlag:
             print(f"Note: Check-in failed: {checkin_response.text}")
             return
         
-        entry_id = checkin_response.json().get("id") or checkin_response.json().get("entry_id")
+        entry_id = TestSetup.extract_entry_id(checkin_response.json())
         print(f"✓ Check-in successful, entry_id: {entry_id}")
         
         # Check is_visitor_inside is True after check-in
@@ -571,7 +569,7 @@ class TestErrorHandling:
         # Should either fail validation or be rejected
         if response.status_code in [200, 201]:
             # If it succeeds, it should have created an entry
-            entry_id = response.json().get("id") or response.json().get("entry_id")
+            entry_id = TestSetup.extract_entry_id(response.json())
             if entry_id:
                 # Cleanup
                 requests.post(f"{BASE_URL}/api/guard/checkout/{entry_id}", headers=self.guard_headers, json={})
