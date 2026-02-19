@@ -4641,6 +4641,49 @@ async def fast_checkin(
     auth_type = "manual"
     color_code = "gray"
     
+    # ==================== PHASE 1: PREVENT DUPLICATE ENTRIES (AUTHORIZATION) ====================
+    # Check if visitor with this authorization is already inside
+    if checkin_data.authorization_id:
+        existing_inside = await db.visitor_entries.find_one({
+            "authorization_id": checkin_data.authorization_id,
+            "status": "inside",
+            "exit_at": None
+        })
+        if existing_inside:
+            logger.warning(
+                f"[check-in] BLOCKED - Visitor already inside with auth {checkin_data.authorization_id[:8]}"
+            )
+            raise HTTPException(
+                status_code=400,
+                detail="El visitante ya se encuentra dentro del condominio. Debe registrar su salida antes de un nuevo ingreso."
+            )
+    
+    # ==================== PHASE 2: PREVENT DUPLICATE ENTRIES (MANUAL) ====================
+    # For manual entries, check by visitor_name + condominium to prevent duplicates
+    if checkin_data.visitor_name and not checkin_data.authorization_id:
+        # Normalize visitor name for comparison
+        normalized_name = checkin_data.visitor_name.strip().lower()
+        
+        # Check if same visitor name is already inside this condo
+        existing_manual = await db.visitor_entries.find_one({
+            "condominium_id": condo_id,
+            "status": "inside",
+            "exit_at": None,
+            "authorization_id": None  # Only manual entries
+        })
+        
+        if existing_manual:
+            existing_name = (existing_manual.get("visitor_name") or "").strip().lower()
+            if existing_name == normalized_name:
+                logger.warning(
+                    f"[check-in] BLOCKED - Manual visitor '{checkin_data.visitor_name}' already inside condo {condo_id[:8]}"
+                )
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Ya existe un visitante con el nombre '{checkin_data.visitor_name}' dentro del condominio. Verifique si es la misma persona."
+                )
+    # ==========================================================================================
+    
     # If authorization provided, validate it
     if checkin_data.authorization_id:
         authorization = await db.visitor_authorizations.find_one({
