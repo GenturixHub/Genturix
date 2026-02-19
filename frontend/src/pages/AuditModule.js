@@ -90,7 +90,7 @@ const AuditModule = () => {
   const handleExportPDF = async () => {
     setIsExporting(true);
     try {
-      const accessToken = localStorage.getItem('access_token');
+      const accessToken = localStorage.getItem('genturix_access_token');
       if (!accessToken) {
         toast.error('No se encontró token de autenticación');
         return;
