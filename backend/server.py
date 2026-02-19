@@ -9741,6 +9741,232 @@ async def get_audit_stats(current_user = Depends(require_module("audit"))):
         "panic_events": panic_events
     }
 
+@api_router.get("/audit/export")
+async def export_audit_logs_pdf(
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    event_type: Optional[str] = None,
+    current_user = Depends(require_module("audit"))
+):
+    """
+    Export audit logs as PDF file.
+    - Requires Administrador or SuperAdmin role
+    - Applies tenant filtering (multi-tenant safe)
+    - Returns direct PDF download
+    """
+    # Verify role
+    roles = current_user.get("roles", [])
+    if not any(role in roles for role in ["Administrador", "SuperAdmin"]):
+        raise HTTPException(status_code=403, detail="Acceso denegado")
+    
+    # Build query with tenant filter
+    condo_id = current_user.get("condominium_id")
+    query = {}
+    
+    # Apply tenant filter (SuperAdmin sees all, others see only their condo)
+    if "SuperAdmin" not in roles and condo_id:
+        query["condominium_id"] = condo_id
+    
+    # Apply date filters
+    if from_date:
+        try:
+            from_dt = datetime.fromisoformat(from_date.replace('Z', '+00:00'))
+            query["timestamp"] = query.get("timestamp", {})
+            query["timestamp"]["$gte"] = from_dt.isoformat()
+        except ValueError:
+            pass
+    
+    if to_date:
+        try:
+            to_dt = datetime.fromisoformat(to_date.replace('Z', '+00:00'))
+            query["timestamp"] = query.get("timestamp", {})
+            query["timestamp"]["$lte"] = to_dt.isoformat()
+        except ValueError:
+            pass
+    
+    # Apply event type filter
+    if event_type:
+        query["event_type"] = event_type
+    
+    # Fetch logs (max 1000 to avoid huge PDFs)
+    logs = await db.audit_logs.find(query, {"_id": 0}).sort("timestamp", -1).to_list(1000)
+    
+    # Get condominium name for the header
+    condo_name = "Todos los Condominios"
+    if condo_id:
+        condo = await db.condominiums.find_one({"id": condo_id}, {"_id": 0, "name": 1})
+        if condo:
+            condo_name = condo.get("name", "Condominio")
+    
+    # Generate PDF
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=A4,
+        rightMargin=30,
+        leftMargin=30,
+        topMargin=30,
+        bottomMargin=30
+    )
+    
+    # Styles
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=18,
+        textColor=colors.HexColor('#0F172A'),
+        spaceAfter=6,
+        alignment=TA_CENTER
+    )
+    subtitle_style = ParagraphStyle(
+        'CustomSubtitle',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.HexColor('#64748B'),
+        spaceAfter=20,
+        alignment=TA_CENTER
+    )
+    
+    # Build content
+    elements = []
+    
+    # Title
+    elements.append(Paragraph("GENTURIX - Reporte de Auditoría", title_style))
+    
+    # Subtitle with date and condo
+    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+    subtitle_text = f"Condominio: {condo_name}<br/>Fecha de generación: {now_str}"
+    if from_date or to_date:
+        date_range = f"Período: {from_date or 'Inicio'} a {to_date or 'Ahora'}"
+        subtitle_text += f"<br/>{date_range}"
+    elements.append(Paragraph(subtitle_text, subtitle_style))
+    
+    elements.append(Spacer(1, 12))
+    
+    if logs:
+        # Table header
+        table_data = [["Fecha", "Usuario", "Evento", "Recurso", "IP"]]
+        
+        # Table rows
+        for log in logs:
+            timestamp = log.get("timestamp", "")
+            if timestamp:
+                try:
+                    dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                    timestamp = dt.strftime("%Y-%m-%d %H:%M")
+                except:
+                    timestamp = str(timestamp)[:16]
+            
+            user_name = log.get("user_name", log.get("user_id", "Sistema"))
+            if len(str(user_name)) > 20:
+                user_name = str(user_name)[:17] + "..."
+            
+            event_type_val = log.get("event_type", "N/A")
+            if len(str(event_type_val)) > 20:
+                event_type_val = str(event_type_val)[:17] + "..."
+            
+            resource = log.get("resource_type", log.get("module", "N/A"))
+            if len(str(resource)) > 15:
+                resource = str(resource)[:12] + "..."
+            
+            ip_address = log.get("ip_address", "N/A")
+            if len(str(ip_address)) > 15:
+                ip_address = str(ip_address)[:12] + "..."
+            
+            table_data.append([
+                timestamp,
+                user_name,
+                event_type_val,
+                resource,
+                ip_address
+            ])
+        
+        # Create table
+        col_widths = [90, 100, 120, 80, 80]
+        table = Table(table_data, colWidths=col_widths)
+        
+        # Table style
+        table.setStyle(TableStyle([
+            # Header style
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E293B')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ('TOPPADDING', (0, 0), (-1, 0), 8),
+            
+            # Body style
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F8FAFC')),
+            ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#334155')),
+            ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+            ('TOPPADDING', (0, 1), (-1, -1), 6),
+            
+            # Alternating row colors
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.HexColor('#F8FAFC'), colors.white]),
+            
+            # Grid
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E2E8F0')),
+            ('BOX', (0, 0), (-1, -1), 1, colors.HexColor('#CBD5E1')),
+        ]))
+        
+        elements.append(table)
+        
+        # Footer with count
+        elements.append(Spacer(1, 20))
+        footer_style = ParagraphStyle(
+            'Footer',
+            parent=styles['Normal'],
+            fontSize=9,
+            textColor=colors.HexColor('#64748B'),
+            alignment=TA_LEFT
+        )
+        elements.append(Paragraph(f"Total de registros: {len(logs)}", footer_style))
+        if len(logs) == 1000:
+            elements.append(Paragraph("(Limitado a 1000 registros)", footer_style))
+    else:
+        # No records message
+        no_data_style = ParagraphStyle(
+            'NoData',
+            parent=styles['Normal'],
+            fontSize=12,
+            textColor=colors.HexColor('#94A3B8'),
+            alignment=TA_CENTER,
+            spaceBefore=50
+        )
+        elements.append(Paragraph("Sin registros de auditoría para los filtros seleccionados.", no_data_style))
+    
+    # Build PDF
+    doc.build(elements)
+    
+    # Get PDF bytes
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+    
+    # Log the export action
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT,
+        current_user["id"],
+        "audit_logs",
+        {"action": "export_pdf", "records_count": len(logs)},
+        "system",
+        "pdf_export"
+    )
+    
+    # Return PDF file
+    filename = f"audit-report-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )
+
 # ==================== DASHBOARD ====================
 @api_router.get("/dashboard/stats")
 async def get_dashboard_stats(current_user = Depends(get_current_user)):
