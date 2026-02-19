@@ -47,6 +47,14 @@ class TestSetup:
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
         }
+    
+    @staticmethod
+    def extract_entry_id(response_data: dict) -> str:
+        """Extract entry_id from checkin response - handles nested structure"""
+        entry_id = response_data.get("id") or response_data.get("entry_id")
+        if not entry_id and "entry" in response_data:
+            entry_id = response_data["entry"].get("id")
+        return entry_id
 
 
 class TestHealthAndLogin:
