@@ -209,7 +209,8 @@ class TestPhase1AuthorizationDuplicatePrevention:
         # Check-out
         checkout = requests.post(
             f"{BASE_URL}/api/guard/checkout/{entry_id}",
-            headers=self.guard_headers
+            headers=self.guard_headers,
+            json={}  # FastCheckOutRequest body
         )
         assert checkout.status_code in [200, 201], f"Checkout failed: {checkout.text}"
         print(f"✓ Checkout successful")
@@ -227,7 +228,7 @@ class TestPhase1AuthorizationDuplicatePrevention:
             # Cleanup
             entry_id2 = checkin2.json().get("id") or checkin2.json().get("entry_id")
             if entry_id2:
-                requests.post(f"{BASE_URL}/api/guard/checkout/{entry_id2}", headers=self.guard_headers)
+                requests.post(f"{BASE_URL}/api/guard/checkout/{entry_id2}", headers=self.guard_headers, json={})
         else:
             print(f"Note: Second check-in returned {checkin2.status_code} - behavior may vary")
 
