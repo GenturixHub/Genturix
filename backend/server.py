@@ -14072,6 +14072,7 @@ async def initialize_indexes():
 async def startup_event():
     """Application startup tasks"""
     await initialize_indexes()
+    await ensure_global_pricing_config()  # PHASE 1: Initialize global pricing
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
