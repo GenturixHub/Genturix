@@ -374,46 +374,24 @@ export const AuthProvider = ({ children }) => {
     
     try {
       if (accessToken) {
-        // Step 1: Unsubscribe from push notifications (backend)
-        try {
-          console.log('[Auth] Unsubscribing from push notifications...');
-          await fetch(`${API_URL}/api/push/unsubscribe-all`, {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-            },
-          });
-          console.log('[Auth] Push subscriptions removed from backend');
-        } catch (pushError) {
-          console.warn('[Auth] Failed to unsubscribe push from backend:', pushError);
-        }
-
-        // Step 2: Unsubscribe locally via Service Worker
-        try {
-          if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-            const registration = await navigator.serviceWorker.ready;
-            const subscription = await registration.pushManager.getSubscription();
-            if (subscription) {
-              await subscription.unsubscribe();
-              console.log('[Auth] Local push subscription unsubscribed');
-            }
-          }
-        } catch (swError) {
-          console.warn('[Auth] Failed to unsubscribe local push:', swError);
-        }
-
-        // Step 3: Call logout endpoint
+        // IMPORTANT: Push notifications are NOT session-based
+        // We do NOT unsubscribe from push on logout
+        // Push is tied to the device, not the session
+        // User can manually disable push in their profile settings
+        
+        // Call logout endpoint to invalidate refresh token
         await fetch(`${API_URL}/api/auth/logout`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${accessToken}`,
           },
         });
+        console.log('[Auth] Logout API called');
       }
     } catch (error) {
       console.error('[Auth] Logout API error:', error);
     } finally {
-      // Always clear local state
+      // Clear local auth state only (not push subscription)
       localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER);
@@ -424,7 +402,7 @@ export const AuthProvider = ({ children }) => {
       setRefreshToken(null);
       setPasswordResetRequired(false);
       
-      console.log('[Auth] Logout complete');
+      console.log('[Auth] Logout complete - push subscription preserved');
     }
   }, [accessToken]);
 
