@@ -17,18 +17,22 @@
   **Estructura del PDF:**
   - Título: "GENTURIX - Reporte de Auditoría"
   - Subtítulo: Condominio + Fecha de generación
-  - Tabla: Fecha | Usuario | Evento | Recurso | IP
+  - Tabla: Fecha | Usuario | Evento | Módulo | IP
   - Footer: Total de registros
+  
+  **Correcciones aplicadas:**
+  - SuperAdmin query vacío `{}` para ver TODOS los logs
+  - Pre-fetch de nombres de usuario (muestra nombres reales, no UUIDs)
+  - Logs de diagnóstico: `[AUDIT-EXPORT] Query filter:`, `Total logs encontrados:`, `PDF generado con X registros`
 
 - **Frontend: Botón "Exportar PDF" actualizado** ✅
   - Usa `fetch` + `blob` + `createObjectURL` para descarga directa
   - Muestra toast de éxito/error
   - Estado de loading durante exportación
+  - Bug corregido: localStorage key `genturix_access_token`
 
-- **Bug corregido:** localStorage key `access_token` → `genturix_access_token`
-
-- **Testing:** 100% backend (14/14), 100% frontend
-- **Test Report:** `/app/test_reports/iteration_79.json`
+- **Testing:** 100% backend (12/12)
+- **Test Report:** `/app/test_reports/iteration_80.json`
 
 ---
 
