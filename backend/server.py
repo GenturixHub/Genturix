@@ -9980,6 +9980,9 @@ async def export_audit_logs_pdf(
     pdf_bytes = buffer.getvalue()
     buffer.close()
     
+    # FINAL LOG
+    logger.info(f"[AUDIT-EXPORT] PDF generado con {len(logs)} registros, tamaño: {len(pdf_bytes)} bytes")
+    
     # Log the export action
     await log_audit_event(
         AuditEventType.SECURITY_ALERT,
