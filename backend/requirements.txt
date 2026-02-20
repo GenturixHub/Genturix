@@ -4,6 +4,9 @@
 # Minimal dependencies required for Railway deployment
 # Dev dependencies are in requirements-dev.txt
 
+# Private index for Emergent integrations
+--extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
+
 # Core Framework
 fastapi==0.110.1
 uvicorn[standard]==0.25.0
