@@ -2582,6 +2582,420 @@ const ContentTab = () => {
 };
 
 // ============================================
+// PRICING TAB - SaaS Pricing Management
+// ============================================
+const PricingTab = () => {
+  const [globalPricing, setGlobalPricing] = useState(null);
+  const [condoPricing, setCondoPricing] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingGlobal, setEditingGlobal] = useState(false);
+  const [newGlobalPrice, setNewGlobalPrice] = useState('');
+  const [overrideDialogOpen, setOverrideDialogOpen] = useState(false);
+  const [selectedCondo, setSelectedCondo] = useState(null);
+  const [overridePrice, setOverridePrice] = useState('');
+
+  const fetchPricingData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const [globalData, condoData] = await Promise.all([
+        api.getGlobalPricing(),
+        api.getPricingByCondominium()
+      ]);
+      setGlobalPricing(globalData);
+      setCondoPricing(condoData.condominiums || []);
+      setNewGlobalPrice(globalData?.default_seat_price?.toString() || '1.50');
+    } catch (error) {
+      console.error('Error fetching pricing:', error);
+      toast.error('Error al cargar datos de precios');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPricingData();
+  }, [fetchPricingData]);
+
+  const handleUpdateGlobalPrice = async () => {
+    const price = parseFloat(newGlobalPrice);
+    if (isNaN(price) || price <= 0) {
+      toast.error('Ingresa un precio válido mayor a 0');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await api.updateGlobalPricing(price, globalPricing?.currency || 'USD');
+      toast.success(`Precio global actualizado a $${price.toFixed(2)} USD`);
+      setEditingGlobal(false);
+      fetchPricingData();
+    } catch (error) {
+      console.error('Error updating global price:', error);
+      toast.error('Error al actualizar precio global');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSetOverride = async () => {
+    const price = parseFloat(overridePrice);
+    if (isNaN(price) || price <= 0) {
+      toast.error('Ingresa un precio válido mayor a 0');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await api.setCondominiumPriceOverride(selectedCondo.id, price);
+      toast.success(`Precio especial de $${price.toFixed(2)} asignado a ${selectedCondo.name}`);
+      setOverrideDialogOpen(false);
+      setSelectedCondo(null);
+      setOverridePrice('');
+      fetchPricingData();
+    } catch (error) {
+      console.error('Error setting override:', error);
+      toast.error('Error al asignar precio especial');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRemoveOverride = async (condo) => {
+    setIsSubmitting(true);
+    try {
+      await api.removeCondominiumPriceOverride(condo.id);
+      toast.success(`Precio especial removido de ${condo.name}`);
+      fetchPricingData();
+    } catch (error) {
+      console.error('Error removing override:', error);
+      toast.error('Error al remover precio especial');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openOverrideDialog = (condo) => {
+    setSelectedCondo(condo);
+    setOverridePrice(condo.override_price?.toString() || globalPricing?.default_seat_price?.toString() || '1.50');
+    setOverrideDialogOpen(true);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const condosWithOverride = condoPricing.filter(c => c.has_override);
+  const condosWithoutOverride = condoPricing.filter(c => !c.has_override);
+
+  return (
+    <div className="p-4 sm:p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+            <DollarSign className="w-6 h-6 text-green-400" />
+            Gestión de Precios SaaS
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Configura el precio global y precios especiales por condominio
+          </p>
+        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={fetchPricingData}
+          className="gap-2 border-[#1E293B]"
+          data-testid="pricing-refresh-btn"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Actualizar
+        </Button>
+      </div>
+
+      {/* Global Price Card */}
+      <Card className="bg-gradient-to-br from-green-500/10 to-emerald-500/5 border-green-500/30">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-green-400">
+            <TrendingUp className="w-5 h-5" />
+            Precio Global por Asiento
+          </CardTitle>
+          <CardDescription>
+            Este precio aplica a todos los condominios sin precio especial
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!editingGlobal ? (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-4xl font-bold text-white">
+                  ${globalPricing?.default_seat_price?.toFixed(2) || '1.50'}
+                  <span className="text-lg text-muted-foreground ml-2">
+                    {globalPricing?.currency || 'USD'} / usuario / mes
+                  </span>
+                </p>
+              </div>
+              <Button 
+                onClick={() => setEditingGlobal(true)}
+                className="gap-2"
+                data-testid="edit-global-price-btn"
+              >
+                <Edit className="w-4 h-4" />
+                Modificar
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
+              <div className="flex-1 max-w-xs">
+                <Label htmlFor="global-price">Nuevo Precio (USD)</Label>
+                <div className="relative mt-1">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="global-price"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={newGlobalPrice}
+                    onChange={(e) => setNewGlobalPrice(e.target.value)}
+                    className="pl-9 bg-[#0A0A0F] border-[#1E293B]"
+                    placeholder="1.50"
+                    data-testid="global-price-input"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleUpdateGlobalPrice}
+                  disabled={isSubmitting}
+                  data-testid="save-global-price-btn"
+                >
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Guardar
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setEditingGlobal(false);
+                    setNewGlobalPrice(globalPricing?.default_seat_price?.toString() || '1.50');
+                  }}
+                  className="border-[#1E293B]"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Condos with Override */}
+      <Card className="bg-[#0F111A] border-[#1E293B]">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Crown className="w-5 h-5 text-yellow-400" />
+            Condominios con Precio Especial
+            <Badge className="ml-2 bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+              {condosWithOverride.length}
+            </Badge>
+          </CardTitle>
+          <CardDescription>
+            Estos condominios tienen un precio diferente al global
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {condosWithOverride.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Building2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p>No hay condominios con precio especial</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {condosWithOverride.map((condo) => (
+                <div 
+                  key={condo.id} 
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg bg-[#0A0A0F] border border-yellow-500/30 gap-4"
+                  data-testid={`condo-override-${condo.id}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-yellow-500/20 flex items-center justify-center">
+                      <Building2 className="w-5 h-5 text-yellow-400" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">{condo.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {condo.seat_limit || 0} asientos contratados
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="text-xl font-bold text-yellow-400">
+                        ${condo.override_price?.toFixed(2)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">USD / usuario / mes</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => openOverrideDialog(condo)}
+                        className="border-[#1E293B]"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        onClick={() => handleRemoveOverride(condo)}
+                        disabled={isSubmitting}
+                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                      >
+                        <XCircle className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Condos without Override */}
+      <Card className="bg-[#0F111A] border-[#1E293B]">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-blue-400" />
+            Condominios con Precio Global
+            <Badge className="ml-2 bg-blue-500/20 text-blue-400 border-blue-500/30">
+              {condosWithoutOverride.length}
+            </Badge>
+          </CardTitle>
+          <CardDescription>
+            Estos condominios usan el precio global de ${globalPricing?.default_seat_price?.toFixed(2) || '1.50'} USD
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {condosWithoutOverride.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <CheckCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
+              <p>Todos los condominios tienen precio especial</p>
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {condosWithoutOverride.map((condo) => (
+                <div 
+                  key={condo.id} 
+                  className="flex items-center justify-between p-4 rounded-lg bg-[#0A0A0F] border border-[#1E293B] hover:border-primary/50 transition-colors"
+                  data-testid={`condo-global-${condo.id}`}
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                      <Building2 className="w-4 h-4 text-blue-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-medium text-white truncate">{condo.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {condo.seat_limit || 0} asientos
+                      </p>
+                    </div>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="ghost"
+                    onClick={() => openOverrideDialog(condo)}
+                    className="text-primary hover:text-primary/80 flex-shrink-0"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Override Dialog */}
+      <Dialog open={overrideDialogOpen} onOpenChange={setOverrideDialogOpen}>
+        <DialogContent className="bg-[#0F111A] border-[#1E293B]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-yellow-400" />
+              Asignar Precio Especial
+            </DialogTitle>
+            <DialogDescription>
+              {selectedCondo?.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
+              <p className="text-sm text-blue-400">
+                <strong>Precio Global Actual:</strong> ${globalPricing?.default_seat_price?.toFixed(2) || '1.50'} USD
+              </p>
+            </div>
+
+            <div>
+              <Label htmlFor="override-price">Precio Especial (USD / usuario / mes)</Label>
+              <div className="relative mt-2">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  id="override-price"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  value={overridePrice}
+                  onChange={(e) => setOverridePrice(e.target.value)}
+                  className="pl-9 bg-[#0A0A0F] border-[#1E293B]"
+                  placeholder="Ej: 0.99"
+                  data-testid="override-price-input"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Este precio será aplicado exclusivamente a este condominio
+              </p>
+            </div>
+
+            {parseFloat(overridePrice) > 0 && (
+              <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
+                <p className="text-sm text-yellow-400 font-medium">
+                  Nuevo precio: ${parseFloat(overridePrice).toFixed(2)} USD / usuario / mes
+                </p>
+                {selectedCondo?.seat_limit > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    MRR estimado: ${(parseFloat(overridePrice) * selectedCondo.seat_limit).toFixed(2)} USD
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button 
+              variant="outline" 
+              onClick={() => setOverrideDialogOpen(false)}
+              className="border-[#1E293B]"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleSetOverride}
+              disabled={isSubmitting || !overridePrice || parseFloat(overridePrice) <= 0}
+              data-testid="confirm-override-btn"
+            >
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Aplicar Precio
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+// ============================================
 // MAIN COMPONENT
 // ============================================
 const SuperAdminDashboard = () => {
