@@ -9066,7 +9066,7 @@ async def update_reservation_status(
             
             # PHASE 3: Send targeted push notification to resident owner
             await send_targeted_push_notification(
-                condominium_id=condo_id,
+                condominium_id=condominium_id,
                 title="✅ Reservación aprobada",
                 body=f"Tu reservación de {area_name} para el {reservation.get('date')} fue aprobada",
                 target_user_ids=[resident_id],
