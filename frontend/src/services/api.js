@@ -509,6 +509,22 @@ class ApiService {
   // Super Admin - Demo with Test Data
   createDemoWithTestData = (data) => this.post('/superadmin/condominiums/demo-with-data', data);
 
+  // Super Admin - Pricing Management (SaaS)
+  getGlobalPricing = () => this.get('/super-admin/pricing/global');
+  updateGlobalPricing = (defaultSeatPrice, currency = 'USD') => 
+    this.put('/super-admin/pricing/global', { default_seat_price: defaultSeatPrice, currency });
+  getPricingByCondominium = () => this.get('/super-admin/pricing/condominiums');
+  setCondominiumPriceOverride = (condoId, seatPriceOverride) => {
+    const params = new URLSearchParams();
+    params.append('seat_price_override', seatPriceOverride);
+    return this.patch(`/super-admin/condominiums/${condoId}/pricing?${params.toString()}`);
+  };
+  removeCondominiumPriceOverride = (condoId) => {
+    const params = new URLSearchParams();
+    params.append('seat_price_override', '0');  // 0 or negative removes override
+    return this.patch(`/super-admin/condominiums/${condoId}/pricing?${params.toString()}`);
+  };
+
   // Profile - Public View
   getPublicProfile = (userId) => this.get(`/profile/${userId}`);
   
