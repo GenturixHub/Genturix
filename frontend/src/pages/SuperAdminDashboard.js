@@ -3130,6 +3130,10 @@ const SuperAdminDashboard = () => {
                 <BookOpen className="w-4 h-4" />
                 <span className="hidden sm:inline">Contenido</span>
               </TabsTrigger>
+              <TabsTrigger value="pricing" className="gap-2 data-[state=active]:bg-primary/20">
+                <DollarSign className="w-4 h-4" />
+                <span className="hidden sm:inline">Precios</span>
+              </TabsTrigger>
             </TabsList>
           )}
 
