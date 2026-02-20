@@ -116,7 +116,7 @@ const SuperAdminMobileNav = ({ activeTab, onTabChange }) => {
   const items = [
     { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'condominiums', label: 'Condos', icon: Building2 },
-    { id: 'content', label: 'Contenido', icon: BookOpen },
+    { id: 'pricing', label: 'Precios', icon: DollarSign },
     { id: 'users', label: 'Usuarios', icon: Users },
     { id: 'profile', label: 'Perfil', icon: User, href: '/profile' },
   ];
