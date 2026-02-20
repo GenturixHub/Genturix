@@ -36,10 +36,29 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+# ==================== MONGODB CONNECTION ====================
+# MONGO_URL must be set - supports both local (mongodb://) and Atlas (mongodb+srv://)
+# Examples:
+#   Local:  mongodb://localhost:27017
+#   Atlas:  mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true&w=majority
+mongo_url = os.environ.get('MONGO_URL')
+if not mongo_url:
+    raise RuntimeError("MONGO_URL environment variable is required")
+
+db_name = os.environ.get('DB_NAME')
+if not db_name:
+    raise RuntimeError("DB_NAME environment variable is required")
+
+# Configure client with production-ready settings for Atlas
+client = AsyncIOMotorClient(
+    mongo_url,
+    serverSelectionTimeoutMS=5000,  # Fail fast if can't connect
+    connectTimeoutMS=10000,
+    socketTimeoutMS=30000,
+    maxPoolSize=50,  # Connection pool for Railway
+    retryWrites=True
+)
+db = client[db_name]
 
 # ==================== PHASE 1: ENVIRONMENT VALIDATION ====================
 # Environment Configuration - MUST be validated first
