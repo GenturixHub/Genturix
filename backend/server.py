@@ -9086,7 +9086,7 @@ async def update_reservation_status(
             reason = update.admin_notes or "Sin motivo especificado"
             await create_and_send_notification(
                 user_id=resident_id,
-                condominium_id=condo_id,
+                condominium_id=condominium_id,
                 notification_type="reservation_rejected",
                 title="❌ Reservación rechazada",
                 message=f"Tu reservación de {area_name} fue rechazada. Motivo: {reason}",
