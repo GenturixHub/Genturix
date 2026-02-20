@@ -9102,7 +9102,7 @@ async def update_reservation_status(
             
             # Send targeted push notification to resident owner for rejection too
             await send_targeted_push_notification(
-                condominium_id=condo_id,
+                condominium_id=condominium_id,
                 title="❌ Reservación rechazada",
                 body=f"Tu reservación de {area_name} fue rechazada. Motivo: {reason}",
                 target_user_ids=[resident_id],
