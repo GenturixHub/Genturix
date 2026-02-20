@@ -1,8 +1,37 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 19, 2026 (Health & Readiness System)
+## Last Updated: February 20, 2026 (Pricing Management UI Complete)
 
 ## Changelog
+
+### 2026-02-20 (Session 76) - UI de Gestión de Precios SaaS para SuperAdmin ✅
+
+- **FASE 5: Frontend SuperAdmin - COMPLETADO** ✅
+  
+  **Componente PricingTab en SuperAdminDashboard.js:**
+  - Sección "Precio Global por Asiento" con edición inline
+  - Sección "Condominios con Precio Especial" (lista con override)
+  - Sección "Condominios con Precio Global" (grid de condos sin override)
+  - Dialog para asignar precio especial a un condominio
+  - Botón para remover precio especial (restaurar precio global)
+  - Responsive design (desktop y móvil)
+  
+  **API Methods agregados a api.js:**
+  - `getGlobalPricing()` - GET /super-admin/pricing/global
+  - `updateGlobalPricing(price, currency)` - PUT /super-admin/pricing/global
+  - `getPricingByCondominium()` - GET /super-admin/pricing/condominiums
+  - `setCondominiumPriceOverride(condoId, price)` - PATCH /super-admin/condominiums/{id}/pricing
+  - `removeCondominiumPriceOverride(condoId)` - Removes override
+  
+  **Navegación:**
+  - Nueva pestaña "Precios" en TabsList (desktop)
+  - Nueva opción "Precios" en SuperAdminMobileNav (móvil)
+
+- **Bug Fix:** Corregido filtro frontend `has_override` → `uses_override`
+- **Testing:** 100% backend + frontend (iteration_86.json)
+- **Test Report:** `/app/test_reports/iteration_86.json`
+
+---
 
 ### 2026-02-19 (Session 75) - Sistema Profesional de Pricing SaaS ✅
 
@@ -35,7 +64,7 @@
   - `POST /api/payments/checkout` usa precio dinámico
   - Billing overview incluye `price_per_seat` por condo
 
-- **FASE 5: Frontend SuperAdmin** ⏳ (Pendiente UI)
+- **FASE 5: Frontend SuperAdmin** ✅ (COMPLETADO en Session 76)
 
 - **Audit Events:** `PRICING_GLOBAL_UPDATED`, `PRICING_OVERRIDE_UPDATED`
 
