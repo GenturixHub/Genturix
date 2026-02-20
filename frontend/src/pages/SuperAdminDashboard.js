@@ -3152,6 +3152,10 @@ const SuperAdminDashboard = () => {
           <TabsContent value="content">
             <ContentTab />
           </TabsContent>
+
+          <TabsContent value="pricing">
+            <PricingTab />
+          </TabsContent>
         </Tabs>
       </main>
 
