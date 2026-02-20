@@ -9040,6 +9040,7 @@ async def update_reservation_status(
     
     # Send push notification to resident based on new status
     resident_id = reservation.get("resident_id")
+    condominium_id = reservation.get("condominium_id")  # Get condo_id from reservation
     area_id = reservation.get("area_id")
     area = await db.reservation_areas.find_one({"id": area_id}, {"_id": 0, "name": 1})
     area_name = area.get("name", "Área común") if area else "Área común"
@@ -9048,7 +9049,7 @@ async def update_reservation_status(
         if update.status == ReservationStatusEnum.APPROVED:
             await create_and_send_notification(
                 user_id=resident_id,
-                condominium_id=condo_id,
+                condominium_id=condominium_id,
                 notification_type="reservation_approved",
                 title="✅ Reservación aprobada",
                 message=f"Tu reservación de {area_name} para el {reservation.get('date')} de {reservation.get('start_time')} a {reservation.get('end_time')} fue aprobada",
