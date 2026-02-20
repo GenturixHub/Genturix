@@ -14006,18 +14006,31 @@ app.include_router(api_router)
 
 # ==================== CORS CONFIGURATION ====================
 def get_cors_origins() -> list:
-    """Get allowed origins based on environment"""
+    """
+    Get allowed origins based on environment.
+    
+    PRODUCTION: Only FRONTEND_URL is allowed (strict)
+    DEVELOPMENT: FRONTEND_URL + localhost fallbacks
+    
+    IMPORTANT: In production, FRONTEND_URL MUST be set to the Vercel domain
+    """
+    origins = []
+    
+    # Always include FRONTEND_URL if set (required for production)
+    if FRONTEND_URL:
+        origins.append(FRONTEND_URL.rstrip('/'))
+    
     if ENVIRONMENT == "production":
-        if FRONTEND_URL:
-            return [FRONTEND_URL.rstrip('/')]
-        logger.warning("[CORS] ENVIRONMENT=production but FRONTEND_URL not set, defaulting to empty list")
-        return []
+        if not origins:
+            logger.error("[CORS] CRITICAL: ENVIRONMENT=production but FRONTEND_URL not set! API will reject all cross-origin requests.")
+        return origins
     else:
-        # Development mode - allow localhost
-        return [
+        # Development mode - add localhost fallbacks
+        dev_origins = [
             "http://localhost:3000",
             "http://127.0.0.1:3000"
         ]
+        return list(set(origins + dev_origins))  # Deduplicate
 
 cors_origins = get_cors_origins()
 logger.info(f"[CORS] Environment: {ENVIRONMENT}, Allowed origins: {cors_origins}")
