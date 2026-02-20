@@ -2687,8 +2687,8 @@ const PricingTab = () => {
     );
   }
 
-  const condosWithOverride = condoPricing.filter(c => c.has_override);
-  const condosWithoutOverride = condoPricing.filter(c => !c.has_override);
+  const condosWithOverride = condoPricing.filter(c => c.uses_override);
+  const condosWithoutOverride = condoPricing.filter(c => !c.uses_override);
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
