@@ -50,15 +50,26 @@ if not db_name:
     raise RuntimeError("DB_NAME environment variable is required")
 
 # Configure client with production-ready settings for Atlas
-client = AsyncIOMotorClient(
-    mongo_url,
-    serverSelectionTimeoutMS=5000,  # Fail fast if can't connect
-    connectTimeoutMS=10000,
-    socketTimeoutMS=30000,
-    maxPoolSize=50,  # Connection pool for Railway
-    retryWrites=True
-)
-db = client[db_name]
+# NOTE: Connection is lazy - actual connection happens on first operation
+try:
+    client = AsyncIOMotorClient(
+        mongo_url,
+        serverSelectionTimeoutMS=10000,  # 10s timeout for server selection
+        connectTimeoutMS=20000,          # 20s timeout for initial connection
+        socketTimeoutMS=30000,           # 30s timeout for socket operations
+        maxPoolSize=50,                  # Connection pool for Railway
+        retryWrites=True,
+        retryReads=True,
+        w='majority',                    # Write concern for Atlas
+        appname='genturix-backend'       # Identify app in Atlas logs
+    )
+    db = client[db_name]
+except Exception as e:
+    # Log error but don't crash - let health/readiness endpoints report the issue
+    import logging
+    logging.error(f"[MONGO] Failed to initialize client: {e}")
+    client = None
+    db = None
 
 # ==================== PHASE 1: ENVIRONMENT VALIDATION ====================
 # Environment Configuration - MUST be validated first
