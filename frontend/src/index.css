@@ -360,10 +360,6 @@ input:focus, select:focus, textarea:focus {
         /* Extra padding when running as installed app */
     }
     
-    #emergent-badge {
-        display: none !important;
-    }
-    
     #pwa-install-prompt {
         display: none !important;
     }
