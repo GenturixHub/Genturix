@@ -27,26 +27,6 @@
         
         <title>GENTURIX - Seguridad y Emergencias</title>
         
-        <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
-        
-        <script>
-            // Only load visual edit scripts when inside an iframe
-            if (window.self !== window.top) {
-                var debugMonitorScript = document.createElement('script');
-                debugMonitorScript.src = 'https://assets.emergent.sh/scripts/debug-monitor.js';
-                document.head.appendChild(debugMonitorScript);
-
-                window.tailwind = window.tailwind || {};
-                tailwind.config = {
-                    corePlugins: { preflight: false },
-                };
-
-                var tailwindScript = document.createElement('script');
-                tailwindScript.src = 'https://cdn.tailwindcss.com';
-                document.head.appendChild(tailwindScript);
-            }
-        </script>
-        
         <style>
             /* Critical CSS for fast first paint */
             body {
