@@ -302,6 +302,85 @@ api_router = APIRouter(prefix="/api")
 APP_VERSION = "1.0.0"
 APP_SERVICE_NAME = "genturix-api"
 
+# ============================================================
+# TEMPORARY SETUP ENDPOINT - REMOVE AFTER PRODUCTION INITIALIZATION
+# ============================================================
+@api_router.post("/setup/create-superadmin")
+async def setup_create_superadmin():
+    """
+    TEMPORARY: Creates SuperAdmin user if not exists.
+    
+    This endpoint is for initial production setup ONLY.
+    Remove this endpoint after first successful initialization.
+    
+    Returns:
+        200: SuperAdmin already exists
+        201: SuperAdmin created successfully
+        500: Error creating SuperAdmin
+    """
+    SUPERADMIN_EMAIL = "superadmin@genturix.com"
+    SUPERADMIN_PASSWORD = "Admin123!"
+    
+    try:
+        # Check if SuperAdmin already exists
+        existing_user = await db.users.find_one({"email": SUPERADMIN_EMAIL})
+        
+        if existing_user:
+            logger.info(f"[SETUP] SuperAdmin already exists: {existing_user.get('id')}")
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "status": "exists",
+                    "message": "SuperAdmin already exists",
+                    "user_id": existing_user.get("id")
+                }
+            )
+        
+        # Create new SuperAdmin
+        import uuid
+        from datetime import datetime, timezone
+        
+        new_user = {
+            "id": str(uuid.uuid4()),
+            "email": SUPERADMIN_EMAIL,
+            "hashed_password": hash_password(SUPERADMIN_PASSWORD),
+            "full_name": "Super Administrador",
+            "roles": ["SuperAdmin"],
+            "is_active": True,
+            "status": "active",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "condominium_id": None,
+            "password_reset_required": False
+        }
+        
+        await db.users.insert_one(new_user)
+        
+        logger.info(f"[SETUP] SuperAdmin created successfully: {new_user['id']}")
+        
+        return JSONResponse(
+            status_code=201,
+            content={
+                "status": "created",
+                "message": "SuperAdmin created successfully",
+                "user_id": new_user["id"],
+                "email": SUPERADMIN_EMAIL
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f"[SETUP] Error creating SuperAdmin: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "error",
+                "message": f"Error creating SuperAdmin: {str(e)}"
+            }
+        )
+# ============================================================
+# END TEMPORARY SETUP ENDPOINT
+# ============================================================
+
 @api_router.get("/health")
 async def health_check():
     """
