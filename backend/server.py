@@ -308,37 +308,58 @@ APP_SERVICE_NAME = "genturix-api"
 @api_router.post("/setup/create-superadmin")
 async def setup_create_superadmin():
     """
-    TEMPORARY: Creates SuperAdmin user if not exists.
+    TEMPORARY: Creates or resets SuperAdmin user.
     
     This endpoint is for initial production setup ONLY.
     Remove this endpoint after first successful initialization.
     
+    If user exists: Reset password and ensure correct role/status
+    If user not exists: Create new SuperAdmin
+    
     Returns:
-        200: SuperAdmin already exists
+        200: SuperAdmin password reset successfully
         201: SuperAdmin created successfully
-        500: Error creating SuperAdmin
+        500: Error
     """
     SUPERADMIN_EMAIL = "superadmin@genturix.com"
     SUPERADMIN_PASSWORD = "Admin123!"
     
     try:
+        from datetime import datetime, timezone
+        
         # Check if SuperAdmin already exists
         existing_user = await db.users.find_one({"email": SUPERADMIN_EMAIL})
         
         if existing_user:
-            logger.info(f"[SETUP] SuperAdmin already exists: {existing_user.get('id')}")
+            # Reset password and ensure correct role/status
+            new_hash = hash_password(SUPERADMIN_PASSWORD)
+            
+            await db.users.update_one(
+                {"email": SUPERADMIN_EMAIL},
+                {"$set": {
+                    "hashed_password": new_hash,
+                    "roles": ["SuperAdmin"],
+                    "status": "active",
+                    "is_active": True,
+                    "password_reset_required": False,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+            
+            logger.info(f"[SETUP] SuperAdmin password reset: {existing_user.get('id')}")
+            
             return JSONResponse(
                 status_code=200,
                 content={
-                    "status": "exists",
-                    "message": "SuperAdmin already exists",
-                    "user_id": existing_user.get("id")
+                    "status": "reset",
+                    "message": "SuperAdmin password reset successfully",
+                    "user_id": existing_user.get("id"),
+                    "email": SUPERADMIN_EMAIL
                 }
             )
         
         # Create new SuperAdmin
         import uuid
-        from datetime import datetime, timezone
         
         new_user = {
             "id": str(uuid.uuid4()),
