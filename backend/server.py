@@ -14118,9 +14118,36 @@ async def initialize_indexes():
 
 @app.on_event("startup")
 async def startup_event():
-    """Application startup tasks"""
-    await initialize_indexes()
-    await ensure_global_pricing_config()  # PHASE 1: Initialize global pricing
+    """
+    Application startup tasks.
+    
+    IMPORTANT: These tasks are non-blocking. If MongoDB fails, the app
+    will still start but features requiring DB will fail gracefully.
+    This allows Railway health checks to pass and the app to receive
+    traffic while DB issues are resolved.
+    """
+    # Test MongoDB connection first
+    try:
+        await db.command("ping")
+        logger.info("[STARTUP] MongoDB connection successful")
+    except Exception as e:
+        logger.error(f"[STARTUP] MongoDB connection FAILED: {e}")
+        logger.warning("[STARTUP] App will start but DB features will be unavailable")
+        return  # Skip DB-dependent initialization
+    
+    # Initialize indexes (non-fatal if fails)
+    try:
+        await initialize_indexes()
+    except Exception as e:
+        logger.error(f"[STARTUP] Index initialization failed: {e}")
+        logger.warning("[STARTUP] Indexes may not be optimized, but app will continue")
+    
+    # Initialize global pricing config (non-fatal if fails)
+    try:
+        await ensure_global_pricing_config()
+    except Exception as e:
+        logger.error(f"[STARTUP] Global pricing config failed: {e}")
+        logger.warning("[STARTUP] Pricing will use fallback defaults")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
