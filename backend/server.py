@@ -302,106 +302,6 @@ api_router = APIRouter(prefix="/api")
 APP_VERSION = "1.0.0"
 APP_SERVICE_NAME = "genturix-api"
 
-# ============================================================
-# TEMPORARY SETUP ENDPOINT - REMOVE AFTER PRODUCTION INITIALIZATION
-# ============================================================
-@api_router.post("/setup/create-superadmin")
-async def setup_create_superadmin():
-    """
-    TEMPORARY: Creates or resets SuperAdmin user.
-    
-    This endpoint is for initial production setup ONLY.
-    Remove this endpoint after first successful initialization.
-    
-    If user exists: Reset password and ensure correct role/status
-    If user not exists: Create new SuperAdmin
-    
-    Returns:
-        200: SuperAdmin password reset successfully
-        201: SuperAdmin created successfully
-        500: Error
-    """
-    SUPERADMIN_EMAIL = "superadmin@genturix.com"
-    SUPERADMIN_PASSWORD = "Admin123!"
-    
-    try:
-        from datetime import datetime, timezone
-        
-        # Check if SuperAdmin already exists
-        existing_user = await db.users.find_one({"email": SUPERADMIN_EMAIL})
-        
-        if existing_user:
-            # Reset password and ensure correct role/status
-            new_hash = hash_password(SUPERADMIN_PASSWORD)
-            
-            await db.users.update_one(
-                {"email": SUPERADMIN_EMAIL},
-                {"$set": {
-                    "hashed_password": new_hash,
-                    "roles": ["SuperAdmin"],
-                    "status": "active",
-                    "is_active": True,
-                    "password_reset_required": False,
-                    "updated_at": datetime.now(timezone.utc).isoformat()
-                }}
-            )
-            
-            logger.info(f"[SETUP] SuperAdmin password reset: {existing_user.get('id')}")
-            
-            return JSONResponse(
-                status_code=200,
-                content={
-                    "status": "reset",
-                    "message": "SuperAdmin password reset successfully",
-                    "user_id": existing_user.get("id"),
-                    "email": SUPERADMIN_EMAIL
-                }
-            )
-        
-        # Create new SuperAdmin
-        import uuid
-        
-        new_user = {
-            "id": str(uuid.uuid4()),
-            "email": SUPERADMIN_EMAIL,
-            "hashed_password": hash_password(SUPERADMIN_PASSWORD),
-            "full_name": "Super Administrador",
-            "roles": ["SuperAdmin"],
-            "is_active": True,
-            "status": "active",
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-            "condominium_id": None,
-            "password_reset_required": False
-        }
-        
-        await db.users.insert_one(new_user)
-        
-        logger.info(f"[SETUP] SuperAdmin created successfully: {new_user['id']}")
-        
-        return JSONResponse(
-            status_code=201,
-            content={
-                "status": "created",
-                "message": "SuperAdmin created successfully",
-                "user_id": new_user["id"],
-                "email": SUPERADMIN_EMAIL
-            }
-        )
-        
-    except Exception as e:
-        logger.error(f"[SETUP] Error creating SuperAdmin: {e}")
-        return JSONResponse(
-            status_code=500,
-            content={
-                "status": "error",
-                "message": f"Error creating SuperAdmin: {str(e)}"
-            }
-        )
-# ============================================================
-# END TEMPORARY SETUP ENDPOINT
-# ============================================================
-
 @api_router.get("/health")
 async def health_check():
     """
@@ -2989,12 +2889,16 @@ async def register(user_data: UserCreate, request: Request):
             raise HTTPException(status_code=400, detail="Condominium user limit reached")
     
     user_id = str(uuid.uuid4())
+    # SECURITY FIX: Force "Resident" role for all public registrations
+    # Prevents privilege escalation via self-assigned roles
+    forced_role = ["Resident"]
+    
     user_doc = {
         "id": user_id,
         "email": user_data.email,
         "full_name": user_data.full_name,
         "hashed_password": hash_password(user_data.password),
-        "roles": [role.value for role in user_data.roles],
+        "roles": forced_role,
         "condominium_id": user_data.condominium_id,
         "is_active": True,
         "created_at": datetime.now(timezone.utc).isoformat(),
