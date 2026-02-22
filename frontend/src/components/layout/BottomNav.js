@@ -33,7 +33,7 @@ export const useIsMobile = (breakpoint = 1023) => {
   return isMobile;
 };
 
-// Componente de ítem de navegación
+// Componente de ítem de navegación - MOBILE-FIRST: More compact
 const NavItem = ({ item, isActive, onClick, isCenter }) => {
   const Icon = item.icon;
   
@@ -42,43 +42,43 @@ const NavItem = ({ item, isActive, onClick, isCenter }) => {
       onClick={onClick}
       data-testid={`mobile-nav-${item.id}`}
       className={cn(
-        'flex flex-col items-center justify-center gap-1 transition-all duration-200',
-        'min-w-[64px] py-2 px-1',
+        'flex flex-col items-center justify-center gap-0.5 transition-all duration-200',
+        'min-w-[56px] py-1.5 px-1',
         'active:scale-95',
-        isCenter ? 'relative -mt-4' : '',
+        isCenter ? 'relative -mt-3' : '',
         isActive 
           ? 'text-primary' 
           : 'text-muted-foreground hover:text-white'
       )}
     >
       {isCenter ? (
-        // Botón central destacado (ej: Pánico)
+        // Botón central destacado (ej: Pánico) - Slightly smaller
         <div className={cn(
-          'w-14 h-14 rounded-full flex items-center justify-center',
+          'w-12 h-12 rounded-full flex items-center justify-center',
           'shadow-lg transition-all duration-200',
           item.bgColor || 'bg-red-600',
           item.glowColor || 'shadow-red-500/50',
           isActive && 'ring-2 ring-white/30 scale-105'
         )}>
-          <Icon className="w-7 h-7 text-white" strokeWidth={2.5} />
+          <Icon className="w-6 h-6 text-white" strokeWidth={2.5} />
         </div>
       ) : (
         <div className={cn(
-          'w-12 h-12 rounded-xl flex items-center justify-center',
+          'w-10 h-10 rounded-xl flex items-center justify-center',
           'transition-all duration-200',
           isActive 
             ? 'bg-primary/20' 
             : 'bg-transparent'
         )}>
           <Icon className={cn(
-            'w-6 h-6 transition-all',
+            'w-5 h-5 transition-all',
             isActive ? 'text-primary' : 'text-muted-foreground'
           )} />
         </div>
       )}
       <span className={cn(
-        'text-[10px] font-medium leading-none',
-        isCenter && 'mt-1',
+        'text-[9px] font-medium leading-none',
+        isCenter && 'mt-0.5',
         isActive ? 'text-primary' : 'text-muted-foreground'
       )}>
         {item.label}
