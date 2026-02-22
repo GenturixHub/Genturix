@@ -23,6 +23,8 @@ import ProfilePage from './pages/ProfilePage';
 import JoinPage from './pages/JoinPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import CondominiumSettingsPage from './pages/CondominiumSettingsPage';
+import UpdateBanner from './components/UpdateBanner';
+import useServiceWorkerUpdate from './hooks/useServiceWorkerUpdate';
 import './App.css';
 
 // Suppress PostHog errors in development
