@@ -179,14 +179,14 @@ const DashboardLayout = ({ children, title = 'Dashboard', variant = 'admin' }) =
   if (isMobile) {
     return (
       <div className="min-h-screen bg-[#05050A] flex flex-col">
-        {/* Mobile Header - Fixed at top */}
+        {/* Mobile Header - Fixed at top, MOBILE-FIRST: 56px max height */}
         <header className="sticky top-0 z-40 bg-[#0F111A] border-b border-[#1E293B] px-4 h-14 flex items-center justify-between safe-area-top flex-shrink-0">
-          <h1 className="text-lg font-semibold font-['Outfit']">{title}</h1>
+          <h1 className="text-base font-semibold font-['Outfit'] truncate">{title}</h1>
           {/* Hamburger menu removed - navigation is at the bottom */}
         </header>
         
-        {/* Content - Scrollable area with proper height */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-28" style={{ minHeight: 0 }}>
+        {/* Content - Scrollable area with proper bottom padding for nav */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 pb-24" style={{ minHeight: 0 }}>
           {children}
         </main>
         
