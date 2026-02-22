@@ -371,12 +371,20 @@ function AppRoutes() {
 }
 
 function App() {
+  const { showUpdate, isUpdating, triggerUpdate } = useServiceWorkerUpdate();
+
   return (
     <BrowserRouter>
       <AuthProvider>
         <ModulesProvider>
           <AppRoutes />
           <Toaster position="top-right" />
+          {/* Service Worker Update Banner */}
+          <UpdateBanner 
+            show={showUpdate} 
+            onUpdate={triggerUpdate} 
+            isUpdating={isUpdating} 
+          />
         </ModulesProvider>
       </AuthProvider>
     </BrowserRouter>
