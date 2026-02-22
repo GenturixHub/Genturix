@@ -41,7 +41,8 @@ export const MobileCard = ({
   onClick,
   testId,
   children,
-  className
+  className,
+  compact = false // NEW: Compact mode for denser lists
 }) => {
   const statusColors = {
     green: 'bg-green-500/20 text-green-400 border-green-500/30',
@@ -55,48 +56,53 @@ export const MobileCard = ({
   return (
     <div 
       className={cn(
-        'p-4 rounded-xl bg-[#0F111A] border border-[#1E293B]',
+        // MOBILE-FIRST: Reduced padding (12px vs 16px)
+        'py-3 px-3 rounded-lg bg-[#0F111A] border border-[#1E293B]',
         'transition-all duration-200',
-        onClick && 'cursor-pointer active:scale-[0.98] hover:border-[#2D3B4F]',
+        onClick && 'cursor-pointer active:scale-[0.99] hover:border-[#2D3B4F]',
+        compact && 'py-2.5 px-2.5',
         className
       )}
       onClick={onClick}
       data-testid={testId}
     >
-      {/* Header Row */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3 flex-1 min-w-0">
+      {/* Header Row - More compact */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2.5 flex-1 min-w-0">
           {Icon && (
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <Icon className="w-5 h-5 text-primary" />
+            // MOBILE-FIRST: Smaller avatar (36px vs 40px)
+            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <Icon className="w-4 h-4 text-primary" />
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-white truncate">{title}</h3>
+            {/* MOBILE-FIRST: Name + status in single line when possible */}
+            <div className="flex items-center gap-2">
+              <h3 className="font-medium text-sm text-white truncate">{title}</h3>
+              {status && (
+                <span className={cn(
+                  'px-1.5 py-0.5 text-[10px] font-medium rounded border whitespace-nowrap',
+                  statusColors[statusColor]
+                )}>
+                  {status}
+                </span>
+              )}
+            </div>
             {subtitle && (
-              <p className="text-sm text-muted-foreground truncate">{subtitle}</p>
+              <p className="text-xs text-muted-foreground truncate mt-0.5">{subtitle}</p>
             )}
           </div>
         </div>
         
-        {/* Status Badge or Actions Menu */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {status && (
-            <span className={cn(
-              'px-2 py-1 text-xs font-medium rounded-full border',
-              statusColors[statusColor]
-            )}>
-              {status}
-            </span>
-          )}
-          
+        {/* Actions Menu - Compact */}
+        <div className="flex items-center flex-shrink-0">
           {actions.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="h-8 w-8"
+                  className="h-7 w-7"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <MoreVertical className="w-4 h-4" />
@@ -111,7 +117,7 @@ export const MobileCard = ({
                       action.onClick?.();
                     }}
                     className={cn(
-                      'cursor-pointer',
+                      'cursor-pointer text-sm',
                       action.variant === 'destructive' && 'text-red-400 focus:text-red-400'
                     )}
                   >
@@ -124,18 +130,18 @@ export const MobileCard = ({
           )}
           
           {onClick && !actions.length && (
-            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
           )}
         </div>
       </div>
 
-      {/* Details Grid */}
+      {/* Details Grid - More compact */}
       {details.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-[#1E293B] grid grid-cols-2 gap-2">
+        <div className="mt-2 pt-2 border-t border-[#1E293B] grid grid-cols-2 gap-x-3 gap-y-1">
           {details.map((detail, idx) => (
             <div key={idx} className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{detail.label}</p>
-              <p className="text-sm text-white truncate">{detail.value || '-'}</p>
+              <p className="text-[9px] text-muted-foreground uppercase tracking-wide">{detail.label}</p>
+              <p className="text-xs text-white truncate">{detail.value || '-'}</p>
             </div>
           ))}
         </div>
@@ -149,9 +155,10 @@ export const MobileCard = ({
 
 /**
  * MobileCardList - Container for mobile cards with proper spacing
+ * MOBILE-FIRST: Reduced gap (8px vs 12px)
  */
 export const MobileCardList = ({ children, className }) => (
-  <div className={cn('space-y-3', className)}>
+  <div className={cn('space-y-2', className)}>
     {children}
   </div>
 );
