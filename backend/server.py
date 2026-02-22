@@ -2918,7 +2918,7 @@ async def register(user_data: UserCreate, request: Request):
         AuditEventType.USER_CREATED,
         user_id,
         "auth",
-        {"email": user_data.email, "roles": [r.value for r in user_data.roles], "condominium_id": user_data.condominium_id},
+        {"email": user_data.email, "roles": forced_role, "condominium_id": user_data.condominium_id},
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
     )
@@ -2927,7 +2927,7 @@ async def register(user_data: UserCreate, request: Request):
         id=user_id,
         email=user_data.email,
         full_name=user_data.full_name,
-        roles=[role.value for role in user_data.roles],
+        roles=forced_role,
         is_active=True,
         created_at=user_doc["created_at"],
         condominium_id=user_data.condominium_id
