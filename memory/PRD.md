@@ -1,8 +1,31 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 20, 2026 (Production Deployment Audit Complete)
+## Last Updated: February 22, 2026 (Critical Security Fixes Applied)
 
 ## Changelog
+
+### 2026-02-22 (Session 77) - Critical Security Vulnerabilities Fixed ✅
+
+**SECURITY FIXES APPLIED:**
+
+1. **🚨 REMOVED: Unauthenticated SuperAdmin Endpoint**
+   - Endpoint: `POST /api/setup/create-superadmin`
+   - Vulnerability: Anyone could reset the SuperAdmin password without authentication
+   - Fix: **Endpoint completely deleted** from `backend/server.py`
+   - Verified: Returns 404 Not Found
+
+2. **🚨 FIXED: Privilege Escalation on Registration**
+   - Endpoint: `POST /api/auth/register`
+   - Vulnerability: Users could self-assign any role (including SuperAdmin)
+   - Fix: **Force `["Resident"]` role** for all public registrations, ignoring user-provided roles
+   - Verified: Registration with `roles: ["SuperAdmin"]` now returns `roles: ["Resident"]`
+
+**Testing Results:**
+- ✅ Setup endpoint returns 404 (deleted)
+- ✅ Registration forces Resident role regardless of input
+- ✅ Existing SuperAdmin login still works correctly
+
+---
 
 ### 2026-02-20 (Session 76) - Full Production Deployment Audit ✅
 
