@@ -479,6 +479,108 @@
 }
 
 /* ============================================
+   MOBILE-FIRST DENSE UI (≤768px)
+   ============================================ */
+
+@media (max-width: 768px) {
+  /* CARDS: Reduced vertical padding */
+  .mobile-card-dense,
+  [data-mobile-dense="true"] {
+    padding: 0.75rem !important;
+  }
+
+  /* AVATARS: Smaller in lists (36-40px) */
+  .mobile-avatar-sm {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .mobile-avatar-md {
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  /* GAP: Reduced spacing between cards */
+  .mobile-list-dense {
+    gap: 0.5rem !important;
+  }
+
+  .mobile-list-dense > * + * {
+    margin-top: 0.5rem;
+  }
+
+  /* HEADER: Compact (max 56px) */
+  .mobile-header-56 {
+    height: 56px !important;
+    max-height: 56px !important;
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+
+  /* TEXT: Single line compact */
+  .mobile-text-compact {
+    font-size: 0.875rem;
+    line-height: 1.25;
+  }
+
+  /* LAST ITEM: Padding for bottom nav clearance */
+  .mobile-last-item-padding {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 16px)) !important;
+  }
+
+  /* ScrollArea: Account for bottom nav */
+  .mobile-scroll-with-nav {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom, 20px));
+  }
+
+  /* Stats cards: More compact */
+  .mobile-stats-card {
+    padding: 0.625rem !important;
+  }
+
+  .mobile-stats-card .text-2xl {
+    font-size: 1.25rem !important;
+  }
+
+  /* Badge: Smaller */
+  .mobile-badge-sm {
+    padding: 0.125rem 0.375rem !important;
+    font-size: 0.625rem !important;
+  }
+
+  /* Card Header: Reduced spacing */
+  [data-slot="card-header"] {
+    padding: 0.75rem !important;
+  }
+
+  /* Card Content: Reduced spacing */
+  [data-slot="card-content"] {
+    padding: 0.75rem !important;
+    padding-top: 0 !important;
+  }
+
+  /* Filters row: Stack on very small screens */
+  .mobile-filters-stack {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  /* User list item: Compact layout */
+  .mobile-user-item {
+    padding: 0.625rem 0.75rem !important;
+    gap: 0.625rem !important;
+  }
+
+  /* Icon button: Smaller touch target for dense lists */
+  .mobile-icon-btn-sm {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    min-height: 28px !important;
+  }
+}
+
+/* ============================================
    LANDSCAPE MOBILE
    ============================================ */
 
