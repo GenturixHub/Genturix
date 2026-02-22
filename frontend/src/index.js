@@ -7,6 +7,7 @@ import App from "@/App";
 import './i18n';
 
 // ==================== SERVICE WORKER REGISTRATION ====================
+// Simple registration - update detection is handled by useServiceWorkerUpdate hook
 const registerServiceWorker = async () => {
   if ('serviceWorker' in navigator) {
     try {
@@ -14,20 +15,7 @@ const registerServiceWorker = async () => {
         scope: '/'
       });
       
-      console.log('[SW] Service Worker registered successfully:', registration.scope);
-      
-      // Check for updates
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing;
-        console.log('[SW] New Service Worker installing...');
-        
-        newWorker?.addEventListener('statechange', () => {
-          if (newWorker.state === 'activated') {
-            console.log('[SW] New Service Worker activated');
-          }
-        });
-      });
-      
+      console.log('[SW] Service Worker registered:', registration.scope);
       return registration;
     } catch (error) {
       console.error('[SW] Service Worker registration failed:', error);
