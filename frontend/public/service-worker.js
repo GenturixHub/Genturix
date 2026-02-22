@@ -1,22 +1,37 @@
 // =========================================================================
-// GENTURIX Service Worker v6 - MINIMAL PUSH ONLY
+// GENTURIX Service Worker v7 - PUSH + CONTROLLED UPDATES
 // =========================================================================
-// Este Service Worker SOLO maneja notificaciones push.
+// Este Service Worker maneja notificaciones push y actualizaciones controladas.
 // NO intercepta fetch, NO usa cache, NO tiene lógica offline.
 // =========================================================================
 
+// Version for cache busting (change on each deploy)
+const SW_VERSION = '7.0.0';
+
 // =========================================================================
-// INSTALL - Solo skipWaiting
+// INSTALL - Wait for SKIP_WAITING message (controlled update)
 // =========================================================================
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
+  console.log(`[SW v${SW_VERSION}] Installing...`);
+  // NO skipWaiting() here - we wait for user action
 });
 
 // =========================================================================
-// ACTIVATE - Solo clients.claim
+// ACTIVATE - Claim clients
 // =========================================================================
 self.addEventListener('activate', (event) => {
+  console.log(`[SW v${SW_VERSION}] Activated`);
   event.waitUntil(self.clients.claim());
+});
+
+// =========================================================================
+// MESSAGE - Handle SKIP_WAITING from client
+// =========================================================================
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log(`[SW v${SW_VERSION}] Received SKIP_WAITING, activating new version...`);
+    self.skipWaiting();
+  }
 });
 
 // =========================================================================
