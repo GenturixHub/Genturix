@@ -120,7 +120,8 @@ const MobileBottomNav = ({
       // Lower z-index than dialogs (which use z-60+)
       style={{ zIndex: 50 }}
     >
-      <div className="flex items-end justify-around px-2 pb-1 pt-1">
+      {/* MOBILE-FIRST: Reduced vertical padding */}
+      <div className="flex items-end justify-around px-1 pb-1 pt-0.5">
         {items.map((item, index) => (
           <NavItem
             key={item.id}
