@@ -3489,6 +3489,125 @@ async def cleanup_invalid_subscriptions(current_user = Depends(require_role(Role
         "total_deleted": total_deleted
     }
 
+
+# ============================================================
+# TEMPORARY DEBUG ENDPOINTS - REMOVE AFTER PRODUCTION DEBUG
+# ============================================================
+
+@api_router.get("/push/debug")
+async def debug_push_subscriptions(current_user = Depends(get_current_user)):
+    """
+    [TEMPORARY DEBUG] Get current user's push subscription status.
+    
+    Returns subscription metadata WITHOUT sensitive keys (p256dh, auth).
+    Use this to verify subscriptions are being stored correctly.
+    
+    REMOVE THIS ENDPOINT AFTER DEBUGGING.
+    """
+    user_id = current_user.get("id")
+    
+    try:
+        subscriptions = await db.push_subscriptions.find(
+            {"user_id": user_id, "is_active": True},
+            {"_id": 0, "endpoint": 1, "is_active": 1, "created_at": 1, "updated_at": 1, "role": 1, "condominium_id": 1}
+        ).to_list(None)
+        
+        # Truncate endpoints for readability (they're very long)
+        safe_subs = []
+        for sub in subscriptions:
+            safe_subs.append({
+                "endpoint": sub.get("endpoint", "")[:80] + "..." if len(sub.get("endpoint", "")) > 80 else sub.get("endpoint", ""),
+                "endpoint_full_length": len(sub.get("endpoint", "")),
+                "is_active": sub.get("is_active", False),
+                "role": sub.get("role"),
+                "condominium_id": sub.get("condominium_id"),
+                "created_at": sub.get("created_at"),
+                "updated_at": sub.get("updated_at")
+            })
+        
+        logger.info(f"[PUSH-DEBUG] User {user_id} has {len(subscriptions)} active subscriptions")
+        
+        return {
+            "user_id": user_id,
+            "subscriptions_count": len(subscriptions),
+            "subscriptions": safe_subs,
+            "vapid_configured": bool(VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY)
+        }
+        
+    except Exception as e:
+        logger.error(f"[PUSH-DEBUG] Error fetching subscriptions for user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching subscriptions: {str(e)}")
+
+
+@api_router.post("/push/test")
+async def test_push_notification(current_user = Depends(get_current_user)):
+    """
+    [TEMPORARY DEBUG] Send a test push notification to current user.
+    
+    Uses existing send_push_to_user() function.
+    Helps verify the entire push pipeline works end-to-end.
+    
+    REMOVE THIS ENDPOINT AFTER DEBUGGING.
+    """
+    user_id = current_user.get("id")
+    
+    # Check VAPID configuration
+    if not VAPID_PUBLIC_KEY or not VAPID_PRIVATE_KEY:
+        raise HTTPException(
+            status_code=503, 
+            detail="VAPID keys not configured on server"
+        )
+    
+    # Check if user has active subscriptions
+    sub_count = await db.push_subscriptions.count_documents({
+        "user_id": user_id,
+        "is_active": True
+    })
+    
+    if sub_count == 0:
+        raise HTTPException(
+            status_code=400,
+            detail="No hay suscripciones push activas. Activa las notificaciones primero en tu perfil."
+        )
+    
+    logger.info(f"[PUSH-TEST] Sending test push to {sub_count} subscriptions for user {user_id}")
+    
+    # Send test notification using existing function
+    payload = {
+        "title": "Test Push Production",
+        "body": "Si recibes esto, Web Push funciona correctamente.",
+        "icon": "/logo192.png",
+        "badge": "/logo192.png",
+        "tag": "test-push",
+        "data": {
+            "type": "test",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+    }
+    
+    try:
+        result = await send_push_to_user(user_id, payload)
+        
+        logger.info(f"[PUSH-TEST] Test push result for user {user_id}: {result}")
+        
+        return {
+            "status": "sent",
+            "user_id": user_id,
+            "subscriptions_attempted": result.get("total", sub_count),
+            "successful": result.get("success", 0),
+            "failed": result.get("failed", 0),
+            "message": "Notificación de prueba enviada. Debería aparecer en unos segundos."
+        }
+        
+    except Exception as e:
+        logger.error(f"[PUSH-TEST] Error sending test push to user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error sending push: {str(e)}")
+
+# ============================================================
+# END TEMPORARY DEBUG ENDPOINTS
+# ============================================================
+
+
 # ==================== PROFILE MODULE ====================
 @api_router.get("/profile", response_model=ProfileResponse)
 async def get_profile(current_user = Depends(get_current_user)):
