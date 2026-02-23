@@ -1,8 +1,62 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 22, 2026 (Critical Security Fixes Applied)
+## Last Updated: February 23, 2026 (httpOnly Cookie Security + Resident Module Refactor)
 
 ## Changelog
+
+### 2026-02-23 (Session 78) - High-Severity Security Fix + Architecture Refactor ✅
+
+**CRITICAL SECURITY FIX - JWT Refresh Token Storage:**
+
+1. **🔐 MIGRATED: Refresh Token from localStorage to httpOnly Cookie**
+   - **Before:** Refresh token was stored in browser localStorage (XSS vulnerable)
+   - **After:** Refresh token is now stored in secure httpOnly cookie
+   - **Cookie Configuration:**
+     - `HttpOnly=true` - Prevents JavaScript access (XSS protection)
+     - `SameSite=lax` - CSRF protection
+     - `Path=/api/auth` - Only sent to auth endpoints
+     - `Max-Age=604800` - 7 days expiration
+     - `Secure=true` in production (HTTPS only)
+   - **Files Modified:**
+     - `backend/server.py` - Login, refresh, logout endpoints now use cookies
+     - `frontend/src/contexts/AuthContext.js` - Removed localStorage storage of refresh token
+     - `frontend/src/services/api.js` - Uses `credentials: 'include'` for cookie handling
+
+**ARCHITECTURE REFACTOR - Resident Module Isolation:**
+
+2. **📦 COMPLETED: Resident Module Independent Layout**
+   - Created isolated feature module at `/frontend/src/features/resident/`
+   - **New Files:**
+     - `ResidentLayout.jsx` - Independent mobile-first layout for residents
+     - `ResidentHome.jsx` - Main resident interface with all tabs
+     - `index.js` - Module exports
+   - **Benefits:**
+     - Cleaner code architecture
+     - Easier maintenance
+     - Independent of DashboardLayout
+   - **Verified Working:** All 5 tabs (Emergencia, Visitas, Reservas, Personas, Perfil)
+
+**CODE CLEANUP:**
+
+3. **🗑️ REMOVED: Dead Code Files**
+   - Deleted: `frontend/src/styles/emergency-buttons-v1-legacy.css`
+   - Deleted: `frontend/src/utils/PushNotificationManager.js`
+
+4. **🐛 FIXED: Registration Role Assignment**
+   - Changed forced role from "Resident" (English) to "Residente" (Spanish)
+   - Now consistent with rest of application
+
+**Testing Results:**
+- ✅ Backend: 100% (10/10 httpOnly cookie tests passed)
+- ✅ Frontend: 100% (all tabs navigable, localStorage secure)
+- ✅ Security Verification: All 9 security checks PASS
+- ✅ Test report: `/app/test_reports/iteration_1.json`
+
+**Credentials for Testing:**
+- Resident: `residente.test@genturix.com` / `Test123!`
+- SuperAdmin: `superadmin@genturix.com` / `Admin123!`
+
+---
 
 ### 2026-02-22 (Session 77) - Critical Security Vulnerabilities Fixed ✅
 
