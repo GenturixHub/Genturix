@@ -3190,7 +3190,17 @@ async def logout(request: Request, current_user = Depends(get_current_user)):
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
     )
-    return {"message": "Successfully logged out"}
+    
+    # Create response and clear the refresh token cookie
+    response = JSONResponse(content={"message": "Successfully logged out"})
+    response.delete_cookie(
+        key=REFRESH_TOKEN_COOKIE_NAME,
+        path="/api/auth",
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE
+    )
+    
+    return response
 
 @api_router.get("/auth/me", response_model=UserResponse)
 async def get_me(current_user = Depends(get_current_user)):
