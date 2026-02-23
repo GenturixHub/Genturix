@@ -219,7 +219,7 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
 
   return (
     <ScrollArea className="h-full">
-      <div className="px-4 py-6 space-y-5 max-w-lg mx-auto">
+      <div className="px-4 py-6 space-y-5 max-w-lg mx-auto pb-32">
         
         {/* Back Button */}
         {onBack && (
