@@ -137,8 +137,15 @@ const AdminMobileNav = ({ activeRoute }) => {
         </div>
       )}
 
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0F]/95 backdrop-blur-lg border-t border-[#1E293B] safe-area-bottom" data-testid="admin-mobile-nav">
-        <div className="flex items-center justify-around px-1 py-0.5">
+      <nav 
+        className="fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0F] border-t border-[#1E293B]/60" 
+        data-testid="admin-mobile-nav"
+        style={{ 
+          height: '72px',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+        }}
+      >
+        <div className="flex items-center justify-around h-full px-2">
           {items.map((item) => {
             const Icon = item.icon;
             const isActive = item.isMenu 
@@ -151,18 +158,18 @@ const AdminMobileNav = ({ activeRoute }) => {
                 onClick={() => item.isMenu ? setShowMoreMenu(!showMoreMenu) : navigate(item.href)}
                 data-testid={`admin-nav-${item.id}`}
                 className={cn(
-                  'flex flex-col items-center justify-center gap-0.5 py-1.5 px-2 min-w-[52px]',
-                  'transition-all duration-200 active:scale-95',
-                  isActive ? 'text-primary' : 'text-muted-foreground hover:text-white'
+                  'flex flex-col items-center justify-center flex-1 py-2 min-h-[60px]',
+                  'transition-all duration-150 active:scale-95 active:opacity-80',
+                  isActive ? 'text-primary' : 'text-muted-foreground'
                 )}
               >
                 <div className={cn(
-                  'w-9 h-9 rounded-xl flex items-center justify-center',
-                  isActive ? 'bg-primary/20' : 'bg-transparent'
+                  'w-11 h-11 rounded-2xl flex items-center justify-center mb-0.5',
+                  isActive ? 'bg-primary/15' : 'bg-transparent'
                 )}>
-                  <Icon className={cn('w-5 h-5', isActive ? 'text-primary' : '')} />
+                  <Icon className={cn('w-[22px] h-[22px]', isActive ? 'text-primary' : '')} />
                 </div>
-                <span className="text-[9px] font-medium">{t(item.labelKey, item.id === 'more' ? 'Más' : '')}</span>
+                <span className="text-[10px] font-medium">{t(item.labelKey, item.id === 'more' ? 'Más' : '')}</span>
               </button>
             );
           })}
