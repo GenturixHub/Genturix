@@ -532,7 +532,7 @@ class UserResponse(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
-    refresh_token: str
+    refresh_token: Optional[str] = None  # DEPRECATED: Now sent as httpOnly cookie
     token_type: str = "bearer"
     user: UserResponse
     password_reset_required: bool = False  # Flag for frontend to show password change dialog
