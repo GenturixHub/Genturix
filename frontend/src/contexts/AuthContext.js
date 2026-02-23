@@ -443,7 +443,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     accessToken,
-    refreshToken,
+    // SECURITY: refreshToken removed - now managed via httpOnly cookie
     isLoading,
     isAuthenticated: !!user && !!accessToken,
     passwordResetRequired,
