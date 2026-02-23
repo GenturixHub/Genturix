@@ -477,8 +477,8 @@ const ResidentHome = () => {
 
   return (
     <ResidentLayout activeTab={activeTab} onTabChange={setActiveTab}>
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
-        <TabsContent value="emergency" className="mt-0">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
+        <TabsContent value="emergency" className="mt-0 flex-1 min-h-0">
           <EmergencyTab
             location={location}
             locationLoading={locationLoading}
