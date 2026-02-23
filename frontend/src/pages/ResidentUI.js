@@ -158,7 +158,7 @@ const STATUS_CONFIG = {
 // ============================================
 // HERO EMERGENCY BUTTON - Circular Premium Design
 // ============================================
-const HeroEmergencyButton = ({ config, onPress, disabled, isLoading }) => {
+const HeroEmergencyButton = ({ config, onPress, disabled, isLoading, enlarged = false }) => {
   const [ripples, setRipples] = useState([]);
   const IconComponent = config.icon;
 
@@ -179,12 +179,22 @@ const HeroEmergencyButton = ({ config, onPress, disabled, isLoading }) => {
     onPress(config.id);
   };
 
+  // Enlarged styles for visual test
+  const enlargedStyles = enlarged ? {
+    width: '280px',
+    height: '280px',
+    background: 'radial-gradient(circle at 30% 30%, #ff4444 0%, #cc0000 50%, #990000 100%)',
+    border: '4px solid rgba(255, 255, 255, 0.9)',
+    boxShadow: '0 0 60px rgba(255, 0, 0, 0.5), 0 0 100px rgba(255, 0, 0, 0.3), inset 0 -8px 20px rgba(0,0,0,0.3)'
+  } : {};
+
   return (
     <button
       onClick={handlePress}
       disabled={disabled || isLoading}
       data-testid={`panic-btn-${config.id}`}
-      className={`emergency-hero-circle ${isLoading ? 'is-loading' : ''}`}
+      className={`emergency-hero-circle ${isLoading ? 'is-loading' : ''} ${enlarged ? 'emergency-hero-enlarged' : ''}`}
+      style={enlargedStyles}
     >
       {/* Shimmer effect overlay */}
       <div className="emergency-hero-shimmer" />
@@ -199,7 +209,7 @@ const HeroEmergencyButton = ({ config, onPress, disabled, isLoading }) => {
       ))}
       
       {/* Icon */}
-      <div className="emergency-hero-icon-wrapper">
+      <div className="emergency-hero-icon-wrapper" style={enlarged ? { transform: 'scale(1.3)' } : {}}>
         {isLoading ? (
           <Loader2 />
         ) : (
@@ -209,8 +219,8 @@ const HeroEmergencyButton = ({ config, onPress, disabled, isLoading }) => {
       
       {/* Text */}
       <div className="emergency-hero-text">
-        <p className="emergency-hero-label">{config.shortLabel || 'EMERGENCIA'}</p>
-        <p className="emergency-hero-sublabel">{config.subLabel}</p>
+        <p className="emergency-hero-label" style={enlarged ? { fontSize: '1.5rem' } : {}}>{config.shortLabel || 'EMERGENCIA'}</p>
+        <p className="emergency-hero-sublabel" style={enlarged ? { fontSize: '0.9rem' } : {}}>{config.subLabel}</p>
       </div>
     </button>
   );
