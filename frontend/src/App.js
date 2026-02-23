@@ -13,7 +13,8 @@ import SchoolModule from './pages/SchoolModule';
 import PaymentsModule from './pages/PaymentsModule';
 import AuditModule from './pages/AuditModule';
 import ReservationsModule from './pages/ReservationsModule';
-import ResidentUI from './pages/ResidentUI';
+// Resident module - independent mobile-first layout
+import { ResidentHome } from './features/resident';
 import GuardUI from './pages/GuardUI';
 import StudentUI from './pages/StudentUI';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
