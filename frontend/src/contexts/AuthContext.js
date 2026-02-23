@@ -344,12 +344,13 @@ export const AuthProvider = ({ children }) => {
         // Push is tied to the device, not the session
         // User can manually disable push in their profile settings
         
-        // Call logout endpoint to invalidate refresh token
+        // Call logout endpoint to invalidate refresh token and clear httpOnly cookie
         await fetch(`${API_URL}/api/auth/logout`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${accessToken}`,
           },
+          credentials: 'include',  // SECURITY: Clear httpOnly cookie
         });
         console.log('[Auth] Logout API called');
       }
@@ -358,13 +359,11 @@ export const AuthProvider = ({ children }) => {
     } finally {
       // Clear local auth state only (not push subscription)
       localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER);
       localStorage.removeItem(STORAGE_KEYS.PASSWORD_RESET);
       
       setUser(null);
       setAccessToken(null);
-      setRefreshToken(null);
       setPasswordResetRequired(false);
       
       console.log('[Auth] Logout complete - push subscription preserved');
