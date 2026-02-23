@@ -345,30 +345,50 @@ const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, s
     {/* GPS Status - Premium Badge */}
     <GPSStatus location={location} isLoading={locationLoading} error={locationError} />
     
-    {/* HERO BUTTON - Emergencia General (Large Circle) */}
-    <HeroEmergencyButton
-      config={EMERGENCY_TYPES.emergencia_general}
-      onPress={onEmergency}
-      disabled={!!sendingType}
-      isLoading={sendingType === 'emergencia_general'}
-    />
-    
-    {/* SECONDARY BUTTONS - Smaller Circles */}
-    <div className="emergency-secondary-grid">
-      <SecondaryEmergencyButton
-        config={EMERGENCY_TYPES.emergencia_medica}
-        variant="medical"
-        onPress={onEmergency}
-        disabled={!!sendingType}
-        isLoading={sendingType === 'emergencia_medica'}
-      />
-      <SecondaryEmergencyButton
-        config={EMERGENCY_TYPES.actividad_sospechosa}
-        variant="suspicious"
-        onPress={onEmergency}
-        disabled={!!sendingType}
-        isLoading={sendingType === 'actividad_sospechosa'}
-      />
+    {/* VISUAL TEST CONTAINER - Emergency Section */}
+    <div 
+      className="mx-3 mt-5 p-5 rounded-3xl"
+      style={{
+        background: 'rgba(15, 17, 26, 0.85)',
+        backdropFilter: 'blur(12px)',
+        boxShadow: '0 8px 32px rgba(59, 130, 246, 0.15), 0 0 60px rgba(59, 130, 246, 0.05)',
+        border: '1px solid rgba(59, 130, 246, 0.1)'
+      }}
+      data-testid="emergency-visual-container"
+    >
+      {/* HERO BUTTON - Emergencia General (Large Circle) - ENLARGED */}
+      <div className="flex justify-center">
+        <HeroEmergencyButton
+          config={EMERGENCY_TYPES.emergencia_general}
+          onPress={onEmergency}
+          disabled={!!sendingType}
+          isLoading={sendingType === 'emergencia_general'}
+          enlarged={true}
+        />
+      </div>
+      
+      {/* SECONDARY BUTTONS - Flex Container with spacing */}
+      <div 
+        className="flex justify-between items-center gap-5 mt-6 px-2"
+        data-testid="emergency-secondary-container"
+      >
+        <SecondaryEmergencyButton
+          config={EMERGENCY_TYPES.emergencia_medica}
+          variant="medical"
+          onPress={onEmergency}
+          disabled={!!sendingType}
+          isLoading={sendingType === 'emergencia_medica'}
+          enlarged={true}
+        />
+        <SecondaryEmergencyButton
+          config={EMERGENCY_TYPES.actividad_sospechosa}
+          variant="suspicious"
+          onPress={onEmergency}
+          disabled={!!sendingType}
+          isLoading={sendingType === 'actividad_sospechosa'}
+          enlarged={true}
+        />
+      </div>
     </div>
     
     {/* Instruction text - Hidden on small screens */}
