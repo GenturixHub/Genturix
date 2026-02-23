@@ -104,6 +104,14 @@ JWT_ALGORITHM = os.environ.get('JWT_ALGORITHM', 'HS256')
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get('ACCESS_TOKEN_EXPIRE_MINUTES', 15))
 REFRESH_TOKEN_EXPIRE_MINUTES = int(os.environ.get('REFRESH_TOKEN_EXPIRE_MINUTES', 10080))
 
+# ==================== SECURE COOKIE CONFIGURATION ====================
+# Cookie name for refresh token
+REFRESH_TOKEN_COOKIE_NAME = "genturix_refresh_token"
+# Cookie settings - SECURITY: httpOnly prevents XSS, Secure requires HTTPS
+COOKIE_SECURE = ENVIRONMENT == "production"  # True in production (HTTPS required)
+COOKIE_SAMESITE = "lax"  # Prevents CSRF while allowing same-site navigation
+COOKIE_MAX_AGE = REFRESH_TOKEN_EXPIRE_MINUTES * 60  # Convert to seconds
+
 # Email Configuration (Resend)
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
 SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'noreply@genturix.com')
