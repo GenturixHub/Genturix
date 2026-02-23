@@ -10,7 +10,7 @@ import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Shield, LogOut, Users, Calendar, User, AlertTriangle } from 'lucide-react';
-import MobileBottomNav from '../../components/layout/BottomNav';
+import MobileBottomNav from '../../components/layout/BottomNav.js';
 
 // Navigation items for Resident
 const RESIDENT_NAV_ITEMS = [
