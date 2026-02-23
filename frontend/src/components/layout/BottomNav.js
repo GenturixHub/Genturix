@@ -89,6 +89,7 @@ const NavItem = ({ item, isActive, onClick, isCenter }) => {
 
 /**
  * MobileBottomNav - Navegación inferior para móviles
+ * Native App Style - Full width, consistent height
  * 
  * @param {Array} items - Array de items de navegación
  * @param {string} activeTab - Tab actualmente activo
@@ -108,20 +109,17 @@ const MobileBottomNav = ({
 
   return (
     <nav 
-      className={cn(
-        'fixed bottom-0 left-0 right-0 z-50',
-        'bg-[#0A0A0F]/95 backdrop-blur-lg',
-        'border-t border-[#1E293B]',
-        'safe-area-bottom',
-        // Ensure nav doesn't block content when dialog is open
-        'pointer-events-auto'
-      )}
+      className="fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0F] border-t border-[#1E293B]/60"
       data-testid="mobile-bottom-nav"
-      // Lower z-index than dialogs (which use z-60+)
-      style={{ zIndex: 50 }}
+      style={{ 
+        height: '72px',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+      }}
     >
-      {/* MOBILE-FIRST: Reduced vertical padding */}
-      <div className="flex items-end justify-around px-1 pb-1 pt-0.5">
+      <div 
+        className="flex items-center justify-around h-full px-2"
+        style={{ maxHeight: '72px' }}
+      >
         {items.map((item, index) => (
           <NavItem
             key={item.id}
