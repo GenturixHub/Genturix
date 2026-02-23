@@ -102,6 +102,7 @@ class ApiService {
       const response = await apiRequest(url, {
         ...options,
         headers,
+        credentials: 'include',  // SECURITY: Always include httpOnly cookies
       });
       
       // Successful response
@@ -124,7 +125,7 @@ class ApiService {
             
             // Retry original request with new token
             headers['Authorization'] = `Bearer ${data.access_token}`;
-            return await apiRequest(url, { ...options, headers });
+            return await apiRequest(url, { ...options, headers, credentials: 'include' });
           }
         } catch (e) {
           // Refresh failed, clear storage
