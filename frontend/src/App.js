@@ -245,10 +245,10 @@ function AppRoutes() {
 
       {/* === ROLE-SPECIFIC UIs === */}
       
-      {/* Resident UI - Emergency First */}
+      {/* Resident UI - Emergency First (Independent mobile-first layout) */}
       <Route path="/resident" element={
         <ProtectedRoute allowedRoles={['Residente', 'Administrador']}>
-          <ResidentUI />
+          <ResidentHome />
         </ProtectedRoute>
       } />
 
