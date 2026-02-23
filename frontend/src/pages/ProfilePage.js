@@ -342,11 +342,11 @@ const ProfilePage = () => {
   if (!isOwnProfile && error) {
     return (
       <DashboardLayout title={pageTitle}>
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="w-full space-y-4 lg:max-w-4xl lg:mx-auto">
           <Button 
             variant="ghost" 
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 -ml-2"
             data-testid="back-btn"
           >
             <ArrowLeft className="w-4 h-4" />
