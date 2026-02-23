@@ -2889,9 +2889,9 @@ async def register(user_data: UserCreate, request: Request):
             raise HTTPException(status_code=400, detail="Condominium user limit reached")
     
     user_id = str(uuid.uuid4())
-    # SECURITY FIX: Force "Resident" role for all public registrations
+    # SECURITY FIX: Force "Residente" role for all public registrations
     # Prevents privilege escalation via self-assigned roles
-    forced_role = ["Resident"]
+    forced_role = ["Residente"]
     
     user_doc = {
         "id": user_id,
