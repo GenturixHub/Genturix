@@ -240,41 +240,30 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
                               <AvatarImage src={dirUser.profile_photo} />
                               <AvatarFallback className={`${config.color} text-sm font-bold`}>
                                 {dirUser.full_name?.charAt(0).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                              {dirUser.profile_photo && (
-                                <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                  <ZoomIn className="w-4 h-4 text-white" />
-                                </div>
-                              )}
-                            </div>
-                            
-                            {/* Info */}
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-medium truncate">{dirUser.full_name}</h3>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <Badge className={`${config.color} text-[10px] px-1.5 py-0`}>
-                                  {role}
-                                </Badge>
-                                {dirUser.phone && (
-                                  <span className="flex items-center gap-1">
-                                    <Phone className="w-3 h-3" />
-                                    {dirUser.phone}
-                                  </span>
-                                )}
-                              </div>
-                              {dirUser.public_description && (
-                                <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                                  {dirUser.public_description}
-                                </p>
-                              )}
-                            </div>
-                            
-                            {/* Arrow */}
-                            <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                              </AvatarFallback>
+                            </Avatar>
                           </div>
-                        </CardContent>
-                      </Card>
+                          
+                          {/* Info */}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm text-white truncate">{dirUser.full_name}</h3>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <Badge className={`${config.color} text-[10px] px-1.5 py-0`}>
+                                {role}
+                              </Badge>
+                              {dirUser.phone && (
+                                <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                                  <Phone className="w-3 h-3" />
+                                  {dirUser.phone}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Arrow */}
+                          <ChevronRight className="w-5 h-5 text-muted-foreground/50 flex-shrink-0" />
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
