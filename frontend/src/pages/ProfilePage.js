@@ -386,36 +386,37 @@ const ProfilePage = () => {
 
   return (
     <DashboardLayout title={pageTitle}>
-      <div className="max-w-4xl mx-auto space-y-6">
+      {/* Mobile-first: full width, no max-width constraints */}
+      <div className="w-full space-y-4 lg:max-w-4xl lg:mx-auto">
         {/* Back button - Always show with appropriate destination */}
         <div className="flex items-center justify-between">
           <Button 
             variant="ghost" 
             onClick={() => isOwnProfile ? navigate(getDashboardUrl()) : navigate(-1)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 -ml-2"
             data-testid="back-btn"
           >
             <ArrowLeft className="w-4 h-4" />
-            {isOwnProfile ? 'Volver al Dashboard' : 'Volver'}
+            {isOwnProfile ? 'Volver' : 'Volver'}
           </Button>
         </div>
 
         {/* Success/Error Messages */}
         {success && (
-          <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 flex items-center gap-2">
-            <CheckCircle className="w-4 h-4" />
+          <div className="p-3 rounded-2xl bg-green-500/10 border border-green-500/20 text-green-400 flex items-center gap-2 text-sm">
+            <CheckCircle className="w-4 h-4 flex-shrink-0" />
             {success}
           </div>
         )}
         {error && isOwnProfile && (
-          <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-2">
-            <XCircle className="w-4 h-4" />
+          <div className="p-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center gap-2 text-sm">
+            <XCircle className="w-4 h-4 flex-shrink-0" />
             {error}
           </div>
         )}
 
-        {/* Profile Header */}
-        <Card className="bg-[#0F111A] border-[#1E293B]">
+        {/* Profile Header - Full width card */}
+        <Card className="bg-[#0F111A] border-[#1E293B] rounded-2xl overflow-hidden">
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row items-center gap-6">
               {/* Avatar - Clickable to expand */}
