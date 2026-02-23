@@ -98,14 +98,32 @@ export function usePushNotifications() {
 
       // Send subscription to server
       const subscriptionJson = subscription.toJSON();
-      await api.subscribeToPush({
-        endpoint: subscriptionJson.endpoint,
-        keys: {
-          p256dh: subscriptionJson.keys.p256dh,
-          auth: subscriptionJson.keys.auth
-        },
-        expirationTime: subscriptionJson.expirationTime
+      
+      console.log('[PUSH] Sending subscription to server...', {
+        endpoint: subscriptionJson.endpoint?.substring(0, 50) + '...',
+        hasP256dh: !!subscriptionJson.keys?.p256dh,
+        hasAuth: !!subscriptionJson.keys?.auth
       });
+      
+      try {
+        const result = await api.subscribeToPush({
+          endpoint: subscriptionJson.endpoint,
+          keys: {
+            p256dh: subscriptionJson.keys.p256dh,
+            auth: subscriptionJson.keys.auth
+          },
+          expirationTime: subscriptionJson.expirationTime
+        });
+        
+        console.log('[PUSH] Subscription saved successfully:', result);
+      } catch (subscribeError) {
+        console.error('[PUSH] Failed to save subscription to server:', {
+          error: subscribeError.message,
+          status: subscribeError.status,
+          data: subscribeError.data
+        });
+        throw subscribeError;
+      }
 
       setIsSubscribed(true);
       setIsLoading(false);
