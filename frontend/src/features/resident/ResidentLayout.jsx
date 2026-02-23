@@ -38,17 +38,17 @@ const ResidentLayout = ({ children, activeTab, onTabChange, title = 'GENTURIX' }
 
   return (
     <div 
-      className="min-h-screen bg-[#05050A] flex flex-col w-full overflow-x-hidden"
+      className="bg-[#05050A] flex flex-col w-full"
       style={{ 
-        minHeight: '100dvh',
-        maxWidth: '100%',
-        WebkitOverflowScrolling: 'touch'
+        height: '100dvh',
+        maxHeight: '100dvh',
+        overflow: 'hidden'
       }}
     >
-      {/* Header - Compact, fixed */}
+      {/* Header - Compact, fixed height */}
       <header 
-        className="sticky top-0 z-40 bg-[#0A0A0F]/95 backdrop-blur-lg border-b border-[#1E293B]/60 flex-shrink-0"
-        style={{ height: '56px' }}
+        className="z-40 bg-[#0A0A0F]/95 backdrop-blur-lg border-b border-[#1E293B]/60 flex-shrink-0"
+        style={{ height: '56px', minHeight: '56px' }}
       >
         <div className="flex items-center justify-between h-full px-3">
           {/* Logo & User */}
@@ -73,16 +73,27 @@ const ResidentLayout = ({ children, activeTab, onTabChange, title = 'GENTURIX' }
         </div>
       </header>
 
-      {/* Content - Full width, scrollable */}
+      {/* Content - Flex grow, controlled overflow */}
       <main 
-        className="flex-1 overflow-y-auto overflow-x-hidden w-full"
+        className="flex-1 w-full"
         style={{ 
-          paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 0px))',
-          WebkitOverflowScrolling: 'touch',
-          maxWidth: '100%'
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 0
         }}
       >
-        {children}
+        <div 
+          style={{
+            flex: 1,
+            overflowX: 'hidden',
+            overflowY: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))'
+          }}
+        >
+          {children}
+        </div>
       </main>
 
       {/* Bottom Navigation - Fixed, app-style */}
