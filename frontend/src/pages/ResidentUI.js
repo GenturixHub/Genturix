@@ -1035,33 +1035,33 @@ const ResidentUI = () => {
   }
 
   return (
-    <div className={`min-h-screen bg-[#05050A] flex flex-col safe-area ${isMobile ? 'pb-20' : ''}`}>
-      {/* Header */}
-      <header className="flex items-center justify-between p-4 border-b border-[#1E293B]/50">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-            <Shield className="w-5 h-5 text-primary" />
+    <div className={`min-h-screen bg-[#05050A] flex flex-col safe-area overflow-x-hidden ${isMobile ? 'pb-20' : ''}`}>
+      {/* Header - Mobile First: Compact, touch-friendly */}
+      <header className="flex items-center justify-between px-3 py-2.5 sm:px-4 sm:py-3 border-b border-[#1E293B]/50 flex-shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/20 flex items-center justify-center flex-shrink-0">
+            <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-sm font-bold text-white">GENTURIX</h1>
-            <p className="text-xs text-muted-foreground truncate max-w-[140px]">{user?.full_name}</p>
+            <p className="text-xs text-muted-foreground truncate">{user?.full_name}</p>
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
-          {/* Notifications Bell */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {/* Notifications Bell - Touch-friendly 44px min */}
           <DropdownMenu open={isNotificationsOpen} onOpenChange={handleNotificationsDropdownOpenChange}>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative"
+                className="relative h-11 w-11 min-h-[44px] min-w-[44px]"
                 data-testid="resident-notifications-btn"
               >
                 <Bell className="w-5 h-5" />
                 {unreadCount > 0 && (
                   <span 
-                    className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-[10px] font-bold flex items-center justify-center animate-pulse"
+                    className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-[10px] font-bold flex items-center justify-center animate-pulse"
                     data-testid="resident-notification-badge"
                   >
                     {unreadCount > 99 ? '99+' : unreadCount}
@@ -1069,49 +1069,46 @@ const ResidentUI = () => {
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80 bg-[#0F111A] border-[#1E293B]">
-              <DropdownMenuLabel className="flex items-center justify-between">
-                <span>Notificaciones</span>
-                <div className="flex items-center gap-2">
+            <DropdownMenuContent align="end" className="w-[calc(100vw-2rem)] max-w-sm bg-[#0F111A] border-[#1E293B]">
+              <DropdownMenuLabel className="flex items-center justify-between px-3 py-2">
+                <span className="text-sm">Notificaciones</span>
+                <div className="flex items-center gap-1.5">
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="h-6 px-2"
+                    className="h-8 w-8 p-0"
                     onClick={handleRefreshNotifications}
                     disabled={isRefreshingNotifications}
                   >
-                    <RefreshCw className={`w-3 h-3 ${isRefreshingNotifications ? 'animate-spin' : ''}`} />
+                    <RefreshCw className={`w-4 h-4 ${isRefreshingNotifications ? 'animate-spin' : ''}`} />
                   </Button>
                   {unreadCount > 0 && (
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="h-6 px-2 text-primary"
+                      className="h-8 w-8 p-0 text-primary"
                       onClick={handleMarkAllRead}
                       title="Marcar todas como leídas"
                     >
-                      <CheckCheck className="w-3 h-3" />
+                      <CheckCheck className="w-4 h-4" />
                     </Button>
                   )}
-                  <span className="text-xs text-muted-foreground">
-                    {unreadCount > 0 ? `${unreadCount} sin leer` : 'Al día'}
-                  </span>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-[#1E293B]" />
               {notifications.length === 0 ? (
-                <div className="p-4 text-center text-sm text-muted-foreground">
-                  <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                  No tienes notificaciones pendientes
+                <div className="p-6 text-center text-sm text-muted-foreground">
+                  <Bell className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                  No tienes notificaciones
                 </div>
               ) : (
-                <div className="max-h-80 overflow-y-auto">
+                <div className="max-h-[60vh] overflow-y-auto overscroll-contain">
                   {notifications.map((notif) => (
                     <DropdownMenuItem 
                       key={notif.id} 
-                      className={`flex items-start gap-3 py-3 cursor-pointer ${!notif.read ? 'bg-primary/5' : ''}`}
+                      className={`flex items-start gap-3 py-3 px-3 min-h-[60px] cursor-pointer ${!notif.read ? 'bg-primary/5' : ''}`}
                     >
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
                         notif.type === 'visitor_arrival' 
                           ? 'bg-green-500/20 text-green-400' 
                           : 'bg-orange-500/20 text-orange-400'
@@ -1123,10 +1120,10 @@ const ResidentUI = () => {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm ${notif.read ? 'text-muted-foreground' : 'font-medium'}`}>
+                        <p className={`text-sm leading-tight ${notif.read ? 'text-muted-foreground' : 'font-medium'}`}>
                           {notif.type === 'visitor_arrival' ? 'Visitante ingresó' : 'Visitante salió'}
                         </p>
-                        <p className="text-xs text-muted-foreground truncate">
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">
                           {notif.visitor_name || 'Visitante'}
                         </p>
                         <p className="text-[10px] text-muted-foreground mt-1">
@@ -1139,11 +1136,11 @@ const ResidentUI = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-6 w-6 p-0 flex-shrink-0"
+                          className="h-8 w-8 p-0 flex-shrink-0"
                           onClick={(e) => handleMarkNotificationRead(notif.id, e)}
                           title="Marcar como leída"
                         >
-                          <Check className="w-3 h-3" />
+                          <Check className="w-4 h-4" />
                         </Button>
                       )}
                     </DropdownMenuItem>
@@ -1153,10 +1150,10 @@ const ResidentUI = () => {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Logout Button */}
+          {/* Logout Button - Touch-friendly */}
           <button
             onClick={handleLogout}
-            className="p-2 rounded-lg text-muted-foreground hover:text-white hover:bg-white/5 transition-colors"
+            className="p-2.5 min-h-[44px] min-w-[44px] rounded-lg text-muted-foreground hover:text-white hover:bg-white/5 transition-colors flex items-center justify-center"
             data-testid="logout-btn"
           >
             <LogOut className="w-5 h-5" />
@@ -1165,10 +1162,10 @@ const ResidentUI = () => {
       </header>
 
       {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Desktop Tabs - hidden on mobile */}
         {!isMobile && (
-          <TabsList className="grid grid-cols-5 bg-[#0F111A] border-b border-[#1E293B] rounded-none h-12">
+          <TabsList className="grid grid-cols-5 bg-[#0F111A] border-b border-[#1E293B] rounded-none h-12 flex-shrink-0">
             <TabsTrigger 
               value="emergency" 
               className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-red-500 rounded-none flex flex-col items-center gap-0.5 text-[10px]"
@@ -1212,7 +1209,7 @@ const ResidentUI = () => {
           </TabsList>
         )}
 
-        <TabsContent value="emergency" className="flex-1 flex flex-col mt-0">
+        <TabsContent value="emergency" className="flex-1 flex flex-col mt-0 overflow-hidden">
           <EmergencyTab
             location={location}
             locationLoading={locationLoading}
@@ -1222,32 +1219,32 @@ const ResidentUI = () => {
           />
         </TabsContent>
 
-        <TabsContent value="authorizations" className="flex-1 mt-0 overflow-hidden">
+        <TabsContent value="authorizations" className="flex-1 mt-0 overflow-y-auto overflow-x-hidden">
           <ResidentVisitsModule />
         </TabsContent>
 
-        <TabsContent value="reservations" className="flex-1 mt-0 overflow-hidden">
+        <TabsContent value="reservations" className="flex-1 mt-0 overflow-y-auto overflow-x-hidden">
           <ResidentReservations />
         </TabsContent>
         
-        <TabsContent value="directory" className="flex-1 mt-0">
-          <ProfileDirectory embedded={true} maxHeight={isMobile ? "calc(100vh - 160px)" : "calc(100vh - 180px)"} />
+        <TabsContent value="directory" className="flex-1 mt-0 overflow-hidden">
+          <ProfileDirectory embedded={true} maxHeight={isMobile ? "calc(100vh - 140px)" : "calc(100vh - 180px)"} />
         </TabsContent>
         
-        <TabsContent value="profile" className="flex-1 mt-0">
+        <TabsContent value="profile" className="flex-1 mt-0 overflow-y-auto overflow-x-hidden">
           <EmbeddedProfile onBack={() => setActiveTab('panic')} />
         </TabsContent>
       </Tabs>
 
       {/* Emergency Call Footer - Hidden on mobile (use bottom nav) */}
       {!isMobile && (
-        <footer className="p-4 border-t border-[#1E293B]/50">
+        <footer className="p-3 sm:p-4 border-t border-[#1E293B]/50 flex-shrink-0">
           <a
             href="tel:911"
-            className="flex items-center justify-center gap-3 py-4 rounded-xl bg-[#1E293B] hover:bg-[#2D3B4F] border border-[#3D4B5F] transition-colors"
+            className="flex items-center justify-center gap-3 py-3.5 sm:py-4 rounded-xl bg-[#1E293B] hover:bg-[#2D3B4F] border border-[#3D4B5F] transition-colors min-h-[48px]"
           >
             <Phone className="w-5 h-5 text-red-400" />
-            <span className="text-white font-semibold">Llamar al 911</span>
+            <span className="text-white font-semibold text-sm sm:text-base">Llamar al 911</span>
           </a>
         </footer>
       )}
