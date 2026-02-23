@@ -275,6 +275,9 @@ function AppRoutes() {
       {/* Install Gate - shown on root if conditions met */}
       <Route path="/install" element={<InstallGateRoute />} />
       
+      {/* Preview Install Screen (for testing) - remove in production */}
+      <Route path="/install-preview" element={<InstallScreenPreview />} />
+      
       {/* Public Routes */}
       <Route path="/login" element={
         <PublicRoute>
