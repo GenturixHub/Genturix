@@ -9,6 +9,12 @@ const apiRequest = (url, options = {}) => {
     xhr.open(method, url, true);
     xhr.timeout = 30000;
     
+    // SECURITY: Include credentials (cookies) for cross-origin requests
+    // This is needed for httpOnly cookie authentication
+    if (options.credentials === 'include') {
+      xhr.withCredentials = true;
+    }
+    
     // Set headers
     const headers = options.headers || {};
     Object.keys(headers).forEach(key => {
