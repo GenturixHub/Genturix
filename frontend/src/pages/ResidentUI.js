@@ -229,7 +229,7 @@ const HeroEmergencyButton = ({ config, onPress, disabled, isLoading, enlarged = 
 // ============================================
 // SECONDARY EMERGENCY BUTTON - Circular Design
 // ============================================
-const SecondaryEmergencyButton = ({ config, variant, onPress, disabled, isLoading }) => {
+const SecondaryEmergencyButton = ({ config, variant, onPress, disabled, isLoading, enlarged = false }) => {
   const [ripples, setRipples] = useState([]);
   const IconComponent = config.icon;
 
@@ -250,12 +250,22 @@ const SecondaryEmergencyButton = ({ config, variant, onPress, disabled, isLoadin
     onPress(config.id);
   };
 
+  // Enlarged styles for visual test
+  const enlargedStyles = enlarged ? {
+    width: '130px',
+    height: '130px',
+    boxShadow: variant === 'medical' 
+      ? '0 0 30px rgba(34, 197, 94, 0.4), 0 0 60px rgba(34, 197, 94, 0.2)'
+      : '0 0 30px rgba(251, 191, 36, 0.4), 0 0 60px rgba(251, 191, 36, 0.2)'
+  } : {};
+
   return (
     <button
       onClick={handlePress}
       disabled={disabled || isLoading}
       data-testid={`panic-btn-${config.id}`}
       className={`emergency-secondary-circle emergency-secondary-circle--${variant} ${isLoading ? 'is-loading' : ''}`}
+      style={enlargedStyles}
     >
       {/* Ripples */}
       {ripples.map(ripple => (
@@ -267,7 +277,7 @@ const SecondaryEmergencyButton = ({ config, variant, onPress, disabled, isLoadin
       ))}
       
       {/* Icon */}
-      <div className="emergency-secondary-icon-wrapper">
+      <div className="emergency-secondary-icon-wrapper" style={enlarged ? { transform: 'scale(1.2)' } : {}}>
         {isLoading ? (
           <Loader2 />
         ) : (
@@ -276,7 +286,7 @@ const SecondaryEmergencyButton = ({ config, variant, onPress, disabled, isLoadin
       </div>
       
       {/* Label */}
-      <p className="emergency-secondary-label">
+      <p className="emergency-secondary-label" style={enlarged ? { fontSize: '0.8rem', marginTop: '8px' } : {}}>
         {config.id === 'emergencia_medica' ? 'MÉDICA' : 'SEGURIDAD'}
       </p>
     </button>
