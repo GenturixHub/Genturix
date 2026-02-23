@@ -150,16 +150,23 @@ export function usePushNotifications() {
       if (subscription) {
         // Unsubscribe locally
         await subscription.unsubscribe();
+        console.log('[PUSH] Unsubscribed locally from push manager');
         
         // Notify server
         const subscriptionJson = subscription.toJSON();
-        await api.unsubscribeFromPush({
-          endpoint: subscriptionJson.endpoint,
-          keys: {
-            p256dh: subscriptionJson.keys.p256dh,
-            auth: subscriptionJson.keys.auth
-          }
-        });
+        try {
+          await api.unsubscribeFromPush({
+            endpoint: subscriptionJson.endpoint,
+            keys: {
+              p256dh: subscriptionJson.keys.p256dh,
+              auth: subscriptionJson.keys.auth
+            }
+          });
+          console.log('[PUSH] Unsubscription confirmed on server');
+        } catch (serverError) {
+          console.warn('[PUSH] Failed to notify server of unsubscription:', serverError.message);
+          // Don't throw - local unsubscribe succeeded
+        }
       }
 
       setIsSubscribed(false);
@@ -167,7 +174,7 @@ export function usePushNotifications() {
       return true;
 
     } catch (err) {
-      console.error('Push unsubscription failed:', err);
+      console.error('[PUSH] Unsubscription failed:', err);
       setError(err.message || 'Error al desuscribirse');
       setIsLoading(false);
       return false;
