@@ -179,10 +179,10 @@ const HeroEmergencyButton = ({ config, onPress, disabled, isLoading, enlarged = 
     onPress(config.id);
   };
 
-  // Enlarged styles for visual test
+  // Enlarged styles with viewport-relative sizing
   const enlargedStyles = enlarged ? {
-    width: '280px',
-    height: '280px',
+    width: 'min(70vw, 280px)',
+    height: 'min(70vw, 280px)',
     background: 'radial-gradient(circle at 30% 30%, #ff4444 0%, #cc0000 50%, #990000 100%)',
     border: '4px solid rgba(255, 255, 255, 0.9)',
     boxShadow: '0 0 60px rgba(255, 0, 0, 0.5), 0 0 100px rgba(255, 0, 0, 0.3), inset 0 -8px 20px rgba(0,0,0,0.3)'
@@ -219,8 +219,8 @@ const HeroEmergencyButton = ({ config, onPress, disabled, isLoading, enlarged = 
       
       {/* Text */}
       <div className="emergency-hero-text">
-        <p className="emergency-hero-label" style={enlarged ? { fontSize: '1.5rem' } : {}}>{config.shortLabel || 'EMERGENCIA'}</p>
-        <p className="emergency-hero-sublabel" style={enlarged ? { fontSize: '0.9rem' } : {}}>{config.subLabel}</p>
+        <p className="emergency-hero-label" style={enlarged ? { fontSize: 'clamp(1.2rem, 5vw, 1.5rem)' } : {}}>{config.shortLabel || 'EMERGENCIA'}</p>
+        <p className="emergency-hero-sublabel" style={enlarged ? { fontSize: 'clamp(0.7rem, 3vw, 0.9rem)' } : {}}>{config.subLabel}</p>
       </div>
     </button>
   );
