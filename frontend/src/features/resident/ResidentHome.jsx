@@ -291,12 +291,13 @@ const SuccessScreen = ({ alert, onDismiss }) => {
 const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, sendingType }) => (
   <div 
     style={{
-      minHeight: 'calc(100vh - 180px)',
+      height: '100%',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'space-between',
-      padding: '12px 12px 24px',
-      gap: '16px'
+      padding: '12px 12px 16px',
+      gap: '12px',
+      boxSizing: 'border-box'
     }}
   >
     {/* GPS Status */}
@@ -305,7 +306,7 @@ const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, s
     </div>
     
     {/* Main Emergency Button */}
-    <div className="flex-1 flex items-center justify-center" style={{ minHeight: '40vh' }}>
+    <div className="flex-1 flex items-center justify-center min-h-0">
       <div className="emergency-hero-pulse-wrapper">
         <HeroEmergencyButton
           config={EMERGENCY_TYPES.emergencia_general}
@@ -317,7 +318,7 @@ const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, s
     </div>
     
     {/* Secondary Buttons + Info */}
-    <div className="flex-shrink-0 space-y-4">
+    <div className="flex-shrink-0 space-y-3">
       <div className="grid grid-cols-2 gap-4">
         <SecondaryEmergencyButton
           config={EMERGENCY_TYPES.emergencia_medica}
@@ -337,7 +338,7 @@ const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, s
       
       {/* Instruction Card */}
       <div 
-        className="rounded-2xl px-4 py-3 text-center"
+        className="rounded-2xl px-4 py-2.5 text-center"
         style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.08)' }}
       >
         <p className="text-xs text-muted-foreground leading-relaxed">
