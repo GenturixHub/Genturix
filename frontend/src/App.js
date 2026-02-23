@@ -375,23 +375,6 @@ function App() {
 
   return (
     <BrowserRouter>
-      {/* TEMPORARY BUILD TEST BANNER - REMOVE AFTER VERIFICATION */}
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: '#ff0000',
-        color: 'white',
-        textAlign: 'center',
-        padding: '10px',
-        zIndex: 99999,
-        fontWeight: 'bold',
-        fontSize: '16px'
-      }}>
-        BUILD TEST 999
-      </div>
-      {/* END TEMPORARY BANNER */}
       <AuthProvider>
         <ModulesProvider>
           <AppRoutes />
