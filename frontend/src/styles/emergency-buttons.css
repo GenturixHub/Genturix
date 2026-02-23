@@ -16,6 +16,63 @@
 }
 
 /* ========================================
+   HERO BUTTON PULSE WRAPPER
+   ======================================== */
+
+.emergency-hero-pulse-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emergency-hero-pulse-wrapper::before,
+.emergency-hero-pulse-wrapper::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Outer pulse ring */
+.emergency-hero-pulse-wrapper::before {
+  width: calc(100% + 40px);
+  height: calc(100% + 40px);
+  border: 2px solid rgba(255, 0, 0, 0.3);
+  animation: heroOuterPulse 2s ease-in-out infinite;
+}
+
+/* Inner pulse ring */
+.emergency-hero-pulse-wrapper::after {
+  width: calc(100% + 20px);
+  height: calc(100% + 20px);
+  border: 1px solid rgba(255, 0, 0, 0.2);
+  animation: heroInnerPulse 2s ease-in-out infinite 0.3s;
+}
+
+@keyframes heroOuterPulse {
+  0%, 100% { 
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  50% { 
+    transform: scale(1.1);
+    opacity: 0;
+  }
+}
+
+@keyframes heroInnerPulse {
+  0%, 100% { 
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  50% { 
+    transform: scale(1.08);
+    opacity: 0;
+  }
+}
+
+/* ========================================
    KEYFRAME ANIMATIONS
    ======================================== */
 
