@@ -143,6 +143,7 @@ export const AuthProvider = ({ children }) => {
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',  // SECURITY: Receive httpOnly cookie
       body: JSON.stringify({ email, password }),
     });
 
@@ -158,14 +159,13 @@ export const AuthProvider = ({ children }) => {
     const data = await response.json();
     console.log('[Auth] Login successful');
     
-    // Store in localStorage for persistence
+    // SECURITY: Only store access_token and user in localStorage
+    // refresh_token is now sent as httpOnly cookie by backend
     localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.access_token);
-    localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token);
     localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(data.user));
     localStorage.setItem(STORAGE_KEYS.PASSWORD_RESET, data.password_reset_required ? 'true' : 'false');
 
     setAccessToken(data.access_token);
-    setRefreshToken(data.refresh_token);
     setUser(data.user);
     setPasswordResetRequired(data.password_reset_required || false);
 
