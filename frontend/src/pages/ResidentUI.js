@@ -444,8 +444,6 @@ const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, s
     </div>
   </div>
 );
-  </div>
-);
 
 // ============================================
 // ALERT HISTORY TAB (My Alerts)
