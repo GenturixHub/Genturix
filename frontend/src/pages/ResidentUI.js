@@ -430,23 +430,23 @@ const AlertHistoryTab = () => {
   }
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold flex items-center gap-2">
-          <History className="w-5 h-5 text-primary" />
+        <h2 className="text-base sm:text-lg font-bold flex items-center gap-2">
+          <History className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
           Mis Alertas
         </h2>
         <span className="text-xs text-muted-foreground">{alerts.length} alertas</span>
       </div>
 
       {alerts.length === 0 ? (
-        <div className="text-center py-12">
-          <Bell className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-          <p className="text-muted-foreground">No has enviado alertas</p>
+        <div className="text-center py-10 sm:py-12">
+          <Bell className="w-10 h-10 sm:w-12 sm:h-12 text-muted-foreground/30 mx-auto mb-3 sm:mb-4" />
+          <p className="text-sm text-muted-foreground">No has enviado alertas</p>
           <p className="text-xs text-muted-foreground mt-1">Las alertas que envíes aparecerán aquí</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
           {alerts.map((alert) => {
             const statusConfig = getStatusConfig(alert.status);
             const typeConfig = getTypeConfig(alert.panic_type);
@@ -455,22 +455,22 @@ const AlertHistoryTab = () => {
             return (
               <div 
                 key={alert.id} 
-                className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B]"
+                className="p-3 sm:p-4 rounded-xl bg-[#0F111A] border border-[#1E293B]"
                 data-testid={`alert-history-${alert.id}`}
               >
-                <div className="flex items-start gap-3">
-                  <div className={`w-10 h-10 rounded-lg ${typeConfig.colors.bg} flex items-center justify-center flex-shrink-0`}>
-                    <IconComponent className={`w-5 h-5 ${typeConfig.colors.text}`} />
+                <div className="flex items-start gap-2.5 sm:gap-3">
+                  <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg ${typeConfig.colors.bg} flex items-center justify-center flex-shrink-0`}>
+                    <IconComponent className={`w-4 h-4 sm:w-5 sm:h-5 ${typeConfig.colors.text}`} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <span className="font-semibold text-sm truncate">{alert.panic_type_label || typeConfig.label}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs border ${statusConfig.color}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] sm:text-xs border whitespace-nowrap ${statusConfig.color}`}>
                         {statusConfig.label}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground mb-2">{alert.location}</p>
-                    <div className="flex items-center justify-between text-xs">
+                    <p className="text-xs text-muted-foreground mb-1.5 sm:mb-2 truncate">{alert.location}</p>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                       <span className="text-muted-foreground">
                         {new Date(alert.created_at).toLocaleDateString('es-ES', { 
                           day: '2-digit', 
@@ -480,8 +480,8 @@ const AlertHistoryTab = () => {
                         })}
                       </span>
                       {alert.resolved_by_name && (
-                        <span className="text-green-400">
-                          Atendido por: {alert.resolved_by_name}
+                        <span className="text-green-400 truncate">
+                          Por: {alert.resolved_by_name}
                         </span>
                       )}
                     </div>
