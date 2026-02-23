@@ -585,10 +585,10 @@ const VisitorsTab = ({ user }) => {
   }
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Add Visitor Button */}
+    <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
+      {/* Add Visitor Button - Touch-friendly */}
       <Button 
-        className="w-full" 
+        className="w-full min-h-[44px] text-sm" 
         onClick={() => setShowForm(true)}
         data-testid="add-visitor-btn"
       >
@@ -598,7 +598,7 @@ const VisitorsTab = ({ user }) => {
 
       {/* Visitors List */}
       <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-muted-foreground">Mis Visitantes</h3>
+        <h3 className="text-xs sm:text-sm font-semibold text-muted-foreground">Mis Visitantes</h3>
         
         {visitors.length > 0 ? (
           visitors.map((visitor) => {
@@ -606,15 +606,15 @@ const VisitorsTab = ({ user }) => {
             
             return (
               <Card key={visitor.id} className="bg-[#0F111A] border-[#1E293B]">
-                <CardContent className="p-3">
+                <CardContent className="p-2.5 sm:p-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-white text-sm truncate">{visitor.full_name}</span>
-                        <Badge className={status.color}>{status.label}</Badge>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="font-semibold text-white text-sm truncate max-w-[150px] sm:max-w-none">{visitor.full_name}</span>
+                        <Badge className={`${status.color} text-[10px] px-1.5 py-0`}>{status.label}</Badge>
                       </div>
                       
-                      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                      <div className="flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <CalendarIcon className="w-3 h-3" />
                           {formatDate(visitor.expected_date)}
@@ -643,12 +643,12 @@ const VisitorsTab = ({ user }) => {
                       )}
                     </div>
 
-                    {/* Delete button - only when NOT inside */}
+                    {/* Delete button - Touch-friendly 44px */}
                     {(visitor.status === 'pending' || visitor.status === 'exited' || visitor.status === 'exit_registered' || visitor.status === 'cancelled') && (
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="h-8 w-8 text-red-400 hover:bg-red-500/10"
+                        className="h-10 w-10 min-h-[40px] min-w-[40px] text-red-400 hover:bg-red-500/10 flex-shrink-0"
                         onClick={() => handleCancel(visitor.id)}
                         data-testid={`delete-visitor-${visitor.id}`}
                       >
@@ -659,7 +659,7 @@ const VisitorsTab = ({ user }) => {
                     {/* Info when inside - cannot delete */}
                     {(visitor.status === 'inside' || visitor.status === 'entry_registered') && (
                       <div 
-                        className="h-8 px-2 flex items-center rounded text-[10px] text-yellow-400 bg-yellow-500/10 border border-yellow-500/20"
+                        className="h-8 px-2 flex items-center rounded text-[10px] text-yellow-400 bg-yellow-500/10 border border-yellow-500/20 flex-shrink-0"
                         title="No puedes eliminar mientras la persona está dentro del condominio"
                       >
                         <Shield className="w-3 h-3 mr-1" />
@@ -672,47 +672,47 @@ const VisitorsTab = ({ user }) => {
             );
           })
         ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <Users className="w-12 h-12 mx-auto mb-4 opacity-30" />
+          <div className="text-center py-6 sm:py-8 text-muted-foreground">
+            <Users className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 opacity-30" />
             <p className="text-sm">No tienes visitantes registrados</p>
             <p className="text-xs mt-1">Pre-registra visitantes para agilizar su entrada</p>
           </div>
         )}
       </div>
 
-      {/* Add Visitor Dialog */}
+      {/* Add Visitor Dialog - Mobile optimized */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-md">
+        <DialogContent className="bg-[#0F111A] border-[#1E293B] w-[calc(100vw-2rem)] max-w-md mx-auto max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 text-base">
               <UserPlus className="w-5 h-5 text-primary" />
               Pre-registrar Visitante
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs sm:text-sm">
               El guarda recibirá esta información para verificar al visitante
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 sm:space-y-4 py-3 sm:py-4">
             <div>
               <Label className="text-xs text-muted-foreground">Nombre Completo *</Label>
               <Input
                 placeholder="Nombre del visitante"
                 value={formData.full_name}
                 onChange={(e) => setFormData({...formData, full_name: e.target.value})}
-                className="bg-[#181B25] border-[#1E293B] mt-1"
+                className="bg-[#181B25] border-[#1E293B] mt-1 h-11 text-base"
                 data-testid="visitor-name-input"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <div>
                 <Label className="text-xs text-muted-foreground">Cédula / ID</Label>
                 <Input
                   placeholder="Número de ID"
                   value={formData.national_id}
                   onChange={(e) => setFormData({...formData, national_id: e.target.value})}
-                  className="bg-[#181B25] border-[#1E293B] mt-1"
+                  className="bg-[#181B25] border-[#1E293B] mt-1 h-11 text-base"
                 />
               </div>
               <div>
@@ -721,7 +721,7 @@ const VisitorsTab = ({ user }) => {
                   placeholder="ABC-123"
                   value={formData.vehicle_plate}
                   onChange={(e) => setFormData({...formData, vehicle_plate: e.target.value.toUpperCase()})}
-                  className="bg-[#181B25] border-[#1E293B] mt-1"
+                  className="bg-[#181B25] border-[#1E293B] mt-1 h-11 text-base"
                 />
               </div>
             </div>
@@ -732,25 +732,25 @@ const VisitorsTab = ({ user }) => {
                 value={formData.visit_type} 
                 onValueChange={(v) => setFormData({...formData, visit_type: v})}
               >
-                <SelectTrigger className="bg-[#181B25] border-[#1E293B] mt-1">
+                <SelectTrigger className="bg-[#181B25] border-[#1E293B] mt-1 h-11">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-[#0F111A] border-[#1E293B]">
                   {VISIT_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                    <SelectItem key={type.value} value={type.value} className="py-2.5">{type.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               <div>
                 <Label className="text-xs text-muted-foreground">Fecha Esperada *</Label>
                 <Input
                   type="date"
                   value={formData.expected_date}
                   onChange={(e) => setFormData({...formData, expected_date: e.target.value})}
-                  className="bg-[#181B25] border-[#1E293B] mt-1"
+                  className="bg-[#181B25] border-[#1E293B] mt-1 h-11"
                 />
               </div>
               <div>
@@ -759,7 +759,7 @@ const VisitorsTab = ({ user }) => {
                   type="time"
                   value={formData.expected_time}
                   onChange={(e) => setFormData({...formData, expected_time: e.target.value})}
-                  className="bg-[#181B25] border-[#1E293B] mt-1"
+                  className="bg-[#181B25] border-[#1E293B] mt-1 h-11"
                 />
               </div>
             </div>
@@ -770,18 +770,19 @@ const VisitorsTab = ({ user }) => {
                 placeholder="Información adicional para el guarda"
                 value={formData.notes}
                 onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                className="bg-[#181B25] border-[#1E293B] mt-1"
+                className="bg-[#181B25] border-[#1E293B] mt-1 h-11 text-base"
               />
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowForm(false)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowForm(false)} className="w-full sm:w-auto min-h-[44px]">
               Cancelar
             </Button>
             <Button 
               onClick={handleSubmit} 
               disabled={!formData.full_name.trim() || isSubmitting}
+              className="w-full sm:w-auto min-h-[44px]"
               data-testid="submit-visitor-btn"
             >
               {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <UserPlus className="w-4 h-4 mr-2" />}
