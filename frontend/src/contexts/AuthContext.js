@@ -25,7 +25,6 @@ export const AuthProvider = ({ children }) => {
       console.log('[Auth] Initializing auth from storage...');
       
       const storedAccessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-      const storedRefreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
       const storedUser = localStorage.getItem(STORAGE_KEYS.USER);
       const storedPasswordReset = localStorage.getItem(STORAGE_KEYS.PASSWORD_RESET);
 
@@ -41,6 +40,7 @@ export const AuthProvider = ({ children }) => {
               'Authorization': `Bearer ${storedAccessToken}`,
               'Content-Type': 'application/json',
             },
+            credentials: 'include',  // SECURITY: Include httpOnly cookies
           });
 
           if (validationResponse.ok) {
@@ -57,7 +57,6 @@ export const AuthProvider = ({ children }) => {
             };
             
             setAccessToken(storedAccessToken);
-            setRefreshToken(storedRefreshToken);
             setUser(updatedUser);
             setPasswordResetRequired(storedPasswordReset === 'true');
             
@@ -69,50 +68,43 @@ export const AuthProvider = ({ children }) => {
               await changeLanguage(profileData.language);
             }
           } else if (validationResponse.status === 401) {
-            console.log('[Auth] Token expired, trying refresh...');
+            console.log('[Auth] Token expired, trying refresh via httpOnly cookie...');
             
-            // Try to refresh token
-            if (storedRefreshToken) {
-              try {
-                const refreshResponse = await fetch(`${API_URL}/api/auth/refresh`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ refresh_token: storedRefreshToken }),
-                });
+            // Try to refresh token using httpOnly cookie
+            try {
+              const refreshResponse = await fetch(`${API_URL}/api/auth/refresh`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',  // SECURITY: Send httpOnly cookie
+                body: JSON.stringify({}),  // Empty body, token comes from cookie
+              });
 
-                if (refreshResponse.ok) {
-                  const refreshData = await refreshResponse.json();
-                  console.log('[Auth] Token refreshed successfully');
-                  
-                  localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, refreshData.access_token);
-                  localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshData.refresh_token);
-                  
-                  setAccessToken(refreshData.access_token);
-                  setRefreshToken(refreshData.refresh_token);
-                  setUser(parsedUser);
-                  setPasswordResetRequired(storedPasswordReset === 'true');
-                  
-                  // Sync language
-                  if (parsedUser.language && ['es', 'en'].includes(parsedUser.language)) {
-                    await changeLanguage(parsedUser.language);
-                  }
-                } else {
-                  console.log('[Auth] Refresh failed, clearing session');
-                  clearStorage();
+              if (refreshResponse.ok) {
+                const refreshData = await refreshResponse.json();
+                console.log('[Auth] Token refreshed successfully');
+                
+                localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, refreshData.access_token);
+                
+                setAccessToken(refreshData.access_token);
+                setUser(parsedUser);
+                setPasswordResetRequired(storedPasswordReset === 'true');
+                
+                // Sync language
+                if (parsedUser.language && ['es', 'en'].includes(parsedUser.language)) {
+                  await changeLanguage(parsedUser.language);
                 }
-              } catch (refreshError) {
-                console.error('[Auth] Refresh error:', refreshError);
-                // Don't clear on network error - might be temporary
+              } else {
+                console.log('[Auth] Refresh failed, clearing session');
+                clearStorage();
               }
-            } else {
-              console.log('[Auth] No refresh token, clearing session');
-              clearStorage();
+            } catch (refreshError) {
+              console.error('[Auth] Refresh error:', refreshError);
+              // Don't clear on network error - might be temporary
             }
           } else {
             // Other error - don't clear, might be network issue
             console.warn('[Auth] Validation error (non-401), keeping session:', validationResponse.status);
             setAccessToken(storedAccessToken);
-            setRefreshToken(storedRefreshToken);
             setUser(parsedUser);
             setPasswordResetRequired(storedPasswordReset === 'true');
           }
@@ -122,7 +114,6 @@ export const AuthProvider = ({ children }) => {
           try {
             const parsedUser = JSON.parse(storedUser);
             setAccessToken(storedAccessToken);
-            setRefreshToken(storedRefreshToken);
             setUser(parsedUser);
             setPasswordResetRequired(storedPasswordReset === 'true');
           } catch (parseError) {
@@ -139,7 +130,6 @@ export const AuthProvider = ({ children }) => {
 
     const clearStorage = () => {
       localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-      localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
       localStorage.removeItem(STORAGE_KEYS.USER);
       localStorage.removeItem(STORAGE_KEYS.PASSWORD_RESET);
     };
