@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ModulesProvider, useModules } from './contexts/ModulesContext';
@@ -25,7 +25,9 @@ import JoinPage from './pages/JoinPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import CondominiumSettingsPage from './pages/CondominiumSettingsPage';
 import UpdateAvailableModal from './components/UpdateAvailableModal';
+import InstallChoiceScreen from './components/InstallChoiceScreen';
 import useServiceWorkerUpdate from './hooks/useServiceWorkerUpdate';
+import usePWAInstall from './hooks/usePWAInstall';
 import './App.css';
 
 // Suppress PostHog errors in development
