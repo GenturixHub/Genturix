@@ -2998,21 +2998,36 @@ async def login(credentials: UserLogin, request: Request):
         request.headers.get("user-agent", "unknown")
     )
     
-    return TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token,
-        user=UserResponse(
-            id=user["id"],
-            email=user["email"],
-            full_name=user["full_name"],
-            roles=user["roles"],
-            is_active=user["is_active"],
-            created_at=user["created_at"],
-            condominium_id=user.get("condominium_id"),
-            password_reset_required=password_reset_required
-        ),
-        password_reset_required=password_reset_required
+    # Build response body (without refresh_token in body for security)
+    response_data = {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user["id"],
+            "email": user["email"],
+            "full_name": user["full_name"],
+            "roles": user["roles"],
+            "is_active": user["is_active"],
+            "created_at": user["created_at"],
+            "condominium_id": user.get("condominium_id"),
+            "password_reset_required": password_reset_required
+        },
+        "password_reset_required": password_reset_required
+    }
+    
+    # Create response with httpOnly cookie for refresh token
+    response = JSONResponse(content=response_data)
+    response.set_cookie(
+        key=REFRESH_TOKEN_COOKIE_NAME,
+        value=refresh_token,
+        max_age=COOKIE_MAX_AGE,
+        httponly=True,  # SECURITY: Prevents JavaScript access (XSS protection)
+        secure=COOKIE_SECURE,  # SECURITY: Only send over HTTPS in production
+        samesite=COOKIE_SAMESITE,  # SECURITY: CSRF protection
+        path="/api/auth"  # Restrict cookie to auth endpoints only
     )
+    
+    return response
 
 @api_router.post("/auth/refresh")
 async def refresh_token(token_request: RefreshTokenRequest, request: Request):
