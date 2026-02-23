@@ -3030,7 +3030,7 @@ async def login(credentials: UserLogin, request: Request):
     return response
 
 @api_router.post("/auth/refresh")
-async def refresh_token(token_request: RefreshTokenRequest, request: Request):
+async def refresh_token_endpoint(request: Request, token_request: RefreshTokenRequest = None):
     """
     Refresh access token with rotation security.
     
@@ -3039,8 +3039,23 @@ async def refresh_token(token_request: RefreshTokenRequest, request: Request):
     - Generates new tokens on each refresh
     - Invalidates previous refresh token automatically
     - Prevents reuse of stolen refresh tokens
+    
+    SECURITY: Now accepts refresh token from:
+    1. httpOnly cookie (preferred, more secure)
+    2. Request body (deprecated, for backward compatibility)
     """
-    payload = verify_refresh_token(token_request.refresh_token)
+    # Try to get refresh token from cookie first (more secure)
+    refresh_token_value = request.cookies.get(REFRESH_TOKEN_COOKIE_NAME)
+    
+    # Fall back to body if no cookie (backward compatibility)
+    if not refresh_token_value and token_request and token_request.refresh_token:
+        refresh_token_value = token_request.refresh_token
+        logger.warning("[SECURITY] Refresh token received in body instead of cookie - consider updating client")
+    
+    if not refresh_token_value:
+        raise HTTPException(status_code=401, detail="No refresh token provided")
+    
+    payload = verify_refresh_token(refresh_token_value)
     
     if not payload:
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
@@ -3135,7 +3150,22 @@ async def refresh_token(token_request: RefreshTokenRequest, request: Request):
         request.headers.get("user-agent", "unknown")
     )
     
-    return {"access_token": new_access_token, "refresh_token": new_refresh_token, "token_type": "bearer"}
+    # Return new access token and set new refresh token in cookie
+    response = JSONResponse(content={
+        "access_token": new_access_token, 
+        "token_type": "bearer"
+    })
+    response.set_cookie(
+        key=REFRESH_TOKEN_COOKIE_NAME,
+        value=new_refresh_token,
+        max_age=COOKIE_MAX_AGE,
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite=COOKIE_SAMESITE,
+        path="/api/auth"
+    )
+    
+    return response
 
 @api_router.post("/auth/logout")
 async def logout(request: Request, current_user = Depends(get_current_user)):
