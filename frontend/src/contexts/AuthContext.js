@@ -371,18 +371,15 @@ export const AuthProvider = ({ children }) => {
   }, [accessToken]);
 
   const refreshAccessToken = useCallback(async () => {
-    if (!refreshToken) {
-      throw new Error('No refresh token available');
-    }
-
-    console.log('[Auth] Refreshing access token...');
+    console.log('[Auth] Refreshing access token via httpOnly cookie...');
     
     const response = await fetch(`${API_URL}/api/auth/refresh`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ refresh_token: refreshToken }),
+      credentials: 'include',  // SECURITY: Send httpOnly cookie
+      body: JSON.stringify({}),  // Empty body, token comes from cookie
     });
 
     if (!response.ok) {
@@ -395,13 +392,11 @@ export const AuthProvider = ({ children }) => {
     console.log('[Auth] Token refreshed successfully');
     
     localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.access_token);
-    localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token);
 
     setAccessToken(data.access_token);
-    setRefreshToken(data.refresh_token);
 
     return data.access_token;
-  }, [refreshToken, logout]);
+  }, [logout]);
 
   const hasRole = useCallback((role) => {
     return user?.roles?.includes(role) || false;
