@@ -2,15 +2,17 @@
  * GENTURIX - Service Worker Update Hook
  * 
  * Handles detection and triggering of Service Worker updates.
+ * Works in both web browser and installed PWA.
  * Does NOT interfere with push notifications or existing SW functionality.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export const useServiceWorkerUpdate = () => {
   const [showUpdate, setShowUpdate] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [registration, setRegistration] = useState(null);
+  const refreshingRef = useRef(false);
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) {
@@ -18,12 +20,10 @@ export const useServiceWorkerUpdate = () => {
       return;
     }
 
-    let refreshing = false;
-
     // Listen for controller change (new SW activated)
     const handleControllerChange = () => {
-      if (refreshing) return;
-      refreshing = true;
+      if (refreshingRef.current) return;
+      refreshingRef.current = true;
       console.log('[SW-Update] Controller changed, reloading page...');
       window.location.reload();
     };
@@ -37,6 +37,7 @@ export const useServiceWorkerUpdate = () => {
         
         if (reg) {
           setRegistration(reg);
+          console.log('[SW-Update] Registration found, scope:', reg.scope);
           
           // If there's already a waiting worker (from previous visit)
           if (reg.waiting) {
@@ -51,36 +52,58 @@ export const useServiceWorkerUpdate = () => {
 
             if (newWorker) {
               newWorker.addEventListener('statechange', () => {
+                console.log('[SW-Update] New worker state:', newWorker.state);
                 // When the new worker is installed and waiting
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('[SW-Update] New worker installed and waiting');
-                  setShowUpdate(true);
+                if (newWorker.state === 'installed') {
+                  // Check if there's an existing controller (not first install)
+                  if (navigator.serviceWorker.controller) {
+                    console.log('[SW-Update] New worker installed and waiting - showing modal');
+                    setShowUpdate(true);
+                  } else {
+                    // First time install - no update needed
+                    console.log('[SW-Update] First install, no update modal needed');
+                  }
                 }
               });
             }
           });
 
+          // Check for updates immediately on load
+          reg.update().catch(err => {
+            console.log('[SW-Update] Initial update check failed:', err.message);
+          });
+          
           // Periodically check for updates (every 60 seconds)
           const checkForUpdates = () => {
-            reg.update().catch(err => {
-              console.log('[SW-Update] Update check failed:', err.message);
-            });
+            if (document.visibilityState === 'visible') {
+              reg.update().catch(err => {
+                console.log('[SW-Update] Update check failed:', err.message);
+              });
+            }
           };
           
-          // Check for updates periodically
           const updateInterval = setInterval(checkForUpdates, 60000);
 
-          // Also check on visibility change (when user returns to tab)
+          // Also check on visibility change (when user returns to tab/app)
           const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
-              checkForUpdates();
+              // Small delay to avoid immediate check on app resume
+              setTimeout(checkForUpdates, 1000);
             }
           };
           document.addEventListener('visibilitychange', handleVisibilityChange);
 
+          // Check on online event (for PWA that was offline)
+          const handleOnline = () => {
+            console.log('[SW-Update] Back online, checking for updates...');
+            checkForUpdates();
+          };
+          window.addEventListener('online', handleOnline);
+
           return () => {
             clearInterval(updateInterval);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('online', handleOnline);
           };
         }
       } catch (err) {
@@ -98,10 +121,14 @@ export const useServiceWorkerUpdate = () => {
     };
   }, []);
 
-  // Trigger update
+  // Trigger update - with fallback reload
   const triggerUpdate = useCallback(() => {
-    if (!registration?.waiting) {
+    const waitingWorker = registration?.waiting;
+    
+    if (!waitingWorker) {
       console.log('[SW-Update] No waiting worker to activate');
+      // Fallback: force reload anyway
+      window.location.reload();
       return;
     }
 
@@ -109,12 +136,21 @@ export const useServiceWorkerUpdate = () => {
     console.log('[SW-Update] Triggering SKIP_WAITING...');
     
     // Send message to waiting SW to skip waiting
-    registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    waitingWorker.postMessage({ type: 'SKIP_WAITING' });
     
-    // The controllerchange listener will handle the reload
+    // Fallback: if controllerchange doesn't fire within 3 seconds, force reload
+    // This handles edge cases where the event might not fire
+    setTimeout(() => {
+      if (!refreshingRef.current) {
+        console.log('[SW-Update] Fallback reload after timeout');
+        refreshingRef.current = true;
+        window.location.reload();
+      }
+    }, 3000);
+    
   }, [registration]);
 
-  // Dismiss banner (user chose not to update now)
+  // Dismiss modal (user chose not to update now)
   const dismissUpdate = useCallback(() => {
     setShowUpdate(false);
   }, []);
