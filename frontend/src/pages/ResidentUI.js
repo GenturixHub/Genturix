@@ -358,26 +358,31 @@ const SuccessScreen = ({ alert, onDismiss }) => {
 };
 
 // ============================================
-// EMERGENCY TAB - Premium Circular Layout
+// EMERGENCY TAB - Optimized Mobile Layout
 // ============================================
 const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, sendingType }) => (
-  <div className="emergency-container">
-    {/* GPS Status - Premium Badge */}
-    <GPSStatus location={location} isLoading={locationLoading} error={locationError} />
+  <div 
+    className="emergency-container"
+    style={{
+      minHeight: 'calc(100vh - 180px)',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+      padding: '12px 16px 24px',
+      gap: '16px'
+    }}
+  >
+    {/* TOP SECTION: GPS Status */}
+    <div className="flex-shrink-0">
+      <GPSStatus location={location} isLoading={locationLoading} error={locationError} />
+    </div>
     
-    {/* VISUAL TEST CONTAINER - Emergency Section */}
+    {/* CENTER SECTION: Main Emergency Button */}
     <div 
-      className="mx-3 mt-5 p-5 rounded-3xl"
-      style={{
-        background: 'rgba(15, 17, 26, 0.85)',
-        backdropFilter: 'blur(12px)',
-        boxShadow: '0 8px 32px rgba(59, 130, 246, 0.15), 0 0 60px rgba(59, 130, 246, 0.05)',
-        border: '1px solid rgba(59, 130, 246, 0.1)'
-      }}
-      data-testid="emergency-visual-container"
+      className="flex-1 flex items-center justify-center"
+      style={{ minHeight: '40vh' }}
     >
-      {/* HERO BUTTON - Emergencia General (Large Circle) - ENLARGED */}
-      <div className="flex justify-center">
+      <div className="emergency-hero-pulse-wrapper">
         <HeroEmergencyButton
           config={EMERGENCY_TYPES.emergencia_general}
           onPress={onEmergency}
@@ -386,10 +391,13 @@ const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, s
           enlarged={true}
         />
       </div>
-      
-      {/* SECONDARY BUTTONS - Flex Container with spacing */}
+    </div>
+    
+    {/* BOTTOM SECTION: Secondary Buttons + Info */}
+    <div className="flex-shrink-0 space-y-4">
+      {/* Secondary Buttons - Grid 2 columns */}
       <div 
-        className="flex justify-between items-center gap-5 mt-6 px-2"
+        className="grid grid-cols-2 gap-4"
         data-testid="emergency-secondary-container"
       >
         <SecondaryEmergencyButton
@@ -409,15 +417,24 @@ const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, s
           enlarged={true}
         />
       </div>
+      
+      {/* Instruction Card */}
+      <div 
+        className="rounded-2xl px-4 py-3 text-center"
+        style={{
+          background: 'rgba(255, 255, 255, 0.05)',
+          border: '1px solid rgba(255, 255, 255, 0.08)'
+        }}
+      >
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          <strong className="text-white/80">Presiona el botón</strong> para alertar a seguridad.
+          <br />
+          Tu ubicación será enviada automáticamente.
+        </p>
+      </div>
     </div>
-    
-    {/* Instruction text - Hidden on small screens */}
-    <div className="emergency-instruction">
-      <p className="emergency-instruction-text">
-        <strong>Presiona el botón</strong> para alertar a seguridad.<br/>
-        Tu ubicación será enviada automáticamente.
-      </p>
-    </div>
+  </div>
+);
   </div>
 );
 
