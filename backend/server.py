@@ -2054,18 +2054,23 @@ async def send_push_notification(subscription_info: dict, payload: dict) -> bool
     - Condominium exists
     - Role is valid
     
-    ERROR HANDLING:
+    ERROR HANDLING (CONSERVATIVE - only delete on definitive errors):
     - 404/410 Gone: Auto-delete stale subscription from DB
-    - 401/403: Log but keep subscription (might be temporary)
-    - Other errors: Log and continue
+    - 401/403/429/500/502/503: Log but keep subscription (temporary errors)
+    - Timeout/Network: Log but keep subscription (temporary errors)
+    - Other errors: Log and keep subscription
+    
+    IMPORTANT: Only delete subscriptions when we are CERTAIN they are permanently invalid.
     """
+    endpoint = subscription_info.get("endpoint", "")
+    endpoint_short = endpoint[:50] if endpoint else "NO_ENDPOINT"
+    
     if not VAPID_PUBLIC_KEY or not VAPID_PRIVATE_KEY:
-        logger.warning("VAPID keys not configured, skipping push notification")
+        logger.warning("[PUSH-SEND-FAILED] VAPID keys not configured")
         return False
     
-    endpoint = subscription_info.get("endpoint", "")
     if not endpoint:
-        logger.warning("Push subscription missing endpoint")
+        logger.warning("[PUSH-SEND-FAILED] Subscription missing endpoint")
         return False
     
     try:
@@ -2075,26 +2080,57 @@ async def send_push_notification(subscription_info: dict, payload: dict) -> bool
             vapid_private_key=VAPID_PRIVATE_KEY,
             vapid_claims={"sub": f"mailto:{VAPID_CLAIMS_EMAIL}"}
         )
+        logger.info(f"[PUSH-SEND-SUCCESS] Notification sent to: {endpoint_short}...")
         return True
+        
     except WebPushException as e:
         status_code = e.response.status_code if e.response else None
-        logger.error(f"Push notification failed (status={status_code}): {e}")
+        error_body = ""
+        try:
+            if e.response:
+                error_body = e.response.text[:100] if e.response.text else ""
+        except:
+            pass
         
-        # Handle 410 Gone and 404 Not Found - subscription is invalid/expired
+        # ONLY delete on 404 (Not Found) or 410 (Gone) - subscription is permanently invalid
         if status_code in [404, 410]:
             delete_result = await db.push_subscriptions.delete_one({"endpoint": endpoint})
             if delete_result.deleted_count > 0:
-                logger.info(f"[PUSH-CLEANUP] Removed stale subscription (410/404): {endpoint[:50]}...")
+                logger.warning(f"[PUSH-SUB-DELETED] Removed invalid subscription (HTTP {status_code}): {endpoint_short}...")
+            else:
+                logger.warning(f"[PUSH-SEND-FAILED] HTTP {status_code} but subscription not found in DB: {endpoint_short}...")
             return False
         
-        # Handle 401/403 - might be temporary auth issue, don't delete
+        # 401/403 - Auth errors, likely temporary (VAPID token refresh, etc.)
         if status_code in [401, 403]:
-            logger.warning(f"[PUSH-AUTH] Auth error for endpoint (keeping subscription): {endpoint[:50]}...")
+            logger.warning(f"[PUSH-SEND-FAILED] Auth error HTTP {status_code} (keeping subscription): {endpoint_short}... | {error_body}")
             return False
         
+        # 429 - Rate limited, definitely keep subscription
+        if status_code == 429:
+            logger.warning(f"[PUSH-SEND-FAILED] Rate limited HTTP 429 (keeping subscription): {endpoint_short}...")
+            return False
+        
+        # 500/502/503/504 - Server errors, temporary
+        if status_code in [500, 502, 503, 504]:
+            logger.warning(f"[PUSH-SEND-FAILED] Server error HTTP {status_code} (keeping subscription): {endpoint_short}...")
+            return False
+        
+        # Any other WebPush error - log but keep subscription (be conservative)
+        logger.error(f"[PUSH-SEND-FAILED] WebPush error HTTP {status_code} (keeping subscription): {endpoint_short}... | {error_body}")
         return False
+        
+    except TimeoutError:
+        logger.warning(f"[PUSH-SEND-FAILED] Timeout (keeping subscription): {endpoint_short}...")
+        return False
+        
+    except ConnectionError as e:
+        logger.warning(f"[PUSH-SEND-FAILED] Connection error (keeping subscription): {endpoint_short}... | {str(e)[:50]}")
+        return False
+        
     except Exception as e:
-        logger.error(f"Unexpected push error: {e}")
+        # Unknown error - be conservative, keep subscription
+        logger.error(f"[PUSH-SEND-FAILED] Unexpected error (keeping subscription): {endpoint_short}... | {type(e).__name__}: {str(e)[:100]}")
         return False
 
 async def send_push_notification_with_cleanup(subscription_info: dict, payload: dict) -> dict:
