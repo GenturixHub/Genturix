@@ -197,7 +197,7 @@ const ProfilePage = () => {
     switch (primaryRole) {
       case 'Residente':
         return (
-          <Card className="bg-[#0F111A] border-[#1E293B]">
+          <Card className="bg-[#0F111A] border-[#1E293B] rounded-2xl">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Home className="w-4 h-4 text-blue-400" />
@@ -227,7 +227,7 @@ const ProfilePage = () => {
 
       case 'Guarda':
         return (
-          <Card className="bg-[#0F111A] border-[#1E293B]">
+          <Card className="bg-[#0F111A] border-[#1E293B] rounded-2xl">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Shield className="w-4 h-4 text-green-400" />
@@ -257,7 +257,7 @@ const ProfilePage = () => {
 
       case 'HR':
         return (
-          <Card className="bg-[#0F111A] border-[#1E293B]">
+          <Card className="bg-[#0F111A] border-[#1E293B] rounded-2xl">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Briefcase className="w-4 h-4 text-orange-400" />
@@ -281,7 +281,7 @@ const ProfilePage = () => {
 
       case 'Estudiante':
         return (
-          <Card className="bg-[#0F111A] border-[#1E293B]">
+          <Card className="bg-[#0F111A] border-[#1E293B] rounded-2xl">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <GraduationCap className="w-4 h-4 text-cyan-400" />
@@ -307,7 +307,7 @@ const ProfilePage = () => {
 
       case 'Supervisor':
         return (
-          <Card className="bg-[#0F111A] border-[#1E293B]">
+          <Card className="bg-[#0F111A] border-[#1E293B] rounded-2xl">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <UserCheck className="w-4 h-4 text-cyan-400" />
@@ -352,7 +352,7 @@ const ProfilePage = () => {
             <ArrowLeft className="w-4 h-4" />
             Volver
           </Button>
-          <Card className="bg-[#0F111A] border-[#1E293B]">
+          <Card className="bg-[#0F111A] border-[#1E293B] rounded-2xl">
             <CardContent className="p-8 text-center">
               <XCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">Error</h3>
@@ -513,7 +513,7 @@ const ProfilePage = () => {
 
         <div className="grid md:grid-cols-2 gap-6">
           {/* Contact Information */}
-          <Card className="bg-[#0F111A] border-[#1E293B]">
+          <Card className="bg-[#0F111A] border-[#1E293B] rounded-2xl">
             <CardHeader>
               <CardTitle className="text-base">Información de Contacto</CardTitle>
             </CardHeader>
@@ -556,7 +556,7 @@ const ProfilePage = () => {
           </Card>
 
           {/* Organization Info */}
-          <Card className="bg-[#0F111A] border-[#1E293B]">
+          <Card className="bg-[#0F111A] border-[#1E293B] rounded-2xl">
             <CardHeader>
               <CardTitle className="text-base flex items-center gap-2">
                 <Building2 className="w-4 h-4" />
@@ -589,7 +589,7 @@ const ProfilePage = () => {
         </div>
 
         {/* Public Description */}
-        <Card className="bg-[#0F111A] border-[#1E293B]">
+        <Card className="bg-[#0F111A] border-[#1E293B] rounded-2xl">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <FileText className="w-4 h-4" />
