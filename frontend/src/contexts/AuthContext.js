@@ -5,10 +5,9 @@ const AuthContext = createContext(undefined);
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
-// Storage keys
+// Storage keys - SECURITY: refresh_token NO LONGER stored in localStorage (now httpOnly cookie)
 const STORAGE_KEYS = {
   ACCESS_TOKEN: 'genturix_access_token',
-  REFRESH_TOKEN: 'genturix_refresh_token',
   USER: 'genturix_user',
   PASSWORD_RESET: 'genturix_password_reset',
 };
@@ -16,7 +15,7 @@ const STORAGE_KEYS = {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [accessToken, setAccessToken] = useState(null);
-  const [refreshToken, setRefreshToken] = useState(null);
+  // SECURITY: refreshToken no longer stored in state - managed via httpOnly cookie
   const [isLoading, setIsLoading] = useState(true);
   const [passwordResetRequired, setPasswordResetRequired] = useState(false);
 
