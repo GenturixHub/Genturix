@@ -73,9 +73,9 @@ const apiRequest = (url, options = {}) => {
 };
 
 // Storage keys must match AuthContext for session persistence
+// SECURITY: REFRESH_TOKEN removed - now managed via httpOnly cookie
 const STORAGE_KEYS = {
   ACCESS_TOKEN: 'genturix_access_token',
-  REFRESH_TOKEN: 'genturix_refresh_token',
 };
 
 class ApiService {
@@ -102,37 +102,32 @@ class ApiService {
       return response;
       
     } catch (error) {
-      // Handle 401 - try to refresh token
+      // Handle 401 - try to refresh token via httpOnly cookie
       if (error.status === 401) {
-        const refreshToken = localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN);
-        if (refreshToken) {
-          try {
-            const refreshResponse = await window.fetch(`${API_URL}/api/auth/refresh`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ refresh_token: refreshToken }),
-            });
+        try {
+          const refreshResponse = await window.fetch(`${API_URL}/api/auth/refresh`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',  // SECURITY: Send httpOnly cookie
+            body: JSON.stringify({}),  // Empty body, token comes from cookie
+          });
 
-            if (refreshResponse.ok) {
-              const data = await refreshResponse.json();
-              localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.access_token);
-              localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refresh_token);
-              
-              // Retry original request with new token
-              headers['Authorization'] = `Bearer ${data.access_token}`;
-              return await apiRequest(url, { ...options, headers });
-            }
-          } catch (e) {
-            // Refresh failed, clear storage
-            localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-            localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-            window.location.href = '/login';
-            throw error;
+          if (refreshResponse.ok) {
+            const data = await refreshResponse.json();
+            localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.access_token);
+            
+            // Retry original request with new token
+            headers['Authorization'] = `Bearer ${data.access_token}`;
+            return await apiRequest(url, { ...options, headers });
           }
+        } catch (e) {
+          // Refresh failed, clear storage
+          localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+          window.location.href = '/login';
+          throw error;
         }
-        // No refresh token, clear storage
+        // Refresh failed, clear storage
         localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-        localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
         window.location.href = '/login';
       }
       
