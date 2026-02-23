@@ -249,26 +249,6 @@ const InstallGateRoute = () => {
   return <RoleBasedRedirect />;
 };
 
-// Preview Install Screen (for testing - shows the screen regardless of install state)
-const InstallScreenPreview = () => {
-  const navigate = useNavigate();
-  const mockInstall = async () => {
-    console.log('[Preview] Mock install triggered');
-    return { outcome: 'dismissed' };
-  };
-  const mockContinue = () => {
-    localStorage.setItem('genturix_install_choice', 'web');
-    navigate('/login');
-  };
-  return (
-    <InstallChoiceScreen 
-      onInstall={mockInstall}
-      onContinueWeb={mockContinue}
-      isInstallable={true}
-    />
-  );
-};
-
 function AppRoutes() {
   return (
     <Routes>
