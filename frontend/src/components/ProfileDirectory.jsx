@@ -162,53 +162,46 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
   const hasUsers = directory?.total_count > 0;
 
   return (
-    <div className={`flex flex-col ${embedded ? '' : 'space-y-4'}`} style={{ height: maxHeight }}>
-      {/* Header */}
-      <div className={`flex-shrink-0 ${embedded ? 'p-3 border-b border-[#1E293B]' : ''}`}>
+    <div className="flex flex-col w-full" style={{ height: maxHeight }}>
+      {/* Header - Full width */}
+      <div className={`flex-shrink-0 ${embedded ? 'px-1 py-3 border-b border-[#1E293B]/50' : ''}`}>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Users className="w-5 h-5 text-primary" />
-            <h2 className="text-lg font-semibold">
+            <h2 className="text-lg font-bold">
               Personas
-              {directory?.condominium_name && (
-                <span className="text-sm font-normal text-muted-foreground ml-2">
-                  {directory.condominium_name}
-                </span>
-              )}
             </h2>
           </div>
           {hasUsers && (
-            <Badge variant="outline" className="text-xs">
-              {directory.total_count} usuarios
+            <Badge variant="outline" className="text-[10px] px-2 py-0.5">
+              {directory.total_count}
             </Badge>
           )}
         </div>
         
-        {/* Search */}
+        {/* Search - Full width */}
         {hasUsers && (
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nombre, email o teléfono..."
+              placeholder="Buscar persona..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 bg-[#0A0A0F] border-[#1E293B]"
+              className="pl-9 h-11 bg-[#0A0A0F] border-[#1E293B] rounded-xl text-sm"
               data-testid="directory-search"
             />
           </div>
         )}
       </div>
 
-      {/* Directory Content */}
+      {/* Directory Content - Full width */}
       <ScrollArea className="flex-1">
-        <div className={`space-y-4 ${embedded ? 'p-3' : ''}`}>
+        <div className={`space-y-4 ${embedded ? 'py-3' : ''}`}>
           {!hasUsers ? (
-            <Card className="bg-[#0F111A] border-[#1E293B]">
-              <CardContent className="p-6 text-center">
-                <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground">No hay usuarios en este condominio</p>
-              </CardContent>
-            </Card>
+            <div className="bg-[#0F111A] border border-[#1E293B] rounded-2xl p-8 text-center">
+              <Users className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">No hay usuarios en este condominio</p>
+            </div>
           ) : (
             Object.entries(directory.grouped_by_role).map(([role, users]) => {
               const filteredUsers = filterUsers(users);
@@ -222,32 +215,31 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
                   {/* Role Header */}
                   <div className="flex items-center gap-2 px-1">
                     <RoleIcon className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm font-medium text-muted-foreground">{config.label}</span>
-                    <Badge variant="outline" className="text-xs ml-auto">
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{config.label}</span>
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 ml-auto">
                       {filteredUsers.length}
                     </Badge>
                   </div>
                   
-                  {/* Users Grid */}
-                  <div className="grid gap-2">
+                  {/* Users List - Full width cards */}
+                  <div className="space-y-2">
                     {filteredUsers.map((dirUser) => (
-                      <Card 
+                      <div 
                         key={dirUser.id}
-                        className="bg-[#0F111A] border-[#1E293B] hover:border-primary/50 transition-colors cursor-pointer group"
+                        className="bg-[#0F111A] border border-[#1E293B] rounded-2xl p-3 active:scale-[0.99] transition-all cursor-pointer"
                         onClick={() => handleViewProfile(dirUser.id, dirUser)}
                         data-testid={`user-card-${dirUser.id}`}
                       >
-                        <CardContent className="p-3">
-                          <div className="flex items-center gap-3">
-                            {/* Avatar */}
-                            <div 
-                              className="relative cursor-pointer"
-                              onClick={(e) => handlePhotoClick(dirUser, e)}
-                            >
-                              <Avatar className="w-12 h-12 border-2 border-[#1E293B] group-hover:border-primary/50 transition-colors">
-                                <AvatarImage src={dirUser.profile_photo} />
-                                <AvatarFallback className={`${config.color} text-sm font-bold`}>
-                                  {dirUser.full_name?.charAt(0).toUpperCase()}
+                        <div className="flex items-center gap-3">
+                          {/* Avatar */}
+                          <div 
+                            className="relative"
+                            onClick={(e) => handlePhotoClick(dirUser, e)}
+                          >
+                            <Avatar className="w-11 h-11 border-2 border-[#1E293B]">
+                              <AvatarImage src={dirUser.profile_photo} />
+                              <AvatarFallback className={`${config.color} text-sm font-bold`}>
+                                {dirUser.full_name?.charAt(0).toUpperCase()}
                                 </AvatarFallback>
                               </Avatar>
                               {dirUser.profile_photo && (
