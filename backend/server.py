@@ -3554,6 +3554,74 @@ async def cleanup_invalid_subscriptions(current_user = Depends(require_role(Role
 
 
 # ============================================================
+# TEMPORARY CLEANUP ENDPOINT - REMOVE AFTER PRODUCTION CLEAN
+# ============================================================
+
+@api_router.get("/push/cleanup-legacy")
+async def cleanup_legacy_push_subscriptions(
+    dry_run: bool = True,
+    current_user = Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN))
+):
+    """
+    [ADMIN/SUPERADMIN ONLY] Clean up legacy push subscriptions.
+    
+    TEMPORARY CLEANUP ENDPOINT - REMOVE AFTER PRODUCTION CLEAN
+    
+    Removes subscriptions that:
+    - role is null
+    - OR endpoint does not exist
+    - OR endpoint is empty string
+    - OR is_active is false
+    
+    Parameters:
+    - dry_run: If True (default), only counts without deleting. Set to False to actually delete.
+    
+    This endpoint:
+    - ONLY affects push_subscriptions collection
+    - Does NOT touch users or other collections
+    - Does NOT modify VAPID or send_push logic
+    """
+    
+    # Build query for invalid/legacy subscriptions
+    cleanup_query = {
+        "$or": [
+            {"role": None},
+            {"role": {"$exists": False}},
+            {"endpoint": {"$exists": False}},
+            {"endpoint": None},
+            {"endpoint": ""},
+            {"is_active": False}
+        ]
+    }
+    
+    # Count documents to be deleted
+    count_to_delete = await db.push_subscriptions.count_documents(cleanup_query)
+    total_before = await db.push_subscriptions.count_documents({})
+    
+    logger.info(f"[PUSH-CLEANUP-LEGACY] Found {count_to_delete} legacy subscriptions to clean (dry_run={dry_run})")
+    
+    deleted_count = 0
+    
+    if not dry_run and count_to_delete > 0:
+        # Actually delete the documents
+        result = await db.push_subscriptions.delete_many(cleanup_query)
+        deleted_count = result.deleted_count
+        logger.info(f"[PUSH-CLEANUP-LEGACY] Deleted {deleted_count} legacy subscriptions")
+    
+    # Count remaining subscriptions
+    remaining = await db.push_subscriptions.count_documents({})
+    
+    return {
+        "dry_run": dry_run,
+        "total_before": total_before,
+        "matched_for_deletion": count_to_delete,
+        "deleted_count": deleted_count,
+        "remaining_subscriptions": remaining,
+        "message": f"{'DRY RUN: Would delete' if dry_run else 'Deleted'} {count_to_delete if dry_run else deleted_count} legacy subscriptions"
+    }
+
+
+# ============================================================
 # TEMPORARY DEBUG ENDPOINTS - REMOVE AFTER PRODUCTION DEBUG
 # ============================================================
 
