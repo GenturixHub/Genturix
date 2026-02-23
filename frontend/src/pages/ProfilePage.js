@@ -52,7 +52,7 @@ import {
   AlertDialogTitle,
 } from '../components/ui/alert-dialog';
 import ChangePasswordForm from '../components/ChangePasswordForm';
-import PushNotificationToggle from '../components/PushNotificationToggle';
+import { PushNotificationToggle } from '../components/PushNotificationBanner';
 
 // Role configuration for display
 const ROLE_CONFIG = {
