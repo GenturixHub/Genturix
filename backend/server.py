@@ -538,7 +538,7 @@ class TokenResponse(BaseModel):
     password_reset_required: bool = False  # Flag for frontend to show password change dialog
 
 class RefreshTokenRequest(BaseModel):
-    refresh_token: str
+    refresh_token: Optional[str] = None  # Optional - can come from httpOnly cookie instead
 
 # Password Change Model
 class PasswordChangeRequest(BaseModel):
