@@ -175,34 +175,50 @@ const DashboardLayout = ({ children, title = 'Dashboard', variant = 'admin' }) =
   // Determine which nav to show based on role
   const isHRUser = hasRole?.('HR') && !hasRole?.('Administrador') && !hasRole?.('SuperAdmin');
 
-  // Mobile layout
+  // Mobile layout - Native App Style
   if (isMobile) {
     return (
-      <div className="min-h-screen bg-[#05050A] flex flex-col">
-        {/* Mobile Header - Fixed at top, MOBILE-FIRST: 56px max height */}
-        <header className="sticky top-0 z-40 bg-[#0F111A] border-b border-[#1E293B] px-4 h-14 flex items-center justify-between safe-area-top flex-shrink-0">
-          <h1 className="text-base font-semibold font-['Outfit'] truncate">{title}</h1>
-          {/* Hamburger menu removed - navigation is at the bottom */}
+      <div 
+        className="min-h-screen bg-[#05050A] flex flex-col w-full"
+        style={{ 
+          minHeight: '100dvh',
+          WebkitOverflowScrolling: 'touch'
+        }}
+      >
+        {/* Mobile Header - Sticky, compact, full-width */}
+        <header 
+          className="sticky top-0 z-40 bg-[#0A0A0F]/95 backdrop-blur-lg border-b border-[#1E293B]/60 flex-shrink-0 safe-area-top"
+          style={{ height: '52px' }}
+        >
+          <div className="flex items-center justify-between h-full px-4">
+            <h1 className="text-lg font-bold font-['Outfit'] text-white truncate">{title}</h1>
+          </div>
         </header>
         
-        {/* Content - Scrollable area with proper bottom padding for nav */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 pb-24" style={{ minHeight: 0 }}>
-          {children}
+        {/* Content - Full width, native scrolling */}
+        <main 
+          className="flex-1 overflow-y-auto overflow-x-hidden w-full"
+          style={{ 
+            paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
+            WebkitOverflowScrolling: 'touch'
+          }}
+        >
+          <div className="px-3 py-4 w-full">
+            {children}
+          </div>
         </main>
         
-        {/* Bottom Navigation - Fixed at bottom */}
-        <div className="flex-shrink-0">
-          {isHRUser || variant === 'hr' ? (
-            <HRMobileNav activeRoute={location.pathname + location.search} />
-          ) : (
-            <AdminMobileNav activeRoute={location.pathname} />
-          )}
-        </div>
+        {/* Bottom Navigation - Fixed, app-style */}
+        {isHRUser || variant === 'hr' ? (
+          <HRMobileNav activeRoute={location.pathname + location.search} />
+        ) : (
+          <AdminMobileNav activeRoute={location.pathname} />
+        )}
       </div>
     );
   }
 
-  // Desktop layout
+  // Desktop layout - unchanged
   return (
     <div className="min-h-screen bg-[#05050A]">
       <Sidebar 
