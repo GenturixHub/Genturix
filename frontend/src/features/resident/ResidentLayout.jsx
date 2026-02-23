@@ -9,7 +9,7 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Shield, LogOut } from 'lucide-react';
+import { Shield, LogOut, Users, Calendar, User, AlertTriangle } from 'lucide-react';
 import MobileBottomNav from '../../components/layout/BottomNav';
 
 // Navigation items for Resident
@@ -17,14 +17,14 @@ const RESIDENT_NAV_ITEMS = [
   { 
     id: 'emergency', 
     label: 'Emergencia', 
-    icon: Shield,
+    icon: AlertTriangle,
     bgColor: 'bg-red-600',
     glowColor: 'shadow-red-500/40'
   },
-  { id: 'visits', label: 'Visitas', icon: require('lucide-react').Users },
-  { id: 'reservations', label: 'Reservas', icon: require('lucide-react').Calendar },
-  { id: 'directory', label: 'Personas', icon: require('lucide-react').Users },
-  { id: 'profile', label: 'Perfil', icon: require('lucide-react').User },
+  { id: 'visits', label: 'Visitas', icon: Users },
+  { id: 'reservations', label: 'Reservas', icon: Calendar },
+  { id: 'directory', label: 'Personas', icon: Users },
+  { id: 'profile', label: 'Perfil', icon: User },
 ];
 
 const ResidentLayout = ({ children, activeTab, onTabChange, title = 'GENTURIX' }) => {
