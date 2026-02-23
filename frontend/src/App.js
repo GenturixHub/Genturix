@@ -23,7 +23,7 @@ import ProfilePage from './pages/ProfilePage';
 import JoinPage from './pages/JoinPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import CondominiumSettingsPage from './pages/CondominiumSettingsPage';
-import UpdateBanner from './components/UpdateBanner';
+import UpdateAvailableModal from './components/UpdateAvailableModal';
 import useServiceWorkerUpdate from './hooks/useServiceWorkerUpdate';
 import './App.css';
 
@@ -371,7 +371,7 @@ function AppRoutes() {
 }
 
 function App() {
-  const { showUpdate, isUpdating, triggerUpdate } = useServiceWorkerUpdate();
+  const { showUpdate, isUpdating, triggerUpdate, dismissUpdate } = useServiceWorkerUpdate();
 
   return (
     <BrowserRouter>
@@ -379,10 +379,11 @@ function App() {
         <ModulesProvider>
           <AppRoutes />
           <Toaster position="top-right" />
-          {/* Service Worker Update Banner */}
-          <UpdateBanner 
-            show={showUpdate} 
+          {/* Service Worker Update Modal */}
+          <UpdateAvailableModal 
+            isOpen={showUpdate} 
             onUpdate={triggerUpdate} 
+            onDismiss={dismissUpdate}
             isUpdating={isUpdating} 
           />
         </ModulesProvider>
