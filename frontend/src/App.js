@@ -219,9 +219,42 @@ const ProfilePageOrRedirect = () => {
   return <ProfilePage />;
 };
 
+// Install Gate Route - decides whether to show install screen
+const InstallGateRoute = () => {
+  const { 
+    shouldShowInstallGate, 
+    isInstallable, 
+    promptInstall, 
+    chooseWeb 
+  } = usePWAInstall();
+  const { isAuthenticated } = useAuth();
+
+  // If user is already authenticated, go to role-based redirect
+  if (isAuthenticated) {
+    return <RoleBasedRedirect />;
+  }
+
+  // If should show install gate (not installed, no previous choice, installable)
+  if (shouldShowInstallGate) {
+    return (
+      <InstallChoiceScreen 
+        onInstall={promptInstall}
+        onContinueWeb={chooseWeb}
+        isInstallable={isInstallable}
+      />
+    );
+  }
+
+  // Otherwise, redirect to login or role-based redirect
+  return <RoleBasedRedirect />;
+};
+
 function AppRoutes() {
   return (
     <Routes>
+      {/* Install Gate - shown on root if conditions met */}
+      <Route path="/install" element={<InstallGateRoute />} />
+      
       {/* Public Routes */}
       <Route path="/login" element={
         <PublicRoute>
@@ -235,8 +268,8 @@ function AppRoutes() {
       {/* Password Reset Page (Public - accessed via email link) */}
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-      {/* Role-based entry point */}
-      <Route path="/" element={<RoleBasedRedirect />} />
+      {/* Role-based entry point - also checks install gate */}
+      <Route path="/" element={<InstallGateRoute />} />
 
       {/* Panel Selection for multi-role users */}
       <Route path="/select-panel" element={
