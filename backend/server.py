@@ -5177,9 +5177,15 @@ async def get_authorizations_for_guard(
     authorizations = filtered_authorizations
     # ================================================================================================
     
+    # Get condominium timezone for validity checks
+    condo_timezone = None
+    if condo_id:
+        condo = await db.condominiums.find_one({"id": condo_id}, {"timezone": 1})
+        condo_timezone = condo.get("timezone") if condo else None
+    
     # Enrich with validity status
     for auth in authorizations:
-        validity = check_authorization_validity(auth)
+        validity = check_authorization_validity(auth, condo_timezone)
         auth["validity_status"] = validity["status"]
         auth["validity_message"] = validity["message"]
         auth["is_currently_valid"] = validity["is_valid"]
