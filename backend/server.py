@@ -1370,19 +1370,32 @@ async def send_credentials_email(
     
     try:
         # Run sync SDK in thread to keep FastAPI non-blocking
+        logger.info(f"[RESEND-AUDIT] Attempting to send credentials email | recipient={recipient_email} | from={SENDER_EMAIL}")
         email_response = await asyncio.to_thread(resend.Emails.send, params)
-        logger.info(f"Credentials email sent to {recipient_email}")
+        
+        # Detailed response logging for audit
+        if isinstance(email_response, dict):
+            email_id = email_response.get("id", "N/A")
+            logger.info(f"[RESEND-AUDIT] SUCCESS | email_id={email_id} | recipient={recipient_email} | response={email_response}")
+        else:
+            logger.info(f"[RESEND-AUDIT] SUCCESS | response_type={type(email_response).__name__} | recipient={recipient_email} | response={email_response}")
+        
         return {
             "status": "success",
             "email_id": email_response.get("id") if isinstance(email_response, dict) else str(email_response),
-            "recipient": recipient_email
+            "recipient": recipient_email,
+            "from": SENDER_EMAIL
         }
     except Exception as e:
-        logger.error(f"Failed to send credentials email to {recipient_email}: {str(e)}")
+        error_str = str(e)
+        error_type = type(e).__name__
+        logger.error(f"[RESEND-AUDIT] FAILED | recipient={recipient_email} | error_type={error_type} | error={error_str}")
         return {
             "status": "failed",
-            "error": str(e),
-            "recipient": recipient_email
+            "error": error_str,
+            "error_type": error_type,
+            "recipient": recipient_email,
+            "from": SENDER_EMAIL
         }
 
 async def send_password_reset_email(
