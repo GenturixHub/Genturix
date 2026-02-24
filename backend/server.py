@@ -4969,7 +4969,14 @@ async def get_authorization(
     # Use get_tenant_resource for automatic 404/403 handling
     auth = await get_tenant_resource(db.visitor_authorizations, auth_id, current_user)
     
-    validity = check_authorization_validity(auth)
+    # Get condominium timezone for validity check
+    condo_timezone = None
+    condo_id = current_user.get("condominium_id")
+    if condo_id:
+        condo = await db.condominiums.find_one({"id": condo_id}, {"timezone": 1})
+        condo_timezone = condo.get("timezone") if condo else None
+    
+    validity = check_authorization_validity(auth, condo_timezone)
     auth["validity_status"] = validity["status"]
     auth["validity_message"] = validity["message"]
     auth["is_currently_valid"] = validity["is_valid"]
