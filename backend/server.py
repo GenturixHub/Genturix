@@ -1483,19 +1483,31 @@ async def send_password_reset_email(
     }
     
     try:
+        logger.info(f"[RESEND-AUDIT] Attempting to send password reset email | recipient={recipient_email} | from={SENDER_EMAIL}")
         email_response = await asyncio.to_thread(resend.Emails.send, params)
-        logger.info(f"Password reset email sent to {recipient_email}")
+        
+        if isinstance(email_response, dict):
+            email_id = email_response.get("id", "N/A")
+            logger.info(f"[RESEND-AUDIT] SUCCESS | email_id={email_id} | recipient={recipient_email} | type=password_reset")
+        else:
+            logger.info(f"[RESEND-AUDIT] SUCCESS | response_type={type(email_response).__name__} | recipient={recipient_email}")
+        
         return {
             "status": "success",
             "email_id": email_response.get("id") if isinstance(email_response, dict) else str(email_response),
-            "recipient": recipient_email
+            "recipient": recipient_email,
+            "from": SENDER_EMAIL
         }
     except Exception as e:
-        logger.error(f"Failed to send password reset email to {recipient_email}: {str(e)}")
+        error_str = str(e)
+        error_type = type(e).__name__
+        logger.error(f"[RESEND-AUDIT] FAILED | recipient={recipient_email} | error_type={error_type} | error={error_str} | type=password_reset")
         return {
             "status": "failed",
-            "error": str(e),
-            "recipient": recipient_email
+            "error": error_str,
+            "error_type": error_type,
+            "recipient": recipient_email,
+            "from": SENDER_EMAIL
         }
 
 # ==================== PASSWORD RESET TOKEN FUNCTIONS ====================
