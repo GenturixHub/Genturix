@@ -5716,10 +5716,16 @@ async def get_visits_summary(
     }
     pending_auths = await db.visitor_authorizations.find(pending_query, {"_id": 0}).sort("created_at", -1).to_list(100)
     
+    # Get condominium timezone for validity checks
+    condo_timezone = None
+    if condo_id:
+        condo = await db.condominiums.find_one({"id": condo_id}, {"timezone": 1})
+        condo_timezone = condo.get("timezone") if condo else None
+    
     # Filter and enrich pending authorizations with validity
     enriched_pending = []
     for auth in pending_auths:
-        validity = check_authorization_validity(auth)
+        validity = check_authorization_validity(auth, condo_timezone)
         if validity.get("is_valid"):
             auth["validity_status"] = validity["status"]
             auth["validity_message"] = validity["message"]
