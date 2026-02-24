@@ -184,7 +184,7 @@ const SuccessScreen = ({ alert, onDismiss }) => {
 };
 
 // ============================================
-// EMERGENCY TAB (Premium Design)
+// EMERGENCY TAB (Dynamic Hierarchical Design)
 // ============================================
 const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, sendingType }) => (
   <div 
@@ -194,66 +194,30 @@ const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, s
       flexDirection: 'column',
       justifyContent: 'center',
       alignItems: 'center',
-      padding: '20px 16px',
-      gap: '24px',
+      padding: '16px',
+      gap: '16px',
       boxSizing: 'border-box',
-      background: 'radial-gradient(ellipse at center top, rgba(220, 38, 38, 0.08) 0%, transparent 60%)'
+      background: 'radial-gradient(ellipse at center top, rgba(220, 38, 38, 0.06) 0%, transparent 50%)'
     }}
+    data-testid="emergency-tab"
   >
     {/* GPS Status */}
     <div className="flex-shrink-0">
       <GPSStatus location={location} isLoading={locationLoading} error={locationError} />
     </div>
     
-    {/* Premium Panic Button */}
+    {/* Dynamic Emergency Buttons */}
     <div className="flex-1 flex items-center justify-center min-h-0">
-      <PremiumPanicButton
-        onTrigger={() => onEmergency('emergencia_general')}
+      <DynamicEmergencyButtons
+        onTrigger={onEmergency}
         disabled={!!sendingType}
       />
     </div>
     
-    {/* Secondary Quick Actions */}
-    <div className="flex-shrink-0 w-full max-w-sm space-y-4">
-      {/* Quick Action Buttons */}
-      <div className="grid grid-cols-2 gap-3">
-        <button
-          onClick={() => onEmergency('emergencia_medica')}
-          disabled={!!sendingType}
-          data-testid="quick-btn-medical"
-          className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-medium transition-all disabled:opacity-50"
-          style={{
-            background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.05) 100%)',
-            border: '1px solid rgba(34, 197, 94, 0.3)',
-            color: '#22c55e'
-          }}
-        >
-          <Heart className="w-4 h-4" />
-          <span>Médica</span>
-          {sendingType === 'emergencia_medica' && <Loader2 className="w-4 h-4 animate-spin" />}
-        </button>
-        <button
-          onClick={() => onEmergency('actividad_sospechosa')}
-          disabled={!!sendingType}
-          data-testid="quick-btn-suspicious"
-          className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-medium transition-all disabled:opacity-50"
-          style={{
-            background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(251, 191, 36, 0.05) 100%)',
-            border: '1px solid rgba(251, 191, 36, 0.3)',
-            color: '#fbbf24'
-          }}
-        >
-          <Eye className="w-4 h-4" />
-          <span>Seguridad</span>
-          {sendingType === 'actividad_sospechosa' && <Loader2 className="w-4 h-4 animate-spin" />}
-        </button>
-      </div>
-      
-      {/* Info Footer */}
-      <p className="text-xs text-center text-white/40 px-4">
-        Tu ubicación será enviada automáticamente con la alerta
-      </p>
-    </div>
+    {/* Info Footer */}
+    <p className="flex-shrink-0 text-xs text-center text-white/40 px-4">
+      Tu ubicación será enviada automáticamente con la alerta
+    </p>
   </div>
 );
 
