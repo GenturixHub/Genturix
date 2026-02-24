@@ -25,6 +25,7 @@ import EmbeddedProfile from '../../components/EmbeddedProfile';
 import ResidentVisitsModule from '../../components/ResidentVisitsModule';
 import PushPermissionBanner from '../../components/PushPermissionBanner';
 import ResidentReservations from '../../components/ResidentReservations';
+import PremiumPanicButton from '../../components/PremiumPanicButton';
 import ResidentLayout from './ResidentLayout';
 import { toast } from 'sonner';
 import { 
