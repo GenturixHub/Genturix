@@ -2136,15 +2136,22 @@ async def send_push_notification(subscription_info: dict, payload: dict) -> bool
 async def send_push_notification_with_cleanup(subscription_info: dict, payload: dict) -> dict:
     """
     Send a push notification and return detailed result for parallel processing.
-    Returns: {"success": bool, "deleted": bool, "endpoint": str}
+    Returns: {"success": bool, "deleted": bool, "endpoint": str, "error": str|None}
+    
+    ERROR HANDLING (CONSERVATIVE):
+    - Only delete subscription on HTTP 404 or 410 (subscription permanently invalid)
+    - Keep subscription for all other errors (401, 403, 429, 500, timeout, network, etc.)
     """
     endpoint = subscription_info.get("endpoint", "")
-    result = {"success": False, "deleted": False, "endpoint": endpoint}
+    endpoint_short = endpoint[:50] if endpoint else "NO_ENDPOINT"
+    result = {"success": False, "deleted": False, "endpoint": endpoint, "error": None}
     
     if not VAPID_PUBLIC_KEY or not VAPID_PRIVATE_KEY:
+        result["error"] = "VAPID not configured"
         return result
     
     if not endpoint:
+        result["error"] = "Missing endpoint"
         return result
     
     try:
@@ -2155,20 +2162,40 @@ async def send_push_notification_with_cleanup(subscription_info: dict, payload: 
             vapid_claims={"sub": f"mailto:{VAPID_CLAIMS_EMAIL}"}
         )
         result["success"] = True
+        logger.info(f"[PUSH-SEND-SUCCESS] Notification sent: {endpoint_short}...")
         return result
+        
     except WebPushException as e:
         status_code = e.response.status_code if e.response else None
+        result["error"] = f"HTTP {status_code}"
         
-        # Handle 410 Gone and 404 Not Found - subscription is invalid/expired
+        # ONLY delete on 404 (Not Found) or 410 (Gone) - subscription is permanently invalid
         if status_code in [404, 410]:
             delete_result = await db.push_subscriptions.delete_one({"endpoint": endpoint})
             if delete_result.deleted_count > 0:
                 result["deleted"] = True
-                logger.debug(f"[PUSH-CLEANUP] Removed stale subscription: {endpoint[:40]}...")
+                logger.warning(f"[PUSH-SUB-DELETED] Removed invalid subscription (HTTP {status_code}): {endpoint_short}...")
+            else:
+                logger.warning(f"[PUSH-SEND-FAILED] HTTP {status_code} but subscription not in DB: {endpoint_short}...")
+        else:
+            # All other errors: keep the subscription
+            logger.warning(f"[PUSH-SEND-FAILED] HTTP {status_code} (keeping subscription): {endpoint_short}...")
         
         return result
+        
+    except TimeoutError:
+        result["error"] = "Timeout"
+        logger.warning(f"[PUSH-SEND-FAILED] Timeout (keeping subscription): {endpoint_short}...")
+        return result
+        
+    except ConnectionError as e:
+        result["error"] = f"Connection: {str(e)[:30]}"
+        logger.warning(f"[PUSH-SEND-FAILED] Connection error (keeping subscription): {endpoint_short}...")
+        return result
+        
     except Exception as e:
-        logger.error(f"Unexpected push error: {e}")
+        result["error"] = f"{type(e).__name__}: {str(e)[:50]}"
+        logger.error(f"[PUSH-SEND-FAILED] Unexpected error (keeping subscription): {endpoint_short}... | {result['error']}")
         return result
 
 async def notify_guards_of_panic(condominium_id: str, panic_data: dict, sender_id: str = None):
