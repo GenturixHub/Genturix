@@ -1,60 +1,65 @@
 <analysis>**original_problem_statement:**
-The user's primary objective is to harden and prepare the Genturix application for a production launch. The initial focus was on fixing critical security vulnerabilities. Subsequently, the focus shifted to extensive frontend refactoring to create a true mobile-first user experience, improve the PWA update mechanism, and resolve production deployment issues on Vercel. The end goal is a stable, secure, and performant application that feels like a native mobile app.
+The user's primary objective is to harden and prepare the Genturix application for a production launch. This involves fixing security vulnerabilities, improving deployment stability, and performing extensive frontend refactoring for a mobile-first user experience. Subsequent user requests focused on redesigning specific UI components for a more modern, premium feel, fixing layout and PWA-related bugs, and auditing/hardening the push notification system.
 
 PRODUCT REQUIREMENTS:
-1.  **Production Hardening & Security:** Fix all critical security vulnerabilities, including insecure endpoints and privilege escalation. Move JWT refresh tokens from localStorage to secure httpOnly cookies.
-2.  **Deployment Stability:** Resolve all build and deployment issues on Vercel and Railway, ensuring a stable CI/CD pipeline.
-3.  **Mobile-First Refactor:** Transform the entire frontend from a desktop-centric design to a modern, responsive, mobile-first layout that feels like a native application. This includes refactoring layouts, components, and spacing.
-4.  **PWA Update System:** Implement a professional and reliable mechanism to prompt users to update the application when a new version is available.
-5.  **Code Quality & Architecture:** Perform a structural audit to identify and remove dead or duplicated code. Refactor monolithic components into a more modular and maintainable structure, such as isolating the resident-facing UI into its own feature module.
-6.  **SuperAdmin Features:** Implement the frontend UI for the SuperAdmin to manage SaaS pricing.
+1.  **Production Hardening & Security:** Fix all critical security vulnerabilities, including moving JWT refresh tokens from localStorage to secure httpOnly cookies.
+2.  **Deployment Stability:** Resolve all build and deployment issues.
+3.  **Mobile-First Refactor:** Transform the frontend to a modern, responsive, mobile-first layout.
+4.  **PWA Enhancements:** Implement a professional PWA install gate and reliable update mechanism.
+5.  **Code Quality & Architecture:** Perform a structural audit, remove dead/duplicated code, and refactor monolithic components.
+6.  **Feature Implementation & UI/UX Polish:**
+    *   Implement the frontend UI for SuperAdmin pricing management.
+    *   Redesign the Resident Profile and Panic Button for a premium, modern aesthetic.
+    *   Fix various UI/UX bugs, such as scroll issues and inconsistent timezone handling.
+    *   Audit and fix the entire push notification pipeline.
 
 **User's preferred language**: Español
 
 **what currently exists?**
-The application is significantly more robust and production-ready than at the start of the session.
--   **Security Vulnerabilities Patched:** Two critical backend vulnerabilities (an unauthenticated superadmin creation endpoint and a privilege escalation flaw in the registration process) have been successfully fixed and verified.
--   **Vercel Deployment Fixed:** A major build issue on Vercel caused by an untracked  file has been diagnosed and resolved by force-tracking the file in Git.
--   **Push Notification Debug Tools:** Temporary, authenticated backend endpoints ( and ) have been created to help diagnose push notification issues in production.
--   **PWA Update Modal:** A professional modal system has been implemented. It detects when a new version of the service worker is available and prompts the user to update and reload the application.
--   **Extensive Mobile-First Refactoring:** Multiple core components and layouts, including lists, cards, headers, and navigation, have been refactored to be more compact and adhere to mobile-first design principles. The  was also visually overhauled.
--   **Frontend Audit Completed:** A comprehensive structural audit of the frontend was performed, identifying dead code, duplicated components, and monolithic files that need refactoring.
+The application has undergone significant hardening and feature development. The two highest-priority tasks from the previous handoff—refactoring the resident module and moving the JWT refresh token to httpOnly cookies—are complete and verified. Dead code identified in a prior audit has been removed, and a duplicated push notification component has been unified.
+
+Major UI/UX improvements have been implemented, including a complete visual redesign of the resident profile page to a modern, minimalist style, and the resolution of several layout bugs (micro-scrolling, button visibility). A PWA install gate screen has been added to encourage app installation.
+
+The push notification system was fully audited and hardened. The root cause of failing notifications (invalid legacy/test subscriptions) was identified, a cleanup endpoint was created and executed, and the backend logic was reinforced to prevent aggressive deletion of valid subscriptions.
+
+A critical bug related to timezones was fixed by making the recurrent authorization validation logic aware of the specific condominium's timezone instead of defaulting to UTC.
 
 **Last working item**:
--   Last item agent was working: The agent was performing a major architectural refactor to completely isolate the resident-facing UI. This involved creating a new directory structure (), a dedicated , and moving the content from the old  into a new .
+-   Last item agent was working: A complete, premium redesign of the resident's panic button. This involves creating a new component with custom animations (breathing effect, ripple), haptic feedback, sound effects, and a custom confirmation modal, as per detailed user specifications. The agent created the new component  and the required audio asset.
 -   Status: IN PROGRESS
 -   Agent Testing Done: N
--   Which testing method agent to use? Frontend testing agent, to specifically test the user journey for the Resident role to ensure the new isolated layout works correctly and all previous functionality is intact.
+-   Which testing method agent to use? Frontend testing agent to verify the new UI, animations, sound playback, haptic feedback, confirmation modal flow, and the subsequent API call.
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Finalize and Test Resident Module Refactor (P0)**
-    -   **Description:** The architectural refactoring to isolate the resident module was started but left in an incomplete and untested state. The agent created the new files but ran into errors while integrating them into .
-    -   **Attempted fixes:** The agent created the new files (, ) and attempted to update  to use them, but the implementation was not finalized or tested.
+-   **Issue 1: Finalize Premium Panic Button Implementation (P0)**
+    -   **Description:** The new  component has been created but has not yet been integrated into the  view or tested. The logic for handling the confirmation modal, triggering the panic API call, and managing the different visual states (idle, confirming, activated) needs to be finalized and verified.
+    -   **Attempted fixes:** The agent created the component file with the required styling and structure.
     -   **Next debug checklist:**
-        1.  Review  and  to ensure all imports are correct and logic was transferred properly.
-        2.  Review . Ensure the route for  correctly uses the new  and  components and is still protected by the .
-        3.  Run yarn run v1.22.22
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command. to confirm there are no compilation errors.
-        4.  Perform a full end-to-end test by logging in as a Resident user and verifying that the UI renders correctly and all functionality (emergency tab, profile directory, etc.) works as expected.
-    -   **Why fix this issue and what will be achieved with the fix?** Completing this refactor will create a cleaner, more modular architecture, making the resident-specific code easier to maintain and develop independently of other roles.
+        1.  Import and replace the old panic button with  inside .
+        2.  Wire the  prop of the new component to the existing  function.
+        3.  Test the full user flow: click -> haptic/sound/ripple -> confirmation modal -> confirm -> API call -> activated state -> visual reset.
+        4.  Verify the design and animations are correct using the screenshot tool.
+    -   **Why fix this issue and what will be achieved with the fix?** This will complete a major user-requested UI/UX enhancement, providing a more professional and engaging experience for a critical app feature.
     -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** Frontend
     -   **Blocked on other issue:** None.
 
 **In progress Task List**:
--   None other than the Last working item.
+-   **Task 1: Integrate and Test Premium Panic Button (P0)**
+    -   **Where to resume:** .
+    -   **What will be achieved with this?** A fully functional, redesigned panic button that matches the user's detailed specifications for a premium user experience.
+    -   **Status:** IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?** Frontend
+    -   **Blocked on something:** None.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P0) Mitigate High-Severity Vulnerability:** Move the JWT refresh token from localStorage to a secure, httpOnly cookie. This critical security task from the initial handoff is still outstanding.
-    -   **(P1) Act on Frontend Audit Findings:**
-        -   **Eliminate Dead Code:** Delete  and .
-        -   **Deduplicate Components:** Unify the  component into a single file and fix all imports.
-    -   **(P1) Implement SuperAdmin Pricing Management UI:** The backend is ready, but the frontend interface for SuperAdmins is missing.
+    -   **(P1) Implement UI for Deleting 'Used' Pre-registrations:** The audit revealed the frontend does not render a delete button for pre-registrations with , even though the backend allows it. A button needs to be added to the UI for this category.
+    -   **(P1) Implement SuperAdmin Pricing Management UI:** The backend is ready, but the frontend interface for SuperAdmins to manage SaaS pricing is still missing.
 -   **Future Tasks:**
-    -   **(P1) Modularize Monolithic Frontend Components:** Break down large components identified in the audit (, , ) into smaller, more manageable pieces.
+    -   **(P1) Modularize Monolithic Frontend Components:** Break down , , and .
     -   **(P2) CCTV Module Implementation.**
     -   **(P2) Implement HR performance reports for guards.**
     -   **(P2) Add email notifications for reservation events.**
@@ -62,71 +67,93 @@ info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this comm
     -   **(P3) Refactor the monolithic  file into a modular structure.
 
 **Completed work in this session**
--   **Critical Security Vulnerabilities Fixed (DONE):** Removed the unauthenticated  endpoint and fixed the privilege escalation vulnerability in the  endpoint.
--   **Vercel Build Failure Resolved (DONE):** Diagnosed that  was untracked by Git and fixed it, resolving the No lockfile found error on Vercel.
--   **Push Notification Debug Endpoints (DONE):** Added temporary, authenticated backend endpoints to help diagnose push notification issues in production.
--   **PWA Update Flow Implemented (DONE):** Replaced a simple update banner with a robust  that prompts users to refresh for the latest version.
--   **Comprehensive Mobile-First UI Refactor (DONE):** Optimized numerous components and layouts for a denser, more native-app-like mobile experience.
--   **Frontend Structural Audit (DONE):** Generated a detailed report identifying dead code, duplicated components, and areas needing modularization.
--   **Temporary Endpoints Removed (DONE):** The temporary test banners and titles () were added and subsequently removed.
+-   **Resident Module Refactor (DONE):** Completed the architectural isolation of the resident UI, tested, and verified.
+-   **JWT Refresh Token in httpOnly Cookie (DONE):** Migrated refresh tokens from localStorage to secure httpOnly cookies, fully implemented on both frontend and backend, and verified via testing agent.
+-   **Push Notification System Overhaul (DONE):**
+    -   Audited the entire push pipeline, identifying invalid legacy subscriptions as the root cause of failures.
+    -   Created and used a temporary admin endpoint () to purge invalid subscriptions from the database.
+    -   Reinforced backend logic to only delete subscriptions on 404/410 errors, preventing aggressive cleanup.
+    -   Ensured frontend requests include credentials ().
+-   **Resident Profile Redesign (DONE):** The profile page was completely redesigned with a modern, minimalist, premium aesthetic.
+-   **PWA App Install Gate (DONE):** Implemented a screen on the root URL to prompt users to install the PWA or continue to the web version.
+-   **Code Cleanup and Unification (DONE):**
+    -   Deleted dead code files:  and .
+    -   Unified the duplicated  component into a single, canonical version.
+-   **Bug Fixes (DONE):**
+    -   **Timezone Correction:** Fixed recurrent authorization logic to use the condominium's specific timezone instead of UTC.
+    -   **Profile Scroll Fix:** Added bottom padding to the resident profile screen to prevent the logout button from being obscured by the fixed bottom navigation.
+    -   **Emergency Tab Scroll Fix:** Eliminated a micro-scroll issue on the resident emergency tab by switching from  to .
+-   **Branding Update (DONE):** Updated the application's favicon, PWA icons, and Apple touch icon with the new logo.
 
 **Earlier issues found/mentioned but not fixed**
--   **Frontend Audit Action Items:** The agent successfully performed a structural audit of the frontend code but did not proceed to fix the issues it found, such as deleting dead code (, ) and resolving duplicated components ().
+-   **Issue 1: No UI to Delete 'Used' Pre-registrations:** An audit of the pre-registration system revealed that the frontend intentionally does not render a delete button for authorizations that have a status of . While the backend logic would permit their soft deletion, the user has no way to perform this action. This was reported to the user but not fixed.
 
 **Known issue recurrence from previous fork**
 -   None.
 
 **Code Architecture**
-
+withCredentials=true
 
 **Key Technical Concepts**
--   **VAPID (Web Push):** The protocol used for sending push notifications, distinct from using the FCM SDK directly.
--   **PWA Update Lifecycle:** Managing the service worker's  state to allow the user to trigger an update via  and .
--   **CRACO (Create React App Configuration Override):** Used to customize the Webpack configuration of the CRA project without ejecting.
--   **Git  Tracking:** The critical importance of committing lockfiles to ensure reproducible builds in CI/CD environments like Vercel.
--   **Architectural Refactoring (Feature Slicing):** Isolating a user role's entire UI and layout into a dedicated feature folder () to decouple it from the main application layout and improve modularity.
+-   **httpOnly Cookies:** Used for securely storing JWT refresh tokens, preventing access from client-side JavaScript (XSS mitigation).
+-   **PWA Install Prompt:** Capturing the  event to create a custom installation UI/gate.
+-   **CSS Viewport Units ():** Dynamic viewport height unit used to solve layout issues on mobile browsers with dynamic toolbars.
+-   **Timezone-Aware Datetimes (Python ):** Using  to correctly calculate dates and times based on a stored timezone string (e.g., America/Mexico_City).
+-   **Web APIs:**  for haptic feedback and  for playing UI sounds.
+-   **Advanced CSS:**  for breathing animations, complex  for glow effects, and  for premium button styling.
 
 **key DB schema**
--   **users**: Contains user information including , , . The  endpoint now forces  to .
--   **push_subscriptions**: Stores VAPID push notification subscription data for each user device.
+-   **users**: No changes.
+-   **push_subscriptions**: The collection has been cleaned of invalid/test entries. New subscriptions are created correctly. Logic for deleting subscriptions is now more robust.
+-   **condominiums**: The  field is now actively used in authorization logic.
+-   **authorizations**: The  logic now correctly uses the condominium's timezone.
 
 **All files of reference**
--   : Location of security fixes and new debug endpoints.
--   : Main router, recently modified for the resident module refactor.
--   : New layout for the resident role (in progress).
--   : New home component for the resident role (in progress).
--   : New hook managing PWA updates.
--   : New modal component for PWA updates.
--   : Modified to enable manual update trigger.
--   : Previously untracked, now added to Git.
+-   : Major changes to auth endpoints, push notification logic, timezone-aware validation, and addition of a temporary cleanup endpoint.
+-   : Completely rewritten to manage the httpOnly cookie flow.
+-   : Modified to include credentials in all requests by default.
+-   : Target for integrating the new .
+-   : New component for the redesigned panic button (in progress).
+-   : Heavily modified for the new minimalist redesign and scroll fix.
+-   : Modified to implement the PWA install gate logic.
+-   : New component for the PWA install gate.
+-   : Updated with better logging.
 
 **Areas that need refactoring**:
--   **Monolithic Frontend Components:** As identified by the audit,  (3173 lines),  (2661 lines), and  (1568 lines) are too large and should be broken down.
--   **Duplicated Push Component:** The  functionality is defined in two separate files ( and ) and needs to be unified.
--   **Monolithic Backend:** The  file remains a single large monolith and is a candidate for future refactoring into a proper project structure (routes, models, services).
+-   **Monolithic Frontend Components:** , , and  remain large and are candidates for being broken down into smaller components.
+-   **Monolithic Backend:** The  file contains all backend logic and should be refactored into a more structured project with separate modules for routes, models, and services.
 
 **key api endpoints**
--   : **FIXED**. No longer allows privilege escalation.
--   : **DELETED**. No longer a security risk.
--   : **NEW (TEMPORARY)**. Authenticated endpoint to list a user's active push subscriptions.
--   : **NEW (TEMPORARY)**. Authenticated endpoint to send a test push notification to the current user.
+-   , , : **MODIFIED** to use secure httpOnly cookies for the refresh token. The response body no longer contains .
+-   : **NEW (TEMPORARY)**. Admin-only endpoint to purge invalid push subscriptions. Has been used successfully.
+-   : Audited. Works as a soft delete and is not blocked for  or  statuses.
+-   All endpoints calling : **MODIFIED** implicitly, as the underlying function now requires a timezone and performs timezone-aware checks.
 
 **Critical Info for New Agent**
-1.  **FINISH THE RESIDENT REFACTOR:** Your first priority is to complete the in-progress refactoring of the resident module. The files have been created, but the integration is broken. You must fix the code, test it thoroughly, and ensure the resident experience is fully functional before moving on.
-2.  **ADDRESS OUTSTANDING SECURITY TASK:** The critical task of moving the JWT refresh token from localStorage to a secure, httpOnly cookie has not been done. This should be prioritized immediately after the resident refactor is stable.
-3.  **ACT ON THE AUDIT:** The previous agent performed a valuable frontend audit but did not implement the findings. After fixing the high-priority items, your next step should be to clean up the identified dead and duplicated code.
+1.  **FINISH THE PANIC BUTTON:** Your first priority is to complete the in-progress redesign of the premium panic button. Integrate  into the resident view and test the full interaction flow (haptics, sound, modal, state changes).
+2.  **ADDRESS PENDING UI TASKS:** After the panic button, prioritize the pending UI tasks: implementing the SuperAdmin pricing management UI and adding a delete button for 'used' pre-registrations in the resident's visit list.
+3.  **CONTINUE REFACTORING:** The long-term goal is to continue breaking down the monolithic frontend components and the backend  file as outlined in the future tasks.
 4.  **MAINTAIN SPANISH:** All user-facing communication, including plans and summaries, must be in Spanish.
 
 **documents and test reports created in this job**
--   None new.
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-The last sequence of user messages revolved around progressively refactoring the frontend for a true mobile-first experience. This included requests to audit the code structure, restructure the emergency tab, remove temporary test banners, and finally, a request to completely isolate the resident module into its own independent layout, which is the task that is currently in progress.
+-   (Panic Button Premium + Extras): Detailed request to redesign the resident panic button with a premium feel, including specific animations, haptic feedback, sound, and a confirmation modal. **(In Progress)**
+-   (Clean test subscriptions): Request to clean up invalid push subscriptions from the database. **(Completed)**
+-   (Audit Push Backend): Request for a deep audit of the backend push notification logic to understand why subscriptions were being deleted. **(Completed)**
+-   (Fix recurrent authorization timezone): Request to fix a bug where recurrent authorizations were being validated against UTC instead of the local condominium timezone. **(Completed)**
+-   (Fix aggressive push deletion): Request to harden the backend push logic to prevent subscriptions from being deleted on temporary errors. **(Completed)**
+-   (Add cleanup endpoint): Request to create a temporary, admin-only endpoint to clean up legacy push subscriptions. **(Completed)**
+-   (Audit pre-registration deletion): Request to investigate why expired pre-registrations couldn't be deleted. **(Completed, fix pending)**
+-   (Fix profile scroll issue): Request to fix the resident profile screen where the logout button was hidden by the bottom navigation. **(Completed)**
+-   (Unify push components): Request to consolidate duplicated push notification toggle components. **(Completed)**
+-   (Add PWA Install Gate): Request to implement a screen encouraging users to install the PWA. **(Completed)**
 
 **Project Health Check:**
--   **Broken:** The resident module is in a broken, half-refactored state.
--   **Security Vulnerability:** A high-severity vulnerability (JWT refresh token stored in localStorage) from the original handoff remains unaddressed.
+-   **Broken:** The resident panic button is in a half-implemented state. The new component exists but is not integrated.
 -   **Mocked:** None.
+-   **Security Vulnerability:** The critical JWT localStorage vulnerability has been **RESOLVED**. No major known security issues remain from the handoff.
 
 **3rd Party Integrations**
 -   Resend (Email)
@@ -136,15 +163,14 @@ The last sequence of user messages revolved around progressively refactoring the
 -   Firebase Cloud Messaging (as the push service for VAPID)
 
 **Testing status**
--   Testing agent used after significant changes: NO
+-   Testing agent used after significant changes: YES (After JWT httpOnly cookie implementation).
 -   Troubleshoot agent used after agent stuck in loop: NO
 -   Test files created: []
--   Known regressions: The resident UI is likely non-functional due to the incomplete refactor.
+-   Known regressions: None.
 
 **Credentials to test flow:**
 -   **Super Admin:**  / 
--   A test Resident user will be needed to verify the primary UI refactoring.
+-   **Resident:**  / 
 
 **What agent forgot to execute**
--   **Act on Audit Findings:** The agent completed a detailed frontend audit but did not implement any of the recommended cleanup actions (deleting dead code, deduplicating components).
--   **Address JWT Storage Vulnerability:** The critical task of moving the JWT refresh token from localStorage to an httpOnly cookie, which was part of the original problem statement, was never addressed.</analysis>
+-   The agent audited the pre-registration deletion flow and identified that the UI lacks a delete button for  authorizations. The agent reported this finding but did not proceed to implement the UI fix.</analysis>

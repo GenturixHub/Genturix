@@ -16,7 +16,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://genturix-mobile.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://panic-button-pro.preview.emergentagent.com')
 
 # Test credentials
 SUPER_ADMIN_EMAIL = "superadmin@genturix.com"
