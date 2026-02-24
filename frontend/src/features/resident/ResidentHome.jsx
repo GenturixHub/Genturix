@@ -287,7 +287,7 @@ const SuccessScreen = ({ alert, onDismiss }) => {
 };
 
 // ============================================
-// EMERGENCY TAB
+// EMERGENCY TAB (Premium Design)
 // ============================================
 const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, sendingType }) => (
   <div 
@@ -295,10 +295,12 @@ const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, s
       height: '100%',
       display: 'flex',
       flexDirection: 'column',
-      justifyContent: 'space-between',
-      padding: '12px 12px 16px',
-      gap: '12px',
-      boxSizing: 'border-box'
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: '20px 16px',
+      gap: '24px',
+      boxSizing: 'border-box',
+      background: 'radial-gradient(ellipse at center top, rgba(220, 38, 38, 0.08) 0%, transparent 60%)'
     }}
   >
     {/* GPS Status */}
@@ -306,47 +308,54 @@ const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, s
       <GPSStatus location={location} isLoading={locationLoading} error={locationError} />
     </div>
     
-    {/* Main Emergency Button */}
+    {/* Premium Panic Button */}
     <div className="flex-1 flex items-center justify-center min-h-0">
-      <div className="emergency-hero-pulse-wrapper">
-        <HeroEmergencyButton
-          config={EMERGENCY_TYPES.emergencia_general}
-          onPress={onEmergency}
-          disabled={!!sendingType}
-          isLoading={sendingType === 'emergencia_general'}
-        />
-      </div>
+      <PremiumPanicButton
+        onTrigger={() => onEmergency('emergencia_general')}
+        disabled={!!sendingType}
+      />
     </div>
     
-    {/* Secondary Buttons + Info */}
-    <div className="flex-shrink-0 space-y-3">
-      <div className="grid grid-cols-2 gap-4">
-        <SecondaryEmergencyButton
-          config={EMERGENCY_TYPES.emergencia_medica}
-          variant="medical"
-          onPress={onEmergency}
+    {/* Secondary Quick Actions */}
+    <div className="flex-shrink-0 w-full max-w-sm space-y-4">
+      {/* Quick Action Buttons */}
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          onClick={() => onEmergency('emergencia_medica')}
           disabled={!!sendingType}
-          isLoading={sendingType === 'emergencia_medica'}
-        />
-        <SecondaryEmergencyButton
-          config={EMERGENCY_TYPES.actividad_sospechosa}
-          variant="suspicious"
-          onPress={onEmergency}
+          data-testid="quick-btn-medical"
+          className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-medium transition-all disabled:opacity-50"
+          style={{
+            background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.05) 100%)',
+            border: '1px solid rgba(34, 197, 94, 0.3)',
+            color: '#22c55e'
+          }}
+        >
+          <Heart className="w-4 h-4" />
+          <span>Médica</span>
+          {sendingType === 'emergencia_medica' && <Loader2 className="w-4 h-4 animate-spin" />}
+        </button>
+        <button
+          onClick={() => onEmergency('actividad_sospechosa')}
           disabled={!!sendingType}
-          isLoading={sendingType === 'actividad_sospechosa'}
-        />
+          data-testid="quick-btn-suspicious"
+          className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-sm font-medium transition-all disabled:opacity-50"
+          style={{
+            background: 'linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(251, 191, 36, 0.05) 100%)',
+            border: '1px solid rgba(251, 191, 36, 0.3)',
+            color: '#fbbf24'
+          }}
+        >
+          <Eye className="w-4 h-4" />
+          <span>Seguridad</span>
+          {sendingType === 'actividad_sospechosa' && <Loader2 className="w-4 h-4 animate-spin" />}
+        </button>
       </div>
       
-      {/* Instruction Card */}
-      <div 
-        className="rounded-2xl px-4 py-2.5 text-center"
-        style={{ background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.08)' }}
-      >
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          <strong className="text-white/80">Presiona el botón</strong> para alertar a seguridad.
-          <br />Tu ubicación será enviada automáticamente.
-        </p>
-      </div>
+      {/* Info Footer */}
+      <p className="text-xs text-center text-white/40 px-4">
+        Tu ubicación será enviada automáticamente con la alerta
+      </p>
     </div>
   </div>
 );
