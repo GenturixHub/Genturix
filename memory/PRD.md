@@ -1,8 +1,47 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 24, 2026 (Premium Panic Button Redesign)
+## Last Updated: February 24, 2026 (Dynamic Hierarchical Emergency Buttons)
 
 ## Changelog
+
+### 2026-02-24 (Session 79b) - Dynamic Hierarchical Emergency Buttons ✅
+
+**FEATURE COMPLETE: Dynamic Priority Emergency Button System**
+
+1. **🔄 NEW: DynamicEmergencyButtons Component**
+   - **File:** `/frontend/src/components/DynamicEmergencyButtons.jsx`
+   - **Behavior:**
+     - State `activeEmergencyType`: "general" | "medical" | "security"
+     - Primary button (150px circular): breathing animation, glow, icon centered
+     - Secondary buttons (70px square): hover effect, no breathing
+     - Click on secondary switches it to primary with 300ms ease transition
+   - **Colors:**
+     - General: #dc2626 (red)
+     - Medical: #16a34a (green)
+     - Security: #2563eb (blue)
+   - **Modal Confirmation:**
+     - Dynamic icon and text per type
+     - "¿Deseas enviar una alerta general/médica/de seguridad?"
+     - Buttons disabled while processing
+   - **Post-Send State:**
+     - Activated state for 8 seconds
+     - Shows "Alerta enviada"
+     - Resets to General as default
+
+2. **📱 Responsive:**
+   - No scroll, respects 100vh
+   - No bottom nav issues
+   - No layout shift during transitions
+
+3. **✅ Testing Results:**
+   - Test Report: `/app/test_reports/iteration_3.json`
+   - All 12 features verified PASS
+   - Layout: scrollHeight = clientHeight (844px)
+
+**Test Credentials:**
+- Resident: `test_resident@genturix.com` / `Admin123!`
+
+---
 
 ### 2026-02-24 (Session 79) - Premium Panic Button Redesign ✅
 
