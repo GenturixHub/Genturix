@@ -1,8 +1,41 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 24, 2026 (Dynamic Emergency Buttons + Resend Audit)
+## Last Updated: February 24, 2026 (Stripe Pricing Audit)
 
 ## Changelog
+
+### 2026-02-24 (Session 79d) - Stripe Pricing System Audit ✅
+
+**AUDIT COMPLETE: Pricing & Stripe Readiness Assessment**
+
+1. **📊 Pricing Architecture:**
+   - ✅ Single source of truth: `system_config.global_pricing`
+   - ✅ Per-condo overrides: `condominiums.seat_price_override`
+   - ✅ Centralized calculation functions
+   - ✅ Backend always calculates amounts (frontend cannot manipulate)
+
+2. **💳 Stripe Integration Status:**
+   - ✅ API Key configured (test mode)
+   - ✅ Checkout session created from backend
+   - ✅ Webhook endpoints exist (`/webhook/stripe`, `/webhook/stripe-subscription`)
+   - ⚠️ **WEBHOOK SECRET NOT CONFIGURED** (critical blocker)
+
+3. **🔧 Fixes Applied:**
+   - Fixed deprecated `GENTURIX_PRICE_PER_USER` constant in checkout metadata
+   - Now uses dynamic `pricing["price_per_seat"]` from calculation
+
+4. **🚨 Production Blockers:**
+   - `STRIPE_WEBHOOK_SECRET` is empty - must configure before going live
+   - Need to verify SDK validates webhook signatures
+
+5. **📋 Audit Report:**
+   - Full report at: `/app/STRIPE_PRICING_AUDIT_REPORT.md`
+   - Score: **75/100** ready for production
+   - Includes: risk analysis, recommendations, checklist
+
+**Current Global Pricing:** $2.99/seat/month (USD)
+
+---
 
 ### 2026-02-24 (Session 79c) - Resend Email Pipeline Audit ✅
 
