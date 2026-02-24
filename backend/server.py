@@ -10018,7 +10018,7 @@ async def create_checkout(request: Request, current_user = Depends(get_current_u
             "user_id": current_user["id"],
             "user_email": current_user["email"],
             "user_count": str(user_count),
-            "price_per_user": str(GENTURIX_PRICE_PER_USER)
+            "price_per_user": str(pricing["price_per_seat"])  # Use dynamic price from calculation
         }
     )
     
@@ -10031,7 +10031,7 @@ async def create_checkout(request: Request, current_user = Depends(get_current_u
         "user_id": current_user["id"],
         "user_email": current_user["email"],
         "user_count": user_count,
-        "price_per_user": GENTURIX_PRICE_PER_USER,
+        "price_per_user": pricing["price_per_seat"],  # Use dynamic price
         "amount": total_amount,
         "currency": "usd",
         "payment_status": "pending",
