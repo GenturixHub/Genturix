@@ -14347,6 +14347,183 @@ async def set_email_status(
         "updated_by": current_user.get("email")
     }
 
+# ==================== RESEND DIAGNOSTIC ENDPOINT (TEMPORARY) ====================
+class TestEmailRequest(BaseModel):
+    recipient_email: str
+    test_type: str = "simple"  # "simple" or "credentials"
+
+@api_router.post("/email/test-resend")
+async def test_resend_email(
+    data: TestEmailRequest,
+    request: Request,
+    current_user = Depends(require_role("SuperAdmin"))
+):
+    """
+    🔧 DIAGNOSTIC ENDPOINT - TEMPORARY
+    
+    Tests the Resend email pipeline and returns detailed diagnostics.
+    Only SuperAdmin can use this endpoint.
+    
+    This endpoint will be removed after audit is complete.
+    """
+    import time
+    start_time = time.time()
+    
+    diagnostics = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "request_id": str(uuid.uuid4()),
+        "requested_by": current_user.get("email"),
+        "recipient": data.recipient_email,
+        "test_type": data.test_type
+    }
+    
+    # 1. Check environment configuration
+    diagnostics["config"] = {
+        "RESEND_API_KEY_present": bool(RESEND_API_KEY),
+        "RESEND_API_KEY_prefix": RESEND_API_KEY[:10] + "..." if RESEND_API_KEY else None,
+        "SENDER_EMAIL": SENDER_EMAIL,
+        "ENVIRONMENT": os.environ.get("ENVIRONMENT", "not_set")
+    }
+    
+    # 2. Check email toggle status
+    email_config = await get_email_config()
+    diagnostics["toggle_status"] = {
+        "email_enabled": email_config.get("email_enabled", False),
+        "updated_at": email_config.get("updated_at"),
+        "config_exists": bool(email_config.get("key"))
+    }
+    
+    # 3. Validate API key format
+    if RESEND_API_KEY:
+        diagnostics["api_key_validation"] = {
+            "starts_with_re_": RESEND_API_KEY.startswith("re_"),
+            "length": len(RESEND_API_KEY),
+            "valid_format": RESEND_API_KEY.startswith("re_") and len(RESEND_API_KEY) > 20
+        }
+    else:
+        diagnostics["api_key_validation"] = {"error": "API key not configured"}
+    
+    # 4. Check domain (from SENDER_EMAIL)
+    sender_domain = SENDER_EMAIL.split("@")[-1] if "@" in SENDER_EMAIL else "invalid"
+    diagnostics["domain_info"] = {
+        "sender_email": SENDER_EMAIL,
+        "domain": sender_domain,
+        "is_resend_test_domain": sender_domain == "resend.dev",
+        "warning": "Using resend.dev test domain - emails only work to verified addresses" if sender_domain == "resend.dev" else None
+    }
+    
+    # 5. Attempt to send test email
+    if not RESEND_API_KEY:
+        diagnostics["send_result"] = {
+            "status": "skipped",
+            "reason": "RESEND_API_KEY not configured"
+        }
+    else:
+        test_html = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2>🔧 GENTURIX - Test de Diagnóstico Resend</h2>
+            <p>Este es un correo de prueba para validar la configuración de Resend.</p>
+            <hr>
+            <p><strong>Timestamp:</strong> {diagnostics["timestamp"]}</p>
+            <p><strong>Request ID:</strong> {diagnostics["request_id"]}</p>
+            <p><strong>Enviado por:</strong> {current_user.get("email")}</p>
+            <p><strong>Ambiente:</strong> {os.environ.get("ENVIRONMENT", "not_set")}</p>
+            <hr>
+            <p style="color: #666; font-size: 12px;">
+                Este correo fue enviado como parte de una auditoría del sistema de emails.
+            </p>
+        </body>
+        </html>
+        """
+        
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [data.recipient_email],
+            "subject": f"[GENTURIX-DIAG] Test Resend - {diagnostics['request_id'][:8]}",
+            "html": test_html
+        }
+        
+        try:
+            logger.info(f"[RESEND-DIAG] Attempting test email | request_id={diagnostics['request_id']} | to={data.recipient_email}")
+            
+            email_response = await asyncio.to_thread(resend.Emails.send, params)
+            
+            elapsed_time = time.time() - start_time
+            
+            # Parse response
+            if isinstance(email_response, dict):
+                diagnostics["send_result"] = {
+                    "status": "success",
+                    "email_id": email_response.get("id"),
+                    "response": email_response,
+                    "elapsed_ms": round(elapsed_time * 1000, 2)
+                }
+                logger.info(f"[RESEND-DIAG] SUCCESS | request_id={diagnostics['request_id']} | email_id={email_response.get('id')}")
+            else:
+                # Handle Resend SDK response object
+                diagnostics["send_result"] = {
+                    "status": "success",
+                    "email_id": getattr(email_response, 'id', str(email_response)),
+                    "response_type": type(email_response).__name__,
+                    "elapsed_ms": round(elapsed_time * 1000, 2)
+                }
+                logger.info(f"[RESEND-DIAG] SUCCESS | request_id={diagnostics['request_id']} | response_type={type(email_response).__name__}")
+                
+        except Exception as e:
+            elapsed_time = time.time() - start_time
+            error_str = str(e)
+            error_type = type(e).__name__
+            
+            # Try to extract HTTP status from error
+            http_status = None
+            if "401" in error_str:
+                http_status = 401
+            elif "403" in error_str:
+                http_status = 403
+            elif "422" in error_str:
+                http_status = 422
+            elif "429" in error_str:
+                http_status = 429
+            
+            diagnostics["send_result"] = {
+                "status": "failed",
+                "error": error_str,
+                "error_type": error_type,
+                "http_status": http_status,
+                "elapsed_ms": round(elapsed_time * 1000, 2),
+                "possible_causes": []
+            }
+            
+            # Add possible causes based on error
+            if http_status == 401:
+                diagnostics["send_result"]["possible_causes"].append("Invalid API key")
+            elif http_status == 403:
+                diagnostics["send_result"]["possible_causes"].append("Domain not verified or sender email not authorized")
+            elif http_status == 422:
+                diagnostics["send_result"]["possible_causes"].append("Invalid email format or missing required fields")
+            elif http_status == 429:
+                diagnostics["send_result"]["possible_causes"].append("Rate limit exceeded")
+            elif "domain" in error_str.lower():
+                diagnostics["send_result"]["possible_causes"].append("Sender domain not verified in Resend")
+            
+            logger.error(f"[RESEND-DIAG] FAILED | request_id={diagnostics['request_id']} | error_type={error_type} | error={error_str}")
+    
+    # 6. Summary
+    diagnostics["summary"] = {
+        "api_key_configured": bool(RESEND_API_KEY),
+        "sender_email_valid": "@" in SENDER_EMAIL,
+        "using_test_domain": sender_domain == "resend.dev",
+        "email_toggle_enabled": email_config.get("email_enabled", False),
+        "send_attempted": diagnostics.get("send_result", {}).get("status") != "skipped",
+        "send_successful": diagnostics.get("send_result", {}).get("status") == "success"
+    }
+    
+    # Log full diagnostics
+    logger.info(f"[RESEND-DIAG] Full diagnostics | request_id={diagnostics['request_id']} | summary={diagnostics['summary']}")
+    
+    return diagnostics
+
 # ==================== SYSTEM RESET (FULL WIPE) ====================
 @api_router.post("/super-admin/reset-all-data")
 async def reset_all_data(
