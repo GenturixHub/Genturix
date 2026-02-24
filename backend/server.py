@@ -4829,9 +4829,16 @@ async def get_my_authorizations(
         query, {"_id": 0}
     ).sort("created_at", -1).to_list(100)
     
+    # Get condominium timezone for validity checks
+    condo_timezone = None
+    condo_id = current_user.get("condominium_id")
+    if condo_id:
+        condo = await db.condominiums.find_one({"id": condo_id}, {"timezone": 1})
+        condo_timezone = condo.get("timezone") if condo else None
+    
     # Enrich with validity status and usage info
     for auth in authorizations:
-        validity = check_authorization_validity(auth)
+        validity = check_authorization_validity(auth, condo_timezone)
         auth["validity_status"] = validity["status"]
         auth["validity_message"] = validity["message"]
         auth["is_currently_valid"] = validity["is_valid"]
