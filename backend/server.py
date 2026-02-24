@@ -4668,12 +4668,25 @@ def get_color_code_for_type(auth_type: str) -> str:
     }
     return color_map.get(auth_type, "yellow")
 
-def check_authorization_validity(authorization: dict) -> dict:
+def check_authorization_validity(authorization: dict, condominium_timezone: str = None) -> dict:
     """
     Check if an authorization is currently valid.
     Returns: {is_valid: bool, status: str, message: str}
+    
+    TIMEZONE FIX: Uses condominium timezone for day/time calculations.
+    Falls back to UTC if no timezone provided.
     """
-    now = datetime.now(timezone.utc)
+    # Get current time in condominium timezone (or UTC as fallback)
+    if condominium_timezone:
+        try:
+            tz = ZoneInfo(condominium_timezone)
+            now = datetime.now(tz)
+        except Exception as e:
+            logger.warning(f"[AUTH-VALIDITY] Invalid timezone '{condominium_timezone}', falling back to UTC: {e}")
+            now = datetime.now(timezone.utc)
+    else:
+        now = datetime.now(timezone.utc)
+    
     today_str = now.strftime("%Y-%m-%d")
     current_time = now.strftime("%H:%M")
     current_day_es = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"][now.weekday()]
