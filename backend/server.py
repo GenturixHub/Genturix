@@ -2366,22 +2366,30 @@ async def notify_guards_of_panic(condominium_id: str, panic_data: dict, sender_i
 # ==================== CONTEXTUAL PUSH NOTIFICATION HELPERS ====================
 
 async def send_push_to_user(user_id: str, payload: dict) -> dict:
-    """Send push notification to a specific user (all their active subscriptions)"""
+    """
+    Send push notification to a specific user (all their active subscriptions).
+    
+    Returns detailed result including success/failure counts.
+    Does NOT delete subscriptions on temporary errors - only on 404/410.
+    """
+    result = {"sent": 0, "failed": 0, "total": 0, "deleted": 0}
+    
     if not VAPID_PUBLIC_KEY or not VAPID_PRIVATE_KEY:
-        logger.warning("VAPID keys not configured, skipping push")
-        return {"sent": 0, "failed": 0, "total": 0}
+        logger.warning("[PUSH-SEND-FAILED] VAPID keys not configured")
+        return result
     
     subscriptions = await db.push_subscriptions.find({
         "user_id": user_id,
         "is_active": True
     }).to_list(None)
     
-    if not subscriptions:
-        logger.debug(f"No push subscriptions for user {user_id}")
-        return {"sent": 0, "failed": 0, "total": 0}
+    result["total"] = len(subscriptions)
     
-    sent = 0
-    failed = 0
+    if not subscriptions:
+        logger.debug(f"[PUSH-SEND-FAILED] No active subscriptions for user {user_id[:8]}...")
+        return result
+    
+    logger.info(f"[PUSH-SEND-START] Sending to user {user_id[:8]}... ({len(subscriptions)} subscriptions)")
     
     for sub in subscriptions:
         subscription_info = {
@@ -2391,13 +2399,19 @@ async def send_push_to_user(user_id: str, payload: dict) -> dict:
                 "auth": sub.get("auth")
             }
         }
-        success = await send_push_notification(subscription_info, payload)
-        if success:
-            sent += 1
+        # Use the function that returns detailed results
+        send_result = await send_push_notification_with_cleanup(subscription_info, payload)
+        
+        if send_result["success"]:
+            result["sent"] += 1
         else:
-            failed += 1
+            result["failed"] += 1
+            if send_result.get("deleted"):
+                result["deleted"] += 1
     
-    return {"sent": sent, "failed": failed, "total": len(subscriptions)}
+    logger.info(f"[PUSH-SEND-COMPLETE] User {user_id[:8]}...: sent={result['sent']}, failed={result['failed']}, deleted={result['deleted']}")
+    
+    return result
 
 async def send_push_to_guards(condominium_id: str, payload: dict, exclude_user_id: str = None) -> dict:
     """
