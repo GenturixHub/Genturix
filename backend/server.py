@@ -5336,7 +5336,12 @@ async def fast_checkin(
                 )
         # ==========================================================================================
         
-        validity = check_authorization_validity(authorization)
+        # Get condominium timezone for validity check
+        condo_timezone = None
+        condo = await db.condominiums.find_one({"id": condo_id}, {"timezone": 1})
+        condo_timezone = condo.get("timezone") if condo else None
+        
+        validity = check_authorization_validity(authorization, condo_timezone)
         
         if not validity["is_valid"]:
             # Still allow entry but mark as unauthorized
