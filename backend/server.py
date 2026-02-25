@@ -3552,7 +3552,8 @@ async def subscribe_to_push(
                 "updated_at": now
             }}
         )
-        logger.info(f"[PUSH] Subscription UPDATED for user {user_id} (role={primary_role})")
+        logger.info(f"[PUSH-SUBSCRIBE-DEBUG] Subscription UPDATED for user {user_id[:12]}... (role={primary_role})")
+        logger.info(f"[PUSH-SUBSCRIBE-DEBUG] ======= REQUEST SUCCESS =======")
         return {
             "message": "Suscripción actualizada",
             "status": "updated",
