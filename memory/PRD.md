@@ -1,8 +1,68 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 25, 2026 (i18n Migration - Visits Module)
+## Last Updated: February 25, 2026 (i18n Migration - Reservations & Directory Modules)
 
 ## Changelog
+
+### 2026-02-25 (Session 81) - i18n Migration: Reservations & Directory Modules ✅
+
+**FEATURE COMPLETE: Full Internationalization of Resident Role**
+
+1. **📁 Files Modified:**
+   - `/frontend/src/components/ResidentReservations.jsx` - Full i18n migration with useTranslation
+   - `/frontend/src/components/ProfileDirectory.jsx` - Full i18n migration with useTranslation  
+   - `/frontend/src/i18n/es.json` - Added ~100+ new keys under `reservations` and `directory` namespaces
+   - `/frontend/src/i18n/en.json` - Added ~100+ new keys for English translations
+
+2. **🔄 Architecture Changes:**
+   - Converted static config objects to use translation keys:
+     - `reservations.areaTypes.*` - Pool, Gym, BBQ Area, Event Hall, etc.
+     - `reservations.behaviorLabels.*` - Exclusive, By capacity, Slot-based, Free access
+     - `reservations.statusLabels.*` - Pending, Approved, Rejected, Cancelled
+     - `reservations.daysShort.*` - M, T, W, T, F, S, S
+     - `reservations.daysFull.*` - Monday, Tuesday, etc.
+     - `reservations.legend.*` - Available, Few slots, Full, Occupied, Selected
+     - `directory.roleLabels.*` - Administrators, Supervisors, HR, Guards, Residents, Students
+     - `roles.labels.*` - Role badge translations
+
+3. **🌐 Translation Keys Structure:**
+   ```
+   reservations:
+     - title, subtitle
+     - areasTab, myReservationsTab, pendingTab, approvedTab, pastCancelledTab
+     - areaTypes: pool, gym, bbq, salon, tennis, cinema, playground, other
+     - behaviorLabels: exclusive, capacity, slotBased, freeAccess
+     - statusLabels: pending, approved, rejected, cancelled
+     - daysShort/daysFull: monday-sunday
+     - legend: available, fewSlots, full, occupied, selected
+     - form: all dialog labels, placeholders, buttons
+     - tooltips: slot selection hints
+     - cancel dialog: confirmTitle, confirmMessage, buttons
+   
+   directory:
+     - title, subtitle, searchPlaceholder
+     - noUsers, loadError, profile, contactInfo
+     - sections: administrators, supervisors, hr, guards, residents, students
+     - roleLabels: translation mapping for DB values to display labels
+   
+   roles:
+     - labels: Administrador->Administrator, Guarda->Guard, etc.
+   ```
+
+4. **✅ Test Results (100% Pass Rate):**
+   - Reservations Spanish: ✓ (title, tabs, area types, behaviors, status badges, days)
+   - Reservations English: ✓ (title, tabs, area types, behaviors, status badges, days)
+   - Directory Spanish: ✓ (title, section headers, role badges)
+   - Directory English: ✓ (title, section headers, role badges)
+   - Language Switching: ✓ (bidirectional Spanish ↔ English)
+
+5. **🐛 Bug Fixed by Testing Agent:**
+   - ProfileDirectory.jsx line 255: Role badges were showing raw DB values
+   - Changed from `{role}` to `{t('roles.labels.${role}', role)}`
+
+**All tests passed. Resident role fully internationalized.**
+
+---
 
 ### 2026-02-25 (Session 80) - i18n Migration: Visits/Authorizations Module ✅
 
