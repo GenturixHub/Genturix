@@ -26,6 +26,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import CondominiumSettingsPage from './pages/CondominiumSettingsPage';
 import UpdateAvailableModal from './components/UpdateAvailableModal';
 import InstallChoiceScreen from './components/InstallChoiceScreen';
+import BuildTag from './components/BuildTag';
 import useServiceWorkerUpdate from './hooks/useServiceWorkerUpdate';
 import usePWAInstall from './hooks/usePWAInstall';
 import './App.css';
