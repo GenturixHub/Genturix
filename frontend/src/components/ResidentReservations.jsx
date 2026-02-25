@@ -90,18 +90,28 @@ const DAYS_OF_WEEK = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sá
 // ============================================
 // AREA CARD FOR RESIDENT
 // ============================================
-// Behavior labels for display
-const BEHAVIOR_LABELS = {
-  exclusive: { label: 'Exclusivo', color: 'bg-cyan-500/20 text-cyan-400' },
-  capacity: { label: 'Por cupo', color: 'bg-blue-500/20 text-blue-400' },
-  slot_based: { label: 'Por turno', color: 'bg-teal-500/20 text-teal-400' },
-  free_access: { label: 'Acceso libre', color: 'bg-green-500/20 text-green-400' }
+// Behavior colors for display
+const BEHAVIOR_COLORS = {
+  exclusive: 'bg-cyan-500/20 text-cyan-400',
+  capacity: 'bg-blue-500/20 text-blue-400',
+  slot_based: 'bg-teal-500/20 text-teal-400',
+  free_access: 'bg-green-500/20 text-green-400'
+};
+
+// Status colors for display
+const STATUS_COLORS = {
+  pending: { color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: Clock },
+  approved: { color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: CheckCircle },
+  rejected: { color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: XCircle },
+  cancelled: { color: 'bg-gray-500/20 text-gray-400 border-gray-500/30', icon: XCircle }
 };
 
 const AreaCard = ({ area, onReserve }) => {
+  const { t } = useTranslation();
   const AreaIcon = AREA_ICONS[area.area_type] || MoreHorizontal;
   const behavior = area.reservation_behavior || 'exclusive';
-  const behaviorConfig = BEHAVIOR_LABELS[behavior] || BEHAVIOR_LABELS.exclusive;
+  const behaviorColor = BEHAVIOR_COLORS[behavior] || BEHAVIOR_COLORS.exclusive;
+  const behaviorKey = behavior === 'slot_based' ? 'slotBased' : behavior === 'free_access' ? 'freeAccess' : behavior;
   const [showRules, setShowRules] = useState(false);
   
   // Don't render reserve button for FREE_ACCESS areas
@@ -119,14 +129,14 @@ const AreaCard = ({ area, onReserve }) => {
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-white truncate">{area.name}</h3>
-            <p className="text-xs text-muted-foreground">{AREA_LABELS[area.area_type] || 'Área'}</p>
+            <p className="text-xs text-muted-foreground">{t(`reservations.areaTypes.${area.area_type}`, area.area_type)}</p>
             
             <div className="flex flex-wrap gap-1.5 mt-2">
               <Badge variant="outline" className="text-[10px] h-5">
                 <Users className="w-3 h-3 mr-1" />
                 {behavior === 'capacity' && area.max_capacity_per_slot 
-                  ? `${area.max_capacity_per_slot}/hora`
-                  : `${area.capacity} personas`
+                  ? t('reservations.perHour', { count: area.max_capacity_per_slot })
+                  : t('reservations.peopleCount', { count: area.capacity })
                 }
               </Badge>
               <Badge variant="outline" className="text-[10px] h-5">
@@ -134,30 +144,31 @@ const AreaCard = ({ area, onReserve }) => {
                 {area.available_from}-{area.available_until}
               </Badge>
               {/* Show behavior badge */}
-              <Badge className={`${behaviorConfig.color} text-[10px] h-5`}>
-                {behaviorConfig.label}
+              <Badge className={`${behaviorColor} text-[10px] h-5`}>
+                {t(`reservations.behaviorLabels.${behaviorKey}`)}
               </Badge>
             </div>
             
             {area.requires_approval && (
               <Badge className="bg-yellow-500/20 text-yellow-400 text-[10px] mt-2">
-                Requiere aprobación
+                {t('reservations.requiresApproval')}
               </Badge>
             )}
             
             {/* Allowed days */}
             <div className="flex gap-0.5 mt-2">
-              {DAYS_OF_WEEK.map(day => {
+              {DAYS_OF_WEEK.map((day, idx) => {
                 const isAllowed = (area.allowed_days || DAYS_OF_WEEK).includes(day);
+                const dayKey = DAYS_OF_WEEK_KEYS[idx];
                 return (
                   <span
                     key={day}
                     className={`w-5 h-5 rounded text-[9px] flex items-center justify-center ${
                       isAllowed ? 'bg-primary/20 text-primary' : 'bg-gray-800 text-gray-600'
                     }`}
-                    title={day}
+                    title={t(`reservations.daysFull.${dayKey}`)}
                   >
-                    {DAYS_SHORT[day]}
+                    {t(`reservations.daysShort.${dayKey}`)}
                   </span>
                 );
               })}
@@ -174,7 +185,7 @@ const AreaCard = ({ area, onReserve }) => {
               data-testid={`toggle-rules-${area.id}`}
             >
               <ScrollText className="w-3.5 h-3.5" />
-              <span className="font-medium">Reglas del área</span>
+              <span className="font-medium">{t('reservations.areaRules')}</span>
               <ChevronRight className={`w-3.5 h-3.5 ml-auto transition-transform ${showRules ? 'rotate-90' : ''}`} />
             </button>
             
@@ -190,7 +201,7 @@ const AreaCard = ({ area, onReserve }) => {
         
         {isFreeAccess ? (
           <div className="mt-3 p-2 rounded bg-green-500/10 border border-green-500/20 text-center">
-            <span className="text-xs text-green-400">Acceso libre sin reservación</span>
+            <span className="text-xs text-green-400">{t('reservations.freeAccessNoReservation')}</span>
           </div>
         ) : (
           <Button 
@@ -200,7 +211,7 @@ const AreaCard = ({ area, onReserve }) => {
             data-testid={`reserve-area-${area.id}`}
           >
             <Calendar className="w-3.5 h-3.5 mr-1.5" />
-            Reservar
+            {t('reservations.reserve')}
           </Button>
         )}
       </CardContent>
