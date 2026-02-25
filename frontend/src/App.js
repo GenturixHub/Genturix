@@ -428,8 +428,17 @@ function AppRoutes() {
 function App() {
   const { showUpdate, isUpdating, triggerUpdate, dismissUpdate } = useServiceWorkerUpdate();
 
+  // Render with persistence if persister is available, otherwise fallback to regular provider
+  const QueryProvider = persister ? PersistQueryClientProvider : ({ children }) => (
+    <PersistQueryClientProvider client={queryClient} persistOptions={{}} children={children} />
+  );
+
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider 
+      client={queryClient} 
+      persistOptions={persister ? persistOptions : { maxAge: 0 }}
+      {...(persister && { persister })}
+    >
       <BrowserRouter>
         <AuthProvider>
           <ModulesProvider>
@@ -445,7 +454,7 @@ function App() {
           </ModulesProvider>
         </AuthProvider>
       </BrowserRouter>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }
 
