@@ -221,7 +221,10 @@ const getServiceTypes = (t) => ({
 // ============================================
 // AUTHORIZATION CARD
 // ============================================
-const AuthorizationCard = ({ auth, onEdit, onDelete }) => {
+const AuthorizationCard = ({ auth, onEdit, onDelete, t }) => {
+  const AUTHORIZATION_TYPES = getAuthorizationTypes(t);
+  const VISITOR_TYPES = getVisitorTypes(t);
+  
   const typeConfig = AUTHORIZATION_TYPES[auth.authorization_type] || AUTHORIZATION_TYPES.temporary;
   const colorConfig = COLOR_CONFIG[auth.color_code] || COLOR_CONFIG.yellow;
   const IconComponent = typeConfig.icon;
@@ -283,12 +286,12 @@ const AuthorizationCard = ({ auth, onEdit, onDelete }) => {
             {auth.is_currently_valid ? (
               <Badge className="bg-green-500/20 text-green-400 border border-green-500/30">
                 <CheckCircle className="w-3 h-3 mr-1" />
-                Válida
+                {t('visitors.card.valid')}
               </Badge>
             ) : (
               <Badge className="bg-red-500/20 text-red-400 border border-red-500/30">
                 <XCircle className="w-3 h-3 mr-1" />
-                {auth.validity_message || 'Inválida'}
+                {auth.validity_message || t('visitors.card.invalid')}
               </Badge>
             )}
           </div>
@@ -347,7 +350,7 @@ const AuthorizationCard = ({ auth, onEdit, onDelete }) => {
             </>
           )}
           {auth.total_visits > 0 && (
-            <p className="text-primary">✓ {auth.total_visits} visita{auth.total_visits > 1 ? 's' : ''}</p>
+            <p className="text-primary">✓ {auth.total_visits} {auth.total_visits > 1 ? t('visitors.card.visitsPlural') : t('visitors.card.visits')}</p>
           )}
         </div>
 
@@ -361,7 +364,7 @@ const AuthorizationCard = ({ auth, onEdit, onDelete }) => {
             data-testid={`edit-auth-${auth.id}`}
           >
             <Edit className="w-4 h-4 mr-1" />
-            Editar
+            {t('visitors.card.edit')}
           </Button>
           
           {/* P0 FIX: Conditional delete button based on visitor status */}
@@ -378,11 +381,11 @@ const AuthorizationCard = ({ auth, onEdit, onDelete }) => {
           ) : (
             <div 
               className="h-9 px-3 flex items-center rounded-md text-xs text-yellow-400 bg-yellow-500/10 border border-yellow-500/20"
-              title="No puedes eliminar mientras la persona está dentro del condominio"
+              title={t('visitors.card.insideTooltip')}
               data-testid={`inside-indicator-${auth.id}`}
             >
               <Shield className="w-3.5 h-3.5 mr-1.5" />
-              Dentro
+              {t('visitors.card.insideLabel')}
             </div>
           )}
         </div>
