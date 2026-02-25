@@ -2468,6 +2468,7 @@ async def send_push_to_user(user_id: str, payload: dict) -> dict:
     logger.info(f"[PUSH-SEND-START] Sending to user {user_id[:8]}... ({len(subscriptions)} subscriptions)")
     
     for sub in subscriptions:
+        sub_user_id = sub.get("user_id")
         subscription_info = {
             "endpoint": sub.get("endpoint"),
             "keys": {
@@ -2475,8 +2476,8 @@ async def send_push_to_user(user_id: str, payload: dict) -> dict:
                 "auth": sub.get("auth")
             }
         }
-        # Use the function that returns detailed results
-        send_result = await send_push_notification_with_cleanup(subscription_info, payload)
+        # Use the function that returns detailed results (with user_id for logging)
+        send_result = await send_push_notification_with_cleanup(subscription_info, payload, user_id=sub_user_id)
         
         if send_result["success"]:
             result["sent"] += 1
