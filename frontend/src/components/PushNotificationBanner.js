@@ -3,6 +3,10 @@ import { Bell, BellOff, X, Check, AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import usePushNotifications from '../hooks/usePushNotifications';
 
+/**
+ * v3.0: Non-blocking push notification banner
+ * Uses isInitialized (fast local check) instead of waiting for backend sync
+ */
 export function PushNotificationBanner({ onClose }) {
   const {
     isSupported,
@@ -11,8 +15,7 @@ export function PushNotificationBanner({ onClose }) {
     isLoading,
     error,
     subscribe,
-    isSyncing,  // NEW: Wait for sync before showing
-    isSynced    // NEW: Only show after sync complete
+    isInitialized  // v3.0: Fast local check, no backend wait
   } = usePushNotifications();
 
   // Initialize dismissed state from localStorage
@@ -21,9 +24,9 @@ export function PushNotificationBanner({ onClose }) {
   });
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // CRITICAL: Don't show ANYTHING until sync is complete
-  // This prevents the banner from flashing during initial load
-  if (!isSynced || isSyncing) {
+  // v3.0: Only wait for fast local SW check (instant)
+  // No longer waits for backend sync
+  if (!isInitialized) {
     return null;
   }
 
@@ -125,7 +128,9 @@ export function PushNotificationBanner({ onClose }) {
   );
 }
 
-// Toggle component for settings/profile
+/**
+ * v3.0: Non-blocking toggle component for settings/profile
+ */
 export function PushNotificationToggle() {
   const {
     isSupported,
@@ -135,19 +140,18 @@ export function PushNotificationToggle() {
     error,
     subscribe,
     unsubscribe,
-    isSyncing,  // NEW: Show loading during sync
-    isSynced    // NEW: Only enable actions after sync
+    isInitialized  // v3.0: Fast local check
   } = usePushNotifications();
 
-  // Show loading state during initial sync
-  if (isSyncing || !isSynced) {
+  // v3.0: Brief loading only during initial local check (< 100ms)
+  if (!isInitialized) {
     return (
       <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
         <div className="flex items-center gap-3">
           <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />
           <div>
             <p className="text-sm text-gray-400">Notificaciones Push</p>
-            <p className="text-xs text-gray-500">Verificando estado...</p>
+            <p className="text-xs text-gray-500">Verificando...</p>
           </div>
         </div>
       </div>
