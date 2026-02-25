@@ -252,7 +252,7 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
                             <h3 className="font-semibold text-sm text-white truncate">{dirUser.full_name}</h3>
                             <div className="flex items-center gap-2 mt-0.5">
                               <Badge className={`${config.color} text-[10px] px-1.5 py-0`}>
-                                {role}
+                                {t(`roles.labels.${role}`, role)}
                               </Badge>
                               {dirUser.phone && (
                                 <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
