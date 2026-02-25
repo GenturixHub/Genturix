@@ -1,7 +1,7 @@
 /**
- * GENTURIX Push Notifications Hook v2.0
+ * GENTURIX Push Notifications Hook v3.0 (Non-Blocking)
  * 
- * ARQUITECTURA: Backend como fuente de verdad
+ * ARQUITECTURA: Backend como fuente de verdad + UI no bloqueante
  * 
  * Este hook sincroniza el estado entre:
  * - Service Worker local (pushManager.getSubscription())
@@ -13,7 +13,11 @@
  * - Caso C: SW ✅ + DB ✅ → Sincronizado, isSubscribed = true
  * - Caso D: SW ❌ + DB ❌ → Sincronizado, isSubscribed = false
  * 
- * IMPORTANTE: No muestra banner hasta completar sincronización inicial.
+ * v3.0 CHANGES:
+ * - UI renders IMMEDIATELY based on local SW state
+ * - Backend sync runs in BACKGROUND (fire-and-forget)
+ * - No blocking of component mounting or module navigation
+ * - Banner shows based on local state, corrects if sync finds discrepancy
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -45,14 +49,6 @@ function withTimeout(promise, ms, errorMessage) {
   ]);
 }
 
-// Sync states enum for clarity
-const SyncState = {
-  PENDING: 'pending',      // Initial state, sync not started
-  SYNCING: 'syncing',      // Currently syncing SW ↔ DB
-  SYNCED: 'synced',        // Sync complete
-  ERROR: 'error'           // Sync failed
-};
-
 export function usePushNotifications() {
   // Core state
   const [isSupported, setIsSupported] = useState(false);
@@ -62,8 +58,8 @@ export function usePushNotifications() {
   const [error, setError] = useState(null);
   const [registration, setRegistration] = useState(null);
   
-  // Sync state - prevents banner from showing during initial sync
-  const [syncState, setSyncState] = useState(SyncState.PENDING);
+  // v3.0: Track if initial local check is done (fast, non-blocking)
+  const [isInitialized, setIsInitialized] = useState(false);
   
   // Prevent duplicate sync operations
   const syncInProgressRef = useRef(false);
@@ -84,10 +80,11 @@ export function usePushNotifications() {
   }, []);
 
   /**
-   * CORE SYNC FUNCTION
+   * BACKGROUND SYNC FUNCTION (v3.0 - Fire and Forget)
    * Resolves inconsistencies between SW local state and backend DB
+   * Does NOT block UI rendering
    */
-  const syncSubscriptionState = useCallback(async (reg) => {
+  const syncSubscriptionStateBackground = useCallback(async (reg) => {
     // Prevent concurrent syncs
     if (syncInProgressRef.current) {
       console.log('[PUSH-SYNC] Sync already in progress, skipping');
@@ -95,12 +92,10 @@ export function usePushNotifications() {
     }
     
     syncInProgressRef.current = true;
-    setSyncState(SyncState.SYNCING);
-    
-    console.log('[PUSH-SYNC] ========== SYNC START ==========');
+    console.log('[PUSH-SYNC] ========== BACKGROUND SYNC START ==========');
     
     try {
-      // STEP 1: Get SW local subscription state
+      // STEP 1: Get SW local subscription state (already checked, but re-verify)
       const swSubscription = await reg.pushManager.getSubscription();
       const hasSW = !!swSubscription;
       console.log('[PUSH-SYNC] SW Local:', hasSW);
@@ -147,18 +142,10 @@ export function usePushNotifications() {
           );
           
           console.log('[PUSH-SYNC] CASE A: Re-registration SUCCESS');
-          if (mountedRef.current) {
-            setIsSubscribed(true);
-            setSyncState(SyncState.SYNCED);
-          }
+          // State already correct (isSubscribed = true from local check)
         } catch (reRegError) {
           console.warn('[PUSH-SYNC] CASE A: Re-registration failed:', reRegError.message);
-          // SW has it but couldn't sync to DB - still consider subscribed locally
-          // User might not be authenticated
-          if (mountedRef.current) {
-            setIsSubscribed(true);
-            setSyncState(SyncState.SYNCED);
-          }
+          // Keep local state - user is subscribed locally
         }
       }
       
@@ -176,61 +163,53 @@ export function usePushNotifications() {
           console.log('[PUSH-SYNC] CASE B: DB cleanup SUCCESS');
         } catch (cleanupError) {
           console.warn('[PUSH-SYNC] CASE B: DB cleanup failed:', cleanupError.message);
-          // Continue anyway - the important thing is SW doesn't have it
         }
         
+        // Update state - user is NOT subscribed (SW is source of truth for local device)
         if (mountedRef.current) {
           setIsSubscribed(false);
-          setSyncState(SyncState.SYNCED);
         }
       }
       
       // CASE C: SW ✅ + DB ✅ → Perfectly synced
       else if (hasSW && hasDB) {
         console.log('[PUSH-SYNC] CASE C: Both SW and DB have subscription → Synced');
-        if (mountedRef.current) {
-          setIsSubscribed(true);
-          setSyncState(SyncState.SYNCED);
-        }
+        // State already correct
       }
       
       // CASE D: SW ❌ + DB ❌ → Both empty, user needs to subscribe
       else {
         console.log('[PUSH-SYNC] CASE D: Neither SW nor DB have subscription → Not subscribed');
-        if (mountedRef.current) {
-          setIsSubscribed(false);
-          setSyncState(SyncState.SYNCED);
-        }
+        // State already correct
       }
       
-      console.log('[PUSH-SYNC] ========== SYNC COMPLETE ==========');
+      console.log('[PUSH-SYNC] ========== BACKGROUND SYNC COMPLETE ==========');
       
     } catch (syncError) {
-      console.error('[PUSH-SYNC] ========== SYNC ERROR ==========');
+      console.error('[PUSH-SYNC] ========== BACKGROUND SYNC ERROR ==========');
       console.error('[PUSH-SYNC] Error:', syncError.message);
-      
-      if (mountedRef.current) {
-        setSyncState(SyncState.ERROR);
-        // On error, fallback to SW-only check (legacy behavior)
-        try {
-          const swSub = await reg.pushManager.getSubscription();
-          setIsSubscribed(!!swSub);
-        } catch {
-          setIsSubscribed(false);
-        }
-      }
+      // Don't update state on error - keep local SW state as truth
     } finally {
       syncInProgressRef.current = false;
     }
   }, []);
 
-  // Register service worker and perform initial sync
+  /**
+   * v3.0: NON-BLOCKING INITIALIZATION
+   * 1. Register SW
+   * 2. Immediately check local subscription (fast)
+   * 3. Set isInitialized = true (UI can render)
+   * 4. Fire background sync (doesn't block)
+   */
   useEffect(() => {
-    if (!isSupported) return;
+    if (!isSupported) {
+      setIsInitialized(true); // Mark as initialized even if not supported
+      return;
+    }
 
     const initServiceWorker = async () => {
       try {
-        console.log('[PUSH-SYNC] Registering service worker...');
+        console.log('[PUSH-SYNC] v3.0: Non-blocking initialization starting...');
         const reg = await navigator.serviceWorker.register('/service-worker.js');
         
         if (!mountedRef.current) return;
@@ -241,20 +220,36 @@ export function usePushNotifications() {
         await navigator.serviceWorker.ready;
         console.log('[PUSH-SYNC] Service worker ready');
         
-        // Perform initial sync
-        await syncSubscriptionState(reg);
+        // v3.0: FAST LOCAL CHECK - No network call, instant
+        const existingSubscription = await reg.pushManager.getSubscription();
+        const hasLocalSubscription = !!existingSubscription;
+        
+        console.log('[PUSH-SYNC] v3.0: Local subscription check:', hasLocalSubscription);
+        
+        if (mountedRef.current) {
+          setIsSubscribed(hasLocalSubscription);
+          setIsInitialized(true); // UI CAN NOW RENDER
+        }
+        
+        // v3.0: BACKGROUND SYNC - Fire and forget, doesn't block UI
+        // Small delay to let UI render first
+        setTimeout(() => {
+          if (mountedRef.current) {
+            syncSubscriptionStateBackground(reg);
+          }
+        }, 100);
         
       } catch (err) {
         console.error('[PUSH-SYNC] Service Worker registration failed:', err);
         if (mountedRef.current) {
           setError('Error al registrar Service Worker');
-          setSyncState(SyncState.ERROR);
+          setIsInitialized(true); // Still mark as initialized so UI renders
         }
       }
     };
 
     initServiceWorker();
-  }, [isSupported, syncSubscriptionState]);
+  }, [isSupported, syncSubscriptionStateBackground]);
 
   // Subscribe to push notifications
   const subscribe = useCallback(async () => {
