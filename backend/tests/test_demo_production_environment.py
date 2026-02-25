@@ -16,7 +16,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://visits-multlang.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://genturix-i18n.preview.emergentagent.com')
 
 # Test credentials
 SUPER_ADMIN_EMAIL = "superadmin@genturix.com"
