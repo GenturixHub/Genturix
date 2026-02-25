@@ -461,6 +461,36 @@
     "slotTooltipFull": "No slots available",
     "slotTooltipOccupied": "Time slot occupied"
   },
+  "directory": {
+    "title": "People",
+    "subtitle": "Condominium directory",
+    "searchPlaceholder": "Search person...",
+    "noUsers": "No users in this condominium",
+    "loadError": "Error loading directory",
+    "profile": "Profile",
+    "contactInfo": "Contact information",
+    "phone": "Phone",
+    "email": "Email",
+    "unit": "Unit",
+    "description": "Description",
+    "loadingMore": "Loading more information...",
+    "sections": {
+      "administrators": "Administrators",
+      "supervisors": "Supervisors",
+      "hr": "Human Resources",
+      "guards": "Guards",
+      "residents": "Residents",
+      "students": "Students"
+    },
+    "roleLabels": {
+      "Administrador": "Administrators",
+      "Supervisor": "Supervisors",
+      "HR": "Human Resources",
+      "Guarda": "Guards",
+      "Residente": "Residents",
+      "Estudiante": "Students"
+    }
+  },
   "security": {
     "title": "Security",
     "alerts": "Alerts",
