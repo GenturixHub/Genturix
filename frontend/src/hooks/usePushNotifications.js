@@ -1,4 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
+/**
+ * GENTURIX Push Notifications Hook v2.0
+ * 
+ * ARQUITECTURA: Backend como fuente de verdad
+ * 
+ * Este hook sincroniza el estado entre:
+ * - Service Worker local (pushManager.getSubscription())
+ * - Base de datos del backend (GET /api/push/status)
+ * 
+ * CASOS MANEJADOS:
+ * - Caso A: SW ✅ + DB ❌ → Re-registrar automáticamente
+ * - Caso B: SW ❌ + DB ✅ → Limpiar DB (DELETE unsubscribe-all)
+ * - Caso C: SW ✅ + DB ✅ → Sincronizado, isSubscribed = true
+ * - Caso D: SW ❌ + DB ❌ → Sincronizado, isSubscribed = false
+ * 
+ * IMPORTANTE: No muestra banner hasta completar sincronización inicial.
+ */
+
+import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../services/api';
 
 // Convert base64 to Uint8Array for applicationServerKey
@@ -27,13 +45,29 @@ function withTimeout(promise, ms, errorMessage) {
   ]);
 }
 
+// Sync states enum for clarity
+const SyncState = {
+  PENDING: 'pending',      // Initial state, sync not started
+  SYNCING: 'syncing',      // Currently syncing SW ↔ DB
+  SYNCED: 'synced',        // Sync complete
+  ERROR: 'error'           // Sync failed
+};
+
 export function usePushNotifications() {
+  // Core state
   const [isSupported, setIsSupported] = useState(false);
   const [permission, setPermission] = useState('default');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [registration, setRegistration] = useState(null);
+  
+  // Sync state - prevents banner from showing during initial sync
+  const [syncState, setSyncState] = useState(SyncState.PENDING);
+  
+  // Prevent duplicate sync operations
+  const syncInProgressRef = useRef(false);
+  const mountedRef = useRef(true);
 
   // Check browser support
   useEffect(() => {
@@ -43,46 +77,194 @@ export function usePushNotifications() {
     if (supported) {
       setPermission(Notification.permission);
     }
+    
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
-  // Register service worker and check existing subscription
+  /**
+   * CORE SYNC FUNCTION
+   * Resolves inconsistencies between SW local state and backend DB
+   */
+  const syncSubscriptionState = useCallback(async (reg) => {
+    // Prevent concurrent syncs
+    if (syncInProgressRef.current) {
+      console.log('[PUSH-SYNC] Sync already in progress, skipping');
+      return;
+    }
+    
+    syncInProgressRef.current = true;
+    setSyncState(SyncState.SYNCING);
+    
+    console.log('[PUSH-SYNC] ========== SYNC START ==========');
+    
+    try {
+      // STEP 1: Get SW local subscription state
+      const swSubscription = await reg.pushManager.getSubscription();
+      const hasSW = !!swSubscription;
+      console.log('[PUSH-SYNC] SW Local:', hasSW);
+      
+      // STEP 2: Get DB subscription state from backend
+      let hasDB = false;
+      let dbSubscriptionCount = 0;
+      
+      try {
+        const statusResponse = await withTimeout(
+          api.getPushStatus(),
+          8000,
+          'Timeout checking push status'
+        );
+        hasDB = statusResponse?.is_subscribed || false;
+        dbSubscriptionCount = statusResponse?.subscription_count || 0;
+        console.log('[PUSH-SYNC] DB Backend:', hasDB, `(${dbSubscriptionCount} subscriptions)`);
+      } catch (statusError) {
+        // If user not authenticated or network error, assume DB has no subscription
+        console.log('[PUSH-SYNC] DB check failed (likely not authenticated):', statusError.message);
+        hasDB = false;
+      }
+      
+      // STEP 3: Resolve state based on matrix
+      console.log('[PUSH-SYNC] State Matrix: SW=' + hasSW + ', DB=' + hasDB);
+      
+      // CASE A: SW ✅ + DB ❌ → Re-register subscription to backend
+      if (hasSW && !hasDB) {
+        console.log('[PUSH-SYNC] CASE A: SW has subscription, DB missing → Re-registering...');
+        
+        try {
+          const subscriptionJson = swSubscription.toJSON();
+          await withTimeout(
+            api.subscribeToPush({
+              endpoint: subscriptionJson.endpoint,
+              keys: {
+                p256dh: subscriptionJson.keys.p256dh,
+                auth: subscriptionJson.keys.auth
+              },
+              expirationTime: subscriptionJson.expirationTime
+            }),
+            10000,
+            'Timeout re-registering subscription'
+          );
+          
+          console.log('[PUSH-SYNC] CASE A: Re-registration SUCCESS');
+          if (mountedRef.current) {
+            setIsSubscribed(true);
+            setSyncState(SyncState.SYNCED);
+          }
+        } catch (reRegError) {
+          console.warn('[PUSH-SYNC] CASE A: Re-registration failed:', reRegError.message);
+          // SW has it but couldn't sync to DB - still consider subscribed locally
+          // User might not be authenticated
+          if (mountedRef.current) {
+            setIsSubscribed(true);
+            setSyncState(SyncState.SYNCED);
+          }
+        }
+      }
+      
+      // CASE B: SW ❌ + DB ✅ → Clean up DB (orphaned subscription)
+      else if (!hasSW && hasDB) {
+        console.log('[PUSH-SYNC] CASE B: SW missing, DB has subscription → Cleaning DB...');
+        
+        try {
+          // Use unsubscribe-all to clean orphaned subscriptions for this user
+          await withTimeout(
+            api.delete('/push/unsubscribe-all'),
+            8000,
+            'Timeout cleaning orphaned subscriptions'
+          );
+          console.log('[PUSH-SYNC] CASE B: DB cleanup SUCCESS');
+        } catch (cleanupError) {
+          console.warn('[PUSH-SYNC] CASE B: DB cleanup failed:', cleanupError.message);
+          // Continue anyway - the important thing is SW doesn't have it
+        }
+        
+        if (mountedRef.current) {
+          setIsSubscribed(false);
+          setSyncState(SyncState.SYNCED);
+        }
+      }
+      
+      // CASE C: SW ✅ + DB ✅ → Perfectly synced
+      else if (hasSW && hasDB) {
+        console.log('[PUSH-SYNC] CASE C: Both SW and DB have subscription → Synced');
+        if (mountedRef.current) {
+          setIsSubscribed(true);
+          setSyncState(SyncState.SYNCED);
+        }
+      }
+      
+      // CASE D: SW ❌ + DB ❌ → Both empty, user needs to subscribe
+      else {
+        console.log('[PUSH-SYNC] CASE D: Neither SW nor DB have subscription → Not subscribed');
+        if (mountedRef.current) {
+          setIsSubscribed(false);
+          setSyncState(SyncState.SYNCED);
+        }
+      }
+      
+      console.log('[PUSH-SYNC] ========== SYNC COMPLETE ==========');
+      
+    } catch (syncError) {
+      console.error('[PUSH-SYNC] ========== SYNC ERROR ==========');
+      console.error('[PUSH-SYNC] Error:', syncError.message);
+      
+      if (mountedRef.current) {
+        setSyncState(SyncState.ERROR);
+        // On error, fallback to SW-only check (legacy behavior)
+        try {
+          const swSub = await reg.pushManager.getSubscription();
+          setIsSubscribed(!!swSub);
+        } catch {
+          setIsSubscribed(false);
+        }
+      }
+    } finally {
+      syncInProgressRef.current = false;
+    }
+  }, []);
+
+  // Register service worker and perform initial sync
   useEffect(() => {
     if (!isSupported) return;
 
     const initServiceWorker = async () => {
       try {
-        console.log('[PUSH-DEBUG] Registering service worker...');
+        console.log('[PUSH-SYNC] Registering service worker...');
         const reg = await navigator.serviceWorker.register('/service-worker.js');
+        
+        if (!mountedRef.current) return;
         setRegistration(reg);
-        console.log('[PUSH-DEBUG] Service worker registered');
+        console.log('[PUSH-SYNC] Service worker registered');
         
         // Wait for service worker to be ready
         await navigator.serviceWorker.ready;
-        console.log('[PUSH-DEBUG] Service worker ready');
+        console.log('[PUSH-SYNC] Service worker ready');
         
-        // Check if already subscribed
-        const existingSubscription = await reg.pushManager.getSubscription();
-        setIsSubscribed(!!existingSubscription);
-        console.log('[PUSH-DEBUG] Existing subscription:', !!existingSubscription);
+        // Perform initial sync
+        await syncSubscriptionState(reg);
         
       } catch (err) {
-        console.error('[PUSH-DEBUG] Service Worker registration failed:', err);
-        setError('Error al registrar Service Worker');
+        console.error('[PUSH-SYNC] Service Worker registration failed:', err);
+        if (mountedRef.current) {
+          setError('Error al registrar Service Worker');
+          setSyncState(SyncState.ERROR);
+        }
       }
     };
 
     initServiceWorker();
-  }, [isSupported]);
+  }, [isSupported, syncSubscriptionState]);
 
   // Subscribe to push notifications
   const subscribe = useCallback(async () => {
-    console.log('[PUSH-DEBUG] ========== SUBSCRIBE START ==========');
-    console.log('[PUSH-DEBUG] registration:', !!registration);
-    console.log('[PUSH-DEBUG] isSupported:', isSupported);
+    console.log('[PUSH-SYNC] ========== SUBSCRIBE START ==========');
+    console.log('[PUSH-SYNC] registration:', !!registration);
+    console.log('[PUSH-SYNC] isSupported:', isSupported);
     
     if (!registration || !isSupported) {
       setError('Push notifications not supported');
-      console.log('[PUSH-DEBUG] ABORT: Not supported or no registration');
+      console.log('[PUSH-SYNC] ABORT: Not supported or no registration');
       return false;
     }
 
@@ -91,53 +273,60 @@ export function usePushNotifications() {
 
     try {
       // STEP 1: Request notification permission
-      console.log('[PUSH-DEBUG] Step 1: Requesting notification permission...');
+      console.log('[PUSH-SYNC] Step 1: Requesting notification permission...');
       const permissionResult = await withTimeout(
         Notification.requestPermission(),
         10000,
         'Timeout: No se recibió respuesta del permiso de notificaciones'
       );
       setPermission(permissionResult);
-      console.log('[PUSH-DEBUG] Step 1 COMPLETE: Permission =', permissionResult);
+      console.log('[PUSH-SYNC] Step 1 COMPLETE: Permission =', permissionResult);
 
       if (permissionResult !== 'granted') {
         setError('Permiso de notificaciones denegado');
-        console.log('[PUSH-DEBUG] ABORT: Permission denied');
+        console.log('[PUSH-SYNC] ABORT: Permission denied');
         return false;
       }
 
       // STEP 2: Get VAPID public key from server
-      console.log('[PUSH-DEBUG] Step 2: Fetching VAPID public key...');
+      console.log('[PUSH-SYNC] Step 2: Fetching VAPID public key...');
       const vapidResponse = await withTimeout(
         api.getVapidPublicKey(),
         8000,
         'Timeout: No se pudo obtener la clave VAPID del servidor'
       );
       const vapid_public_key = vapidResponse?.publicKey;
-      console.log('[PUSH-DEBUG] Step 2 COMPLETE: VAPID key received =', !!vapid_public_key);
+      console.log('[PUSH-SYNC] Step 2 COMPLETE: VAPID key received =', !!vapid_public_key);
       
       if (!vapid_public_key) {
         throw new Error('VAPID key not configured on server');
       }
 
       // STEP 3: Subscribe to push manager
-      console.log('[PUSH-DEBUG] Step 3: Subscribing to PushManager...');
-      console.log('[PUSH-DEBUG] Step 3: applicationServerKey length =', urlBase64ToUint8Array(vapid_public_key).length);
+      console.log('[PUSH-SYNC] Step 3: Subscribing to PushManager...');
       
-      const subscription = await withTimeout(
-        registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(vapid_public_key)
-        }),
-        15000,  // 15 second timeout for subscribe
-        'Timeout: La suscripción push tardó demasiado. Intenta de nuevo.'
-      );
-      console.log('[PUSH-DEBUG] Step 3 COMPLETE: Subscription created');
+      // First, check if already subscribed locally
+      let subscription = await registration.pushManager.getSubscription();
+      
+      if (!subscription) {
+        // Create new subscription
+        subscription = await withTimeout(
+          registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapid_public_key)
+          }),
+          15000,
+          'Timeout: La suscripción push tardó demasiado. Intenta de nuevo.'
+        );
+        console.log('[PUSH-SYNC] Step 3 COMPLETE: New subscription created');
+      } else {
+        console.log('[PUSH-SYNC] Step 3 COMPLETE: Using existing local subscription');
+      }
 
       // STEP 4: Send subscription to server
       const subscriptionJson = subscription.toJSON();
-      console.log('[PUSH-DEBUG] Step 4: Sending subscription to server...');
-      console.log('[PUSH-DEBUG] Step 4: Subscription data:', {
+      console.log('[PUSH-SYNC] Step 4: Sending subscription to server...');
+      console.log('[PUSH-SYNC] Step 4: Subscription data:', {
         endpoint: subscriptionJson.endpoint?.substring(0, 50) + '...',
         hasP256dh: !!subscriptionJson.keys?.p256dh,
         hasAuth: !!subscriptionJson.keys?.auth
@@ -156,21 +345,21 @@ export function usePushNotifications() {
         'Timeout: No se pudo guardar la suscripción en el servidor'
       );
       
-      console.log('[PUSH-DEBUG] Step 4 COMPLETE: Server response =', result);
-      console.log('[PUSH-DEBUG] ========== SUBSCRIBE SUCCESS ==========');
+      console.log('[PUSH-SYNC] Step 4 COMPLETE: Server response =', result);
+      console.log('[PUSH-SYNC] ========== SUBSCRIBE SUCCESS ==========');
 
       setIsSubscribed(true);
+      setSyncState(SyncState.SYNCED);
       return true;
 
     } catch (err) {
-      console.error('[PUSH-DEBUG] ========== SUBSCRIBE FAILED ==========');
-      console.error('[PUSH-DEBUG] Error:', err.message);
-      console.error('[PUSH-DEBUG] Full error:', err);
+      console.error('[PUSH-SYNC] ========== SUBSCRIBE FAILED ==========');
+      console.error('[PUSH-SYNC] Error:', err.message);
+      console.error('[PUSH-SYNC] Full error:', err);
       setError(err.message || 'Error al suscribirse a notificaciones');
       return false;
     } finally {
-      // ALWAYS reset loading state
-      console.log('[PUSH-DEBUG] Finally: Setting isLoading = false');
+      console.log('[PUSH-SYNC] Finally: Setting isLoading = false');
       setIsLoading(false);
     }
   }, [registration, isSupported]);
@@ -186,9 +375,9 @@ export function usePushNotifications() {
       const subscription = await registration.pushManager.getSubscription();
       
       if (subscription) {
-        // Unsubscribe locally
+        // Unsubscribe locally first
         await subscription.unsubscribe();
-        console.log('[PUSH-DEBUG] Unsubscribed locally from push manager');
+        console.log('[PUSH-SYNC] Unsubscribed locally from push manager');
         
         // Notify server
         const subscriptionJson = subscription.toJSON();
@@ -200,24 +389,41 @@ export function usePushNotifications() {
               auth: subscriptionJson.keys.auth
             }
           });
-          console.log('[PUSH-DEBUG] Unsubscription confirmed on server');
+          console.log('[PUSH-SYNC] Unsubscription confirmed on server');
         } catch (serverError) {
-          console.warn('[PUSH-DEBUG] Failed to notify server of unsubscription:', serverError.message);
+          console.warn('[PUSH-SYNC] Failed to notify server of unsubscription:', serverError.message);
           // Don't throw - local unsubscribe succeeded
+        }
+      } else {
+        // No local subscription, but try to clean server anyway
+        try {
+          await api.delete('/push/unsubscribe-all');
+          console.log('[PUSH-SYNC] Cleaned up any orphaned server subscriptions');
+        } catch (cleanupError) {
+          console.warn('[PUSH-SYNC] Server cleanup failed:', cleanupError.message);
         }
       }
 
       setIsSubscribed(false);
+      setSyncState(SyncState.SYNCED);
       return true;
 
     } catch (err) {
-      console.error('[PUSH-DEBUG] Unsubscription failed:', err);
+      console.error('[PUSH-SYNC] Unsubscription failed:', err);
       setError(err.message || 'Error al desuscribirse');
       return false;
     } finally {
       setIsLoading(false);
     }
   }, [registration]);
+
+  // Manual refresh sync (for use after login/logout)
+  const refreshSync = useCallback(async () => {
+    if (registration && !syncInProgressRef.current) {
+      console.log('[PUSH-SYNC] Manual refresh triggered');
+      await syncSubscriptionState(registration);
+    }
+  }, [registration, syncSubscriptionState]);
 
   // Test notification (for debugging)
   const testNotification = useCallback(() => {
@@ -234,13 +440,22 @@ export function usePushNotifications() {
   }, [permission]);
 
   return {
+    // Core state
     isSupported,
     permission,
     isSubscribed,
     isLoading,
     error,
+    
+    // Sync state - use this to prevent banner flashing
+    syncState,
+    isSyncing: syncState === SyncState.PENDING || syncState === SyncState.SYNCING,
+    isSynced: syncState === SyncState.SYNCED,
+    
+    // Actions
     subscribe,
     unsubscribe,
+    refreshSync,
     testNotification
   };
 }
