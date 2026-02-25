@@ -1,14 +1,17 @@
 /**
- * GENTURIX - Visitor Authorizations for Residents
+ * GENTURIX - Visitor Authorizations for Residents (TanStack Query v5)
  * 
  * Allows residents to create and manage visitor authorizations:
  * - Temporary (single date or range)
  * - Permanent (always allowed, e.g., family)
  * - Recurring (specific days of week)
  * - Extended (date range + time windows)
+ * 
+ * Uses TanStack Query for data fetching with caching.
+ * Notifications come from parent component (ResidentUI).
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
