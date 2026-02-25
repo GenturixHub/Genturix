@@ -2416,10 +2416,11 @@ async def notify_guards_of_panic(condominium_id: str, panic_data: dict, sender_i
                     deleted_count += 1
     # ======================================================================
     
-    # PHASE 4: STRUCTURED LOGGING
+    # ==================== PHASE 4: STRUCTURED LOGGING ====================
+    logger.info(f"[PANIC-PUSH-AUDIT] ======= DELIVERY COMPLETE =======")
     logger.info(
-        f"[PANIC-PUSH] Complete | "
-        f"condo={condominium_id[:8]}... | "
+        f"[PANIC-PUSH-AUDIT] Result | "
+        f"condo={condo.get('name', condominium_id[:8])} | "
         f"guards_found={len(guard_ids)} | "
         f"total_subs={result['total']} | "
         f"sent={result['sent']} | "
@@ -2427,6 +2428,8 @@ async def notify_guards_of_panic(condominium_id: str, panic_data: dict, sender_i
         f"excluded={result['excluded']} | "
         f"deleted_invalid={deleted_count}"
     )
+    logger.info(f"[PANIC-PUSH-AUDIT] ======= NOTIFY GUARDS END =======")
+    # ===================================================================
     
     return result
 
