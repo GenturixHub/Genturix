@@ -1,8 +1,61 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 24, 2026 (Stripe Pricing Audit)
+## Last Updated: February 25, 2026 (i18n Migration - Visits Module)
 
 ## Changelog
+
+### 2026-02-25 (Session 80) - i18n Migration: Visits/Authorizations Module ✅
+
+**FEATURE COMPLETE: Full Internationalization of Visits Module**
+
+1. **📁 Files Modified:**
+   - `/frontend/src/components/ResidentVisitsModule.jsx` - Added useTranslation
+   - `/frontend/src/components/VisitorAuthorizationsResident.jsx` - Full i18n migration
+   - `/frontend/src/components/ResidentVisitHistory.jsx` - Full i18n migration
+   - `/frontend/src/i18n/es.json` - Added ~95 new keys under `visitors` namespace
+   - `/frontend/src/i18n/en.json` - Added ~95 new keys under `visitors` namespace
+
+2. **🔄 Architecture Changes:**
+   - Converted static config objects to functions accepting `t` parameter:
+     - `getAuthorizationTypes(t)` - Temporal, Permanente, Recurrente, Extendido
+     - `getVisitorTypes(t)` - Visitante, Delivery, Mantenimiento, etc.
+     - `getDaysOfWeek(t)` - Lun, Mar, Mié, Jue, Vie, Sáb, Dom
+     - `getDeliveryCompanies(t)` - Uber Eats, Rappi, DHL, etc.
+     - `getServiceTypes(t)` - By category (delivery, maintenance, technical, cleaning)
+     - `getFilterPeriods(t)` - Hoy, Últimos 7 días, Últimos 30 días, Personalizado
+     - `getStatusConfig(t)` - Activo, Completado
+
+3. **🌐 Translation Keys Structure:**
+   ```
+   visitors:
+     - tabs: authorizations, authorizationsShort, history
+     - authTypes: temporary, permanent, recurring, extended (with descriptions)
+     - days: monShort, tueShort, wedShort, etc.
+     - visitorTypes: visitor, delivery, maintenance, technical, cleaning, other
+     - deliveryCompanies: uberEats, rappi, dhl, fedex, amazon, pedidosYa, other
+     - serviceTypes: package, food, documents, plumbing, electricity, etc.
+     - card: valid, invalid, edit, insideLabel, insideTooltip, visits
+     - form: newAuthorization, editAuthorization, labels, placeholders, buttons
+     - notifications: title, noNotifications, count, markAllRead
+     - list: title, newButton, sections, empty states
+     - delete: title, confirmMessage, undoWarning, buttons
+     - toast: success/error messages
+     - history: title, counts, search, filters, periods, loading, empty states
+     - pdf: export labels
+   ```
+
+4. **✅ Test Results (100% Pass Rate):**
+   - Tab navigation: Spanish/English ✓
+   - Authorization types dropdown: Spanish/English ✓
+   - Visitor types grid: Spanish/English ✓
+   - Form dialog labels: Spanish/English ✓
+   - History component: Spanish/English ✓
+   - Filter dialog: Spanish/English ✓
+   - Language switching: Bidirectional ✓
+
+**All tests passed. Module fully internationalized.**
+
+---
 
 ### 2026-02-24 (Session 79d) - Stripe Pricing System Audit ✅
 
