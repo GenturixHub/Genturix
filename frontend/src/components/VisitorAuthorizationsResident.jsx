@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Card, CardContent } from './ui/card';
@@ -57,12 +58,12 @@ import {
 } from 'lucide-react';
 
 // ============================================
-// CONFIGURATION
+// CONFIGURATION - Functions that return translated config
 // ============================================
-const AUTHORIZATION_TYPES = {
+const getAuthorizationTypes = (t) => ({
   temporary: {
-    label: 'Temporal',
-    description: 'Una fecha o rango específico',
+    label: t('visitors.authTypes.temporary'),
+    description: t('visitors.authTypes.temporaryDesc'),
     icon: Timer,
     color: 'yellow',
     bgColor: 'bg-yellow-500/20',
@@ -70,8 +71,8 @@ const AUTHORIZATION_TYPES = {
     textColor: 'text-yellow-400'
   },
   permanent: {
-    label: 'Permanente',
-    description: 'Acceso siempre permitido',
+    label: t('visitors.authTypes.permanent'),
+    description: t('visitors.authTypes.permanentDesc'),
     icon: InfinityIcon,
     color: 'green',
     bgColor: 'bg-green-500/20',
@@ -79,8 +80,8 @@ const AUTHORIZATION_TYPES = {
     textColor: 'text-green-400'
   },
   recurring: {
-    label: 'Recurrente',
-    description: 'Días específicos de la semana',
+    label: t('visitors.authTypes.recurring'),
+    description: t('visitors.authTypes.recurringDesc'),
     icon: Repeat,
     color: 'blue',
     bgColor: 'bg-blue-500/20',
@@ -88,24 +89,24 @@ const AUTHORIZATION_TYPES = {
     textColor: 'text-blue-400'
   },
   extended: {
-    label: 'Extendido',
-    description: 'Rango de fechas + horario',
+    label: t('visitors.authTypes.extended'),
+    description: t('visitors.authTypes.extendedDesc'),
     icon: Calendar,
     color: 'cyan',
     bgColor: 'bg-cyan-500/20',
     borderColor: 'border-cyan-500/30',
     textColor: 'text-cyan-400'
   }
-};
+});
 
-const DAYS_OF_WEEK = [
-  { value: 'Lunes', label: 'Lun' },
-  { value: 'Martes', label: 'Mar' },
-  { value: 'Miércoles', label: 'Mié' },
-  { value: 'Jueves', label: 'Jue' },
-  { value: 'Viernes', label: 'Vie' },
-  { value: 'Sábado', label: 'Sáb' },
-  { value: 'Domingo', label: 'Dom' }
+const getDaysOfWeek = (t) => [
+  { value: 'Lunes', label: t('visitors.days.monShort') },
+  { value: 'Martes', label: t('visitors.days.tueShort') },
+  { value: 'Miércoles', label: t('visitors.days.wedShort') },
+  { value: 'Jueves', label: t('visitors.days.thuShort') },
+  { value: 'Viernes', label: t('visitors.days.friShort') },
+  { value: 'Sábado', label: t('visitors.days.satShort') },
+  { value: 'Domingo', label: t('visitors.days.sunShort') }
 ];
 
 const COLOR_CONFIG = {
@@ -128,67 +129,94 @@ import {
   MoreHorizontal
 } from 'lucide-react';
 
-const VISITOR_TYPES = {
+const getVisitorTypes = (t) => ({
   visitor: {
-    label: 'Visitante',
-    description: 'Persona que viene a visitarte',
+    label: t('visitors.visitorTypes.visitor'),
+    description: t('visitors.visitorTypes.visitorDesc'),
     icon: Users,
     bgColor: 'bg-gray-500/20',
     borderColor: 'border-gray-500/30',
     textColor: 'text-gray-400'
   },
   delivery: {
-    label: 'Delivery',
-    description: 'Repartidor o mensajero',
+    label: t('visitors.visitorTypes.delivery'),
+    description: t('visitors.visitorTypes.deliveryDesc'),
     icon: Package,
     bgColor: 'bg-yellow-500/20',
     borderColor: 'border-yellow-500/30',
     textColor: 'text-yellow-400'
   },
   maintenance: {
-    label: 'Mantenimiento',
-    description: 'Técnico de mantenimiento',
+    label: t('visitors.visitorTypes.maintenance'),
+    description: t('visitors.visitorTypes.maintenanceDesc'),
     icon: Wrench,
     bgColor: 'bg-blue-500/20',
     borderColor: 'border-blue-500/30',
     textColor: 'text-blue-400'
   },
   technical: {
-    label: 'Servicio Técnico',
-    description: 'Técnico de servicio',
+    label: t('visitors.visitorTypes.technical'),
+    description: t('visitors.visitorTypes.technicalDesc'),
     icon: Cpu,
     bgColor: 'bg-purple-500/20',
     borderColor: 'border-purple-500/30',
     textColor: 'text-purple-400'
   },
   cleaning: {
-    label: 'Limpieza',
-    description: 'Personal de limpieza',
+    label: t('visitors.visitorTypes.cleaning'),
+    description: t('visitors.visitorTypes.cleaningDesc'),
     icon: Sparkles,
     bgColor: 'bg-green-500/20',
     borderColor: 'border-green-500/30',
     textColor: 'text-green-400'
   },
   other: {
-    label: 'Otro',
-    description: 'Otro tipo de servicio',
+    label: t('visitors.visitorTypes.other'),
+    description: t('visitors.visitorTypes.otherDesc'),
     icon: MoreHorizontal,
     bgColor: 'bg-orange-500/20',
     borderColor: 'border-orange-500/30',
     textColor: 'text-orange-400'
   }
-};
+});
 
-const DELIVERY_COMPANIES = [
-  'Uber Eats', 'Rappi', 'DHL', 'FedEx', 'Amazon', 'PedidosYa', 'Otro'
+const getDeliveryCompanies = (t) => [
+  { value: 'Uber Eats', label: t('visitors.deliveryCompanies.uberEats') },
+  { value: 'Rappi', label: t('visitors.deliveryCompanies.rappi') },
+  { value: 'DHL', label: t('visitors.deliveryCompanies.dhl') },
+  { value: 'FedEx', label: t('visitors.deliveryCompanies.fedex') },
+  { value: 'Amazon', label: t('visitors.deliveryCompanies.amazon') },
+  { value: 'PedidosYa', label: t('visitors.deliveryCompanies.pedidosYa') },
+  { value: 'Otro', label: t('visitors.deliveryCompanies.other') }
 ];
 
-const SERVICE_TYPES = {
-  delivery: ['Paquete', 'Comida', 'Documentos', 'Otro'],
-  maintenance: ['Plomería', 'Electricidad', 'Aires Acondicionados', 'Pintura', 'Otro'],
-  technical: ['Internet/Cable', 'Electrodomésticos', 'Cerrajería', 'Fumigación', 'Otro'],
-  cleaning: ['Apartamento', 'Oficina', 'Otro']
-};
+const getServiceTypes = (t) => ({
+  delivery: [
+    { value: 'Paquete', label: t('visitors.serviceTypes.package') },
+    { value: 'Comida', label: t('visitors.serviceTypes.food') },
+    { value: 'Documentos', label: t('visitors.serviceTypes.documents') },
+    { value: 'Otro', label: t('visitors.serviceTypes.other') }
+  ],
+  maintenance: [
+    { value: 'Plomería', label: t('visitors.serviceTypes.plumbing') },
+    { value: 'Electricidad', label: t('visitors.serviceTypes.electricity') },
+    { value: 'Aires Acondicionados', label: t('visitors.serviceTypes.airConditioning') },
+    { value: 'Pintura', label: t('visitors.serviceTypes.painting') },
+    { value: 'Otro', label: t('visitors.serviceTypes.other') }
+  ],
+  technical: [
+    { value: 'Internet/Cable', label: t('visitors.serviceTypes.internetCable') },
+    { value: 'Electrodomésticos', label: t('visitors.serviceTypes.appliances') },
+    { value: 'Cerrajería', label: t('visitors.serviceTypes.locksmith') },
+    { value: 'Fumigación', label: t('visitors.serviceTypes.fumigation') },
+    { value: 'Otro', label: t('visitors.serviceTypes.other') }
+  ],
+  cleaning: [
+    { value: 'Apartamento', label: t('visitors.serviceTypes.apartment') },
+    { value: 'Oficina', label: t('visitors.serviceTypes.office') },
+    { value: 'Otro', label: t('visitors.serviceTypes.other') }
+  ]
+});
 
 // ============================================
 // AUTHORIZATION CARD
