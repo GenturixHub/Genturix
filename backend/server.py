@@ -2384,7 +2384,8 @@ async def notify_guards_of_panic(condominium_id: str, panic_data: dict, sender_i
     push_tasks = []
     for sub in subscriptions:
         # Extra validation: ensure subscription belongs to a guard in this condo
-        if sub.get("user_id") not in guard_ids:
+        sub_user_id = sub.get("user_id")
+        if sub_user_id not in guard_ids:
             result["excluded"] += 1
             continue
         
@@ -2400,7 +2401,8 @@ async def notify_guards_of_panic(condominium_id: str, panic_data: dict, sender_i
                 "auth": sub.get("auth")
             }
         }
-        push_tasks.append(send_push_notification_with_cleanup(subscription_info, payload))
+        # Pass user_id for better logging
+        push_tasks.append(send_push_notification_with_cleanup(subscription_info, payload, user_id=sub_user_id))
     
     # Execute all push notifications in parallel
     deleted_count = 0
