@@ -1,15 +1,15 @@
 /**
- * GENTURIX Push Permission Request Component
+ * GENTURIX Push Permission Request Component v3.0
  * Shows a friendly banner to request push notification permission
  * 
  * Works for ALL roles - Guards, Residents, Admins, etc.
  * Uses usePushNotifications hook for proper subscription handling.
  * 
- * IMPORTANT: This component waits for sync to complete before rendering
- * to prevent false-positive "activate notifications" prompts.
+ * v3.0: NON-BLOCKING - Banner shows immediately based on local state.
+ * No longer waits for backend sync to complete.
  */
 import React, { useState, useEffect } from 'react';
-import { Bell, X, Check, AlertTriangle, Loader2 } from 'lucide-react';
+import { Bell, X, Check, AlertTriangle } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '../contexts/AuthContext';
 import usePushNotifications from '../hooks/usePushNotifications';
@@ -23,8 +23,7 @@ const PushPermissionBanner = ({ onSubscribed }) => {
     isLoading,
     error,
     subscribe,
-    isSyncing,  // NEW: Wait for sync
-    isSynced    // NEW: Only show after sync complete
+    isInitialized  // v3.0: Fast local check, not backend sync
   } = usePushNotifications();
   
   const [show, setShow] = useState(false);
@@ -33,10 +32,10 @@ const PushPermissionBanner = ({ onSubscribed }) => {
 
   useEffect(() => {
     const checkPermission = () => {
-      // CRITICAL: Don't show until sync is complete
-      // This prevents false prompts after login
-      if (!isSynced || isSyncing) {
-        console.log('[Push] Waiting for sync to complete before showing banner');
+      // v3.0: Only wait for fast local SW check, not backend sync
+      // isInitialized becomes true instantly after pushManager.getSubscription()
+      if (!isInitialized) {
+        console.log('[Push] Waiting for local SW check...');
         return;
       }
 
@@ -46,9 +45,9 @@ const PushPermissionBanner = ({ onSubscribed }) => {
         return;
       }
 
-      // Don't show if already subscribed (verified with backend)
+      // Don't show if already subscribed (based on local SW state)
       if (isSubscribed) {
-        console.log('[Push] Already subscribed (confirmed with backend)');
+        console.log('[Push] Already subscribed (local SW check)');
         return;
       }
 
@@ -68,15 +67,15 @@ const PushPermissionBanner = ({ onSubscribed }) => {
         }
       }
 
-      // Show banner after a delay for ALL authenticated users
-      console.log(`[Push] Showing banner for role: ${user?.roles?.join(', ')} (sync confirmed: no active subscription)`);
-      setTimeout(() => setShow(true), 3000);
+      // Show banner after a short delay for ALL authenticated users
+      console.log(`[Push] Showing banner for role: ${user?.roles?.join(', ')}`);
+      setTimeout(() => setShow(true), 2000); // Reduced from 3000ms
     };
 
     if (user) {
       checkPermission();
     }
-  }, [isSupported, isSubscribed, permission, user, isSynced, isSyncing]);
+  }, [isSupported, isSubscribed, permission, user, isInitialized]);
 
   const handleEnable = async () => {
     try {
