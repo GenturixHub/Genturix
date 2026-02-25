@@ -1529,13 +1529,10 @@ const MyShiftTab = ({ clockStatus, onClockInOut, isClocking, onClockSuccess }) =
 };
 
 // ============================================
-// TAB 5: ABSENCES (Request & View)
+// TAB 5: ABSENCES (Request & View) - TanStack Query
 // ============================================
 const AbsencesTab = () => {
-  const [absences, setAbsences] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     type: 'vacaciones',
     start_date: '',
@@ -1545,21 +1542,12 @@ const AbsencesTab = () => {
   });
   const [formError, setFormError] = useState(null);
 
-  const fetchAbsences = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await api.getGuardMyAbsences();
-      setAbsences(data);
-    } catch (error) {
-      console.error('Error fetching absences:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchAbsences();
-  }, [fetchAbsences]);
+  // TanStack Query: Absences data
+  const { data: absences = [], isLoading: loading, refetch: fetchAbsences } = useGuardAbsences();
+  
+  // TanStack Query: Create absence mutation
+  const createAbsenceMutation = useCreateAbsence();
+  const isSubmitting = createAbsenceMutation.isPending;
 
   const validateForm = () => {
     if (!formData.start_date) {
@@ -1585,9 +1573,8 @@ const AbsencesTab = () => {
   const handleSubmit = async () => {
     if (!validateForm()) return;
     
-    setIsSubmitting(true);
     try {
-      await api.createAbsence({
+      await createAbsenceMutation.mutateAsync({
         type: formData.type,
         start_date: formData.start_date,
         end_date: formData.end_date,
@@ -1604,11 +1591,9 @@ const AbsencesTab = () => {
         reason: '',
         notes: ''
       });
-      fetchAbsences();
+      // TanStack Query automatically refetches via mutation onSuccess
     } catch (error) {
       toast.error(error.message || 'Error al enviar solicitud');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
