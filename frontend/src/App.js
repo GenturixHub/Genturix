@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createQueryPersister, persistOptions } from './config/queryPersister';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ModulesProvider, useModules } from './contexts/ModulesContext';
 import { Toaster } from './components/ui/sonner';
@@ -36,13 +38,16 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 60_000,         // Data considered fresh for 60s
-      gcTime: 5 * 60_000,        // Garbage collection after 5 minutes
+      gcTime: 10 * 60_000,       // Garbage collection after 10 minutes (match persist maxAge)
       refetchOnWindowFocus: false,
       retry: 1,
       refetchOnMount: false,     // Use cached data on mount, refetch only if stale
     },
   },
 });
+
+// Create persister for localStorage cache
+const persister = createQueryPersister();
 
 // Suppress PostHog errors in development
 if (typeof window !== 'undefined') {
