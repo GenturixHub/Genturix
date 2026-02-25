@@ -171,7 +171,7 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
           <div className="flex items-center gap-2">
             <Users className="w-5 h-5 text-primary" />
             <h2 className="text-lg font-bold">
-              Personas
+              {t('directory.title')}
             </h2>
           </div>
           {hasUsers && (
@@ -186,7 +186,7 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar persona..."
+              placeholder={t('directory.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 h-11 bg-[#0A0A0F] border-[#1E293B] rounded-xl text-sm"
@@ -202,22 +202,23 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
           {!hasUsers ? (
             <div className="bg-[#0F111A] border border-[#1E293B] rounded-2xl p-8 text-center">
               <Users className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground">No hay usuarios en este condominio</p>
+              <p className="text-sm text-muted-foreground">{t('directory.noUsers')}</p>
             </div>
           ) : (
             Object.entries(directory.grouped_by_role).map(([role, users]) => {
               const filteredUsers = filterUsers(users);
               if (filteredUsers.length === 0) return null;
               
-              const config = ROLE_CONFIG[role] || { icon: User, color: 'bg-gray-500/10 text-gray-400 border-gray-500/30', label: role };
+              const config = ROLE_CONFIG[role] || { icon: User, color: 'bg-gray-500/10 text-gray-400 border-gray-500/30' };
               const RoleIcon = config.icon;
+              const roleLabel = t(`directory.roleLabels.${role}`, role);
               
               return (
                 <div key={role} className="space-y-2">
                   {/* Role Header */}
                   <div className="flex items-center gap-2 px-1">
                     <RoleIcon className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{config.label}</span>
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{roleLabel}</span>
                     <Badge variant="outline" className="text-[10px] px-1.5 py-0 ml-auto">
                       {filteredUsers.length}
                     </Badge>
