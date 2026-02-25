@@ -134,8 +134,25 @@ export function PushNotificationToggle() {
     isLoading,
     error,
     subscribe,
-    unsubscribe
+    unsubscribe,
+    isSyncing,  // NEW: Show loading during sync
+    isSynced    // NEW: Only enable actions after sync
   } = usePushNotifications();
+
+  // Show loading state during initial sync
+  if (isSyncing || !isSynced) {
+    return (
+      <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+        <div className="flex items-center gap-3">
+          <Loader2 className="h-5 w-5 text-gray-400 animate-spin" />
+          <div>
+            <p className="text-sm text-gray-400">Notificaciones Push</p>
+            <p className="text-xs text-gray-500">Verificando estado...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!isSupported) {
     return (
