@@ -452,9 +452,9 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
     
     // Show capacity info for CAPACITY type areas
     if (reservationBehavior === 'capacity' && slot.remaining_slots !== undefined) {
-      toast.success(`Horario: ${startTime} - ${endTime} (${slot.remaining_slots} cupos disponibles)`, { duration: 2000 });
+      toast.success(t('reservations.slotSelected', { start: startTime, end: endTime, slots: slot.remaining_slots }), { duration: 2000 });
     } else {
-      toast.success(`Horario seleccionado: ${startTime} - ${endTime}`, { duration: 2000 });
+      toast.success(t('reservations.slotSelectedSimple', { start: startTime, end: endTime }), { duration: 2000 });
     }
   };
   
