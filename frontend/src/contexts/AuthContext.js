@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { changeLanguage } from '../i18n';
+import { clearPersistedCache } from '../config/queryPersister';
 
 const AuthContext = createContext(undefined);
 
