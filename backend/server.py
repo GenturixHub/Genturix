@@ -2159,7 +2159,7 @@ async def send_push_notification(subscription_info: dict, payload: dict) -> bool
         logger.error(f"[PUSH-SEND-FAILED] Unexpected error (keeping subscription): {endpoint_short}... | {type(e).__name__}: {str(e)[:100]}")
         return False
 
-async def send_push_notification_with_cleanup(subscription_info: dict, payload: dict) -> dict:
+async def send_push_notification_with_cleanup(subscription_info: dict, payload: dict, user_id: str = None) -> dict:
     """
     Send a push notification and return detailed result for parallel processing.
     Returns: {"success": bool, "deleted": bool, "endpoint": str, "error": str|None}
@@ -2167,10 +2167,12 @@ async def send_push_notification_with_cleanup(subscription_info: dict, payload: 
     ERROR HANDLING (CONSERVATIVE):
     - Only delete subscription on HTTP 404 or 410 (subscription permanently invalid)
     - Keep subscription for all other errors (401, 403, 429, 500, timeout, network, etc.)
+    
+    v2.0: Added user_id parameter for better logging
     """
     endpoint = subscription_info.get("endpoint", "")
     endpoint_short = endpoint[:50] if endpoint else "NO_ENDPOINT"
-    result = {"success": False, "deleted": False, "endpoint": endpoint, "error": None}
+    result = {"success": False, "deleted": False, "endpoint": endpoint, "error": None, "user_id": user_id}
     
     if not VAPID_PUBLIC_KEY or not VAPID_PRIVATE_KEY:
         result["error"] = "VAPID not configured"
@@ -2188,7 +2190,7 @@ async def send_push_notification_with_cleanup(subscription_info: dict, payload: 
             vapid_claims={"sub": f"mailto:{VAPID_CLAIMS_EMAIL}"}
         )
         result["success"] = True
-        logger.info(f"[PUSH-SEND-SUCCESS] Notification sent: {endpoint_short}...")
+        logger.info(f"[PUSH-SEND-SUCCESS] Notification sent to user={user_id}: {endpoint_short}...")
         return result
         
     except WebPushException as e:
@@ -2200,28 +2202,30 @@ async def send_push_notification_with_cleanup(subscription_info: dict, payload: 
             delete_result = await db.push_subscriptions.delete_one({"endpoint": endpoint})
             if delete_result.deleted_count > 0:
                 result["deleted"] = True
-                logger.warning(f"[PUSH-SUB-DELETED] Removed invalid subscription (HTTP {status_code}): {endpoint_short}...")
+                # STRUCTURED LOG for cleanup tracking
+                logger.warning(f"[PUSH-CLEANUP] Invalid subscription removed: user_id={user_id}, endpoint={endpoint_short}..., reason=HTTP_{status_code}")
             else:
-                logger.warning(f"[PUSH-SEND-FAILED] HTTP {status_code} but subscription not in DB: {endpoint_short}...")
+                logger.warning(f"[PUSH-SEND-FAILED] HTTP {status_code} but subscription not in DB: user={user_id}, {endpoint_short}...")
         else:
             # All other errors: keep the subscription
-            logger.warning(f"[PUSH-SEND-FAILED] HTTP {status_code} (keeping subscription): {endpoint_short}...")
+            logger.warning(f"[PUSH-SEND-FAILED] HTTP {status_code} (keeping subscription): user={user_id}, {endpoint_short}...")
         
         return result
         
     except TimeoutError:
         result["error"] = "Timeout"
-        logger.warning(f"[PUSH-SEND-FAILED] Timeout (keeping subscription): {endpoint_short}...")
+        logger.warning(f"[PUSH-SEND-FAILED] Timeout (keeping subscription): user={user_id}, {endpoint_short}...")
         return result
         
     except ConnectionError as e:
         result["error"] = f"Connection: {str(e)[:30]}"
-        logger.warning(f"[PUSH-SEND-FAILED] Connection error (keeping subscription): {endpoint_short}...")
+        logger.warning(f"[PUSH-SEND-FAILED] Connection error (keeping subscription): user={user_id}, {endpoint_short}...")
         return result
         
     except Exception as e:
         result["error"] = f"{type(e).__name__}: {str(e)[:50]}"
-        logger.error(f"[PUSH-SEND-FAILED] Unexpected error (keeping subscription): {endpoint_short}... | {result['error']}")
+        logger.error(f"[PUSH-SEND-FAILED] Unexpected error (keeping subscription): user={user_id}, {endpoint_short}... | {result['error']}")
+        return result
         return result
 
 async def notify_guards_of_panic(condominium_id: str, panic_data: dict, sender_id: str = None):
