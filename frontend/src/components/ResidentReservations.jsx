@@ -223,8 +223,9 @@ const AreaCard = ({ area, onReserve }) => {
 // MY RESERVATION CARD
 // ============================================
 const MyReservationCard = ({ reservation, onCancel }) => {
-  const statusConfig = STATUS_CONFIG[reservation.status] || STATUS_CONFIG.pending;
-  const StatusIcon = statusConfig.icon;
+  const { t } = useTranslation();
+  const statusColors = STATUS_COLORS[reservation.status] || STATUS_COLORS.pending;
+  const StatusIcon = statusColors.icon;
   const AreaIcon = AREA_ICONS[reservation.area_type] || MoreHorizontal;
   
   // Check if cancellation is allowed based on business rules
@@ -293,17 +294,17 @@ const MyReservationCard = ({ reservation, onCancel }) => {
               )}
               {/* Show if in progress */}
               {isPastOrInProgress && reservation.status === 'approved' && (
-                <p className="text-xs text-yellow-400 mt-1">En progreso o finalizada</p>
+                <p className="text-xs text-yellow-400 mt-1">{t('reservations.inProgressOrFinished')}</p>
               )}
               {/* Show cancellation reason if cancelled by admin */}
               {reservation.status === 'cancelled' && reservation.cancellation_reason && (
-                <p className="text-xs text-red-400 mt-1">Motivo: {reservation.cancellation_reason}</p>
+                <p className="text-xs text-red-400 mt-1">{t('reservations.reason')}: {reservation.cancellation_reason}</p>
               )}
             </div>
           </div>
-          <Badge className={`${statusConfig.color} flex-shrink-0 text-[10px]`}>
+          <Badge className={`${statusColors.color} flex-shrink-0 text-[10px]`}>
             <StatusIcon className="w-3 h-3 mr-1" />
-            {statusConfig.label}
+            {t(`reservations.statusLabels.${reservation.status}`)}
           </Badge>
         </div>
         
@@ -316,7 +317,7 @@ const MyReservationCard = ({ reservation, onCancel }) => {
             data-testid={`cancel-reservation-${reservation.id}`}
           >
             <XCircle className="w-3.5 h-3.5 mr-1.5" />
-            Cancelar Reservación
+            {t('reservations.cancelReservation')}
           </Button>
         )}
       </CardContent>
