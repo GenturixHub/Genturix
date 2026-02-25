@@ -873,10 +873,16 @@ const NotificationsPanel = ({ notifications, onMarkRead, onMarkAllRead, onRefres
 // ============================================
 // MAIN COMPONENT
 // ============================================
-const VisitorAuthorizationsResident = () => {
+/**
+ * v3.0: Receives notifications from parent (ResidentUI) to avoid duplicate API calls.
+ * Only fetches authorizations data locally.
+ */
+const VisitorAuthorizationsResident = ({ notifications: parentNotifications = [], onRefreshNotifications }) => {
   const { t } = useTranslation();
   const [authorizations, setAuthorizations] = useState([]);
-  const [notifications, setNotifications] = useState([]);
+  // Use parent notifications if provided, otherwise use local state
+  const [localNotifications, setLocalNotifications] = useState([]);
+  const notifications = parentNotifications.length > 0 ? parentNotifications : localNotifications;
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingAuth, setEditingAuth] = useState(null);
@@ -884,16 +890,13 @@ const VisitorAuthorizationsResident = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // v3.0: Only fetch authorizations - notifications come from parent
   const fetchData = useCallback(async () => {
     try {
-      const [authData, notifData] = await Promise.all([
-        api.getMyAuthorizations(),
-        api.getVisitorNotifications()
-      ]);
+      const authData = await api.getMyAuthorizations();
       setAuthorizations(authData);
-      setNotifications(notifData);
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching authorizations:', error);
       toast.error(t('visitors.toast.loadError'));
     } finally {
       setIsLoading(false);
@@ -902,11 +905,7 @@ const VisitorAuthorizationsResident = () => {
 
   useEffect(() => {
     fetchData();
-    // Poll for notifications every 30 seconds
-    const interval = setInterval(() => {
-      api.getVisitorNotifications().then(setNotifications).catch(console.error);
-    }, 30000);
-    return () => clearInterval(interval);
+    // v3.0: NO duplicate polling here - parent handles notifications polling
   }, [fetchData]);
 
   const handleEdit = (auth) => {
