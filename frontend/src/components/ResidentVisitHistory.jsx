@@ -360,7 +360,10 @@ const FilterDialog = ({ open, onClose, filters, onApply, t }) => {
 // ============================================
 // EXPORT PDF FUNCTION
 // ============================================
-const generatePDF = async (exportData) => {
+const generatePDF = async (exportData, t) => {
+  const VISITOR_TYPES = getVisitorTypes(t);
+  const STATUS_CONFIG = getStatusConfig(t);
+  
   // Create printable HTML content
   const visitsHtml = exportData.entries.map(entry => {
     const type = VISITOR_TYPES[entry.visitor_type] || VISITOR_TYPES.visitor;
@@ -385,25 +388,26 @@ const generatePDF = async (exportData) => {
         <td style="padding: 8px; border-bottom: 1px solid #ddd;">${formatTime(entry.entry_at)}</td>
         <td style="padding: 8px; border-bottom: 1px solid #ddd;">${formatTime(entry.exit_at)}</td>
         <td style="padding: 8px; border-bottom: 1px solid #ddd;">${formatDuration(entry.duration_minutes)}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${entry.status === 'inside' ? 'Activo' : 'Completado'}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${entry.status === 'inside' ? STATUS_CONFIG.inside.label : STATUS_CONFIG.completed.label}</td>
       </tr>
     `;
   }).join('');
   
   const filterInfo = [];
   if (exportData.filter_applied.period) {
-    const periodLabels = { today: 'Hoy', '7days': 'Últimos 7 días', '30days': 'Últimos 30 días', custom: 'Personalizado' };
-    filterInfo.push(`Período: ${periodLabels[exportData.filter_applied.period] || exportData.filter_applied.period}`);
+    const FILTER_PERIODS = getFilterPeriods(t);
+    const periodObj = FILTER_PERIODS.find(p => p.value === exportData.filter_applied.period);
+    filterInfo.push(`${t('visitors.history.period')}: ${periodObj?.label || exportData.filter_applied.period}`);
   }
-  if (exportData.filter_applied.date_from) filterInfo.push(`Desde: ${exportData.filter_applied.date_from}`);
-  if (exportData.filter_applied.date_to) filterInfo.push(`Hasta: ${exportData.filter_applied.date_to}`);
+  if (exportData.filter_applied.date_from) filterInfo.push(`${t('visitors.history.dateFrom')}: ${exportData.filter_applied.date_from}`);
+  if (exportData.filter_applied.date_to) filterInfo.push(`${t('visitors.history.dateTo')}: ${exportData.filter_applied.date_to}`);
   
   const html = `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="UTF-8">
-      <title>Historial de Visitas - GENTURIX</title>
+      <title>${t('visitors.pdf.title')} - GENTURIX</title>
       <style>
         body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
         h1 { color: #1a1a2e; margin-bottom: 5px; }
@@ -417,36 +421,36 @@ const generatePDF = async (exportData) => {
       </style>
     </head>
     <body>
-      <h1>📋 Historial de Visitas</h1>
-      <p class="subtitle">Generado por GENTURIX</p>
+      <h1>${t('visitors.pdf.title')}</h1>
+      <p class="subtitle">${t('visitors.pdf.generatedBy')}</p>
       
       <div class="info-box">
-        <p><strong>Residente:</strong> ${exportData.resident_name}</p>
-        <p><strong>Apartamento:</strong> ${exportData.apartment}</p>
-        <p><strong>Condominio:</strong> ${exportData.condominium_name}</p>
-        <p><strong>Fecha de exportación:</strong> ${new Date(exportData.export_date).toLocaleString('es-ES')}</p>
-        ${filterInfo.length > 0 ? `<p><strong>Filtros:</strong> ${filterInfo.join(' | ')}</p>` : ''}
-        <p><strong>Total de registros:</strong> ${exportData.total_entries}</p>
+        <p><strong>${t('visitors.pdf.resident')}:</strong> ${exportData.resident_name}</p>
+        <p><strong>${t('visitors.pdf.apartment')}:</strong> ${exportData.apartment}</p>
+        <p><strong>${t('visitors.pdf.condominium')}:</strong> ${exportData.condominium_name}</p>
+        <p><strong>${t('visitors.pdf.exportDate')}:</strong> ${new Date(exportData.export_date).toLocaleString('es-ES')}</p>
+        ${filterInfo.length > 0 ? `<p><strong>${t('visitors.pdf.appliedFilters')}:</strong> ${filterInfo.join(' | ')}</p>` : ''}
+        <p><strong>${t('visitors.pdf.totalRecords')}:</strong> ${exportData.total_entries}</p>
       </div>
       
       <table>
         <thead>
           <tr>
-            <th>Visitante</th>
-            <th>Tipo</th>
-            <th>Entrada</th>
-            <th>Salida</th>
-            <th>Duración</th>
-            <th>Estado</th>
+            <th>${t('visitors.pdf.visitor')}</th>
+            <th>${t('visitors.pdf.type')}</th>
+            <th>${t('visitors.pdf.entry')}</th>
+            <th>${t('visitors.pdf.exit')}</th>
+            <th>${t('visitors.pdf.duration')}</th>
+            <th>${t('visitors.pdf.status')}</th>
           </tr>
         </thead>
         <tbody>
-          ${visitsHtml || '<tr><td colspan="6" style="text-align:center; padding: 20px;">No hay registros</td></tr>'}
+          ${visitsHtml || `<tr><td colspan="6" style="text-align:center; padding: 20px;">${t('visitors.pdf.noRecords')}</td></tr>`}
         </tbody>
       </table>
       
       <div class="footer">
-        <p>GENTURIX - Sistema de Gestión de Condominios</p>
+        <p>${t('visitors.pdf.footer')}</p>
       </div>
     </body>
     </html>
