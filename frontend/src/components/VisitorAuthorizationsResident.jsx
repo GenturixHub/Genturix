@@ -819,12 +819,12 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave, t }) =>
 // ============================================
 // NOTIFICATIONS PANEL
 // ============================================
-const NotificationsPanel = ({ notifications, onMarkRead, onMarkAllRead, onRefresh }) => {
+const NotificationsPanel = ({ notifications, onMarkRead, onMarkAllRead, onRefresh, t }) => {
   if (notifications.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
         <Bell className="w-12 h-12 mx-auto mb-4 opacity-30" />
-        <p className="text-sm">No hay notificaciones</p>
+        <p className="text-sm">{t('visitors.notifications.noNotifications')}</p>
       </div>
     );
   }
@@ -832,9 +832,9 @@ const NotificationsPanel = ({ notifications, onMarkRead, onMarkAllRead, onRefres
   return (
     <div className="space-y-2">
       <div className="flex justify-between items-center mb-2">
-        <span className="text-xs text-muted-foreground">{notifications.length} notificaciones</span>
+        <span className="text-xs text-muted-foreground">{t('visitors.notifications.count', { count: notifications.length })}</span>
         <Button variant="ghost" size="sm" onClick={onMarkAllRead}>
-          Marcar todas leídas
+          {t('visitors.notifications.markAllRead')}
         </Button>
       </div>
       {notifications.map((notif) => (
