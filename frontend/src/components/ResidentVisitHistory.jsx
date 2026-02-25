@@ -11,6 +11,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Card, CardContent } from './ui/card';
@@ -68,35 +69,35 @@ import {
 } from 'lucide-react';
 
 // ============================================
-// CONFIGURATION
+// CONFIGURATION - Functions that return translated config
 // ============================================
-const VISITOR_TYPES = {
-  visitor: { label: 'Visitante', icon: User, color: 'bg-blue-500/20 text-blue-400' },
-  delivery: { label: 'Delivery', icon: Package, color: 'bg-yellow-500/20 text-yellow-400' },
-  maintenance: { label: 'Mantenimiento', icon: Wrench, color: 'bg-orange-500/20 text-orange-400' },
-  technical: { label: 'Técnico', icon: Sparkles, color: 'bg-purple-500/20 text-purple-400' },
-  cleaning: { label: 'Limpieza', icon: Sparkles, color: 'bg-green-500/20 text-green-400' },
-  other: { label: 'Otro', icon: Users, color: 'bg-gray-500/20 text-gray-400' }
-};
+const getVisitorTypes = (t) => ({
+  visitor: { label: t('visitors.visitorTypes.visitor'), icon: User, color: 'bg-blue-500/20 text-blue-400' },
+  delivery: { label: t('visitors.visitorTypes.delivery'), icon: Package, color: 'bg-yellow-500/20 text-yellow-400' },
+  maintenance: { label: t('visitors.visitorTypes.maintenance'), icon: Wrench, color: 'bg-orange-500/20 text-orange-400' },
+  technical: { label: t('visitors.visitorTypes.technical'), icon: Sparkles, color: 'bg-purple-500/20 text-purple-400' },
+  cleaning: { label: t('visitors.visitorTypes.cleaning'), icon: Sparkles, color: 'bg-green-500/20 text-green-400' },
+  other: { label: t('visitors.visitorTypes.other'), icon: Users, color: 'bg-gray-500/20 text-gray-400' }
+});
 
-const STATUS_CONFIG = {
+const getStatusConfig = (t) => ({
   inside: { 
-    label: 'Activo', 
+    label: t('visitors.history.active'), 
     color: 'bg-green-500/20 text-green-400 border-green-500/30',
     icon: LogIn
   },
   completed: { 
-    label: 'Completado', 
+    label: t('visitors.history.completed'), 
     color: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
     icon: CheckCircle
   }
-};
+});
 
-const FILTER_PERIODS = [
-  { value: 'today', label: 'Hoy' },
-  { value: '7days', label: 'Últimos 7 días' },
-  { value: '30days', label: 'Últimos 30 días' },
-  { value: 'custom', label: 'Personalizado' }
+const getFilterPeriods = (t) => [
+  { value: 'today', label: t('visitors.history.periodToday') },
+  { value: '7days', label: t('visitors.history.period7days') },
+  { value: '30days', label: t('visitors.history.period30days') },
+  { value: 'custom', label: t('visitors.history.periodCustom') }
 ];
 
 // ============================================
