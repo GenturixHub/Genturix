@@ -634,22 +634,22 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-1">
                         <div className="w-2 h-2 rounded-sm bg-green-500/40" />
-                        <span>Disponible</span>
+                        <span>{t('reservations.legend.available')}</span>
                       </div>
                       {/* Show yellow legend for capacity areas */}
                       {availability.reservation_behavior === 'capacity' && (
                         <div className="flex items-center gap-1">
                           <div className="w-2 h-2 rounded-sm bg-yellow-500/40" />
-                          <span>Pocos cupos</span>
+                          <span>{t('reservations.legend.fewSlots')}</span>
                         </div>
                       )}
                       <div className="flex items-center gap-1">
                         <div className="w-2 h-2 rounded-sm bg-red-500/40" />
-                        <span>{availability.reservation_behavior === 'capacity' ? 'Lleno' : 'Ocupado'}</span>
+                        <span>{availability.reservation_behavior === 'capacity' ? t('reservations.legend.full') : t('reservations.legend.occupied')}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <div className="w-2 h-2 rounded-sm bg-primary" />
-                        <span>Seleccionado</span>
+                        <span>{t('reservations.legend.selected')}</span>
                       </div>
                     </div>
                   </div>
@@ -665,7 +665,7 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-medium text-primary">Horario seleccionado</span>
+                  <span className="text-sm font-medium text-primary">{t('reservations.selectedTime')}</span>
                 </div>
                 <Button 
                   variant="ghost" 
@@ -673,7 +673,7 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
                   onClick={() => setSelectedSlotIndex(null)}
                   className="text-xs h-7 text-muted-foreground hover:text-white"
                 >
-                  Cambiar
+                  {t('reservations.change')}
                 </Button>
               </div>
               <p className="text-lg font-bold text-white mt-1">
@@ -681,7 +681,7 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
               </p>
               {availability?.reservation_behavior === 'capacity' && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  Cupos disponibles en este horario
+                  {t('reservations.capacityAvailable')}
                 </p>
               )}
             </div>
@@ -690,11 +690,11 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-xs text-yellow-400 mb-2">
                 <AlertCircle className="w-3.5 h-3.5" />
-                <span>Selecciona un horario arriba o ingresa manualmente:</span>
+                <span>{t('reservations.selectOrEnterManually')}</span>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Hora Inicio</Label>
+                  <Label className="text-xs">{t('reservations.startTimeLabel')}</Label>
                   <Input
                     type="time"
                     value={form.start_time}
@@ -706,7 +706,7 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Hora Fin</Label>
+                  <Label className="text-xs">{t('reservations.endTimeLabel')}</Label>
                   <Input
                     type="time"
                     value={form.end_time}
