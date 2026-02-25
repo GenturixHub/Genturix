@@ -470,6 +470,7 @@ const generatePDF = async (exportData, t) => {
 // MAIN COMPONENT
 // ============================================
 const ResidentVisitHistory = () => {
+  const { t } = useTranslation();
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -489,6 +490,11 @@ const ResidentVisitHistory = () => {
   
   // Export
   const [exporting, setExporting] = useState(false);
+
+  // Get translated configs
+  const FILTER_PERIODS = getFilterPeriods(t);
+  const VISITOR_TYPES = getVisitorTypes(t);
+  const STATUS_CONFIG = getStatusConfig(t);
   
   // Load data
   const loadData = useCallback(async (page = 1, append = false) => {
@@ -522,13 +528,13 @@ const ResidentVisitHistory = () => {
     } catch (error) {
       console.error('Error loading visit history:', error);
       if (error.status !== 404) {
-        toast.error('Error al cargar historial de visitas');
+        toast.error(t('visitors.toast.loadError'));
       }
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [filters, searchQuery]);
+  }, [filters, searchQuery, t]);
   
   // Initial load
   useEffect(() => {
@@ -570,11 +576,11 @@ const ResidentVisitHistory = () => {
       if (filters.status) params.status = filters.status;
       
       const exportData = await api.exportResidentVisitHistory(params);
-      await generatePDF(exportData);
-      toast.success('PDF generado correctamente');
+      await generatePDF(exportData, t);
+      toast.success(t('visitors.history.pdfGenerated'));
     } catch (error) {
       console.error('Error exporting:', error);
-      toast.error('Error al exportar historial');
+      toast.error(t('visitors.history.exportError'));
     } finally {
       setExporting(false);
     }
@@ -592,8 +598,8 @@ const ResidentVisitHistory = () => {
   // Get period label
   const periodLabel = useMemo(() => {
     const period = FILTER_PERIODS.find(p => p.value === filters.period);
-    return period?.label || 'Últimos 7 días';
-  }, [filters.period]);
+    return period?.label || t('visitors.history.period7days');
+  }, [filters.period, FILTER_PERIODS, t]);
   
   return (
     <div className="min-h-0 flex-1 flex flex-col overflow-hidden">
@@ -603,10 +609,10 @@ const ResidentVisitHistory = () => {
           <div>
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
               <History className="w-5 h-5 text-primary" />
-              Historial
+              {t('visitors.history.title')}
             </h2>
             <p className="text-xs text-muted-foreground mt-1">
-              {summary.total_visits} visitas • {summary.visitors_inside} adentro
+              {t('visitors.history.visitsCount', { count: summary.total_visits })} • {t('visitors.history.insideCount', { count: summary.visitors_inside })}
             </p>
           </div>
           
@@ -635,7 +641,7 @@ const ResidentVisitHistory = () => {
               ) : (
                 <Download className="w-4 h-4" />
               )}
-              <span className="hidden sm:inline ml-1.5">PDF</span>
+              <span className="hidden sm:inline ml-1.5">{t('visitors.history.export')}</span>
             </Button>
           </div>
         </div>
@@ -646,7 +652,7 @@ const ResidentVisitHistory = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               type="text"
-              placeholder="Buscar por nombre, documento, placa..."
+              placeholder={t('visitors.history.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="bg-[#0A0A0F] border-[#1E293B] pl-9 h-9 text-sm"
@@ -668,7 +674,7 @@ const ResidentVisitHistory = () => {
             className="h-9 relative"
           >
             <Filter className="w-4 h-4" />
-            <span className="hidden sm:inline ml-1.5">Filtros</span>
+            <span className="hidden sm:inline ml-1.5">{t('visitors.history.filters')}</span>
             {activeFilterCount > 0 && (
               <Badge className="absolute -top-1.5 -right-1.5 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-primary">
                 {activeFilterCount}
@@ -702,20 +708,20 @@ const ResidentVisitHistory = () => {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
-              <p className="text-sm text-muted-foreground">Cargando historial...</p>
+              <p className="text-sm text-muted-foreground">{t('visitors.history.loading')}</p>
             </div>
           ) : entries.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
               <History className="w-12 h-12 text-muted-foreground opacity-30 mb-4" />
-              <p className="text-sm text-muted-foreground">No hay visitas registradas</p>
+              <p className="text-sm text-muted-foreground">{t('visitors.history.noVisits')}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                {searchQuery ? 'Intenta con otros términos de búsqueda' : 'Las visitas aparecerán aquí'}
+                {searchQuery ? t('visitors.history.noSearchResults') : t('visitors.history.noVisitsHint')}
               </p>
             </div>
           ) : (
             <>
               {entries.map((entry, index) => (
-                <VisitEntryCard key={entry.id || index} entry={entry} />
+                <VisitEntryCard key={entry.id || index} entry={entry} t={t} />
               ))}
               
               {/* Load More */}
@@ -732,7 +738,7 @@ const ResidentVisitHistory = () => {
                     ) : (
                       <ChevronRight className="w-4 h-4 mr-2" />
                     )}
-                    Cargar más ({pagination.page}/{pagination.total_pages})
+                    {t('visitors.history.loadMore')} ({pagination.page}/{pagination.total_pages})
                   </Button>
                 </div>
               )}
@@ -747,6 +753,7 @@ const ResidentVisitHistory = () => {
         onClose={() => setShowFilterDialog(false)}
         filters={filters}
         onApply={handleApplyFilters}
+        t={t}
       />
     </div>
   );
