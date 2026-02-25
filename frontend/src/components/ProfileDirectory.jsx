@@ -58,6 +58,7 @@ const ROLE_CONFIG = {
 
 const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [directory, setDirectory] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -83,14 +84,14 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
         setDirectory(data);
       } catch (err) {
         console.error('Error fetching directory:', err);
-        setError(err.message || 'Error al cargar directorio');
+        setError(err.message || t('directory.loadError'));
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchDirectory();
-  }, [userPhotoKey]); // Refetch when user's photo changes
+  }, [userPhotoKey, t]); // Refetch when user's photo changes
 
   const handleViewProfile = async (userId, userBasicInfo) => {
     if (onViewProfile) {
