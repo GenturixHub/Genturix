@@ -190,6 +190,8 @@ export const AuthProvider = ({ children }) => {
     // === PUSH NOTIFICATIONS: Smart Sync for ALL roles ===
     // If permission already granted and subscription exists, silently sync with backend
     // This ensures push works after logout/login without re-prompting
+    // NOTE: The actual sync is now handled by usePushNotifications hook
+    // We just trigger a re-check here
     syncPushSubscription(data.access_token, data.user);
 
     return { user: data.user, passwordResetRequired: data.password_reset_required };
@@ -205,6 +207,8 @@ export const AuthProvider = ({ children }) => {
    * 
    * It ONLY syncs an EXISTING subscription if permission is already granted.
    * Manual activation happens ONLY in PushNotificationToggle component.
+   * 
+   * v2.0: Simplified - most sync logic now in usePushNotifications hook
    */
   const syncPushSubscription = async (token, userData) => {
     try {
@@ -259,7 +263,8 @@ export const AuthProvider = ({ children }) => {
 
       if (response.ok) {
         console.log(`[Push] Subscription synced successfully for: ${userData?.roles?.join(', ')}`);
-        localStorage.setItem('genturix_push_enabled', 'true');
+        // NOTE: Removed localStorage.setItem('genturix_push_enabled', 'true')
+        // The hook now manages state based on backend verification
       } else {
         console.warn('[Push] Failed to sync subscription:', response.status);
       }
