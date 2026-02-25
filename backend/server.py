@@ -3465,7 +3465,16 @@ async def subscribe_to_push(
     
     If subscription already exists for user_id + endpoint → UPDATE it.
     """
+    # ==================== AUDIT LOGGING ====================
     user_id = current_user.get("id")
+    user_email = current_user.get("email", "unknown")
+    logger.info(f"[PUSH-SUBSCRIBE-DEBUG] ======= REQUEST START =======")
+    logger.info(f"[PUSH-SUBSCRIBE-DEBUG] User: {user_email} | ID: {user_id[:12]}...")
+    logger.info(f"[PUSH-SUBSCRIBE-DEBUG] Subscription endpoint: {request.subscription.endpoint[:50]}...")
+    logger.info(f"[PUSH-SUBSCRIBE-DEBUG] Has p256dh: {bool(request.subscription.keys.p256dh)}")
+    logger.info(f"[PUSH-SUBSCRIBE-DEBUG] Has auth: {bool(request.subscription.keys.auth)}")
+    # =======================================================
+    
     user_roles = current_user.get("roles", [])
     condo_id = current_user.get("condominium_id")
     
