@@ -4,13 +4,15 @@
  * Main resident interface with emergency, visits, reservations, directory and profile.
  * Uses independent ResidentLayout for mobile-first experience.
  * Full i18n support.
+ * 
+ * UI Enhancement: Smooth horizontal slide transitions between modules (Framer Motion)
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
-import { Tabs, TabsContent } from '../../components/ui/tabs';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import {
