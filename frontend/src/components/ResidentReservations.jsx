@@ -73,26 +73,19 @@ const AREA_ICONS = {
   other: MoreHorizontal
 };
 
-const AREA_LABELS = {
-  pool: 'Piscina',
-  gym: 'Gimnasio',
-  bbq: 'Área BBQ',
-  salon: 'Salón de Eventos',
-  tennis: 'Cancha de Tenis',
-  cinema: 'Cine',
-  playground: 'Área Infantil',
-  other: 'Otro'
+// Days mapping for translation keys
+const DAYS_MAP = {
+  'Lunes': 'monday',
+  'Martes': 'tuesday',
+  'Miércoles': 'wednesday',
+  'Jueves': 'thursday',
+  'Viernes': 'friday',
+  'Sábado': 'saturday',
+  'Domingo': 'sunday'
 };
 
-const STATUS_CONFIG = {
-  pending: { label: 'Pendiente', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30', icon: Clock },
-  approved: { label: 'Aprobada', color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: CheckCircle },
-  rejected: { label: 'Rechazada', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: XCircle },
-  cancelled: { label: 'Cancelada', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30', icon: XCircle }
-};
-
+const DAYS_OF_WEEK_KEYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const DAYS_OF_WEEK = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-const DAYS_SHORT = { 'Lunes': 'L', 'Martes': 'M', 'Miércoles': 'X', 'Jueves': 'J', 'Viernes': 'V', 'Sábado': 'S', 'Domingo': 'D' };
 
 // ============================================
 // AREA CARD FOR RESIDENT
