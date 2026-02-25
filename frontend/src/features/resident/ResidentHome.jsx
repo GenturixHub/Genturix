@@ -195,12 +195,54 @@ const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, s
 // ============================================
 // MAIN COMPONENT
 // ============================================
+
+// Tab order for animation direction calculation
+const TAB_ORDER = ['emergency', 'visits', 'reservations', 'directory', 'profile'];
+
+// Animation variants for horizontal slide
+const slideVariants = {
+  enter: (direction) => ({
+    x: direction > 0 ? '25%' : '-25%',
+    opacity: 0,
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+  },
+  exit: (direction) => ({
+    x: direction > 0 ? '-25%' : '25%',
+    opacity: 0,
+  }),
+};
+
+// Premium transition timing
+const slideTransition = {
+  type: 'tween',
+  ease: [0.32, 0.72, 0, 1],
+  duration: 0.25,
+};
+
 const ResidentHome = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('emergency');
+  const prevTabRef = useRef(activeTab);
+  
+  // Calculate animation direction based on tab order
+  const getDirection = (prevTab, currentTab) => {
+    const prevIndex = TAB_ORDER.indexOf(prevTab);
+    const currentIndex = TAB_ORDER.indexOf(currentTab);
+    return currentIndex > prevIndex ? 1 : -1;
+  };
+  
+  const direction = getDirection(prevTabRef.current, activeTab);
+  
+  // Update previous tab reference after animation
+  useEffect(() => {
+    prevTabRef.current = activeTab;
+  }, [activeTab]);
   
   // Location state
   const [location, setLocation] = useState(null);
