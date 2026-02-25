@@ -874,6 +874,7 @@ const NotificationsPanel = ({ notifications, onMarkRead, onMarkAllRead, onRefres
 // MAIN COMPONENT
 // ============================================
 const VisitorAuthorizationsResident = () => {
+  const { t } = useTranslation();
   const [authorizations, setAuthorizations] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -893,11 +894,11 @@ const VisitorAuthorizationsResident = () => {
       setNotifications(notifData);
     } catch (error) {
       console.error('Error fetching data:', error);
-      toast.error('Error al cargar datos');
+      toast.error(t('visitors.toast.loadError'));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     fetchData();
@@ -918,11 +919,11 @@ const VisitorAuthorizationsResident = () => {
     setIsDeleting(true);
     try {
       await api.deleteAuthorization(showDeleteConfirm.id);
-      toast.success('Autorización eliminada');
+      toast.success(t('visitors.toast.authorizationDeleted'));
       setShowDeleteConfirm(null);
       fetchData();
     } catch (error) {
-      toast.error(error.message || 'Error al eliminar');
+      toast.error(error.message || t('visitors.toast.deleteError'));
     } finally {
       setIsDeleting(false);
     }
@@ -953,6 +954,9 @@ const VisitorAuthorizationsResident = () => {
   const usedAuths = authorizations.filter(a => a.status === 'used' || a.was_used);
   const inactiveAuths = authorizations.filter(a => !a.is_active && a.status !== 'used' && !a.was_used);
 
+  // Get translated authorization types for rendering used/expired labels
+  const AUTHORIZATION_TYPES = getAuthorizationTypes(t);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -968,7 +972,7 @@ const VisitorAuthorizationsResident = () => {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Shield className="w-5 h-5 text-primary" />
-            <h2 className="font-bold text-white">Autorizaciones</h2>
+            <h2 className="font-bold text-white">{t('visitors.list.title')}</h2>
           </div>
           <div className="flex items-center gap-2">
             <Button 
@@ -998,7 +1002,7 @@ const VisitorAuthorizationsResident = () => {
           data-testid="add-authorization-btn"
         >
           <UserPlus className="w-4 h-4 mr-2" />
-          Nueva Autorización
+          {t('visitors.list.newButton')}
         </Button>
       </div>
 
@@ -1014,6 +1018,7 @@ const VisitorAuthorizationsResident = () => {
                   onMarkRead={handleMarkNotificationRead}
                   onMarkAllRead={handleMarkAllRead}
                   onRefresh={fetchData}
+                  t={t}
                 />
               </CardContent>
             </Card>
@@ -1024,7 +1029,7 @@ const VisitorAuthorizationsResident = () => {
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-green-400" />
-                Autorizaciones Pendientes ({pendingAuths.length})
+                {t('visitors.list.pendingSection')} ({pendingAuths.length})
               </h3>
               {pendingAuths.map((auth) => (
                 <AuthorizationCard 
@@ -1032,15 +1037,16 @@ const VisitorAuthorizationsResident = () => {
                   auth={auth}
                   onEdit={handleEdit}
                   onDelete={(a) => setShowDeleteConfirm(a)}
+                  t={t}
                 />
               ))}
             </div>
           ) : (
             <div className="text-center py-8">
               <Users className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-              <p className="text-muted-foreground">No tienes autorizaciones pendientes</p>
+              <p className="text-muted-foreground">{t('visitors.list.noPending')}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Crea una autorización para tus visitantes frecuentes
+                {t('visitors.list.noPendingHint')}
               </p>
             </div>
           )}
@@ -1050,7 +1056,7 @@ const VisitorAuthorizationsResident = () => {
             <div className="space-y-3 pt-4 border-t border-[#1E293B]">
               <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-blue-400" />
-                Utilizadas ({usedAuths.length})
+                {t('visitors.list.usedSection')} ({usedAuths.length})
               </h3>
               {usedAuths.slice(0, 5).map((auth) => (
                 <div 
@@ -1061,21 +1067,19 @@ const VisitorAuthorizationsResident = () => {
                     <div>
                       <p className="font-medium text-blue-400">{auth.visitor_name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {auth.authorization_type === 'temporary' ? 'Temporal' : 
-                         auth.authorization_type === 'extended' ? 'Extendido' : 
-                         auth.authorization_type}
+                        {AUTHORIZATION_TYPES[auth.authorization_type]?.label || auth.authorization_type}
                       </p>
                     </div>
                     <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-                      ✓ Ingresó
+                      ✓ {t('visitors.list.entered')}
                     </Badge>
                   </div>
                   {auth.used_at && (
                     <p className="text-xs text-muted-foreground mt-2">
-                      Entrada: {new Date(auth.used_at).toLocaleString('es-ES', { 
+                      {t('visitors.list.entryLabel')}: {new Date(auth.used_at).toLocaleString('es-ES', { 
                         day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' 
                       })}
-                      {auth.used_by_guard && ` • Guardia: ${auth.used_by_guard}`}
+                      {auth.used_by_guard && ` • ${t('visitors.list.guardLabel')}: ${auth.used_by_guard}`}
                     </p>
                   )}
                 </div>
@@ -1088,7 +1092,7 @@ const VisitorAuthorizationsResident = () => {
             <div className="space-y-3 pt-4 border-t border-[#1E293B]">
               <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
                 <XCircle className="w-4 h-4 text-gray-400" />
-                Expiradas ({inactiveAuths.length})
+                {t('visitors.list.expiredSection')} ({inactiveAuths.length})
               </h3>
               {inactiveAuths.slice(0, 3).map((auth) => (
                 <AuthorizationCard 
@@ -1096,6 +1100,7 @@ const VisitorAuthorizationsResident = () => {
                   auth={auth}
                   onEdit={handleEdit}
                   onDelete={(a) => setShowDeleteConfirm(a)}
+                  t={t}
                 />
               ))}
             </div>
@@ -1109,6 +1114,7 @@ const VisitorAuthorizationsResident = () => {
         onClose={() => { setShowForm(false); setEditingAuth(null); }}
         authorization={editingAuth}
         onSave={fetchData}
+        t={t}
       />
 
       {/* Delete Confirmation Dialog */}
@@ -1117,16 +1123,16 @@ const VisitorAuthorizationsResident = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-400">
               <AlertTriangle className="w-5 h-5" />
-              Eliminar Autorización
+              {t('visitors.delete.title')}
             </DialogTitle>
             <DialogDescription>
-              ¿Estás seguro de eliminar la autorización de <strong>{showDeleteConfirm?.visitor_name}</strong>?
-              Esta acción no se puede deshacer.
+              {t('visitors.delete.confirmMessage')} <strong>{showDeleteConfirm?.visitor_name}</strong>?
+              {' '}{t('visitors.delete.undoWarning')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeleteConfirm(null)} disabled={isDeleting}>
-              Cancelar
+              {t('visitors.delete.cancel')}
             </Button>
             <Button 
               variant="destructive" 
@@ -1135,7 +1141,7 @@ const VisitorAuthorizationsResident = () => {
               data-testid="confirm-delete-btn"
             >
               {isDeleting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
-              Eliminar
+              {t('visitors.delete.confirm')}
             </Button>
           </DialogFooter>
         </DialogContent>
