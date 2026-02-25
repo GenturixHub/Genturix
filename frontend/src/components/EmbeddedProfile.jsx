@@ -112,6 +112,7 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
   const updateProfileMutation = useUpdateProfile();
   
   // Local UI state only
+  const [localError, setLocalError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
@@ -125,7 +126,8 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
 
   // Derive profile from query or fallback to auth user
   const profile = queryProfile || (isOwnProfile ? user : null);
-  const error = queryError?.message || null;
+  // Combine errors: query error, mutation error, or local validation error
+  const error = queryError?.message || updateProfileMutation.error?.message || localError;
   const isSaving = updateProfileMutation.isPending;
   const currentPhoto = editMode ? formData.profile_photo : profile?.profile_photo;
 
