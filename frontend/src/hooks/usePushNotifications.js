@@ -17,6 +17,16 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray;
 }
 
+// Helper: Promise with timeout
+function withTimeout(promise, ms, errorMessage) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error(errorMessage)), ms)
+    )
+  ]);
+}
+
 export function usePushNotifications() {
   const [isSupported, setIsSupported] = useState(false);
   const [permission, setPermission] = useState('default');
@@ -41,19 +51,22 @@ export function usePushNotifications() {
 
     const initServiceWorker = async () => {
       try {
-        // Register or get existing service worker
+        console.log('[PUSH-DEBUG] Registering service worker...');
         const reg = await navigator.serviceWorker.register('/service-worker.js');
         setRegistration(reg);
+        console.log('[PUSH-DEBUG] Service worker registered');
         
         // Wait for service worker to be ready
         await navigator.serviceWorker.ready;
+        console.log('[PUSH-DEBUG] Service worker ready');
         
         // Check if already subscribed
         const existingSubscription = await reg.pushManager.getSubscription();
         setIsSubscribed(!!existingSubscription);
+        console.log('[PUSH-DEBUG] Existing subscription:', !!existingSubscription);
         
       } catch (err) {
-        console.error('Service Worker registration failed:', err);
+        console.error('[PUSH-DEBUG] Service Worker registration failed:', err);
         setError('Error al registrar Service Worker');
       }
     };
@@ -63,8 +76,13 @@ export function usePushNotifications() {
 
   // Subscribe to push notifications
   const subscribe = useCallback(async () => {
+    console.log('[PUSH-DEBUG] ========== SUBSCRIBE START ==========');
+    console.log('[PUSH-DEBUG] registration:', !!registration);
+    console.log('[PUSH-DEBUG] isSupported:', isSupported);
+    
     if (!registration || !isSupported) {
       setError('Push notifications not supported');
+      console.log('[PUSH-DEBUG] ABORT: Not supported or no registration');
       return false;
     }
 
@@ -72,68 +90,88 @@ export function usePushNotifications() {
     setError(null);
 
     try {
-      // Request notification permission
-      const permissionResult = await Notification.requestPermission();
+      // STEP 1: Request notification permission
+      console.log('[PUSH-DEBUG] Step 1: Requesting notification permission...');
+      const permissionResult = await withTimeout(
+        Notification.requestPermission(),
+        10000,
+        'Timeout: No se recibió respuesta del permiso de notificaciones'
+      );
       setPermission(permissionResult);
+      console.log('[PUSH-DEBUG] Step 1 COMPLETE: Permission =', permissionResult);
 
       if (permissionResult !== 'granted') {
         setError('Permiso de notificaciones denegado');
-        setIsLoading(false);
+        console.log('[PUSH-DEBUG] ABORT: Permission denied');
         return false;
       }
 
-      // Get VAPID public key from server
-      const vapidResponse = await api.getVapidPublicKey();
+      // STEP 2: Get VAPID public key from server
+      console.log('[PUSH-DEBUG] Step 2: Fetching VAPID public key...');
+      const vapidResponse = await withTimeout(
+        api.getVapidPublicKey(),
+        8000,
+        'Timeout: No se pudo obtener la clave VAPID del servidor'
+      );
       const vapid_public_key = vapidResponse?.publicKey;
+      console.log('[PUSH-DEBUG] Step 2 COMPLETE: VAPID key received =', !!vapid_public_key);
       
       if (!vapid_public_key) {
         throw new Error('VAPID key not configured on server');
       }
 
-      // Subscribe to push
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapid_public_key)
-      });
-
-      // Send subscription to server
-      const subscriptionJson = subscription.toJSON();
+      // STEP 3: Subscribe to push manager
+      console.log('[PUSH-DEBUG] Step 3: Subscribing to PushManager...');
+      console.log('[PUSH-DEBUG] Step 3: applicationServerKey length =', urlBase64ToUint8Array(vapid_public_key).length);
       
-      console.log('[PUSH] Sending subscription to server...', {
+      const subscription = await withTimeout(
+        registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapid_public_key)
+        }),
+        15000,  // 15 second timeout for subscribe
+        'Timeout: La suscripción push tardó demasiado. Intenta de nuevo.'
+      );
+      console.log('[PUSH-DEBUG] Step 3 COMPLETE: Subscription created');
+
+      // STEP 4: Send subscription to server
+      const subscriptionJson = subscription.toJSON();
+      console.log('[PUSH-DEBUG] Step 4: Sending subscription to server...');
+      console.log('[PUSH-DEBUG] Step 4: Subscription data:', {
         endpoint: subscriptionJson.endpoint?.substring(0, 50) + '...',
         hasP256dh: !!subscriptionJson.keys?.p256dh,
         hasAuth: !!subscriptionJson.keys?.auth
       });
       
-      try {
-        const result = await api.subscribeToPush({
+      const result = await withTimeout(
+        api.subscribeToPush({
           endpoint: subscriptionJson.endpoint,
           keys: {
             p256dh: subscriptionJson.keys.p256dh,
             auth: subscriptionJson.keys.auth
           },
           expirationTime: subscriptionJson.expirationTime
-        });
-        
-        console.log('[PUSH] Subscription saved successfully:', result);
-      } catch (subscribeError) {
-        console.error('[PUSH] Failed to save subscription to server:', {
-          error: subscribeError.message,
-          status: subscribeError.status,
-          data: subscribeError.data
-        });
-        throw subscribeError;
-      }
+        }),
+        10000,
+        'Timeout: No se pudo guardar la suscripción en el servidor'
+      );
+      
+      console.log('[PUSH-DEBUG] Step 4 COMPLETE: Server response =', result);
+      console.log('[PUSH-DEBUG] ========== SUBSCRIBE SUCCESS ==========');
 
       setIsSubscribed(true);
-      setIsLoading(false);
       return true;
 
     } catch (err) {
-      console.error('Push subscription failed:', err);
+      console.error('[PUSH-DEBUG] ========== SUBSCRIBE FAILED ==========');
+      console.error('[PUSH-DEBUG] Error:', err.message);
+      console.error('[PUSH-DEBUG] Full error:', err);
       setError(err.message || 'Error al suscribirse a notificaciones');
-      setIsLoading(false);
       return false;
+    } finally {
+      // ALWAYS reset loading state
+      console.log('[PUSH-DEBUG] Finally: Setting isLoading = false');
+      setIsLoading(false);
     }
   }, [registration, isSupported]);
 
@@ -150,7 +188,7 @@ export function usePushNotifications() {
       if (subscription) {
         // Unsubscribe locally
         await subscription.unsubscribe();
-        console.log('[PUSH] Unsubscribed locally from push manager');
+        console.log('[PUSH-DEBUG] Unsubscribed locally from push manager');
         
         // Notify server
         const subscriptionJson = subscription.toJSON();
@@ -162,22 +200,22 @@ export function usePushNotifications() {
               auth: subscriptionJson.keys.auth
             }
           });
-          console.log('[PUSH] Unsubscription confirmed on server');
+          console.log('[PUSH-DEBUG] Unsubscription confirmed on server');
         } catch (serverError) {
-          console.warn('[PUSH] Failed to notify server of unsubscription:', serverError.message);
+          console.warn('[PUSH-DEBUG] Failed to notify server of unsubscription:', serverError.message);
           // Don't throw - local unsubscribe succeeded
         }
       }
 
       setIsSubscribed(false);
-      setIsLoading(false);
       return true;
 
     } catch (err) {
-      console.error('[PUSH] Unsubscription failed:', err);
+      console.error('[PUSH-DEBUG] Unsubscription failed:', err);
       setError(err.message || 'Error al desuscribirse');
-      setIsLoading(false);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   }, [registration]);
 
