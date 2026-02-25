@@ -1,53 +1,61 @@
 <analysis>**original_problem_statement:**
 The user's primary objective is to harden and prepare the Genturix application for a production launch. This involves fixing security vulnerabilities, improving deployment stability, performing extensive frontend refactoring for a mobile-first user experience, and achieving 100% internationalization (i18n) for key user roles.
 
-Recent user requests have focused on auditing and fixing critical bugs in core systems like Push Notifications, correcting responsive layout issues, and methodically completing the i18n migration for all user-facing modules.
+Recent user requests have focused on a deep performance overhaul, including diagnosing and fixing bottlenecks in module navigation and API calls. The current initiative is to migrate the entire application's data fetching layer to TanStack Query (React Query v5) to improve performance, caching, and code maintainability, starting with the Resident and Guard roles.
 
 PRODUCT REQUIREMENTS:
-1.  **Production Hardening & Security:** Fix all critical security vulnerabilities, including moving JWT refresh tokens from localStorage to secure httpOnly cookies. Generate a formal security architecture document.
+1.  **Production Hardening & Security:** Fix all critical security vulnerabilities, including moving JWT refresh tokens from localStorage to secure httpOnly cookies.
 2.  **System Audits & Fixes:** Perform comprehensive audits and implement robust fixes for key systems: Push Notifications, Pricing/Stripe, and Resend (email).
-3.  **Mobile-First Refactor & UI/UX Polish:** Transform the frontend to a modern, responsive, mobile-first layout. Fix all UI bugs and implement premium UI/UX enhancements.
-4.  **Internationalization (i18n):** Fully migrate all critical user flows (Resident, Guard) to be multi-language capable, replacing all hardcoded strings.
-5.  **Code Quality & Architecture:** Perform a structural audit, remove dead/duplicated code, and refactor monolithic components.
-6.  **Feature Implementation:** Implement the frontend UI for SuperAdmin pricing management and add a UI for deleting 'used' pre-registrations.
+3.  **Performance Optimization:** Diagnose and resolve all frontend and backend performance bottlenecks. Migrate data fetching to a modern data layer like TanStack Query.
+4.  **Mobile-First Refactor & UI/UX Polish:** Transform the frontend to a modern, responsive, mobile-first layout.
+5.  **Internationalization (i18n):** Fully migrate all critical user flows (Resident, Guard) to be multi-language capable.
+6.  **Code Quality & Architecture:** Perform a structural audit, remove dead/duplicated code, and refactor monolithic components.
+7.  **Feature Implementation:** Implement the frontend UI for SuperAdmin pricing management and add a UI for deleting 'used' pre-registrations.
 
 **User's preferred language**: Español
 
 **what currently exists?**
-The application is significantly more robust than at the start of the session. Key accomplishments include:
--   **Visits/Authorizations Module i18n:** The entire module has been successfully migrated to the i18n system and was verified with the testing agent.
--   **Push Notification System:** A critical desynchronization bug between the frontend (Service Worker) and backend (database) was diagnosed and structurally fixed. The system now uses the backend as the single source of truth, automatically reconciles state discrepancies, and includes improved logging.
--   **Guard UI Responsive Fix:** A horizontal overflow bug in the guard's alert detail modal on desktop has been resolved, creating a professional, responsive layout using a two-column grid for larger screens.
+The application has undergone significant performance and architectural improvements. TanStack Query v5 has been installed and configured as the primary data-fetching layer.
 
-The agent was in the process of fulfilling the user's latest request: completing the i18n migration for the remaining Resident role modules (Reservations and Directory).
+-   **Resident Role Migration:** The entire Resident role, including modules for Visits, Reservations, Directory, and Notifications, has been successfully migrated from manual  fetching to TanStack Query. This has eliminated manual polling, reduced duplicate requests, and enabled caching.
+-   **Performance Fixes:**
+    -   The push notification synchronization logic was refactored to be non-blocking, preventing it from delaying UI rendering.
+    -   Duplicate API calls for visitor notifications were eliminated by lifting state.
+    -   Sequential, independent API calls were parallelized using .
+-   **Internationalization (i18n):** The i18n migration for the Resident Reservations and Directory modules was completed and verified by the testing agent.
+-   **Guard Role Migration (In Progress):** The agent has started migrating the  component and its sub-modules to TanStack Query.
 
 **Last working item**:
--   Last item agent was working: The agent was implementing the internationalization (i18n) for the Reservations and Directory modules within the Resident role. It had identified the necessary files and hardcoded strings and was in the process of adding the new translation keys to the  file.
+-   Last item agent was working: Migrating the Guard role's data fetching logic ( and its sub-modules like , , ) from manual  and  patterns to TanStack Query. A new hook file, , was created to centralize the queries.
 -   Status: IN PROGRESS
 -   Agent Testing Done: N
--   Which testing method agent to use? Frontend testing agent. The test should confirm that the Reservations and Directory pages, including all titles, tabs, placeholders, buttons, and role/status badges, are fully translated in both English and Spanish and that the language switcher functions correctly.
+-   Which testing method agent to use? Frontend testing agent. The agent must verify that all data in the Guard UI (Alerts, Clock Status, Visitor Entries, etc.) loads correctly, that real-time polling for alerts functions as expected, and that actions (mutations) like submitting an absence request are still working. The test should confirm that staleTime and refetchIntervals are respected.
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: I18n migration for Resident role is incomplete (P0)**
-    -   **Description:** The user requested 100% i18n coverage for the Resident role. The Reservations and Directory modules, along with various status/role badges, still contain hardcoded Spanish strings. The previous agent started the task but did not complete it.
-    -   **Attempted fixes:** The agent correctly identified the files (, ) and began adding translation keys to .
+-   **Issue 1: Guard role TanStack Query migration is unverified (P0)**
+    -   **Description:** The agent has refactored the code for the Guard UI to use TanStack Query but stopped immediately after the last code modification. The changes have not been linted, built, or tested, so the application's frontend is likely in a broken state.
+    -   **Attempted fixes:** Code refactoring has been performed across  and its internal modules.
     -   **Next debug checklist:**
-        1.  Verify and complete the addition of all required keys to  under the , , , and  namespaces.
-        2.  Copy all new keys to  and provide English translations.
-        3.  Modify  to import  and replace all hardcoded strings with .
-        4.  Modify  to replace hardcoded strings, including creating a translatable mapping for user roles ( -> ).
-        5.  Review  and other components to replace any remaining hardcoded status badges (e.g., Autorización revocada) with .
-    -   **Why fix this issue and what will be achieved with the fix?** This will fulfill a direct user request and make the Resident user experience fully multi-language, a key requirement for production launch.
+        1.  Run yarn run v1.22.22
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command. to check for syntax errors in the modified files (, etc.).
+        2.  Run yarn run v1.22.22
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command. to ensure the application compiles successfully after the changes.
+        3.  If there are errors, fix them. Common issues might be missing imports (,  if still used) or incorrect hook usage.
+        4.  Once the build is successful, perform a smoke test by logging in as a guard and navigating the UI to ensure it doesn't crash.
+        5.  Call the  to perform a comprehensive test of the Guard UI, confirming all queries and mutations work as expected.
+    -   **Why fix this issue and what will be achieved with the fix?** Completing this migration will bring performance, caching, and maintainability benefits to the Guard role, aligning it with the new application standard. It is a critical step in the overall performance overhaul.
     -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** Frontend
     -   **Blocked on other issue:** None.
 
 **In progress Task List**:
--   **Task 1: Complete i18n Migration for Resident Role (P0)**
-    -   **Where to resume:** Resume editing the i18n JSON files, starting with  to ensure all keys are present. Then, update . Finally, refactor the JSX components (, ).
-    -   **What will be achieved with this?** A fully internationalized user experience for the Resident role.
+-   **Task 1: Complete and Verify Guard Role TanStack Query Migration (P0)**
+    -   **Where to resume:** The implementation code is written but unverified. Resume by running yarn run v1.22.22
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command. and yarn run v1.22.22
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command. on the frontend. After fixing any compilation errors, proceed with functional testing using the frontend testing agent.
+    -   **What will be achieved with this?** A stable, performant Guard UI that uses the modern TanStack Query data layer.
     -   **Status:** IN PROGRESS
     -   **Should Test frontend/backend/both after fix?** Frontend
     -   **Blocked on something:** None.
@@ -69,15 +77,18 @@ The agent was in the process of fulfilling the user's latest request: completing
     -   **(P3) Refactor the monolithic  file into a modular structure.
 
 **Completed work in this session**
--   **i18n Migration of Visits/Authorizations Module (DONE):** Successfully migrated the entire visits and authorizations flow for residents to be fully bilingual. Verified with testing agent.
--   **Push Notification System Audit & Structural Fix (DONE):** Performed a deep-dive audit, identified a critical state desynchronization issue, and implemented a robust, backend-driven fix. The new logic ensures the UI always reflects the true subscription status from the database.
--   **Guard Alert Modal Responsive Fix (DONE):** Corrected a horizontal overflow bug on the desktop view of the guard's alert detail modal by implementing a responsive two-column grid layout and proper CSS containment.
--   **PRD.md Update (DONE):** Updated the product requirements document to reflect the completion of the Visits/Authorizations i18n migration.
+-   **TanStack Query Implementation (Phase 1: Resident):** Installed, configured, and successfully migrated the entire Resident role's data fetching to TanStack Query v5.
+-   **Performance Overhaul:**
+    -   Refactored  hook to be non-blocking, eliminating a major source of UI rendering delay.
+    -   Eliminated duplicate API calls for visitor notifications by lifting state and centralizing the fetch logic.
+    -   Identified and parallelized sequential, independent API calls using .
+-   **i18n Migration for Resident Role (DONE):** Completed the internationalization for the Reservations and Directory modules, verified by the testing agent.
+-   **Triggered Redeploy:** Added a comment to  to force a new deployment.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: No UI to Delete 'Used' Pre-registrations:** An audit revealed the frontend does not render a delete button for authorizations with . This was reported but not fixed.
--   **Issue 2: Resend uses Sandbox Domain:** The audit found that the  is , which only allows sending emails to the user's own verified email address. To work in production, the user must provide a verified custom domain.
--   **Issue 3: Stripe Webhook Lacks Signature Verification:** The audit confirmed the webhook endpoint does not currently validate the Stripe signature, posing a security risk. This requires a secret to be configured in the production environment.
+-   **Issue 2: Resend uses Sandbox Domain:** The  is , which is not suitable for production. The user must provide a verified custom domain.
+-   **Issue 3: Stripe Webhook Lacks Signature Verification:** The webhook endpoint does not validate the Stripe signature, posing a security risk. This requires a secret to be configured in the production environment.
 
 **Known issue recurrence from previous fork**
 -   None.
@@ -86,54 +97,59 @@ The agent was in the process of fulfilling the user's latest request: completing
 
 
 **Key Technical Concepts**
--   **Robust Push Notification State Sync:** The new architecture uses the backend () as the source of truth, comparing it against the local Service Worker state. It automatically handles desynchronization by re-registering subscriptions or cleaning up orphaned database entries.
--   **Conditional Rendering for Async State:** UI components () now use an  state from the  hook to wait for the backend verification to complete before deciding whether to render, preventing UI flashes.
--   **Responsive CSS with Grid Layout:** Using TailwindCSS's responsive prefixes () to switch from a single-column layout () on mobile to a multi-column layout () on desktop for complex modals.
--   **CSS Overflow Prevention:** Applying  to parent containers and  to flex/grid children to create robust components that prevent horizontal scrollbars.
+-   **TanStack Query (React Query v5):** Now the core data-fetching library. Key concepts include ,  for data fetching,  for data modification, query keys for caching (, etc.), and options like  and  to control data freshness.
+-   **Non-Blocking UI Rendering:** The push notification synchronization logic was refactored to run asynchronously in the background, preventing it from blocking the initial UI render and improving perceived performance.
+-   **State Lifting for API Calls:** Duplicate API calls were resolved by moving the fetching logic to a common ancestor component () and passing the data down as props, creating a single source of truth.
+-   **Parallel Data Fetching:** Use of  to execute independent API requests concurrently instead of sequentially, speeding up module load times.
 
 **key DB schema**
 -   No schema changes were made in this session.
 
 **All files of reference**
--   : **Completely rewritten.** Contains the new, robust state synchronization logic.
--   : **Target for immediate i18n migration.**
--   : **Target for immediate i18n migration.**
--   : Was modified to fix a critical responsive layout bug in the alert modal.
--   , : Were updated with new translation keys and will need further additions.
--   : Was modified to add  to push notification cleanup logs for better traceability.
+-   : **Newly created.** Centralizes all TanStack Query logic for the Guard role.
+-   : **Heavily modified.** Refactored to use  instead of manual  fetching.
+-   : **Modified** to include the  at the root of the application.
+-   : **Modified** to use TanStack Query and act as the single source of truth for notification data.
+-   : **Rewritten** to implement non-blocking background synchronization.
 
 **Areas that need refactoring**:
--   **Monolithic Frontend Components:** , , and  remain large and are candidates for being broken down into smaller, more manageable components in the future.
--   **Monolithic Backend:** The  file contains all backend logic and is a long-term candidate for refactoring into a modular structure.
+-   **Monolithic Frontend Components:**  has been refactored for data fetching but remains a very large, monolithic component. It, along with  and , are prime candidates for being broken down into smaller, reusable components.
+-   **Monolithic Backend:** The  file contains all backend logic and is a long-term candidate for refactoring into a modular structure (e.g., using FastAPI routers).
 
 **key api endpoints**
--   : Now a critical part of the push notification system, used by the frontend to verify the true subscription state from the database.
--   : New logic in  calls this endpoint to clean up orphaned subscriptions in the database when a local Service Worker has no subscription.
+-   No new endpoints were created. The session focused on changing *how* existing endpoints are called from the frontend (via TanStack Query, in parallel) rather than modifying the backend APIs themselves.
 
 **Critical Info for New Agent**
-1.  **FINISH THE I18N MIGRATION (P0):** Your absolute first priority is to complete the user's current request. The i18n migration for the Resident Reservations and Directory modules is in progress. You must finish adding keys to  and  and then refactor the JSX files to use the  function.
-2.  **UNDERSTAND THE NEW PUSH SYSTEM:** The push notification logic has been completely overhauled. Before touching anything related to push, review  to understand the new  and the backend-first verification flow.
-3.  **MAINTAIN SPANISH:** All user-facing communication, including plans and summaries, must be in Spanish.
+1.  **FINISH THE GUARD MIGRATION (P0):** Your absolute first priority is to complete and verify the TanStack Query migration for the Guard role. The code has been written but is untested and likely has compilation errors. Start by running yarn run v1.22.22
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command. and yarn run v1.22.22
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command., fix any issues, and then use the  to validate the functionality.
+2.  **TANSTACK QUERY IS THE STANDARD:** All new data fetching in the React application must now use TanStack Query. The Resident and Guard roles serve as reference implementations. Avoid manual / fetching patterns.
+3.  **USER IS FOCUSED ON PERFORMANCE:** The last set of tasks were all about improving performance. Continue with this mindset. When implementing features, prioritize non-blocking UI, efficient data fetching, and parallelizing requests where possible.
+4.  **MAINTAIN SPANISH:** All user-facing communication, including plans and summaries, must be in Spanish.
 
 **documents and test reports created in this job**
 -    (Updated)
 -   
 
 **Last 10 User Messages and any pending HUMAN messages**
--   **Complete i18n for Resident role (PENDING):** User requested the full i18n migration for the Reservations and Directory modules.
--   **Fix Guard Alert Modal Layout (Completed):** User reported a horizontal overflow on the guard's alert modal in desktop view and requested a fix.
--   **Implement Structural Fix for Push Notifications (Completed):** User approved the technical plan and requested the implementation of the robust fix for the push notification system.
--   **Audit Push Notification System (Completed):** User reported a critical bug with push notification persistence and requested a deep technical audit.
--   **Finish priority tasks (Acknowledged):** User urged the agent to complete the high-priority i18n migration task.
+-   **Migrate Guard role to TanStack Query (IN PROGRESS):** User requested migrating the Guard UI's data fetching logic to TanStack Query.
+-   **Migrate Resident role to TanStack Query (Completed):** User requested installing React Query and migrating the Resident role modules.
+-   **Trigger Redeploy (Completed):** User asked for a non-functional change to trigger a new deployment.
+-   **Optimize Sequential API Calls (Completed):** User requested an audit to find and parallelize sequential API calls.
+-   **Fix Duplicate API Calls (Completed):** User reported duplicated calls to  and requested a fix.
+-   **Refactor Push Sync to be Non-Blocking (Completed):** User requested a refactor to prevent push notification sync from blocking UI rendering.
+-   **Full Performance Diagnostic (Completed):** User requested a multi-phase diagnostic to identify performance bottlenecks without making changes.
+-   **Complete i18n for Resident role (Completed):** User requested to finish the i18n migration for the Reservations and Directory modules.
 
 **Project Health Check:**
--   **Broken:** The Resident role is not fully internationalized, with hardcoded Spanish strings remaining in several modules.
+-   **Broken:** The Guard UI is in a partially migrated and unverified state due to the incomplete TanStack Query migration. The frontend will likely fail to compile or run correctly until this is fixed.
 -   **Mocked:** None.
 -   **Identified Risks:**
     -   Resend email will not work for end-users until a custom domain is verified by the user.
     -   Stripe webhook endpoint is vulnerable to forged requests until a signature verification secret is set by the user in production.
 
 **3rd Party Integrations**
+-   ** (NEW):** v5, used for all data fetching in Resident and Guard roles.
 -   Resend (Email)
 -   Stripe (Payments)
 -   Web Push (pywebpush)
@@ -142,14 +158,17 @@ The agent was in the process of fulfilling the user's latest request: completing
 -    /  (Internationalization)
 
 **Testing status**
--   Testing agent used after significant changes: YES (for the i18n migration of the Visits module).
+-   Testing agent used after significant changes: YES (for the i18n migration).
 -   Troubleshoot agent used after agent stuck in loop: NO
 -   Test files created: []
 -   Known regressions: None.
 
 **Credentials to test flow:**
--   **Resident:**  / 
+-   **Resident:**  /  (Note: The password was  during a debug session, but  is the standard from the seed data).
+-   **Guard:**  / 
 -   **Super Admin:**  / 
 
 **What agent forgot to execute**
-The agent did not forget to execute a task but was interrupted mid-task. It was in the process of adding translation keys to  for the Resident i18n migration but did not finish adding all keys, did not update , and did not modify the corresponding JSX files (, ). This task must be resumed and completed.</analysis>
+The agent did not verify its work on the Guard UI migration to TanStack Query. After modifying the last file, it should have run yarn run v1.22.22
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command. and yarn run v1.22.22
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command. to check for errors, followed by a manual or automated test to confirm functionality. This crucial verification step was skipped, leaving the task incomplete and the application in a potentially broken state.</analysis>
