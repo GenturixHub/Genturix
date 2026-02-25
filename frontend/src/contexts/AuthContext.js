@@ -368,6 +368,10 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem(STORAGE_KEYS.USER);
       localStorage.removeItem(STORAGE_KEYS.PASSWORD_RESET);
       
+      // SECURITY: Clear TanStack Query persisted cache on logout
+      // This prevents data leakage between users on shared devices
+      clearPersistedCache();
+      
       setUser(null);
       setAccessToken(null);
       setPasswordResetRequired(false);
