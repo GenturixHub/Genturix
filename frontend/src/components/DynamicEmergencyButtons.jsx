@@ -1,5 +1,5 @@
 /**
- * GENTURIX - Dynamic Emergency Buttons
+ * GENTURIX - Dynamic Emergency Buttons (i18n)
  * 
  * Hierarchical emergency button system with dynamic priority selection.
  * Features:
@@ -9,21 +9,23 @@
  * - Smooth transitions (300ms ease)
  * - Confirmation modal for all types
  * - 8-second post-send state
+ * - Full i18n support
  */
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AlertTriangle, Heart, Eye, ShieldCheck, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ============================================
 // EMERGENCY TYPE CONFIGURATIONS
 // ============================================
-const EMERGENCY_CONFIG = {
+const getEmergencyConfig = (t) => ({
   general: {
     id: 'emergencia_general',
-    label: 'General',
-    fullLabel: 'Emergencia General',
-    confirmText: '¿Deseas enviar una alerta general?',
+    label: t('emergency.general'),
+    fullLabel: t('emergency.generalFull'),
+    confirmText: t('emergency.confirmGeneral'),
     icon: AlertTriangle,
     color: '#dc2626',
     gradient: 'linear-gradient(145deg, #7f1d1d, #dc2626)',
@@ -32,9 +34,9 @@ const EMERGENCY_CONFIG = {
   },
   medical: {
     id: 'emergencia_medica',
-    label: 'Médica',
-    fullLabel: 'Emergencia Médica',
-    confirmText: '¿Deseas enviar una alerta médica?',
+    label: t('emergency.medical'),
+    fullLabel: t('emergency.medicalFull'),
+    confirmText: t('emergency.confirmMedical'),
     icon: Heart,
     color: '#16a34a',
     gradient: 'linear-gradient(145deg, #14532d, #16a34a)',
@@ -43,21 +45,21 @@ const EMERGENCY_CONFIG = {
   },
   security: {
     id: 'actividad_sospechosa',
-    label: 'Seguridad',
-    fullLabel: 'Actividad Sospechosa',
-    confirmText: '¿Deseas enviar una alerta de seguridad?',
+    label: t('emergency.security'),
+    fullLabel: t('emergency.securityFull'),
+    confirmText: t('emergency.confirmSecurity'),
     icon: Eye,
     color: '#2563eb',
     gradient: 'linear-gradient(145deg, #1e3a8a, #2563eb)',
     glow: 'rgba(37, 99, 235, 0.3)',
     glowIntense: 'rgba(37, 99, 235, 0.5)',
   },
-};
+});
 
 // ============================================
 // CONFIRMATION MODAL
 // ============================================
-const ConfirmationModal = ({ isOpen, onConfirm, onCancel, isLoading, config }) => {
+const ConfirmationModal = ({ isOpen, onConfirm, onCancel, isLoading, config, t }) => {
   if (!config) return null;
   
   const IconComponent = config.icon;
@@ -100,7 +102,7 @@ const ConfirmationModal = ({ isOpen, onConfirm, onCancel, isLoading, config }) =
                 <IconComponent className="w-7 h-7" style={{ color: config.color }} />
               </div>
               <h3 className="text-lg font-semibold text-white text-center mb-2">
-                Confirmar Alerta
+                {t('emergency.confirmAlert')}
               </h3>
               <p className="text-sm text-white/50 text-center leading-relaxed">
                 {config.confirmText}
@@ -115,7 +117,7 @@ const ConfirmationModal = ({ isOpen, onConfirm, onCancel, isLoading, config }) =
                 data-testid="modal-cancel-btn"
                 className="flex-1 py-3 px-4 rounded-xl text-sm font-medium text-white/70 bg-white/5 border border-white/10 hover:bg-white/10 transition-all disabled:opacity-50"
               >
-                Cancelar
+                {t('common.cancel')}
               </button>
               <button
                 onClick={onConfirm}
@@ -130,10 +132,10 @@ const ConfirmationModal = ({ isOpen, onConfirm, onCancel, isLoading, config }) =
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Enviando...</span>
+                    <span>{t('emergency.sending')}</span>
                   </>
                 ) : (
-                  <span>Confirmar</span>
+                  <span>{t('common.confirm')}</span>
                 )}
               </button>
             </div>
@@ -215,7 +217,7 @@ const PrimaryButton = ({ config, onClick, disabled, isActivated, ripples }) => {
 // ============================================
 // SECONDARY BUTTON (70px square)
 // ============================================
-const SecondaryButton = ({ config, onClick, disabled, isActive }) => {
+const SecondaryButton = ({ config, onClick, disabled }) => {
   const IconComponent = config.icon;
 
   return (
@@ -258,6 +260,7 @@ const SecondaryButton = ({ config, onClick, disabled, isActive }) => {
 // MAIN COMPONENT
 // ============================================
 const DynamicEmergencyButtons = ({ onTrigger, disabled = false }) => {
+  const { t } = useTranslation();
   const [activeType, setActiveType] = useState('general');
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -265,6 +268,9 @@ const DynamicEmergencyButtons = ({ onTrigger, disabled = false }) => {
   const [ripples, setRipples] = useState([]);
   const [pendingType, setPendingType] = useState(null);
   const audioRef = useRef(null);
+
+  // Get translated config
+  const EMERGENCY_CONFIG = getEmergencyConfig(t);
 
   // Preload audio
   useEffect(() => {
@@ -351,7 +357,7 @@ const DynamicEmergencyButtons = ({ onTrigger, disabled = false }) => {
       setIsLoading(false);
       setPendingType(null);
     }
-  }, [pendingType, onTrigger]);
+  }, [pendingType, onTrigger, EMERGENCY_CONFIG]);
 
   // Handle cancel
   const handleCancel = useCallback(() => {
@@ -363,7 +369,7 @@ const DynamicEmergencyButtons = ({ onTrigger, disabled = false }) => {
 
   // Get current config and secondary types
   const activeConfig = EMERGENCY_CONFIG[activeType];
-  const secondaryTypes = Object.keys(EMERGENCY_CONFIG).filter(t => t !== activeType);
+  const secondaryTypes = Object.keys(EMERGENCY_CONFIG).filter(type => type !== activeType);
 
   return (
     <>
@@ -393,7 +399,7 @@ const DynamicEmergencyButtons = ({ onTrigger, disabled = false }) => {
               className="mt-4 text-sm font-medium text-center"
               style={{ color: isActivated ? '#22c55e' : 'rgba(255,255,255,0.7)' }}
             >
-              {isActivated ? 'Alerta enviada' : activeConfig.fullLabel}
+              {isActivated ? t('emergency.alertSent') : activeConfig.fullLabel}
             </motion.p>
           </motion.div>
         </AnimatePresence>
@@ -409,14 +415,13 @@ const DynamicEmergencyButtons = ({ onTrigger, disabled = false }) => {
               config={EMERGENCY_CONFIG[type]}
               onClick={() => handleSecondaryClick(type)}
               disabled={disabled || isLoading || isActivated}
-              isActive={false}
             />
           ))}
         </motion.div>
 
         {/* Help Text */}
         <p className="text-xs text-center text-white/40 max-w-[280px]">
-          Toca un tipo secundario para cambiarlo a principal
+          {t('emergency.switchTypeHint')}
         </p>
       </div>
 
@@ -427,6 +432,7 @@ const DynamicEmergencyButtons = ({ onTrigger, disabled = false }) => {
         onCancel={handleCancel}
         isLoading={isLoading}
         config={pendingType ? EMERGENCY_CONFIG[pendingType] : null}
+        t={t}
       />
 
       {/* Ripple animation keyframes */}
