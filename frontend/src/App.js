@@ -424,21 +424,23 @@ function App() {
   const { showUpdate, isUpdating, triggerUpdate, dismissUpdate } = useServiceWorkerUpdate();
 
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <ModulesProvider>
-          <AppRoutes />
-          <Toaster position="top-right" />
-          {/* Service Worker Update Modal */}
-          <UpdateAvailableModal 
-            isOpen={showUpdate} 
-            onUpdate={triggerUpdate} 
-            onDismiss={dismissUpdate}
-            isUpdating={isUpdating} 
-          />
-        </ModulesProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <ModulesProvider>
+            <AppRoutes />
+            <Toaster position="top-right" />
+            {/* Service Worker Update Modal */}
+            <UpdateAvailableModal 
+              isOpen={showUpdate} 
+              onUpdate={triggerUpdate} 
+              onDismiss={dismissUpdate}
+              isUpdating={isUpdating} 
+            />
+          </ModulesProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
 
