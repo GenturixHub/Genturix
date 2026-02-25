@@ -1,8 +1,46 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 25, 2026 (UI Enhancement - Framer Motion Tab Transitions)
+## Last Updated: February 25, 2026 (TanStack Query Cache Persistence)
 
 ## Changelog
+
+### 2026-02-25 (Session 82d) - TanStack Query Cache Persistence ✅
+
+**FEATURE COMPLETE: Cache Persistence Across Page Reloads**
+
+1. **📦 New Dependencies:**
+   - `@tanstack/react-query-persist-client@5.90.22`
+   - `@tanstack/query-sync-storage-persister@5.90.22`
+
+2. **📁 Files Created/Modified:**
+   - `/frontend/src/config/queryPersister.js` - CREATED: localStorage persister configuration
+   - `/frontend/src/App.js` - MODIFIED: Added PersistQueryClientProvider with dehydrate filter
+   - `/frontend/src/contexts/AuthContext.js` - MODIFIED: clearPersistedCache() on logout
+
+3. **🔒 Security Implementation:**
+   ```javascript
+   // Queries EXCLUDED from persistence (real-time critical)
+   excludePatterns = ['guard', 'alerts', 'clockStatus', 'unreadCount']
+   
+   // shouldDehydrateQuery filter prevents these from being saved
+   // Cache cleared on logout via clearPersistedCache()
+   ```
+
+4. **⚙️ Configuration:**
+   - Storage Key: `GENTURIX_QUERY_CACHE`
+   - maxAge: 10 minutes (600,000ms)
+   - buster: 'v1' (increment to invalidate cache on app updates)
+   - gcTime: 10 minutes (matches maxAge)
+
+5. **✅ Test Results (100% Pass):**
+   - Cache persists to localStorage: PASS
+   - Cache survives page reload: PASS (2395 bytes)
+   - Profile instant load: PASS (308ms)
+   - Guard alerts excluded: PASS (0 bytes for guard)
+   - Cache cleared on logout: PASS
+   - No persistence console errors: PASS
+
+---
 
 ### 2026-02-25 (Session 82c) - UI Enhancement: Smooth Tab Transitions ✅
 
