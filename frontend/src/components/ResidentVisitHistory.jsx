@@ -221,8 +221,11 @@ const VisitEntryCard = ({ entry, t }) => {
 // ============================================
 // FILTER DIALOG
 // ============================================
-const FilterDialog = ({ open, onClose, filters, onApply }) => {
+const FilterDialog = ({ open, onClose, filters, onApply, t }) => {
   const [localFilters, setLocalFilters] = useState(filters);
+  const FILTER_PERIODS = getFilterPeriods(t);
+  const VISITOR_TYPES = getVisitorTypes(t);
+  const STATUS_CONFIG = getStatusConfig(t);
   
   useEffect(() => {
     setLocalFilters(filters);
@@ -252,23 +255,23 @@ const FilterDialog = ({ open, onClose, filters, onApply }) => {
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Filter className="w-5 h-5 text-primary" />
-            Filtros
+            {t('visitors.history.filterTitle')}
           </DialogTitle>
           <DialogDescription>
-            Filtra el historial de visitas
+            {t('visitors.history.filterDescription')}
           </DialogDescription>
         </DialogHeader>
         
         <div className="flex-1 overflow-y-auto space-y-4 py-2">
           {/* Period */}
           <div className="space-y-1.5">
-            <Label className="text-xs">Período</Label>
+            <Label className="text-xs">{t('visitors.history.period')}</Label>
             <Select 
               value={localFilters.period} 
               onValueChange={(v) => setLocalFilters({...localFilters, period: v})}
             >
               <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B]">
-                <SelectValue placeholder="Seleccionar período" />
+                <SelectValue placeholder={t('visitors.history.selectPeriod')} />
               </SelectTrigger>
               <SelectContent>
                 {FILTER_PERIODS.map(p => (
@@ -282,7 +285,7 @@ const FilterDialog = ({ open, onClose, filters, onApply }) => {
           {localFilters.period === 'custom' && (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs">Desde</Label>
+                <Label className="text-xs">{t('visitors.history.dateFrom')}</Label>
                 <Input
                   type="date"
                   value={localFilters.dateFrom}
@@ -291,7 +294,7 @@ const FilterDialog = ({ open, onClose, filters, onApply }) => {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Hasta</Label>
+                <Label className="text-xs">{t('visitors.history.dateTo')}</Label>
                 <Input
                   type="date"
                   value={localFilters.dateTo}
@@ -304,16 +307,16 @@ const FilterDialog = ({ open, onClose, filters, onApply }) => {
           
           {/* Visitor Type */}
           <div className="space-y-1.5">
-            <Label className="text-xs">Tipo de Visita</Label>
+            <Label className="text-xs">{t('visitors.history.visitType')}</Label>
             <Select 
               value={localFilters.visitorType || 'all'} 
               onValueChange={(v) => setLocalFilters({...localFilters, visitorType: v === 'all' ? '' : v})}
             >
               <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B]">
-                <SelectValue placeholder="Todos los tipos" />
+                <SelectValue placeholder={t('visitors.history.allTypes')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos los tipos</SelectItem>
+                <SelectItem value="all">{t('visitors.history.allTypes')}</SelectItem>
                 {Object.entries(VISITOR_TYPES).map(([key, config]) => (
                   <SelectItem key={key} value={key}>{config.label}</SelectItem>
                 ))}
@@ -323,18 +326,18 @@ const FilterDialog = ({ open, onClose, filters, onApply }) => {
           
           {/* Status */}
           <div className="space-y-1.5">
-            <Label className="text-xs">Estado</Label>
+            <Label className="text-xs">{t('visitors.history.statusFilter')}</Label>
             <Select 
               value={localFilters.status || 'all'} 
               onValueChange={(v) => setLocalFilters({...localFilters, status: v === 'all' ? '' : v})}
             >
               <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B]">
-                <SelectValue placeholder="Todos los estados" />
+                <SelectValue placeholder={t('visitors.history.allStatus')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos los estados</SelectItem>
-                <SelectItem value="inside">Activo (Adentro)</SelectItem>
-                <SelectItem value="completed">Completado</SelectItem>
+                <SelectItem value="all">{t('visitors.history.allStatus')}</SelectItem>
+                <SelectItem value="inside">{t('visitors.history.statusInside')}</SelectItem>
+                <SelectItem value="completed">{t('visitors.history.statusCompleted')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -342,11 +345,11 @@ const FilterDialog = ({ open, onClose, filters, onApply }) => {
         
         <DialogFooter className="flex-col sm:flex-row gap-2 pt-4 border-t border-[#1E293B] flex-shrink-0">
           <Button variant="outline" onClick={handleClear} className="w-full sm:w-auto">
-            Limpiar Filtros
+            {t('visitors.history.clearFilters')}
           </Button>
           <Button onClick={handleApply} className="w-full sm:w-auto">
             <Filter className="w-4 h-4 mr-2" />
-            Aplicar
+            {t('visitors.history.applyFilters')}
           </Button>
         </DialogFooter>
       </DialogContent>
