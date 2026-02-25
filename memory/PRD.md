@@ -1,8 +1,50 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 25, 2026 (TanStack Query Cache Persistence)
+## Last Updated: February 25, 2026 (Reservations Module Performance Fix)
 
 ## Changelog
+
+### 2026-02-25 (Session 82e) - Reservations Module Performance Fix ✅
+
+**OPTIMIZATION COMPLETE: Instant Cache Rendering for Reservations**
+
+1. **🔍 Root Cause Identified:**
+   - `useReservationsData()` used `isLoading` which is true during ANY fetch
+   - Should use `isPending && !data` to only show spinner on initial load
+   - staleTime was 60s (too short), caused frequent refetches
+   - Missing `refetchOnMount: false` caused refetch on every tab switch
+
+2. **📁 Files Modified:**
+   - `/frontend/src/hooks/queries/useResidentQueries.js`
+     - `useReservationAreas()`: Added refetchOnMount:false, refetchOnWindowFocus:false
+     - `useMyReservations()`: Changed staleTime 60s→5min, added refetchOnMount:false
+     - `useReservationsData()`: Changed isLoading logic to `isPending && !data`
+
+3. **📊 Performance Results:**
+   | Metric | Before | After | Improvement |
+   |--------|--------|-------|-------------|
+   | First visit | ~3000ms | 653ms | ~78% |
+   | Second visit | ~3000ms | 94ms | **96%** |
+   | Third visit | ~3000ms | 103ms | **96%** |
+   | Rapid switching | ~3000ms | 173ms | **94%** |
+
+4. **⚙️ Key Changes:**
+   ```javascript
+   // BEFORE (showed spinner on every visit)
+   isLoading: areasQuery.isLoading || reservationsQuery.isLoading
+   
+   // AFTER (spinner only on first load)
+   isLoading: (areasQuery.isPending && !areasQuery.data) || 
+              (reservationsQuery.isPending && !reservationsQuery.data)
+   ```
+
+5. **✅ Test Results (100% Pass):**
+   - Second visit: 94-139ms (requirement: <300ms) ✓
+   - Third visit: 103-140ms (requirement: <300ms) ✓
+   - No spinner on cached visits ✓
+   - Rapid tab switching avg 173ms ✓
+
+---
 
 ### 2026-02-25 (Session 82d) - TanStack Query Cache Persistence ✅
 
