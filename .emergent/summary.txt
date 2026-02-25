@@ -1,65 +1,74 @@
 <analysis>**original_problem_statement:**
 The user's primary objective is to harden and prepare the Genturix application for a production launch. This involves fixing security vulnerabilities, improving deployment stability, and performing extensive frontend refactoring for a mobile-first user experience. Subsequent user requests focused on redesigning specific UI components for a more modern, premium feel, fixing layout and PWA-related bugs, and auditing/hardening the push notification system.
 
+More recent requests involve a series of professional audits (Security, Pricing/Stripe, Resend Email, Push Notifications, i18n) and incremental, high-priority feature implementations and internationalization (i18n) migrations based on the audit findings.
+
 PRODUCT REQUIREMENTS:
-1.  **Production Hardening & Security:** Fix all critical security vulnerabilities, including moving JWT refresh tokens from localStorage to secure httpOnly cookies.
-2.  **Deployment Stability:** Resolve all build and deployment issues.
-3.  **Mobile-First Refactor:** Transform the frontend to a modern, responsive, mobile-first layout.
-4.  **PWA Enhancements:** Implement a professional PWA install gate and reliable update mechanism.
+1.  **Production Hardening & Security:** Fix all critical security vulnerabilities, including moving JWT refresh tokens from localStorage to secure httpOnly cookies. Generate a formal security architecture document.
+2.  **System Audits:** Perform comprehensive audits of key systems: Pricing/Stripe, Resend (email), Push Notifications, and Internationalization (i18n).
+3.  **Mobile-First Refactor & UI/UX Polish:** Transform the frontend to a modern, responsive, mobile-first layout. Implement premium UI/UX enhancements as requested (e.g., dynamic panic button).
+4.  **Internationalization (i18n):** Fully migrate critical user flows (Resident, Guard) to be multi-language capable, replacing all hardcoded strings.
 5.  **Code Quality & Architecture:** Perform a structural audit, remove dead/duplicated code, and refactor monolithic components.
-6.  **Feature Implementation & UI/UX Polish:**
+6.  **Feature Implementation:**
     *   Implement the frontend UI for SuperAdmin pricing management.
-    *   Redesign the Resident Profile and Panic Button for a premium, modern aesthetic.
-    *   Fix various UI/UX bugs, such as scroll issues and inconsistent timezone handling.
-    *   Audit and fix the entire push notification pipeline.
+    *   Add a UI for deleting 'used' pre-registrations.
 
 **User's preferred language**: Español
 
 **what currently exists?**
-The application has undergone significant hardening and feature development. The two highest-priority tasks from the previous handoff—refactoring the resident module and moving the JWT refresh token to httpOnly cookies—are complete and verified. Dead code identified in a prior audit has been removed, and a duplicated push notification component has been unified.
+The application has undergone a series of professional audits and targeted hardening tasks. The previous agent completed the premium panic button redesign and then evolved it into a dynamic priority-based emergency button system as per a new user request.
 
-Major UI/UX improvements have been implemented, including a complete visual redesign of the resident profile page to a modern, minimalist style, and the resolution of several layout bugs (micro-scrolling, button visibility). A PWA install gate screen has been added to encourage app installation.
+Several critical systems were audited, and diagnostic reports were generated:
+-   **Resend (Email):** Audit complete. The root cause of failure (using  sandbox domain) was identified. Diagnostic logging and a test endpoint were added.
+-   **Stripe (Pricing):** Audit complete. The system was confirmed to be mostly ready for production, with price calculations happening securely on the backend. Minor inconsistencies were found and a report was generated.
+-   **Push Notifications (VAPID):** Audit complete for the Guard role. Detailed logging was added to the pipeline. A critical bug causing the subscription process to hang indefinitely in the UI was fixed by adding a timeout and a  block to the state management.
+-   **Security Architecture:** A formal  document was created based on the current state of the application.
+-   **Internationalization (i18n):** A full audit was performed, identifying all files with hardcoded strings. The core resident emergency flow and navigation have been successfully migrated to use the i18n system and are fully functional in both Spanish and English. The Visits/Authorizations module was also audited in preparation for migration.
 
-The push notification system was fully audited and hardened. The root cause of failing notifications (invalid legacy/test subscriptions) was identified, a cleanup endpoint was created and executed, and the backend logic was reinforced to prevent aggressive deletion of valid subscriptions.
-
-A critical bug related to timezones was fixed by making the recurrent authorization validation logic aware of the specific condominium's timezone instead of defaulting to UTC.
+A temporary  component was added and subsequently removed as requested by the user.
 
 **Last working item**:
--   Last item agent was working: A complete, premium redesign of the resident's panic button. This involves creating a new component with custom animations (breathing effect, ripple), haptic feedback, sound effects, and a custom confirmation modal, as per detailed user specifications. The agent created the new component  and the required audio asset.
--   Status: IN PROGRESS
+-   Last item agent was working: The agent was tasked with migrating the entire Visits / Authorizations module to the i18n system. This involves the files , , and . The agent performed a detailed analysis, identified all hardcoded strings, and planned the migration. However, it called the  tool immediately after planning, without executing any of the file modifications.
+-   Status: NOT STARTED
 -   Agent Testing Done: N
--   Which testing method agent to use? Frontend testing agent to verify the new UI, animations, sound playback, haptic feedback, confirmation modal flow, and the subsequent API call.
+-   Which testing method agent to use? Frontend testing agent. The agent should verify that the entire Visits/Authorizations flow (viewing list, creating, editing, deleting authorizations) works correctly in both Spanish and English after the migration, and that no hardcoded text remains.
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Finalize Premium Panic Button Implementation (P0)**
-    -   **Description:** The new  component has been created but has not yet been integrated into the  view or tested. The logic for handling the confirmation modal, triggering the panic API call, and managing the different visual states (idle, confirming, activated) needs to be finalized and verified.
-    -   **Attempted fixes:** The agent created the component file with the required styling and structure.
+-   **Issue 1: I18n migration of Visits/Authorizations module was not executed (P0)**
+    -   **Description:** The user's last request was to migrate the visits/authorizations module to i18n. The previous agent planned the task but then incorrectly finished the session without making any code changes. The work is ready to be started but has not been executed.
+    -   **Attempted fixes:** None. The agent only performed analysis.
     -   **Next debug checklist:**
-        1.  Import and replace the old panic button with  inside .
-        2.  Wire the  prop of the new component to the existing  function.
-        3.  Test the full user flow: click -> haptic/sound/ripple -> confirmation modal -> confirm -> API call -> activated state -> visual reset.
-        4.  Verify the design and animations are correct using the screenshot tool.
-    -   **Why fix this issue and what will be achieved with the fix?** This will complete a major user-requested UI/UX enhancement, providing a more professional and engaging experience for a critical app feature.
-    -   **Status:** IN PROGRESS
+        1.  Review the detailed analysis performed by the previous agent (chat history messages 438-444), which lists all responsible files and hardcoded strings.
+        2.  Add all necessary translation keys (~95+ keys) to  and  under the  namespace.
+        3.  Modify , , and .
+        4.  In each file, import  and replace all hardcoded UI strings with .
+        5.  For configuration objects (, , etc.), convert them into functions that accept  as an argument to translate labels while keeping  fields unchanged for backend compatibility.
+        6.  Test the full functionality in both English and Spanish.
+    -   **Why fix this issue and what will be achieved with the fix?** This will complete a critical user request and make a core feature of the application fully multi-language capable.
+    -   **Status:** NOT STARTED
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** Frontend
     -   **Blocked on other issue:** None.
 
 **In progress Task List**:
--   **Task 1: Integrate and Test Premium Panic Button (P0)**
-    -   **Where to resume:** .
-    -   **What will be achieved with this?** A fully functional, redesigned panic button that matches the user's detailed specifications for a premium user experience.
-    -   **Status:** IN PROGRESS
+-   **Task 1: Migrate Visits/Authorizations Module to i18n (P0)**
+    -   **Where to resume:** Start by adding translation keys to  and , then modify the component files as per the checklist above.
+    -   **What will be achieved with this?** A fully internationalized Visits/Authorizations screen for residents.
+    -   **Status:** NOT STARTED
     -   **Should Test frontend/backend/both after fix?** Frontend
     -   **Blocked on something:** None.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P1) Implement UI for Deleting 'Used' Pre-registrations:** The audit revealed the frontend does not render a delete button for pre-registrations with , even though the backend allows it. A button needs to be added to the UI for this category.
+    -   **(P1) Complete i18n Migration for Guard Flow:** The audit identified  and  as large components with many hardcoded strings. These need to be migrated.
     -   **(P1) Implement SuperAdmin Pricing Management UI:** The backend is ready, but the frontend interface for SuperAdmins to manage SaaS pricing is still missing.
+    -   **(P1) Implement UI for Deleting 'Used' Pre-registrations:** The frontend does not render a delete button for pre-registrations with . This UI element needs to be added.
 -   **Future Tasks:**
     -   **(P1) Modularize Monolithic Frontend Components:** Break down , , and .
+    -   **(P2) Implement Production Hardening from Audits:**
+        -   Configure a verified domain for Resend (requires user input).
+        -   Implement Stripe webhook signature verification (requires user to set secret).
     -   **(P2) CCTV Module Implementation.**
     -   **(P2) Implement HR performance reports for guards.**
     -   **(P2) Add email notifications for reservation events.**
@@ -67,93 +76,91 @@ A critical bug related to timezones was fixed by making the recurrent authorizat
     -   **(P3) Refactor the monolithic  file into a modular structure.
 
 **Completed work in this session**
--   **Resident Module Refactor (DONE):** Completed the architectural isolation of the resident UI, tested, and verified.
--   **JWT Refresh Token in httpOnly Cookie (DONE):** Migrated refresh tokens from localStorage to secure httpOnly cookies, fully implemented on both frontend and backend, and verified via testing agent.
--   **Push Notification System Overhaul (DONE):**
-    -   Audited the entire push pipeline, identifying invalid legacy subscriptions as the root cause of failures.
-    -   Created and used a temporary admin endpoint () to purge invalid subscriptions from the database.
-    -   Reinforced backend logic to only delete subscriptions on 404/410 errors, preventing aggressive cleanup.
-    -   Ensured frontend requests include credentials ().
--   **Resident Profile Redesign (DONE):** The profile page was completely redesigned with a modern, minimalist, premium aesthetic.
--   **PWA App Install Gate (DONE):** Implemented a screen on the root URL to prompt users to install the PWA or continue to the web version.
--   **Code Cleanup and Unification (DONE):**
-    -   Deleted dead code files:  and .
-    -   Unified the duplicated  component into a single, canonical version.
--   **Bug Fixes (DONE):**
-    -   **Timezone Correction:** Fixed recurrent authorization logic to use the condominium's specific timezone instead of UTC.
-    -   **Profile Scroll Fix:** Added bottom padding to the resident profile screen to prevent the logout button from being obscured by the fixed bottom navigation.
-    -   **Emergency Tab Scroll Fix:** Eliminated a micro-scroll issue on the resident emergency tab by switching from  to .
--   **Branding Update (DONE):** Updated the application's favicon, PWA icons, and Apple touch icon with the new logo.
+-   **Dynamic Emergency Buttons (DONE):** Implemented a dynamic system where any emergency type (General, Medical, Security) can be set as the primary, animated button. Tested and verified.
+-   **Premium Panic Button (DONE):** The initial redesign of the panic button was completed and then superseded by the dynamic system.
+-   **Resend Email Pipeline Audit (DONE):** Audited the system, identified the use of the  sandbox domain as the root cause of issues, and added diagnostic logging. A report was generated.
+-   **Pricing & Stripe Readiness Audit (DONE):** Audited the pricing logic, confirmed backend price calculation is secure, and generated a report on production readiness.
+-   **Push Notification (VAPID) Audit & Fix (DONE):** Audited the push notification flow for guards and added extensive logging. Fixed a critical bug where the UI would hang indefinitely on subscription by adding a timeout and a  block to the  hook.
+-   **Security Architecture Document (DONE):** Created a formal  file documenting the application's current security posture, risks, and a hardening roadmap.
+-   **i18n System Audit & Partial Migration (DONE):**
+    -   Generated a comprehensive  document detailing all hardcoded strings.
+    -   Successfully migrated the resident emergency flow (, , ) and navigation to be fully bilingual.
+    -   Performed a detailed diagnostic of the Visits/Authorizations screen in preparation for its migration.
+-   **BuildTag Component (DONE):** Added and subsequently removed a temporary build version indicator as requested.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1: No UI to Delete 'Used' Pre-registrations:** An audit of the pre-registration system revealed that the frontend intentionally does not render a delete button for authorizations that have a status of . While the backend logic would permit their soft deletion, the user has no way to perform this action. This was reported to the user but not fixed.
+-   **Issue 1: No UI to Delete 'Used' Pre-registrations:** An audit revealed the frontend does not render a delete button for authorizations with . This was reported but not fixed.
+-   **Issue 2: Resend uses Sandbox Domain:** The audit found that the  is , which only allows sending emails to the user's own verified email address. To work in production, the user must provide a verified custom domain.
+-   **Issue 3: Stripe Webhook Lacks Signature Verification:** The audit confirmed the webhook endpoint does not currently validate the Stripe signature, posing a security risk. This requires a secret to be configured in the production environment.
 
 **Known issue recurrence from previous fork**
 -   None.
 
 **Code Architecture**
-withCredentials=true
+
 
 **Key Technical Concepts**
--   **httpOnly Cookies:** Used for securely storing JWT refresh tokens, preventing access from client-side JavaScript (XSS mitigation).
--   **PWA Install Prompt:** Capturing the  event to create a custom installation UI/gate.
--   **CSS Viewport Units ():** Dynamic viewport height unit used to solve layout issues on mobile browsers with dynamic toolbars.
--   **Timezone-Aware Datetimes (Python ):** Using  to correctly calculate dates and times based on a stored timezone string (e.g., America/Mexico_City).
--   **Web APIs:**  for haptic feedback and  for playing UI sounds.
--   **Advanced CSS:**  for breathing animations, complex  for glow effects, and  for premium button styling.
+-   **Internationalization (i18n):** Using  and the  hook to manage multi-language support. Organizing translations into  (e.g., , ).
+-   **Component State Management:** Using  and  to create dynamic and interactive UI components (e.g., the priority-based emergency buttons).
+-   **Asynchronous JavaScript Debugging:** Using  for timeouts and  blocks to ensure UI state is cleaned up, preventing hangs.
+-   **System Auditing:** A systematic process of reviewing code, configuration, and data to identify risks and inconsistencies in security, payments, and third-party integrations.
 
 **key DB schema**
--   **users**: No changes.
--   **push_subscriptions**: The collection has been cleaned of invalid/test entries. New subscriptions are created correctly. Logic for deleting subscriptions is now more robust.
--   **condominiums**: The  field is now actively used in authorization logic.
--   **authorizations**: The  logic now correctly uses the condominium's timezone.
+-   No schema changes were made in this session. Audits confirmed the structure of  and .
 
 **All files of reference**
--   : Major changes to auth endpoints, push notification logic, timezone-aware validation, and addition of a temporary cleanup endpoint.
--   : Completely rewritten to manage the httpOnly cookie flow.
--   : Modified to include credentials in all requests by default.
--   : Target for integrating the new .
--   : New component for the redesigned panic button (in progress).
--   : Heavily modified for the new minimalist redesign and scroll fix.
--   : Modified to implement the PWA install gate logic.
--   : New component for the PWA install gate.
--   : Updated with better logging.
+-   : **Target for immediate i18n migration.**
+-   : **Target for immediate i18n migration.**
+-   : Was modified to fix a critical bug causing the UI to hang.
+-   : New component implementing the dynamic alert system.
+-   : Integrates the new dynamic buttons.
+-   : Was modified to add extensive logging for multiple audits.
+-   , : Were updated with new translation keys.
+-   : New document with security analysis.
+-   : New document with i18n analysis.
 
 **Areas that need refactoring**:
--   **Monolithic Frontend Components:** , , and  remain large and are candidates for being broken down into smaller components.
--   **Monolithic Backend:** The  file contains all backend logic and should be refactored into a more structured project with separate modules for routes, models, and services.
+-   **Monolithic Frontend Components:** The i18n audit confirmed that  (1111 lines) is a monolith that should be broken down into smaller components in the future (after the i18n migration is complete).  and  also remain candidates.
+-   **Monolithic Backend:** The  file contains all backend logic and is a long-term candidate for refactoring.
 
 **key api endpoints**
--   , , : **MODIFIED** to use secure httpOnly cookies for the refresh token. The response body no longer contains .
--   : **NEW (TEMPORARY)**. Admin-only endpoint to purge invalid push subscriptions. Has been used successfully.
--   : Audited. Works as a soft delete and is not blocked for  or  statuses.
--   All endpoints calling : **MODIFIED** implicitly, as the underlying function now requires a timezone and performs timezone-aware checks.
+-   : Audited and debugged. The frontend-to-backend payload was confirmed correct.
+-   : **NEW (TEMPORARY)**. Admin-only endpoint added for diagnosing Resend email issues.
 
 **Critical Info for New Agent**
-1.  **FINISH THE PANIC BUTTON:** Your first priority is to complete the in-progress redesign of the premium panic button. Integrate  into the resident view and test the full interaction flow (haptics, sound, modal, state changes).
-2.  **ADDRESS PENDING UI TASKS:** After the panic button, prioritize the pending UI tasks: implementing the SuperAdmin pricing management UI and adding a delete button for 'used' pre-registrations in the resident's visit list.
-3.  **CONTINUE REFACTORING:** The long-term goal is to continue breaking down the monolithic frontend components and the backend  file as outlined in the future tasks.
+1.  **EXECUTE THE PENDING MIGRATION (P0):** Your absolute first priority is to execute the user's last request: migrating the Visits/Authorizations module to i18n. The previous agent **FAILED** to do this. A complete file and string analysis is available in the previous agent's thoughts (messages 438-444). You must implement the changes, not just analyze them again.
+2.  **CONTINUE I18N MIGRATION:** After the Visits module, the next logical step is to migrate other critical flows, such as  and .
+3.  **REVIEW AUDIT REPORTS:** The audits for Resend and Stripe are complete. The next steps require user input (a verified domain for Resend, a webhook secret for Stripe). Do not proceed with implementation until the user provides these.
 4.  **MAINTAIN SPANISH:** All user-facing communication, including plans and summaries, must be in Spanish.
 
 **documents and test reports created in this job**
 -   
+-   
+-   
+-   
+-   
+-   
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
--   (Panic Button Premium + Extras): Detailed request to redesign the resident panic button with a premium feel, including specific animations, haptic feedback, sound, and a confirmation modal. **(In Progress)**
--   (Clean test subscriptions): Request to clean up invalid push subscriptions from the database. **(Completed)**
--   (Audit Push Backend): Request for a deep audit of the backend push notification logic to understand why subscriptions were being deleted. **(Completed)**
--   (Fix recurrent authorization timezone): Request to fix a bug where recurrent authorizations were being validated against UTC instead of the local condominium timezone. **(Completed)**
--   (Fix aggressive push deletion): Request to harden the backend push logic to prevent subscriptions from being deleted on temporary errors. **(Completed)**
--   (Add cleanup endpoint): Request to create a temporary, admin-only endpoint to clean up legacy push subscriptions. **(Completed)**
--   (Audit pre-registration deletion): Request to investigate why expired pre-registrations couldn't be deleted. **(Completed, fix pending)**
--   (Fix profile scroll issue): Request to fix the resident profile screen where the logout button was hidden by the bottom navigation. **(Completed)**
--   (Unify push components): Request to consolidate duplicated push notification toggle components. **(Completed)**
--   (Add PWA Install Gate): Request to implement a screen encouraging users to install the PWA. **(Completed)**
+-   **Migrate Visits module to i18n (PENDING):** User requested the full i18n migration for the visits/authorizations screen.
+-   **Diagnose Visits module i18n (Completed):** User asked for a technical analysis of why the visits screen was not translated.
+-   **Migrate critical flows to i18n (In Progress):** User requested a partial migration of key flows (Resident, Guard) to i18n.
+-   **Audit i18n system (Completed):** User requested a full technical audit of the i18n system and a plan for migration.
+-   **Create Security Architecture document (Completed):** User requested a formal security document.
+-   **Fix hanging push subscription UI (Completed):** User reported a critical bug where the Activating notifications spinner would never resolve.
+-   **Audit Guard push notifications (Completed):** User asked for an audit of the VAPID push system for the Guard role.
+-   **Remove Build Tag (Completed):** User requested the removal of the temporary build tag component.
+-   **Add temporary Build Tag (Completed):** User requested a temporary visual indicator for the build version.
+-   **Audit Stripe/Pricing system (Completed):** User requested a pre-production audit of the pricing and Stripe integration.
 
 **Project Health Check:**
--   **Broken:** The resident panic button is in a half-implemented state. The new component exists but is not integrated.
+-   **Broken:** Nothing is functionally broken, but the Visits/Authorizations module is not yet internationalized as requested.
 -   **Mocked:** None.
--   **Security Vulnerability:** The critical JWT localStorage vulnerability has been **RESOLVED**. No major known security issues remain from the handoff.
+-   **Identified Risks:**
+    -   Resend email will not work for end-users until a custom domain is verified by the user.
+    -   Stripe webhook endpoint is vulnerable to forged requests until a signature verification secret is set by the user in production.
 
 **3rd Party Integrations**
 -   Resend (Email)
@@ -161,16 +168,17 @@ withCredentials=true
 -   Web Push (pywebpush)
 -    (PDF Generation)
 -   Firebase Cloud Messaging (as the push service for VAPID)
+-    /  (Internationalization)
 
 **Testing status**
--   Testing agent used after significant changes: YES (After JWT httpOnly cookie implementation).
+-   Testing agent used after significant changes: YES (multiple times for panic button flows).
 -   Troubleshoot agent used after agent stuck in loop: NO
 -   Test files created: []
 -   Known regressions: None.
 
 **Credentials to test flow:**
+-   **Resident:**  /  (This user was created during the session and is confirmed to work).
 -   **Super Admin:**  / 
--   **Resident:**  / 
 
 **What agent forgot to execute**
--   The agent audited the pre-registration deletion flow and identified that the UI lacks a delete button for  authorizations. The agent reported this finding but did not proceed to implement the UI fix.</analysis>
+The agent completely forgot to execute the user's last and most important request. After performing a detailed analysis for the i18n migration of the  module, it immediately called the  tool without modifying a single file to implement the migration. The task is therefore entirely pending.</analysis>
