@@ -724,7 +724,7 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
           {/* Guests - Only show for CAPACITY behavior or when area capacity > 1 */}
           {(availability?.reservation_behavior === 'capacity' || (!availability?.reservation_behavior && area.capacity > 1)) && (
             <div className="space-y-1.5">
-              <Label className="text-xs">Número de Personas</Label>
+              <Label className="text-xs">{t('reservations.numberOfPeople')}</Label>
               <div className="flex items-center gap-3">
                 <Input
                   type="number"
@@ -745,8 +745,8 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
                   <Users className="w-3.5 h-3.5" />
                   <span>
                     {availability?.reservation_behavior === 'capacity' 
-                      ? `Máx: ${availability?.max_capacity_per_slot || area.capacity} por horario`
-                      : `Máx: ${area.capacity} personas`}
+                      ? t('reservations.maxPerSlot', { count: availability?.max_capacity_per_slot || area.capacity })
+                      : t('reservations.maxPeople', { count: area.capacity })}
                   </span>
                 </div>
               </div>
@@ -755,11 +755,11 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
           
           {/* Purpose - Optional */}
           <div className="space-y-1.5">
-            <Label className="text-xs">Motivo (opcional)</Label>
+            <Label className="text-xs">{t('reservations.purposeOptional')}</Label>
             <Textarea
               value={form.purpose}
               onChange={(e) => setForm({ ...form, purpose: e.target.value })}
-              placeholder="Ej: Reunión familiar, cumpleaños..."
+              placeholder={t('reservations.purposePlaceholder')}
               className="bg-[#0A0A0F] border-[#1E293B] h-16 resize-none text-sm"
               data-testid="reservation-purpose"
             />
@@ -770,24 +770,24 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
             <div className="flex items-start gap-2">
               <ScrollText className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
-                <p className="text-xs font-semibold text-amber-400 mb-1.5">📌 Reglas y Condiciones</p>
+                <p className="text-xs font-semibold text-amber-400 mb-1.5">📌 {t('reservations.rulesAndConditions')}</p>
                 {area.rules && area.rules.trim().length > 0 ? (
                   <div className="max-h-28 overflow-y-auto custom-scrollbar">
                     <p className="text-xs text-amber-200/90 whitespace-pre-wrap leading-relaxed">{area.rules}</p>
                   </div>
                 ) : (
                   <p className="text-xs text-amber-200/70">
-                    • Horario: {area.available_from} - {area.available_until}<br/>
-                    • Capacidad máxima: {area.capacity} personas<br/>
-                    {area.requires_approval && '• Requiere aprobación del administrador'}
+                    • {t('reservations.schedule', { from: area.available_from, to: area.available_until })}<br/>
+                    • {t('reservations.maxCapacity', { count: area.capacity })}<br/>
+                    {area.requires_approval && `• ${t('reservations.requiresApproval')}`}
                   </p>
                 )}
                 {/* Show behavior-specific rules */}
                 <div className="mt-2 pt-2 border-t border-amber-500/20">
                   <p className="text-[10px] text-amber-300/60">
-                    {availability?.reservation_behavior === 'exclusive' && 'ℹ️ Reservación exclusiva: el área queda bloqueada para ti durante el horario seleccionado.'}
-                    {availability?.reservation_behavior === 'capacity' && `ℹ️ Área compartida: hasta ${availability?.max_capacity_per_slot || area.capacity} personas pueden reservar el mismo horario.`}
-                    {availability?.reservation_behavior === 'slot_based' && 'ℹ️ Por turnos: cada reservación corresponde a un slot fijo.'}
+                    {availability?.reservation_behavior === 'exclusive' && `ℹ️ ${t('reservations.behaviorExclusive')}`}
+                    {availability?.reservation_behavior === 'capacity' && `ℹ️ ${t('reservations.behaviorCapacity', { count: availability?.max_capacity_per_slot || area.capacity })}`}
+                    {availability?.reservation_behavior === 'slot_based' && `ℹ️ ${t('reservations.behaviorSlotBased')}`}
                   </p>
                 </div>
               </div>
@@ -798,7 +798,7 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
         
         <DialogFooter className="flex-col sm:flex-row gap-2 flex-shrink-0 pt-4 border-t border-[#1E293B]">
           <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
-            Cancelar
+            {t('common.cancel')}
           </Button>
           <Button 
             onClick={handleSave} 
@@ -809,12 +809,12 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
             {isSaving ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Creando...
+                {t('reservations.creating')}
               </>
             ) : (
               <>
                 <CheckCircle className="w-4 h-4 mr-2" />
-                Crear Reservación
+                {t('reservations.createReservation')}
               </>
             )}
           </Button>
