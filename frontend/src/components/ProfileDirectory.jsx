@@ -9,6 +9,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
@@ -45,14 +46,14 @@ import {
   Calendar
 } from 'lucide-react';
 
-// Role configuration
+// Role configuration - icons and colors only
 const ROLE_CONFIG = {
-  'Administrador': { icon: Shield, color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30', label: 'Administradores' },
-  'Supervisor': { icon: UserCheck, color: 'bg-teal-500/10 text-teal-400 border-teal-500/30', label: 'Supervisores' },
-  'HR': { icon: Briefcase, color: 'bg-orange-500/10 text-orange-400 border-orange-500/30', label: 'Recursos Humanos' },
-  'Guarda': { icon: Shield, color: 'bg-green-500/10 text-green-400 border-green-500/30', label: 'Guardias' },
-  'Residente': { icon: Home, color: 'bg-blue-500/10 text-blue-400 border-blue-500/30', label: 'Residentes' },
-  'Estudiante': { icon: GraduationCap, color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30', label: 'Estudiantes' },
+  'Administrador': { icon: Shield, color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30' },
+  'Supervisor': { icon: UserCheck, color: 'bg-teal-500/10 text-teal-400 border-teal-500/30' },
+  'HR': { icon: Briefcase, color: 'bg-orange-500/10 text-orange-400 border-orange-500/30' },
+  'Guarda': { icon: Shield, color: 'bg-green-500/10 text-green-400 border-green-500/30' },
+  'Residente': { icon: Home, color: 'bg-blue-500/10 text-blue-400 border-blue-500/30' },
+  'Estudiante': { icon: GraduationCap, color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30' },
 };
 
 const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" }) => {
