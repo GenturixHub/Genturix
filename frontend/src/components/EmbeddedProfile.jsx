@@ -174,9 +174,10 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      setError('La imagen no puede ser mayor a 2MB');
+      setLocalError('La imagen no puede ser mayor a 2MB');
       return;
     }
+    setLocalError(null);
     const reader = new FileReader();
     reader.onloadend = () => {
       setFormData(prev => ({ ...prev, profile_photo: reader.result }));
