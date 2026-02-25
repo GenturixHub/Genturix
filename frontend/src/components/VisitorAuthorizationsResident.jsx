@@ -59,6 +59,11 @@ import {
   Timer,
   Infinity as InfinityIcon
 } from 'lucide-react';
+import { 
+  useResidentAuthorizations, 
+  useCreateAuthorization, 
+  useDeleteAuthorization 
+} from '../hooks/queries/useResidentQueries';
 
 // ============================================
 // CONFIGURATION - Functions that return translated config
