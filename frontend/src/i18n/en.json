@@ -545,6 +545,216 @@
     "thursday": "Thursday",
     "friday": "Friday",
     "saturday": "Saturday",
-    "sunday": "Sunday"
+    "sunday": "Sunday",
+
+    "tabs": {
+      "authorizations": "Authorizations",
+      "authorizationsShort": "Visits",
+      "history": "History"
+    },
+
+    "authTypes": {
+      "temporary": "Temporary",
+      "temporaryDesc": "Specific date or date range",
+      "permanent": "Permanent",
+      "permanentDesc": "Always allowed access",
+      "recurring": "Recurring",
+      "recurringDesc": "Specific days of the week",
+      "extended": "Extended",
+      "extendedDesc": "Date range + time window"
+    },
+
+    "days": {
+      "monShort": "Mon",
+      "tueShort": "Tue",
+      "wedShort": "Wed",
+      "thuShort": "Thu",
+      "friShort": "Fri",
+      "satShort": "Sat",
+      "sunShort": "Sun"
+    },
+
+    "visitorTypes": {
+      "visitor": "Visitor",
+      "visitorDesc": "Person coming to visit you",
+      "delivery": "Delivery",
+      "deliveryDesc": "Delivery person or courier",
+      "maintenance": "Maintenance",
+      "maintenanceDesc": "Maintenance technician",
+      "technical": "Technical Service",
+      "technicalDesc": "Service technician",
+      "cleaning": "Cleaning",
+      "cleaningDesc": "Cleaning staff",
+      "other": "Other",
+      "otherDesc": "Other type of service"
+    },
+
+    "deliveryCompanies": {
+      "uberEats": "Uber Eats",
+      "rappi": "Rappi",
+      "dhl": "DHL",
+      "fedex": "FedEx",
+      "amazon": "Amazon",
+      "pedidosYa": "PedidosYa",
+      "other": "Other"
+    },
+
+    "serviceTypes": {
+      "package": "Package",
+      "food": "Food",
+      "documents": "Documents",
+      "plumbing": "Plumbing",
+      "electricity": "Electricity",
+      "airConditioning": "Air Conditioning",
+      "painting": "Painting",
+      "internetCable": "Internet/Cable",
+      "appliances": "Appliances",
+      "locksmith": "Locksmith",
+      "fumigation": "Fumigation",
+      "apartment": "Apartment",
+      "office": "Office",
+      "other": "Other"
+    },
+
+    "card": {
+      "valid": "Valid",
+      "invalid": "Invalid",
+      "edit": "Edit",
+      "insideLabel": "Inside",
+      "insideTooltip": "Cannot delete while person is inside the condominium",
+      "visits": "visit",
+      "visitsPlural": "visits"
+    },
+
+    "form": {
+      "newAuthorization": "New Authorization",
+      "editAuthorization": "Edit Authorization",
+      "createDescription": "Create an authorization for your visitor",
+      "editDescription": "Modify authorization details",
+      "personType": "Person Type",
+      "deliveryCompany": "Delivery Company",
+      "companyProvider": "Company / Provider",
+      "selectCompany": "Select company",
+      "companyNamePlaceholder": "Company name",
+      "visitorNameLabel": "Visitor Name",
+      "deliveryNameLabel": "Delivery Person Name",
+      "technicianNameLabel": "Technician Name",
+      "staffNameLabel": "Staff Name",
+      "fullNamePlaceholder": "Full name",
+      "serviceType": "Service Type",
+      "selectServiceType": "Select type",
+      "idDocument": "ID / Document",
+      "documentPlaceholder": "Document",
+      "vehiclePlate": "Vehicle Plate",
+      "authorizationTypeLabel": "Authorization Type",
+      "dateFrom": "Date From",
+      "dateTo": "Date To",
+      "allowedDays": "Allowed Days",
+      "timeFrom": "Time From",
+      "timeTo": "Time To",
+      "notes": "Notes (optional)",
+      "notesPlaceholder": "Additional information for the guard...",
+      "cancel": "Cancel",
+      "saveChanges": "Save Changes",
+      "createAuthorization": "Create Authorization",
+      "completeRequired": "Complete required fields"
+    },
+
+    "notifications": {
+      "title": "Notifications",
+      "noNotifications": "No notifications",
+      "count": "{{count}} notifications",
+      "markAllRead": "Mark all as read"
+    },
+
+    "list": {
+      "title": "Authorizations",
+      "newButton": "New Authorization",
+      "pendingSection": "Pending Authorizations",
+      "usedSection": "Used",
+      "expiredSection": "Expired",
+      "noPending": "You don't have pending authorizations",
+      "noPendingHint": "Create an authorization for your frequent visitors",
+      "entered": "Entered",
+      "entryLabel": "Entry",
+      "guardLabel": "Guard"
+    },
+
+    "delete": {
+      "title": "Delete Authorization",
+      "confirmMessage": "Are you sure you want to delete the authorization for",
+      "undoWarning": "This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+
+    "toast": {
+      "authorizationUpdated": "Authorization updated",
+      "authorizationCreated": "Authorization created successfully",
+      "authorizationDeleted": "Authorization deleted",
+      "saveError": "Error saving authorization",
+      "deleteError": "Error deleting",
+      "loadError": "Error loading data"
+    },
+
+    "history": {
+      "title": "History",
+      "visitsCount": "{{count}} visits",
+      "insideCount": "{{count}} inside",
+      "searchPlaceholder": "Search by name, document, plate...",
+      "filters": "Filters",
+      "filterTitle": "Filters",
+      "filterDescription": "Filter visit history",
+      "period": "Period",
+      "selectPeriod": "Select period",
+      "periodToday": "Today",
+      "period7days": "Last 7 days",
+      "period30days": "Last 30 days",
+      "periodCustom": "Custom",
+      "dateFrom": "From",
+      "dateTo": "To",
+      "visitType": "Visit Type",
+      "allTypes": "All types",
+      "statusFilter": "Status",
+      "allStatus": "All statuses",
+      "statusInside": "Active (Inside)",
+      "statusCompleted": "Completed",
+      "clearFilters": "Clear Filters",
+      "applyFilters": "Apply",
+      "export": "PDF",
+      "loading": "Loading history...",
+      "noVisits": "No visits recorded",
+      "noVisitsHint": "Visits will appear here",
+      "noSearchResults": "Try different search terms",
+      "loadMore": "Load more",
+      "active": "Active",
+      "completed": "Completed",
+      "pdfGenerated": "PDF generated successfully",
+      "exportError": "Error exporting history",
+      "duration": {
+        "minutes": "{{count}} min",
+        "hours": "{{hours}}h",
+        "hoursMinutes": "{{hours}}h {{minutes}}m"
+      }
+    },
+
+    "pdf": {
+      "title": "Visit History",
+      "generatedBy": "Generated by GENTURIX",
+      "resident": "Resident",
+      "apartment": "Apartment",
+      "condominium": "Condominium",
+      "exportDate": "Export date",
+      "appliedFilters": "Filters",
+      "totalRecords": "Total records",
+      "visitor": "Visitor",
+      "type": "Type",
+      "entry": "Entry",
+      "exit": "Exit",
+      "duration": "Duration",
+      "status": "Status",
+      "noRecords": "No records",
+      "footer": "GENTURIX - Condominium Management System"
+    }
   }
 }
