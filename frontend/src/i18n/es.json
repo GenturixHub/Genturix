@@ -335,7 +335,7 @@
     "guests": "Invitados",
     "notes": "Notas",
     "noReservations": "No hay reservaciones",
-    "reservationCreated": "Reservación creada correctamente",
+    "reservationCreated": "Reservación creada exitosamente",
     "reservationCancelled": "Reservación cancelada. El espacio ha sido liberado.",
     "cancelReservation": "Cancelar Reservación",
     "confirmCancel": "¿Estás seguro que deseas cancelar esta reservación?",
@@ -404,6 +404,8 @@
     "keepReservation": "No, mantener",
     "yesCancel": "Sí, cancelar",
     "cancelling": "Cancelando...",
+    "slotSelected": "Horario: {{start}} - {{end}} ({{slots}} cupos disponibles)",
+    "slotSelectedSimple": "Horario seleccionado: {{start}} - {{end}}",
     "areaTypes": {
       "pool": "Piscina",
       "gym": "Gimnasio",
@@ -453,7 +455,11 @@
     },
     "freeAccessNoReservation": "Acceso libre sin reservación",
     "perHour": "{{count}}/hora",
-    "peopleCount": "{{count}} personas"
+    "peopleCount": "{{count}} personas",
+    "slotTooltipAvailable": "Clic para seleccionar este horario",
+    "slotTooltipCapacity": "{{time}} - {{remaining}}/{{total}} cupos",
+    "slotTooltipFull": "Sin cupos disponibles",
+    "slotTooltipOccupied": "Horario ocupado"
   },
   "directory": {
     "title": "Personas",
@@ -475,6 +481,14 @@
       "guards": "Guardias",
       "residents": "Residentes",
       "students": "Estudiantes"
+    },
+    "roleLabels": {
+      "Administrador": "Administradores",
+      "Supervisor": "Supervisores",
+      "HR": "Recursos Humanos",
+      "Guarda": "Guardias",
+      "Residente": "Residentes",
+      "Estudiante": "Estudiantes"
     }
   },
   "roles": {
