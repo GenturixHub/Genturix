@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ModulesProvider, useModules } from './contexts/ModulesContext';
 import { Toaster } from './components/ui/sonner';
@@ -29,6 +30,19 @@ import InstallChoiceScreen from './components/InstallChoiceScreen';
 import useServiceWorkerUpdate from './hooks/useServiceWorkerUpdate';
 import usePWAInstall from './hooks/usePWAInstall';
 import './App.css';
+
+// TanStack Query Client Configuration
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,         // Data considered fresh for 60s
+      gcTime: 5 * 60_000,        // Garbage collection after 5 minutes
+      refetchOnWindowFocus: false,
+      retry: 1,
+      refetchOnMount: true,
+    },
+  },
+});
 
 // Suppress PostHog errors in development
 if (typeof window !== 'undefined') {
