@@ -424,8 +424,6 @@ function App() {
           />
         </ModulesProvider>
       </AuthProvider>
-      {/* Build version indicator - remove BuildTag import to disable */}
-      <BuildTag />
     </BrowserRouter>
   );
 }
