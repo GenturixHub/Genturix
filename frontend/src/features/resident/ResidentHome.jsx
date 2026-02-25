@@ -367,10 +367,11 @@ const ResidentHome = () => {
     return <SuccessScreen alert={sentAlert} onDismiss={() => setSentAlert(null)} t={t} />;
   }
 
-  return (
-    <ResidentLayout activeTab={activeTab} onTabChange={setActiveTab}>
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-        <TabsContent value="emergency" className="mt-0 flex-1 min-h-0">
+  // Render active tab content based on current tab
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'emergency':
+        return (
           <EmergencyTab
             location={location}
             locationLoading={locationLoading}
@@ -379,24 +380,45 @@ const ResidentHome = () => {
             sendingType={sendingType}
             t={t}
           />
-        </TabsContent>
+        );
+      case 'visits':
+        return <ResidentVisitsModule />;
+      case 'reservations':
+        return <ResidentReservations />;
+      case 'directory':
+        return <ProfileDirectory embedded={true} maxHeight="calc(100vh - 140px)" />;
+      case 'profile':
+        return <EmbeddedProfile />;
+      default:
+        return null;
+    }
+  };
 
-        <TabsContent value="visits" className="mt-0 px-3 py-4">
-          <ResidentVisitsModule />
-        </TabsContent>
+  // Get padding class based on active tab
+  const getTabPadding = () => {
+    if (activeTab === 'emergency' || activeTab === 'directory') return '';
+    return 'px-3 py-4';
+  };
 
-        <TabsContent value="reservations" className="mt-0 px-3 py-4">
-          <ResidentReservations />
-        </TabsContent>
-        
-        <TabsContent value="directory" className="mt-0">
-          <ProfileDirectory embedded={true} maxHeight="calc(100vh - 140px)" />
-        </TabsContent>
-        
-        <TabsContent value="profile" className="mt-0 px-3 py-4">
-          <EmbeddedProfile />
-        </TabsContent>
-      </Tabs>
+  return (
+    <ResidentLayout activeTab={activeTab} onTabChange={setActiveTab}>
+      {/* Animated Tab Content */}
+      <div className="h-full flex flex-col overflow-hidden">
+        <AnimatePresence initial={false} mode="wait" custom={direction}>
+          <motion.div
+            key={activeTab}
+            custom={direction}
+            variants={slideVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={slideTransition}
+            className={`flex-1 min-h-0 ${getTabPadding()}`}
+          >
+            {renderTabContent()}
+          </motion.div>
+        </AnimatePresence>
+      </div>
       
       {/* Push Permission Banner */}
       <PushPermissionBanner onSubscribed={() => console.log('Push enabled!')} />
