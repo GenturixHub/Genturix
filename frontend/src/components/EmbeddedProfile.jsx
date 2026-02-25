@@ -155,21 +155,16 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
   };
 
   const handleSave = async () => {
-    setIsSaving(true);
-    setError(null);
     setSuccess(null);
 
     try {
-      await api.patch('/profile', formData);
+      await updateProfileMutation.mutateAsync(formData);
       setSuccess('Perfil actualizado correctamente');
       setEditMode(false);
       if (refreshUser) await refreshUser();
-      setProfile(prev => ({ ...prev, ...formData }));
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
-      setError(err.message || 'Error al actualizar perfil');
-    } finally {
-      setIsSaving(false);
+      // Error handled by mutation state
     }
   };
 
