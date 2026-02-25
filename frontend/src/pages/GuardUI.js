@@ -1,5 +1,5 @@
 /**
- * GENTURIX - GuardUI (Operational Security Panel)
+ * GENTURIX - GuardUI (Operational Security Panel) - TanStack Query v5
  * 
  * Optimized for real-world guard/casetilla usage:
  * - Tab-based navigation (no excessive scrolling)
@@ -14,6 +14,12 @@
  * 3. VISITAS - Pre-registered visitors (legacy)
  * 4. MI TURNO - Shift management
  * 5. HISTORIAL - Read-only past records
+ * 
+ * DATA LAYER: TanStack Query with smart caching
+ * - Alerts: 5s polling (critical, real-time)
+ * - Clock status: 15s staleTime
+ * - Visitor entries: 30s staleTime, 60s background refresh
+ * - Static data (shifts, history): 60s+ staleTime
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -55,6 +61,19 @@ import PushNotificationBanner from '../components/PushNotificationBanner';
 import PushPermissionBanner from '../components/PushPermissionBanner';
 import VisitorCheckInGuard from '../components/VisitorCheckInGuard';
 import GuardHistoryVisual from '../components/GuardHistoryVisual';
+// TanStack Query hooks for Guard role
+import {
+  useGuardAlerts,
+  useGuardClockStatus,
+  useGuardVisitorEntries,
+  useGuardShiftData,
+  useGuardAbsences,
+  useGuardHistory,
+  useResolveAlert,
+  useClockInOut,
+  useGuardCheckOut,
+  useCreateAbsence
+} from '../hooks/queries/useGuardQueries';
 import { 
   Shield, 
   LogOut,
