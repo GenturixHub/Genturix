@@ -4,9 +4,12 @@
  * 
  * Works for ALL roles - Guards, Residents, Admins, etc.
  * Uses usePushNotifications hook for proper subscription handling.
+ * 
+ * IMPORTANT: This component waits for sync to complete before rendering
+ * to prevent false-positive "activate notifications" prompts.
  */
 import React, { useState, useEffect } from 'react';
-import { Bell, X, Check, AlertTriangle } from 'lucide-react';
+import { Bell, X, Check, AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '../contexts/AuthContext';
 import usePushNotifications from '../hooks/usePushNotifications';
@@ -19,7 +22,9 @@ const PushPermissionBanner = ({ onSubscribed }) => {
     isSubscribed,
     isLoading,
     error,
-    subscribe
+    subscribe,
+    isSyncing,  // NEW: Wait for sync
+    isSynced    // NEW: Only show after sync complete
   } = usePushNotifications();
   
   const [show, setShow] = useState(false);
@@ -28,15 +33,22 @@ const PushPermissionBanner = ({ onSubscribed }) => {
 
   useEffect(() => {
     const checkPermission = () => {
+      // CRITICAL: Don't show until sync is complete
+      // This prevents false prompts after login
+      if (!isSynced || isSyncing) {
+        console.log('[Push] Waiting for sync to complete before showing banner');
+        return;
+      }
+
       // Don't show if not supported
       if (!isSupported) {
         console.log('[Push] Not supported in this browser');
         return;
       }
 
-      // Don't show if already subscribed
+      // Don't show if already subscribed (verified with backend)
       if (isSubscribed) {
-        console.log('[Push] Already subscribed');
+        console.log('[Push] Already subscribed (confirmed with backend)');
         return;
       }
 
@@ -57,14 +69,14 @@ const PushPermissionBanner = ({ onSubscribed }) => {
       }
 
       // Show banner after a delay for ALL authenticated users
-      console.log(`[Push] Showing banner for role: ${user?.roles?.join(', ')}`);
+      console.log(`[Push] Showing banner for role: ${user?.roles?.join(', ')} (sync confirmed: no active subscription)`);
       setTimeout(() => setShow(true), 3000);
     };
 
     if (user) {
       checkPermission();
     }
-  }, [isSupported, isSubscribed, permission, user]);
+  }, [isSupported, isSubscribed, permission, user, isSynced, isSyncing]);
 
   const handleEnable = async () => {
     try {
