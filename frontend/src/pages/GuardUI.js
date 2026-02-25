@@ -2255,9 +2255,19 @@ const GuardUI = () => {
     }
   }, []);
 
+  // v3.0: Parallel initialization of alerts and clock status
   useEffect(() => {
-    fetchAlerts();
-    fetchClockStatus();
+    const initializeGuardData = async () => {
+      // Execute both fetches in parallel - they are independent
+      await Promise.all([
+        fetchAlerts(),
+        fetchClockStatus()
+      ]);
+    };
+    
+    initializeGuardData();
+    
+    // Continue polling alerts every 5 seconds
     const interval = setInterval(fetchAlerts, 5000);
     return () => clearInterval(interval);
   }, [fetchAlerts, fetchClockStatus]);
