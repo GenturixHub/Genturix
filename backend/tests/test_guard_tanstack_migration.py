@@ -185,11 +185,11 @@ class TestGuardMutations:
     """Test Guard mutation endpoints - used by TanStack Query mutations"""
     
     def test_resolve_alert_endpoint_exists(self, auth_headers):
-        """Test POST /api/panic/events/{id}/resolve endpoint exists"""
+        """Test PUT /api/security/panic/{id}/resolve endpoint exists"""
         # We don't actually resolve an alert, just verify the endpoint pattern exists
         # Using a fake ID should return 404, not 405 (method not allowed)
-        response = requests.post(
-            f"{BASE_URL}/api/panic/events/fake-id-123/resolve",
+        response = requests.put(
+            f"{BASE_URL}/api/security/panic/fake-id-123/resolve",
             headers=auth_headers,
             json={"notes": "Test resolution"}
         )
@@ -201,26 +201,15 @@ class TestGuardMutations:
         print(f"Resolve alert endpoint status: {response.status_code}")
     
     def test_clock_in_endpoint_exists(self, auth_headers):
-        """Test POST /api/guard/clock-in endpoint exists"""
+        """Test POST /api/hr/clock endpoint exists"""
         response = requests.post(
-            f"{BASE_URL}/api/guard/clock-in",
+            f"{BASE_URL}/api/hr/clock",
             headers=auth_headers,
-            json={}
+            json={"type": "IN"}
         )
         # May fail due to business rules but endpoint should exist
-        assert response.status_code != 405, f"Clock in endpoint not found"
-        print(f"Clock in endpoint status: {response.status_code}")
-    
-    def test_clock_out_endpoint_exists(self, auth_headers):
-        """Test POST /api/guard/clock-out endpoint exists"""
-        response = requests.post(
-            f"{BASE_URL}/api/guard/clock-out",
-            headers=auth_headers,
-            json={}
-        )
-        # May fail due to business rules but endpoint should exist
-        assert response.status_code != 405, f"Clock out endpoint not found"
-        print(f"Clock out endpoint status: {response.status_code}")
+        assert response.status_code != 405, f"Clock endpoint not found"
+        print(f"Clock endpoint status: {response.status_code}")
     
     def test_guard_checkin_endpoint_exists(self, auth_headers):
         """Test POST /api/guard/checkin endpoint exists"""
