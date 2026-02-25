@@ -331,9 +331,9 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
                 <ArrowLeft className="w-4 h-4" />
               </Button>
               <div>
-                <DialogTitle className="text-base">Perfil</DialogTitle>
+                <DialogTitle className="text-base">{t('directory.profile')}</DialogTitle>
                 <DialogDescription className="text-xs">
-                  Información de contacto
+                  {t('directory.contactInfo')}
                 </DialogDescription>
               </div>
             </div>
@@ -354,10 +354,10 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
                 {/* Roles */}
                 <div className="flex flex-wrap justify-center gap-2 mt-2">
                   {(profileModalUser.roles || [profileModalUser.role]).filter(Boolean).map((role, index) => {
-                    const config = ROLE_CONFIG[role] || { color: 'bg-gray-500/10 text-gray-400 border-gray-500/30', label: role };
+                    const config = ROLE_CONFIG[role] || { color: 'bg-gray-500/10 text-gray-400 border-gray-500/30' };
                     return (
                       <Badge key={index} className={config.color}>
-                        {role}
+                        {t(`roles.labels.${role}`, role)}
                       </Badge>
                     );
                   })}
@@ -376,7 +376,7 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
                         <Phone className="w-5 h-5 text-green-400" />
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Teléfono</p>
+                        <p className="text-xs text-muted-foreground">{t('directory.phone')}</p>
                         <p className="font-medium">{profileModalUser.phone}</p>
                       </div>
                     </a>
@@ -391,7 +391,7 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
                         <Mail className="w-5 h-5 text-blue-400" />
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Email</p>
+                        <p className="text-xs text-muted-foreground">{t('directory.email')}</p>
                         <p className="font-medium text-sm truncate">{profileModalUser.email}</p>
                       </div>
                     </a>
@@ -403,7 +403,7 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
                         <MapPin className="w-5 h-5 text-cyan-400" />
                       </div>
                       <div>
-                        <p className="text-xs text-muted-foreground">Unidad</p>
+                        <p className="text-xs text-muted-foreground">{t('directory.unit')}</p>
                         <p className="font-medium">{profileModalUser.unit_number}</p>
                       </div>
                     </div>
@@ -415,7 +415,7 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
               {profileModalUser.public_description && (
                 <Card className="bg-[#0A0A0F] border-[#1E293B]">
                   <CardContent className="p-4">
-                    <p className="text-xs text-muted-foreground mb-2">Descripción</p>
+                    <p className="text-xs text-muted-foreground mb-2">{t('directory.description')}</p>
                     <p className="text-sm">{profileModalUser.public_description}</p>
                   </CardContent>
                 </Card>
@@ -425,7 +425,7 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
               {loadingProfile && (
                 <div className="flex items-center justify-center py-2">
                   <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground ml-2">Cargando más información...</span>
+                  <span className="text-xs text-muted-foreground ml-2">{t('directory.loadingMore')}</span>
                 </div>
               )}
             </div>
