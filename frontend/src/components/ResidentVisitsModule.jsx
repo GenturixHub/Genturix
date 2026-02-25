@@ -7,6 +7,7 @@
  */
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Badge } from './ui/badge';
 import { Shield, History, Users } from 'lucide-react';
@@ -14,6 +15,7 @@ import VisitorAuthorizationsResident from './VisitorAuthorizationsResident';
 import ResidentVisitHistory from './ResidentVisitHistory';
 
 const ResidentVisitsModule = () => {
+  const { t } = useTranslation();
   const [activeSubTab, setActiveSubTab] = useState('authorizations');
   
   return (
@@ -27,8 +29,8 @@ const ResidentVisitsModule = () => {
             data-testid="visits-tab-authorizations"
           >
             <Shield className="w-4 h-4" />
-            <span className="hidden sm:inline">Autorizaciones</span>
-            <span className="sm:hidden">Visitas</span>
+            <span className="hidden sm:inline">{t('visitors.tabs.authorizations')}</span>
+            <span className="sm:hidden">{t('visitors.tabs.authorizationsShort')}</span>
           </TabsTrigger>
           <TabsTrigger 
             value="history" 
@@ -36,7 +38,7 @@ const ResidentVisitsModule = () => {
             data-testid="visits-tab-history"
           >
             <History className="w-4 h-4" />
-            Historial
+            {t('visitors.tabs.history')}
           </TabsTrigger>
         </TabsList>
         
