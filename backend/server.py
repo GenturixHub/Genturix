@@ -2777,6 +2777,7 @@ async def send_targeted_push_notification(
     # Build subscription info list, filtering invalid entries
     push_tasks = []
     for sub in subscriptions:
+        sub_user_id = sub.get("user_id")
         endpoint = sub.get("endpoint")
         if not endpoint:
             result["skipped"] += 1
@@ -2789,7 +2790,8 @@ async def send_targeted_push_notification(
                 "auth": sub.get("auth")
             }
         }
-        push_tasks.append(send_push_notification_with_cleanup(subscription_info, payload))
+        # Pass user_id for better logging
+        push_tasks.append(send_push_notification_with_cleanup(subscription_info, payload, user_id=sub_user_id))
     
     # Execute all push notifications in parallel
     if push_tasks:
