@@ -329,6 +329,7 @@ const MyReservationCard = ({ reservation, onCancel }) => {
 // RESERVATION FORM DIALOG
 // ============================================
 const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     date: '',
     start_time: '',
