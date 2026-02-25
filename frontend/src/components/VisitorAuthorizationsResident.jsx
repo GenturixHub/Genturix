@@ -917,30 +917,23 @@ const VisitorAuthorizationsResident = ({ notifications: parentNotifications = []
       await deleteAuthMutation.mutateAsync(showDeleteConfirm.id);
       toast.success(t('visitors.toast.authorizationDeleted'));
       setShowDeleteConfirm(null);
-      fetchData();
+      // TanStack Query automatically refetches via mutation onSuccess
     } catch (error) {
       toast.error(error.message || t('visitors.toast.deleteError'));
-    } finally {
-      setIsDeleting(false);
     }
   };
+  
+  // Derive isDeleting from mutation state
+  const isDeleting = deleteAuthMutation.isPending;
 
   const handleMarkNotificationRead = async (notifId) => {
-    try {
-      await api.markNotificationRead(notifId);
-      setNotifications(prev => prev.map(n => n.id === notifId ? {...n, read: true} : n));
-    } catch (error) {
-      console.error('Error marking notification read:', error);
-    }
+    // Notifications are managed by parent - call parent refresh if provided
+    onRefreshNotifications?.();
   };
 
   const handleMarkAllRead = async () => {
-    try {
-      await api.markAllNotificationsRead();
-      setNotifications(prev => prev.map(n => ({...n, read: true})));
-    } catch (error) {
-      console.error('Error marking all read:', error);
-    }
+    // Notifications are managed by parent - call parent refresh if provided
+    onRefreshNotifications?.();
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
