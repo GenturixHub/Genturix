@@ -331,13 +331,13 @@ const PanicAlertModal = ({ alert, open, onClose, onResolve, resolutionNotes, set
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-[#0A0A0F] border-[#1E293B] max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl ${config.bg} flex items-center justify-center`}>
+      <DialogContent className="bg-[#0A0A0F] border-[#1E293B] w-full max-w-[95vw] lg:max-w-[850px] max-h-[90vh] overflow-y-auto overflow-x-hidden">
+        <DialogHeader className="min-w-0">
+          <DialogTitle className="flex items-center gap-3 min-w-0">
+            <div className={`w-10 h-10 rounded-xl ${config.bg} flex items-center justify-center flex-shrink-0`}>
               <IconComponent className="w-5 h-5 text-white" />
             </div>
-            <div>
+            <div className="min-w-0 flex-1">
               <span className={`text-lg ${config.text}`}>{config.label}</span>
               <Badge 
                 variant="outline" 
@@ -355,143 +355,152 @@ const PanicAlertModal = ({ alert, open, onClose, onResolve, resolutionNotes, set
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          {/* Resident Information */}
-          <div className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B]">
-            <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">
-              <User className="w-4 h-4 inline mr-2" />
-              Información del Residente
-            </h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-xs text-muted-foreground">Nombre Completo</Label>
-                <p className="text-white font-semibold">{alert.user_name || 'No disponible'}</p>
+        {/* Main content - Desktop: 2 columns, Mobile: single column */}
+        <div className="py-4 min-w-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
+            
+            {/* LEFT COLUMN: Info sections */}
+            <div className="space-y-4 min-w-0">
+              {/* Resident Information */}
+              <div className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B] min-w-0">
+                <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">
+                  <User className="w-4 h-4 inline mr-2" />
+                  Información del Residente
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
+                  <div className="min-w-0">
+                    <Label className="text-xs text-muted-foreground">Nombre Completo</Label>
+                    <p className="text-white font-semibold truncate">{alert.user_name || 'No disponible'}</p>
+                  </div>
+                  <div className="min-w-0">
+                    <Label className="text-xs text-muted-foreground">Apartamento / Casa</Label>
+                    <p className="text-white font-semibold truncate">{alert.location || alert.apartment || 'No especificado'}</p>
+                  </div>
+                  {alert.phone && (
+                    <div className="min-w-0">
+                      <Label className="text-xs text-muted-foreground">Teléfono</Label>
+                      <a href={`tel:${alert.phone}`} className="text-blue-400 hover:underline flex items-center gap-1">
+                        <Phone className="w-3 h-3 flex-shrink-0" />
+                        <span className="truncate">{alert.phone}</span>
+                      </a>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Apartamento / Casa</Label>
-                <p className="text-white font-semibold">{alert.location || alert.apartment || 'No especificado'}</p>
+
+              {/* Alert Details */}
+              <div className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B] min-w-0">
+                <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">
+                  <AlertTriangle className="w-4 h-4 inline mr-2" />
+                  Detalles de la Alerta
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
+                  <div className="min-w-0">
+                    <Label className="text-xs text-muted-foreground">Tipo de Emergencia</Label>
+                    <Badge className={`${config.bg} text-white`}>{alert.panic_type_label || config.label}</Badge>
+                  </div>
+                  <div className="min-w-0">
+                    <Label className="text-xs text-muted-foreground">Fecha y Hora</Label>
+                    <p className="text-white text-sm">{formatDateTime(alert.created_at)}</p>
+                  </div>
+                  {isResolved && alert.resolved_at && (
+                    <>
+                      <div className="min-w-0">
+                        <Label className="text-xs text-muted-foreground">Resuelta</Label>
+                        <p className="text-green-400 text-sm">{formatDateTime(alert.resolved_at)}</p>
+                      </div>
+                      <div className="min-w-0">
+                        <Label className="text-xs text-muted-foreground">Atendida por</Label>
+                        <p className="text-white text-sm truncate">{alert.resolved_by_name || 'No registrado'}</p>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-              {alert.phone && (
-                <div>
-                  <Label className="text-xs text-muted-foreground">Teléfono</Label>
-                  <a href={`tel:${alert.phone}`} className="text-blue-400 hover:underline flex items-center gap-1">
-                    <Phone className="w-3 h-3" />
-                    {alert.phone}
-                  </a>
+
+              {/* Resident Notes - IMPORTANT */}
+              {(alert.notes || alert.description) && (
+                <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30 min-w-0">
+                  <h4 className="text-sm font-bold text-yellow-400 uppercase tracking-wider mb-2">
+                    <FileText className="w-4 h-4 inline mr-2" />
+                    Notas del Residente
+                  </h4>
+                  <p className="text-white whitespace-pre-wrap break-words">{alert.notes || alert.description}</p>
+                </div>
+              )}
+
+              {/* Resolution Section (only if not resolved) */}
+              {!isResolved && (
+                <div className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B] min-w-0">
+                  <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">
+                    <CheckCircle className="w-4 h-4 inline mr-2" />
+                    Resolución
+                  </h4>
+                  <div className="space-y-3 min-w-0">
+                    <div className="min-w-0">
+                      <Label className="text-xs text-muted-foreground">Notas de resolución (opcional)</Label>
+                      <Textarea
+                        placeholder="Describe las acciones tomadas..."
+                        value={resolutionNotes}
+                        onChange={(e) => setResolutionNotes(e.target.value)}
+                        className="bg-[#0A0A0F] border-[#1E293B] mt-1 min-h-[80px] w-full"
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
-          </div>
 
-          {/* Alert Details */}
-          <div className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B]">
-            <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">
-              <AlertTriangle className="w-4 h-4 inline mr-2" />
-              Detalles de la Alerta
-            </h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-xs text-muted-foreground">Tipo de Emergencia</Label>
-                <Badge className={`${config.bg} text-white`}>{alert.panic_type_label || config.label}</Badge>
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Fecha y Hora</Label>
-                <p className="text-white text-sm">{formatDateTime(alert.created_at)}</p>
-              </div>
-              {isResolved && alert.resolved_at && (
-                <>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Resuelta</Label>
-                    <p className="text-green-400 text-sm">{formatDateTime(alert.resolved_at)}</p>
+            {/* RIGHT COLUMN: Map (only if location exists) */}
+            {hasLocation && (
+              <div className="min-w-0">
+                <div className="rounded-xl overflow-hidden border border-[#1E293B] h-full flex flex-col min-w-0">
+                  <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider p-3 bg-[#0F111A] flex-shrink-0">
+                    <MapPin className="w-4 h-4 inline mr-2" />
+                    Ubicación en Mapa
+                  </h4>
+                  
+                  {/* Embedded Map - Fixed height, full width */}
+                  <div className="relative w-full flex-1 min-h-[200px] lg:min-h-[280px] overflow-hidden min-w-0">
+                    <iframe
+                      title="Ubicación de la alerta"
+                      className="absolute inset-0 w-full h-full"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${alert.longitude - 0.002},${alert.latitude - 0.002},${alert.longitude + 0.002},${alert.latitude + 0.002}&layer=mapnik&marker=${alert.latitude},${alert.longitude}`}
+                    />
                   </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Atendida por</Label>
-                    <p className="text-white text-sm">{alert.resolved_by_name || 'No registrado'}</p>
+                  
+                  {/* Map Actions */}
+                  <div className="p-3 bg-[#0F111A] flex flex-col gap-2 flex-shrink-0 min-w-0">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10 w-full"
+                      onClick={() => openMaps(alert.latitude, alert.longitude)}
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2 flex-shrink-0" />
+                      Abrir en Maps
+                    </Button>
+                    <div className="text-xs text-muted-foreground flex items-center justify-center min-w-0">
+                      <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
+                      <span className="truncate">{alert.latitude.toFixed(4)}, {alert.longitude.toFixed(4)}</span>
+                    </div>
                   </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Resident Notes - IMPORTANT */}
-          {(alert.notes || alert.description) && (
-            <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
-              <h4 className="text-sm font-bold text-yellow-400 uppercase tracking-wider mb-2">
-                <FileText className="w-4 h-4 inline mr-2" />
-                Notas del Residente
-              </h4>
-              <p className="text-white whitespace-pre-wrap">{alert.notes || alert.description}</p>
-            </div>
-          )}
-
-          {/* Map Section */}
-          {hasLocation && (
-            <div className="rounded-xl overflow-hidden border border-[#1E293B]">
-              <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider p-3 bg-[#0F111A]">
-                <MapPin className="w-4 h-4 inline mr-2" />
-                Ubicación en Mapa
-              </h4>
-              
-              {/* Embedded Map using OpenStreetMap - Reduced height on mobile */}
-              <div className="relative w-full overflow-hidden">
-                <iframe
-                  title="Ubicación de la alerta"
-                  className="w-full h-[150px] sm:h-[180px]"
-                  style={{ border: 0, maxWidth: '100%' }}
-                  loading="lazy"
-                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${alert.longitude - 0.002},${alert.latitude - 0.002},${alert.longitude + 0.002},${alert.latitude + 0.002}&layer=mapnik&marker=${alert.latitude},${alert.longitude}`}
-                />
-              </div>
-              
-              {/* Map Actions - Stack on mobile */}
-              <div className="p-3 bg-[#0F111A] flex flex-col sm:flex-row gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10 w-full sm:w-auto"
-                  onClick={() => openMaps(alert.latitude, alert.longitude)}
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Abrir en Maps
-                </Button>
-                <div className="text-xs text-muted-foreground flex items-center justify-center sm:justify-start">
-                  <MapPin className="w-3 h-3 mr-1 flex-shrink-0" />
-                  <span className="truncate">{alert.latitude.toFixed(4)}, {alert.longitude.toFixed(4)}</span>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Resolution Section (only if not resolved) */}
-          {!isResolved && (
-            <div className="p-4 rounded-xl bg-[#0F111A] border border-[#1E293B]">
-              <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">
-                <CheckCircle className="w-4 h-4 inline mr-2" />
-                Resolución
-              </h4>
-              <div className="space-y-3">
-                <div>
-                  <Label className="text-xs text-muted-foreground">Notas de resolución (opcional)</Label>
-                  <Textarea
-                    placeholder="Describe las acciones tomadas..."
-                    value={resolutionNotes}
-                    onChange={(e) => setResolutionNotes(e.target.value)}
-                    className="bg-[#0A0A0F] border-[#1E293B] mt-1 min-h-[80px]"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        <DialogFooter className="flex-col sm:flex-row gap-2">
+        <DialogFooter className="flex-col sm:flex-row gap-2 flex-wrap min-w-0">
           {hasLocation && (
             <Button 
               variant="outline"
               className="w-full sm:w-auto border-blue-500/30 text-blue-400"
               onClick={() => openMaps(alert.latitude, alert.longitude)}
             >
-              <Navigation className="w-4 h-4 mr-2" />
+              <Navigation className="w-4 h-4 mr-2 flex-shrink-0" />
               IR A UBICACIÓN
             </Button>
           )}
@@ -511,7 +520,7 @@ const PanicAlertModal = ({ alert, open, onClose, onResolve, resolutionNotes, set
             </Button>
           )}
           
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
             Cerrar
           </Button>
         </DialogFooter>
