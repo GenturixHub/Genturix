@@ -4,9 +4,11 @@
  * Does NOT use DashboardLayout - designed for tab-based UIs
  * 
  * Design: Minimal premium style inspired by Linear/Stripe
+ * 
+ * Data Layer: TanStack Query v5 for instant cache-based rendering
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
@@ -28,6 +30,7 @@ import api from '../services/api';
 import { PushNotificationToggle } from './PushNotificationBanner';
 import LanguageSelector from './LanguageSelector';
 import ChangePasswordForm from './ChangePasswordForm';
+import { useProfile, useUpdateProfile } from '../hooks/queries/useProfileQueries';
 import { 
   User,
   Phone,
