@@ -1,35 +1,38 @@
 /**
- * GENTURIX - Resident Layout
+ * GENTURIX - Resident Layout (i18n)
  * 
  * Independent mobile-first layout for Resident role.
  * Completely decoupled from DashboardLayout.
  * Designed as native app experience.
+ * Full i18n support.
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Shield, LogOut, Users, Calendar, User, AlertTriangle } from 'lucide-react';
 import MobileBottomNav from '../../components/layout/BottomNav.js';
 
-// Navigation items for Resident
-const RESIDENT_NAV_ITEMS = [
-  { 
-    id: 'emergency', 
-    label: 'Emergencia', 
-    icon: AlertTriangle,
-    bgColor: 'bg-red-600',
-    glowColor: 'shadow-red-500/40'
-  },
-  { id: 'visits', label: 'Visitas', icon: Users },
-  { id: 'reservations', label: 'Reservas', icon: Calendar },
-  { id: 'directory', label: 'Personas', icon: Users },
-  { id: 'profile', label: 'Perfil', icon: User },
-];
-
 const ResidentLayout = ({ children, activeTab, onTabChange, title = 'GENTURIX' }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  // Navigation items with translations
+  const RESIDENT_NAV_ITEMS = useMemo(() => [
+    { 
+      id: 'emergency', 
+      label: t('resident.emergency'), 
+      icon: AlertTriangle,
+      bgColor: 'bg-red-600',
+      glowColor: 'shadow-red-500/40'
+    },
+    { id: 'visits', label: t('resident.visits'), icon: Users },
+    { id: 'reservations', label: t('resident.reservations'), icon: Calendar },
+    { id: 'directory', label: t('resident.directory'), icon: Users },
+    { id: 'profile', label: t('resident.profile'), icon: User },
+  ], [t]);
 
   const handleLogout = async () => {
     await logout();
