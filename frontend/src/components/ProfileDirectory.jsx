@@ -63,38 +63,23 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { user } = useAuth();
-  const [directory, setDirectory] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
   
-  // NEW: State for embedded profile modal
+  // State for embedded profile modal
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [profileModalUser, setProfileModalUser] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
 
-  // Refetch when user profile_photo changes (after profile update)
-  const userPhotoKey = user?.profile_photo || 'no-photo';
-
-  useEffect(() => {
-    const fetchDirectory = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const data = await api.getCondominiumDirectory();
-        setDirectory(data);
-      } catch (err) {
-        console.error('Error fetching directory:', err);
-        setError(err.message || t('directory.loadError'));
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchDirectory();
-  }, [userPhotoKey, t]); // Refetch when user's photo changes
+  // TanStack Query: Directory data with caching
+  const { 
+    data: directory, 
+    isLoading, 
+    error: queryError 
+  } = useCondominiumDirectory();
+  
+  const error = queryError?.message || null;
 
   const handleViewProfile = async (userId, userBasicInfo) => {
     if (onViewProfile) {
