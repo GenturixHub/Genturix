@@ -103,7 +103,10 @@ const getFilterPeriods = (t) => [
 // ============================================
 // VISIT ENTRY CARD
 // ============================================
-const VisitEntryCard = ({ entry }) => {
+const VisitEntryCard = ({ entry, t }) => {
+  const VISITOR_TYPES = getVisitorTypes(t);
+  const STATUS_CONFIG = getStatusConfig(t);
+  
   const visitorType = VISITOR_TYPES[entry.display_type] || VISITOR_TYPES.visitor;
   const VisitorIcon = visitorType.icon;
   const statusConfig = STATUS_CONFIG[entry.status] || STATUS_CONFIG.completed;
@@ -112,10 +115,12 @@ const VisitEntryCard = ({ entry }) => {
   // Format duration
   const formatDuration = (minutes) => {
     if (!minutes) return null;
-    if (minutes < 60) return `${minutes} min`;
+    if (minutes < 60) return t('visitors.history.duration.minutes', { count: minutes });
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    return mins > 0 
+      ? t('visitors.history.duration.hoursMinutes', { hours, minutes: mins })
+      : t('visitors.history.duration.hours', { hours });
   };
   
   // Format time
@@ -153,7 +158,7 @@ const VisitEntryCard = ({ entry }) => {
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="font-semibold text-white truncate">{entry.visitor_name || 'Visitante'}</p>
+                <p className="font-semibold text-white truncate">{entry.visitor_name || t('visitors.visitorTypes.visitor')}</p>
                 <p className="text-xs text-muted-foreground">{visitorType.label}</p>
               </div>
               <Badge className={`${statusConfig.color} flex-shrink-0 text-[10px]`}>
