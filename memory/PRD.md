@@ -1,8 +1,56 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 25, 2026 (i18n Migration - Reservations & Directory Modules)
+## Last Updated: February 25, 2026 (TanStack Query v5 Migration - Guard Role)
 
 ## Changelog
+
+### 2026-02-25 (Session 82) - TanStack Query v5 Migration: Guard Role ✅
+
+**FEATURE COMPLETE: Guard Role Data Fetching Migrated to TanStack Query**
+
+1. **📁 Files Modified/Created:**
+   - `/frontend/src/hooks/queries/useGuardQueries.js` - CREATED: Centralized TanStack Query hooks for Guard role
+   - `/frontend/src/pages/GuardUI.js` - MODIFIED: Refactored to use TanStack Query hooks
+
+2. **🔄 Query Architecture:**
+   - **guardKeys** - Centralized query key factory:
+     - `['guard', 'alerts']` - Panic alerts (5s polling, CRITICAL)
+     - `['guard', 'clockStatus']` - Clock in/out status (15s staleTime)
+     - `['guard', 'visitorEntries']` - Visitors inside/pending/exits (30s staleTime, 60s refetch)
+     - `['guard', 'shift']` - Shift data (5min staleTime)
+     - `['guard', 'absences']` - Absence requests (60s staleTime)
+     - `['guard', 'history', filter]` - Activity history (60s staleTime)
+
+3. **🪝 Hooks Created:**
+   - `useGuardAlerts()` - Real-time panic alerts with 5s polling
+   - `useGuardClockStatus()` - Guard clock in/out status
+   - `useGuardVisitorEntries()` - Pending/inside/exits visitors
+   - `useGuardShift()` - Current and next shift
+   - `useGuardAbsences()` - Absence requests
+   - `useGuardShiftData()` - Combined shift + absences
+   - `useGuardHistory(filter)` - Activity history
+
+4. **🔄 Mutations Created:**
+   - `useResolveAlert()` - Resolve panic alert
+   - `useClockInOut()` - Clock in/out action
+   - `useGuardCheckIn()` - Check-in visitor
+   - `useGuardCheckOut()` - Check-out visitor
+   - `useCreateAbsence()` - Create absence request
+
+5. **✅ Test Results (100% Pass Rate):**
+   - Backend: 100% (6/6 API tests passed)
+   - Frontend: 100% (all Guard tabs loading correctly)
+   - Alert Polling: ✓ (5 calls detected in 7s observation)
+   - Caching: ✓ (minimal duplicate calls on tab switches)
+   - Mutations: ✓ (query invalidation working)
+
+6. **🔑 Credentials Update:**
+   - Guard: `guarda1@genturix.com` / `Guard123!` (CORRECT)
+   - Previous handoff had incorrect credentials
+
+**All tests passed. Guard role fully migrated to TanStack Query v5.**
+
+---
 
 ### 2026-02-25 (Session 81) - i18n Migration: Reservations & Directory Modules ✅
 
