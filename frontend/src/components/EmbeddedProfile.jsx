@@ -104,10 +104,14 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
   const { user, refreshUser, logout } = useAuth();
   const navigate = useNavigate();
   
-  const [profile, setProfile] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState(null);
+  // TanStack Query: Profile data with instant cache rendering
+  const effectiveUserId = userId && userId !== user?.id ? userId : null;
+  const { profile: queryProfile, isLoading, error: queryError, isOwnProfile } = useProfile(effectiveUserId);
+  
+  // TanStack Query: Update profile mutation
+  const updateProfileMutation = useUpdateProfile();
+  
+  // Local UI state only
   const [success, setSuccess] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
@@ -119,8 +123,23 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
     public_description: ''
   });
 
-  const isOwnProfile = !userId || userId === user?.id;
+  // Derive profile from query or fallback to auth user
+  const profile = queryProfile || (isOwnProfile ? user : null);
+  const error = queryError?.message || null;
+  const isSaving = updateProfileMutation.isPending;
   const currentPhoto = editMode ? formData.profile_photo : profile?.profile_photo;
+
+  // Sync form data when profile loads (only once or when profile changes)
+  useEffect(() => {
+    if (profile && isOwnProfile) {
+      setFormData({
+        full_name: profile.full_name || '',
+        phone: profile.phone || '',
+        profile_photo: profile.profile_photo || '',
+        public_description: profile.public_description || ''
+      });
+    }
+  }, [profile?.id, isOwnProfile]);
 
   const handleLogout = () => {
     logout();
@@ -134,47 +153,6 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
       navigate(-1);
     }
   };
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        let data;
-        if (isOwnProfile) {
-          data = await api.get('/profile');
-          setFormData({
-            full_name: data.full_name || '',
-            phone: data.phone || '',
-            profile_photo: data.profile_photo || '',
-            public_description: data.public_description || ''
-          });
-        } else {
-          data = await api.getPublicProfile(userId);
-        }
-        setProfile(data);
-      } catch (err) {
-        console.error('Error fetching profile:', err);
-        setError(err.message || 'Error al cargar perfil');
-        if (isOwnProfile && user) {
-          setProfile(user);
-          setFormData({
-            full_name: user.full_name || '',
-            phone: user.phone || '',
-            profile_photo: user.profile_photo || '',
-            public_description: user.public_description || ''
-          });
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (user) {
-      fetchProfile();
-    }
-  }, [user, userId, isOwnProfile]);
 
   const handleSave = async () => {
     setIsSaving(true);
