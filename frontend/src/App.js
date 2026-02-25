@@ -34,6 +34,17 @@ import usePWAInstall from './hooks/usePWAInstall';
 import './App.css';
 
 // TanStack Query Client Configuration
+// Keys that should NOT be persisted (real-time critical data)
+const shouldDehydrateQuery = (query) => {
+  const queryKey = query.queryKey;
+  if (!queryKey || !Array.isArray(queryKey)) return true;
+  
+  const keyString = queryKey.join('.');
+  // Exclude guard data, alerts, and real-time status from persistence
+  const excludePatterns = ['guard', 'alerts', 'clockStatus', 'unreadCount'];
+  return !excludePatterns.some(pattern => keyString.includes(pattern));
+};
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -42,6 +53,9 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       retry: 1,
       refetchOnMount: false,     // Use cached data on mount, refetch only if stale
+    },
+    dehydrate: {
+      shouldDehydrateQuery,      // Filter which queries get persisted
     },
   },
 });
