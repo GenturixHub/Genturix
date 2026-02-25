@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 class GenturixRolesTester:
-    def __init__(self, base_url: str = "https://panic-button-pro.preview.emergentagent.com"):
+    def __init__(self, base_url: str = "https://visits-multlang.preview.emergentagent.com"):
         self.base_url = base_url.rstrip('/')
         self.tests_run = 0
         self.tests_passed = 0
