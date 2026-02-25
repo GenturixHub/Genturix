@@ -1213,40 +1213,25 @@ const ManualEntryTab = ({ onRefresh }) => {
 // TAB 4: MY SHIFT (HR Integration)
 // ============================================
 const MyShiftTab = ({ clockStatus, onClockInOut, isClocking, onClockSuccess }) => {
-  const [shiftData, setShiftData] = useState(null);
-  const [absences, setAbsences] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [clockError, setClockError] = useState(null);
+  
+  // TanStack Query: Shift and absences data with automatic caching
+  const { 
+    shiftData, 
+    absences, 
+    isLoading: loading, 
+    error: queryError,
+    refetch: fetchShiftData 
+  } = useGuardShiftData();
+  
+  const error = queryError?.message || null;
 
-  const fetchShiftData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [shiftInfo, absenceData] = await Promise.all([
-        api.getGuardMyShift(),
-        api.getGuardMyAbsences()
-      ]);
-      setShiftData(shiftInfo);
-      setAbsences(absenceData);
-    } catch (err) {
-      console.error('Error fetching shift data:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchShiftData();
-  }, []);
-
-  // Refresh shift data after clock action
+  // Refresh shift data after clock action changes
   useEffect(() => {
     if (clockStatus) {
       fetchShiftData();
     }
-  }, [clockStatus?.is_clocked_in]);
+  }, [clockStatus?.is_clocked_in, fetchShiftData]);
 
   const handleClockAction = async () => {
     setClockError(null);
