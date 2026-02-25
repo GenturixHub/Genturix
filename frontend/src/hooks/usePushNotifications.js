@@ -344,7 +344,6 @@ export function usePushNotifications() {
       console.log('[PUSH-SYNC] ========== SUBSCRIBE SUCCESS ==========');
 
       setIsSubscribed(true);
-      setSyncState(SyncState.SYNCED);
       return true;
 
     } catch (err) {
@@ -400,7 +399,6 @@ export function usePushNotifications() {
       }
 
       setIsSubscribed(false);
-      setSyncState(SyncState.SYNCED);
       return true;
 
     } catch (err) {
@@ -416,9 +414,9 @@ export function usePushNotifications() {
   const refreshSync = useCallback(async () => {
     if (registration && !syncInProgressRef.current) {
       console.log('[PUSH-SYNC] Manual refresh triggered');
-      await syncSubscriptionState(registration);
+      syncSubscriptionStateBackground(registration);
     }
-  }, [registration, syncSubscriptionState]);
+  }, [registration, syncSubscriptionStateBackground]);
 
   // Test notification (for debugging)
   const testNotification = useCallback(() => {
@@ -442,10 +440,14 @@ export function usePushNotifications() {
     isLoading,
     error,
     
-    // Sync state - use this to prevent banner flashing
-    syncState,
-    isSyncing: syncState === SyncState.PENDING || syncState === SyncState.SYNCING,
-    isSynced: syncState === SyncState.SYNCED,
+    // v3.0: isInitialized replaces isSynced/isSyncing for non-blocking behavior
+    // isInitialized becomes true as soon as local SW check completes (fast)
+    // Background sync continues but doesn't block UI
+    isInitialized,
+    
+    // Legacy compatibility - but these are now instant (based on local check)
+    isSyncing: !isInitialized,
+    isSynced: isInitialized,
     
     // Actions
     subscribe,
