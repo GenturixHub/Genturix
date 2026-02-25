@@ -895,47 +895,38 @@ const ResidentUI = () => {
   const [sendingType, setSendingType] = useState(null);
   const [sentAlert, setSentAlert] = useState(null);
   
-  // Notifications state
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  // TanStack Query: Notifications with automatic polling (replaces manual setInterval)
+  const { 
+    data: notificationsData = [], 
+    refetch: refetchNotifications,
+    isRefetching: isRefreshingNotifications
+  } = useResidentNotifications();
+  
+  const { 
+    data: unreadCountData = 0,
+    refetch: refetchUnreadCount 
+  } = useUnreadNotificationCount();
+  
+  const markReadMutation = useMarkNotificationRead();
+  
+  // Derive state from query data
+  const notifications = Array.isArray(notificationsData) ? notificationsData.slice(0, 20) : [];
+  const unreadCount = unreadCountData || 0;
+  
+  // UI state for notifications panel
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [isRefreshingNotifications, setIsRefreshingNotifications] = useState(false);
 
-  // Fetch notifications
-  const fetchNotifications = useCallback(async () => {
-    try {
-      const [notifData, countData] = await Promise.all([
-        api.getVisitorNotifications(false),
-        api.getResidentUnreadNotificationCount()
-      ]);
-      
-      setNotifications(Array.isArray(notifData) ? notifData.slice(0, 20) : []);
-      setUnreadCount(countData?.count || 0);
-    } catch (err) {
-      console.error('Error fetching notifications:', err);
-      setNotifications([]);
-      setUnreadCount(0);
-    }
-  }, []);
-
-  // Initial fetch and polling for notifications
-  useEffect(() => {
-    fetchNotifications();
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, [fetchNotifications]);
+  // Refresh notifications callback (for child components)
+  const fetchNotifications = useCallback(() => {
+    refetchNotifications();
+    refetchUnreadCount();
+  }, [refetchNotifications, refetchUnreadCount]);
 
   // Mark single notification as read
   const handleMarkNotificationRead = async (notificationId, e) => {
     e?.stopPropagation();
     try {
-      await api.markNotificationRead(notificationId);
-      setNotifications(prev => prev.map(n => 
-        n.id === notificationId ? {...n, read: true} : n
-      ));
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      await markReadMutation.mutateAsync(notificationId);
     } catch (error) {
       console.error('Error marking notification read:', error);
     }
