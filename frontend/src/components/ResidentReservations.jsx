@@ -555,19 +555,19 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
                   ) : (
                     <>
                       <AlertCircle className="w-3.5 h-3.5" />
-                      <span>{availability.message || 'No hay disponibilidad para esta fecha'}</span>
+                      <span>{availability.message || t('reservations.noAvailability')}</span>
                     </>
                   )}
                 </div>
                 {/* Show user limit warning */}
                 {availability.user_can_reserve === false && (
                   <div className="mt-1 text-[10px] opacity-80">
-                    Has alcanzado el límite de {availability.max_reservations_per_user_per_day} reservación(es) por día
+                    {t('reservations.userLimitReached', { count: availability.max_reservations_per_user_per_day })}
                   </div>
                 )}
                 {!availability.is_day_allowed && (
                   <div className="mt-1 text-[10px] opacity-80">
-                    {availability.day_name && `${availability.day_name} no está habilitado para esta área`}
+                    {availability.day_name && t('reservations.dayNotAllowed', { day: availability.day_name })}
                   </div>
                 )}
               </div>
@@ -578,9 +578,9 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <Clock className="w-3.5 h-3.5 text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground font-medium">Selecciona un horario</span>
+                      <span className="text-xs text-muted-foreground font-medium">{t('reservations.selectTime')}</span>
                     </div>
-                    <span className="text-[10px] text-primary animate-pulse">← Clic para seleccionar</span>
+                    <span className="text-[10px] text-primary animate-pulse">← {t('reservations.clickToSelect')}</span>
                   </div>
                   <div className="grid grid-cols-4 gap-1.5">
                     {availability.time_slots.map((slot, idx) => {
@@ -613,9 +613,9 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
                           title={
                             isAvailable 
                               ? (slot.remaining_slots !== undefined 
-                                  ? `${slotTime} - ${slot.remaining_slots}/${slot.total_capacity} cupos`
-                                  : 'Clic para seleccionar este horario')
-                              : (slotStatus === 'full' ? 'Sin cupos disponibles' : 'Horario ocupado')
+                                  ? t('reservations.slotTooltipCapacity', { time: slotTime, remaining: slot.remaining_slots, total: slot.total_capacity })
+                                  : t('reservations.slotTooltipAvailable'))
+                              : (slotStatus === 'full' ? t('reservations.slotTooltipFull') : t('reservations.slotTooltipOccupied'))
                           }
                           data-testid={`time-slot-${idx}`}
                         >
