@@ -52,6 +52,12 @@ import ResidentVisitsModule from '../components/ResidentVisitsModule';
 import PushPermissionBanner from '../components/PushPermissionBanner';
 import ResidentReservations from '../components/ResidentReservations';
 import MobileBottomNav, { useIsMobile } from '../components/layout/BottomNav';
+// TanStack Query hooks for data fetching
+import { 
+  useResidentNotifications, 
+  useUnreadNotificationCount,
+  useMarkNotificationRead 
+} from '../hooks/queries/useResidentQueries';
 import { 
   Heart, 
   Eye, 
