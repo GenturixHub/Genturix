@@ -4,51 +4,53 @@
 
 ## Changelog
 
-### 2026-02-25 (Session 82) - TanStack Query v5 Migration: Guard Role ✅
+### 2026-02-25 (Session 82) - TanStack Query v5 Migration: Guard Role + Performance Fix ✅
 
-**FEATURE COMPLETE: Guard Role Data Fetching Migrated to TanStack Query**
+**FEATURE COMPLETE: Guard Role + Profile Performance Optimization**
 
-1. **📁 Files Modified/Created:**
-   - `/frontend/src/hooks/queries/useGuardQueries.js` - CREATED: Centralized TanStack Query hooks for Guard role
-   - `/frontend/src/pages/GuardUI.js` - MODIFIED: Refactored to use TanStack Query hooks
+**Part 1: Guard Role Migration (from previous session)**
+- Guard UI successfully migrated to TanStack Query v5
+- All hooks working: useGuardAlerts (5s polling), useGuardClockStatus, etc.
+- Test results: 100% pass rate
 
-2. **🔄 Query Architecture:**
-   - **guardKeys** - Centralized query key factory:
-     - `['guard', 'alerts']` - Panic alerts (5s polling, CRITICAL)
-     - `['guard', 'clockStatus']` - Clock in/out status (15s staleTime)
-     - `['guard', 'visitorEntries']` - Visitors inside/pending/exits (30s staleTime, 60s refetch)
-     - `['guard', 'shift']` - Shift data (5min staleTime)
-     - `['guard', 'absences']` - Absence requests (60s staleTime)
-     - `['guard', 'history', filter]` - Activity history (60s staleTime)
+**Part 2: Profile Performance Fix ✅**
 
-3. **🪝 Hooks Created:**
-   - `useGuardAlerts()` - Real-time panic alerts with 5s polling
-   - `useGuardClockStatus()` - Guard clock in/out status
-   - `useGuardVisitorEntries()` - Pending/inside/exits visitors
-   - `useGuardShift()` - Current and next shift
-   - `useGuardAbsences()` - Absence requests
-   - `useGuardShiftData()` - Combined shift + absences
-   - `useGuardHistory(filter)` - Activity history
+1. **📁 Files Created/Modified:**
+   - `/frontend/src/hooks/queries/useProfileQueries.js` - CREATED: TanStack Query hooks for profile
+   - `/frontend/src/components/EmbeddedProfile.jsx` - MODIFIED: Migrated from useEffect to TanStack Query
+   - `/frontend/src/App.js` - MODIFIED: Changed `refetchOnMount: true` → `false`
 
-4. **🔄 Mutations Created:**
-   - `useResolveAlert()` - Resolve panic alert
-   - `useClockInOut()` - Clock in/out action
-   - `useGuardCheckIn()` - Check-in visitor
-   - `useGuardCheckOut()` - Check-out visitor
-   - `useCreateAbsence()` - Create absence request
+2. **🔍 Root Cause Analysis:**
+   - **Problem 1:** EmbeddedProfile used manual `useEffect`/`useState` pattern → No caching, full fetch on every mount
+   - **Problem 2:** `refetchOnMount: true` in QueryClient → Refetched data even when cache was fresh
+   - **Result:** Profile tab showed loading spinner every time, even with cached data
 
-5. **✅ Test Results (100% Pass Rate):**
-   - Backend: 100% (6/6 API tests passed)
-   - Frontend: 100% (all Guard tabs loading correctly)
-   - Alert Polling: ✓ (5 calls detected in 7s observation)
-   - Caching: ✓ (minimal duplicate calls on tab switches)
-   - Mutations: ✓ (query invalidation working)
+3. **🔧 Fixes Applied:**
+   - Created `useProfile()` hook with 5-minute `staleTime` and 10-minute `gcTime`
+   - Created `useUpdateProfile()` mutation with automatic cache invalidation
+   - Changed QueryClient `refetchOnMount` from `true` to `false`
+   - Removed 40+ lines of manual fetch logic from EmbeddedProfile
 
-6. **🔑 Credentials Update:**
-   - Guard: `guarda1@genturix.com` / `Guard123!` (CORRECT)
-   - Previous handoff had incorrect credentials
+4. **✅ Performance Results:**
+   - Resident Profile: **98ms** from cache (was ~800-1200ms)
+   - Guard Profile: **123ms** from cache
+   - No loading spinners on second visit
+   - Instant tab switching verified
 
-**All tests passed. Guard role fully migrated to TanStack Query v5.**
+**Query Architecture:**
+```javascript
+profileKeys = {
+  all: ['profile'],
+  own: () => ['profile', 'own'],
+  public: (userId) => ['profile', 'public', userId]
+}
+
+// staleTime: 5 minutes (profile rarely changes)
+// gcTime: 10 minutes
+// refetchOnMount: false (use cache if fresh)
+```
+
+**Reservations Module:** Already optimized - no changes needed.
 
 ---
 
