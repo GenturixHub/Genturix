@@ -64,9 +64,9 @@ class TestGuardAlertsAPI:
     """Test Alerts API - useGuardAlerts hook"""
     
     def test_get_panic_events(self, auth_headers):
-        """Test GET /api/panic/events returns alerts array"""
+        """Test GET /api/security/panic-events returns alerts array"""
         response = requests.get(
-            f"{BASE_URL}/api/panic/events",
+            f"{BASE_URL}/api/security/panic-events",
             headers=auth_headers
         )
         assert response.status_code == 200, f"Failed to get panic events: {response.text}"
@@ -88,9 +88,9 @@ class TestGuardClockAPI:
     """Test Clock Status API - useGuardClockStatus hook"""
     
     def test_get_clock_status(self, auth_headers):
-        """Test GET /api/guard/clock-status returns clock status"""
+        """Test GET /api/hr/clock/status returns clock status"""
         response = requests.get(
-            f"{BASE_URL}/api/guard/clock-status",
+            f"{BASE_URL}/api/hr/clock/status",
             headers=auth_headers
         )
         assert response.status_code == 200, f"Failed to get clock status: {response.text}"
