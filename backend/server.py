@@ -3576,7 +3576,8 @@ async def subscribe_to_push(
     
     await db.push_subscriptions.insert_one(sub_doc)
     
-    logger.info(f"[PUSH] Subscription CREATED for user {user_id} (role={primary_role}, condo={condo_id[:8] if condo_id else 'N/A'}...)")
+    logger.info(f"[PUSH-SUBSCRIBE-DEBUG] Subscription CREATED for user {user_id[:12]}... (role={primary_role}, condo={condo_id[:8] if condo_id else 'N/A'}...)")
+    logger.info(f"[PUSH-SUBSCRIBE-DEBUG] ======= REQUEST SUCCESS =======")
     return {
         "message": "Suscripción exitosa",
         "status": "created",
