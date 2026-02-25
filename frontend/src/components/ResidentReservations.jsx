@@ -832,50 +832,24 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
 };
 
 // ============================================
-// MAIN COMPONENT
+// MAIN COMPONENT (TanStack Query v5)
 // ============================================
 const ResidentReservations = () => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('areas');
-  const [areas, setAreas] = useState([]);
-  const [myReservations, setMyReservations] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [selectedArea, setSelectedArea] = useState(null);
   const [showReservationForm, setShowReservationForm] = useState(false);
   
   // Cancel confirmation dialog state
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [reservationToCancel, setReservationToCancel] = useState(null);
-  const [isCancelling, setIsCancelling] = useState(false);
   
-  // Load data
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [areasData, reservationsData] = await Promise.all([
-        api.getReservationAreas(),
-        api.getReservations()
-      ]);
-      setAreas(areasData.filter(a => a.is_active !== false));
-      setMyReservations(reservationsData);
-    } catch (error) {
-      console.error('Error loading reservations data:', error);
-      // Silently fail if module is not enabled or no data
-      // Only show error for unexpected failures
-      if (!error.message?.includes('módulo') && !error.message?.includes('No encontrado') && error.status !== 404) {
-        // Don't show toast for expected "no data" scenarios
-        if (error.status >= 500) {
-          toast.error(t('reservations.loadError'));
-        }
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [t]);
+  // TanStack Query: Data fetching with automatic caching
+  const { areas, reservations: myReservations, isLoading: loading, refetch: loadData } = useReservationsData();
   
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  // TanStack Query: Mutations
+  const createReservationMutation = useCreateReservation();
+  const cancelReservationMutation = useCancelReservation();
   
   const handleReserve = (area) => {
     setSelectedArea(area);
@@ -884,9 +858,8 @@ const ResidentReservations = () => {
   
   const handleCreateReservation = async (reservationData) => {
     try {
-      await api.createReservation(reservationData);
+      await createReservationMutation.mutateAsync(reservationData);
       toast.success(t('reservations.reservationCreated'));
-      loadData();
     } catch (error) {
       const errorMessage = error?.message || (typeof error === 'string' ? error : t('reservations.reservationCreateError'));
       toast.error(errorMessage);
@@ -904,20 +877,19 @@ const ResidentReservations = () => {
   const confirmCancelReservation = async () => {
     if (!reservationToCancel) return;
     
-    setIsCancelling(true);
     try {
-      await api.cancelReservation(reservationToCancel.id);
+      await cancelReservationMutation.mutateAsync(reservationToCancel.id);
       toast.success(t('reservations.reservationCancelled'));
       setShowCancelDialog(false);
       setReservationToCancel(null);
-      loadData();
     } catch (error) {
       const errorMessage = error?.message || (typeof error === 'string' ? error : t('errors.generic'));
       toast.error(errorMessage);
-    } finally {
-      setIsCancelling(false);
     }
   };
+  
+  // Derive cancelling state from mutation
+  const isCancelling = cancelReservationMutation.isPending;
   
   // Close cancel dialog
   const closeCancelDialog = () => {
