@@ -497,10 +497,10 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <AreaIcon className="w-5 h-5 text-primary" />
-            Reservar {area.name}
+            {t('reservations.reserveArea', { name: area.name })}
           </DialogTitle>
           <DialogDescription>
-            {area.requires_approval ? 'Esta área requiere aprobación del administrador' : 'Tu reservación será confirmada automáticamente'}
+            {area.requires_approval ? t('reservations.adminApproval') : t('reservations.autoApproved')}
           </DialogDescription>
         </DialogHeader>
         
@@ -508,7 +508,7 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
           <div className="space-y-4 py-2">
           {/* Date Selection */}
           <div className="space-y-1.5">
-            <Label className="text-xs">Fecha de Reservación</Label>
+            <Label className="text-xs">{t('reservations.reservationDate')}</Label>
             <Input
               type="date"
               value={form.date}
@@ -521,7 +521,7 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
             {area.allowed_days && area.allowed_days.length < 7 && (
               <div className="flex items-start gap-2 text-xs text-blue-400 mt-1">
                 <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                <span>Disponible solo: {area.allowed_days.join(', ')}</span>
+                <span>{t('reservations.availableOnly', { days: area.allowed_days.join(', ') })}</span>
               </div>
             )}
           </div>
@@ -530,7 +530,7 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
           {loadingAvailability ? (
             <div className="flex items-center gap-2 text-xs text-muted-foreground p-3 bg-[#0A0A0F] rounded-lg">
               <Loader2 className="w-3 h-3 animate-spin" />
-              Verificando disponibilidad...
+              {t('reservations.checkingAvailability')}
             </div>
           ) : availability && (
             <div className="space-y-3">
@@ -546,8 +546,9 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
                       <CheckCircle className="w-3.5 h-3.5" />
                       <span>
                         {availability.reservation_behavior === 'capacity' 
-                          ? `${availability.available_slots_count} horarios disponibles`
-                          : `${availability.available_slots_count || availability.slots_remaining} espacios disponibles`
+                          ? t('reservations.timeSlotsAvailable', { count: availability.available_slots_count })
+                          : t('reservations.slotsAvailable', { count: availability.available_slots_count || availability.slots_remaining })
+                        }
                         }
                       </span>
                     </>
