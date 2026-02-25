@@ -1,13 +1,15 @@
 /**
- * GENTURIX - Profile Directory Component
+ * GENTURIX - Profile Directory Component (TanStack Query v5)
  * Shows all users in the same condominium grouped by role
  * Can be embedded in any role's UI (Guard, Resident, Admin, HR)
  * 
  * When embedded=true, clicking a profile shows it in a modal (no navigation)
  * This prevents users from getting stuck in isolated profile pages
+ * 
+ * Uses TanStack Query for data fetching with caching.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,6 +27,7 @@ import {
   DialogDescription,
 } from './ui/dialog';
 import api from '../services/api';
+import { useCondominiumDirectory } from '../hooks/queries/useResidentQueries';
 import {
   Users,
   Search,
