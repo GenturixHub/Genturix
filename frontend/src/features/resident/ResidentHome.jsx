@@ -1,12 +1,14 @@
 /**
- * GENTURIX - Resident Home
+ * GENTURIX - Resident Home (i18n)
  * 
  * Main resident interface with emergency, visits, reservations, directory and profile.
  * Uses independent ResidentLayout for mobile-first experience.
+ * Full i18n support.
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { Tabs, TabsContent } from '../../components/ui/tabs';
 import { Badge } from '../../components/ui/badge';
@@ -54,68 +56,14 @@ import {
 import '../../styles/emergency-buttons.css';
 
 // ============================================
-// EMERGENCY TYPES CONFIGURATION
+// GPS STATUS COMPONENT (i18n)
 // ============================================
-const EMERGENCY_TYPES = {
-  emergencia_general: {
-    id: 'emergencia_general',
-    label: 'Emergencia General',
-    shortLabel: 'EMERGENCIA',
-    subLabel: 'Presiona para alertar',
-    icon: AlertTriangle,
-    colors: {
-      bg: 'bg-red-500/20',
-      text: 'text-red-400',
-      border: 'border-red-500/30',
-      button: 'bg-gradient-to-br from-red-500 to-red-700',
-      glow: 'shadow-red-500/50',
-      icon: 'text-white',
-    },
-    priority: 1,
-  },
-  emergencia_medica: {
-    id: 'emergencia_medica',
-    label: 'Emergencia Médica',
-    shortLabel: 'MÉDICA',
-    icon: Heart,
-    colors: {
-      bg: 'bg-green-500/20',
-      text: 'text-green-400',
-      border: 'border-green-500/30',
-      button: 'bg-gradient-to-br from-green-500 to-green-700',
-      glow: 'shadow-green-500/50',
-      icon: 'text-white',
-    },
-    priority: 2,
-  },
-  actividad_sospechosa: {
-    id: 'actividad_sospechosa',
-    label: 'Actividad Sospechosa',
-    shortLabel: 'SEGURIDAD',
-    icon: Eye,
-    colors: {
-      bg: 'bg-yellow-500/20',
-      text: 'text-yellow-400',
-      border: 'border-yellow-500/30',
-      button: 'bg-gradient-to-br from-yellow-500 to-yellow-700',
-      glow: 'shadow-yellow-500/50',
-      icon: 'text-black',
-    },
-    priority: 2,
-  },
-};
-
-// (Legacy emergency button components removed - using PremiumPanicButton)
-
-// ============================================
-// GPS STATUS COMPONENT
-// ============================================
-const GPSStatus = ({ location, isLoading, error }) => {
+const GPSStatus = ({ location, isLoading, error, t }) => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-full bg-[#1E293B]/50 mx-auto w-fit">
         <Loader2 className="w-4 h-4 animate-spin text-primary" />
-        <span className="text-xs text-muted-foreground">Obteniendo ubicación...</span>
+        <span className="text-xs text-muted-foreground">{t('emergency.gettingLocation')}</span>
       </div>
     );
   }
@@ -132,7 +80,7 @@ const GPSStatus = ({ location, isLoading, error }) => {
   return (
     <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-full bg-green-500/10 border border-green-500/20 mx-auto w-fit">
       <MapPin className="w-4 h-4 text-green-400" />
-      <span className="text-xs text-green-400">GPS activo</span>
+      <span className="text-xs text-green-400">{t('emergency.gpsActive')}</span>
       {location?.accuracy && (
         <span className="text-[10px] text-muted-foreground">±{Math.round(location.accuracy)}m</span>
       )}
@@ -141,43 +89,64 @@ const GPSStatus = ({ location, isLoading, error }) => {
 };
 
 // ============================================
-// SUCCESS SCREEN
+// SUCCESS SCREEN (i18n)
 // ============================================
-const SuccessScreen = ({ alert, onDismiss }) => {
-  const config = EMERGENCY_TYPES[alert.type];
-  const IconComponent = config?.icon || AlertTriangle;
+const SuccessScreen = ({ alert, onDismiss, t }) => {
+  const getAlertConfig = (type) => {
+    const configs = {
+      emergencia_general: {
+        label: t('emergency.generalFull'),
+        icon: AlertTriangle,
+        colors: { bg: 'bg-red-500/20', text: 'text-red-400' }
+      },
+      emergencia_medica: {
+        label: t('emergency.medicalFull'),
+        icon: Heart,
+        colors: { bg: 'bg-green-500/20', text: 'text-green-400' }
+      },
+      actividad_sospechosa: {
+        label: t('emergency.securityFull'),
+        icon: Eye,
+        colors: { bg: 'bg-blue-500/20', text: 'text-blue-400' }
+      }
+    };
+    return configs[type] || configs.emergencia_general;
+  };
+
+  const config = getAlertConfig(alert.type);
+  const IconComponent = config.icon;
 
   return (
     <div className="fixed inset-0 z-50 bg-[#05050A] flex flex-col items-center justify-center p-6">
       <div className="w-24 h-24 rounded-full bg-green-500/20 flex items-center justify-center mb-6 animate-pulse">
         <CheckCircle className="w-12 h-12 text-green-400" />
       </div>
-      <h1 className="text-2xl font-bold text-white mb-2 text-center">Alerta Enviada</h1>
+      <h1 className="text-2xl font-bold text-white mb-2 text-center">{t('emergency.alertSent')}</h1>
       <p className="text-muted-foreground text-center mb-6">
         {alert.guards > 0 
-          ? `${alert.guards} guardias han sido notificados`
-          : 'La alerta ha sido registrada'
+          ? t('emergency.guardsNotified', { count: alert.guards })
+          : t('emergency.alertRegistered')
         }
       </p>
       <div className="bg-[#0F111A] border border-[#1E293B] rounded-2xl p-4 w-full max-w-sm mb-6">
         <div className="flex items-center gap-3 mb-3">
-          <div className={`w-10 h-10 rounded-lg ${config?.colors.bg} flex items-center justify-center`}>
-            <IconComponent className={`w-5 h-5 ${config?.colors.text}`} />
+          <div className={`w-10 h-10 rounded-lg ${config.colors.bg} flex items-center justify-center`}>
+            <IconComponent className={`w-5 h-5 ${config.colors.text}`} />
           </div>
           <div>
-            <p className="font-semibold text-white">{config?.label}</p>
+            <p className="font-semibold text-white">{config.label}</p>
             <p className="text-xs text-muted-foreground">{alert.time}</p>
           </div>
         </div>
         {alert.location && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <MapPin className="w-3 h-3" />
-            <span>Ubicación enviada</span>
+            <span>{t('emergency.locationSent')}</span>
           </div>
         )}
       </div>
       <Button onClick={onDismiss} variant="outline" className="min-h-[48px] px-8">
-        Cerrar
+        {t('common.close')}
       </Button>
     </div>
   );
@@ -186,7 +155,7 @@ const SuccessScreen = ({ alert, onDismiss }) => {
 // ============================================
 // EMERGENCY TAB (Dynamic Hierarchical Design)
 // ============================================
-const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, sendingType }) => (
+const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, sendingType, t }) => (
   <div 
     style={{
       height: '100%',
@@ -203,7 +172,7 @@ const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, s
   >
     {/* GPS Status */}
     <div className="flex-shrink-0">
-      <GPSStatus location={location} isLoading={locationLoading} error={locationError} />
+      <GPSStatus location={location} isLoading={locationLoading} error={locationError} t={t} />
     </div>
     
     {/* Dynamic Emergency Buttons */}
@@ -216,7 +185,7 @@ const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, s
     
     {/* Info Footer */}
     <p className="flex-shrink-0 text-xs text-center text-white/40 px-4">
-      Tu ubicación será enviada automáticamente con la alerta
+      {t('emergency.locationWillBeSent')}
     </p>
   </div>
 );
@@ -228,6 +197,7 @@ const ResidentHome = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('emergency');
   
   // Location state
@@ -246,7 +216,7 @@ const ResidentHome = () => {
   // GPS Location tracking
   useEffect(() => {
     if (!navigator.geolocation) {
-      setLocationError('GPS no soportado');
+      setLocationError(t('emergency.gpsNotSupported'));
       setLocationLoading(false);
       return;
     }
@@ -262,7 +232,7 @@ const ResidentHome = () => {
       },
       (err) => {
         console.error('GPS Error:', err);
-        setLocationError('No se pudo obtener ubicación');
+        setLocationError(t('emergency.gpsError'));
         setLocationLoading(false);
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
@@ -281,7 +251,7 @@ const ResidentHome = () => {
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
+  }, [t]);
 
   // PWA Shortcuts handler
   useEffect(() => {
@@ -300,13 +270,20 @@ const ResidentHome = () => {
 
     setSendingType(emergencyType);
 
+    // Get emergency type label for description
+    const typeLabels = {
+      emergencia_general: t('emergency.generalFull'),
+      emergencia_medica: t('emergency.medicalFull'),
+      actividad_sospechosa: t('emergency.securityFull')
+    };
+
     try {
       const result = await api.triggerPanic({
         panic_type: emergencyType,
         location: `Residencia de ${user.full_name}`,
         latitude: location?.latitude,
         longitude: location?.longitude,
-        description: `Alerta ${EMERGENCY_TYPES[emergencyType].label} activada por ${user.full_name}`,
+        description: `${typeLabels[emergencyType]} activada por ${user.full_name}`,
       });
 
       if (navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 300]);
@@ -315,7 +292,7 @@ const ResidentHome = () => {
         type: emergencyType,
         guards: result.notified_guards,
         location: location,
-        time: new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }),
+        time: new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }),
       });
 
       setTimeout(() => setSentAlert(null), 20000);
@@ -323,27 +300,27 @@ const ResidentHome = () => {
       console.error('[Panic] Error:', error);
       if (navigator.vibrate) navigator.vibrate(500);
       
-      let errorMessage = 'Error al enviar alerta. Intenta de nuevo o llama al 911.';
+      let errorMessage = t('emergency.errorGeneric');
       const status = error.status || error.response?.status;
       const detail = error.data?.detail || error.message;
       
       if (status === 401) {
-        errorMessage = 'Sesión expirada. Por favor, inicia sesión nuevamente.';
+        errorMessage = t('emergency.errorSessionExpired');
       } else if (status === 403) {
-        errorMessage = detail || 'No tienes permisos para enviar alertas.';
+        errorMessage = detail || t('emergency.errorNoPermission');
       } else if (detail) {
         errorMessage = detail;
       }
       
-      toast.error('Error de Emergencia', { description: errorMessage, duration: 10000 });
+      toast.error(t('emergency.errorTitle'), { description: errorMessage, duration: 10000 });
     } finally {
       setSendingType(null);
     }
-  }, [sendingType, location, user]);
+  }, [sendingType, location, user, t]);
 
   // Success Screen
   if (sentAlert) {
-    return <SuccessScreen alert={sentAlert} onDismiss={() => setSentAlert(null)} />;
+    return <SuccessScreen alert={sentAlert} onDismiss={() => setSentAlert(null)} t={t} />;
   }
 
   return (
@@ -356,6 +333,7 @@ const ResidentHome = () => {
             locationError={locationError}
             onEmergency={handleEmergency}
             sendingType={sendingType}
+            t={t}
           />
         </TabsContent>
 
