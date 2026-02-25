@@ -549,7 +549,6 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
                           ? t('reservations.timeSlotsAvailable', { count: availability.available_slots_count })
                           : t('reservations.slotsAvailable', { count: availability.available_slots_count || availability.slots_remaining })
                         }
-                        }
                       </span>
                     </>
                   ) : (
