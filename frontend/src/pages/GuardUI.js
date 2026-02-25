@@ -611,30 +611,15 @@ const AlertCard = ({ alert, onClick, isResolving, resolved, isHighlighted }) => 
 };
 
 // ============================================
-// TAB 2: VISITS (Pre-registered)
+// TAB 2: VISITS (Pre-registered) - TanStack Query
 // ============================================
 const VisitsTab = ({ onRefresh }) => {
-  const [data, setData] = useState({ pending: [], inside: [], exits: [] });
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeSection, setActiveSection] = useState('inside'); // inside, pending, exits
 
-  const fetchData = useCallback(async () => {
-    try {
-      const result = await api.getVisitsSummary();
-      setData(result);
-    } catch (error) {
-      console.error('Error fetching visits summary:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 15000);
-    return () => clearInterval(interval);
-  }, [fetchData]);
+  // TanStack Query: Visitor entries with automatic caching
+  const { data: visitorData, isLoading: loading, refetch } = useGuardVisitorEntries();
+  const data = visitorData || { pending: [], inside: [], exits: [] };
 
   // Filter all sections by search
   const filterBySearch = (items) => {
