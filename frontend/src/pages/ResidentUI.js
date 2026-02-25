@@ -940,9 +940,10 @@ const ResidentUI = () => {
       // Mark as read after 2 seconds of viewing
       setTimeout(async () => {
         try {
-          const result = await api.markAllNotificationsRead();
-          setNotifications(prev => prev.map(n => ({...n, read: true})));
-          setUnreadCount(0);
+          await api.markAllNotificationsRead();
+          // TanStack Query will refetch automatically via invalidation
+          refetchNotifications();
+          refetchUnreadCount();
         } catch (error) {
           console.error('Error marking all as read:', error);
         }
@@ -953,9 +954,7 @@ const ResidentUI = () => {
   // Manual refresh notifications
   const handleRefreshNotifications = async (e) => {
     e?.stopPropagation();
-    setIsRefreshingNotifications(true);
     await fetchNotifications();
-    setIsRefreshingNotifications(false);
     toast.success('Notificaciones actualizadas');
   };
 
