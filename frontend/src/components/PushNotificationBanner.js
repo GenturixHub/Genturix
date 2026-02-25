@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bell, BellOff, X, Check, AlertTriangle } from 'lucide-react';
+import { Bell, BellOff, X, Check, AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import usePushNotifications from '../hooks/usePushNotifications';
 
@@ -10,7 +10,9 @@ export function PushNotificationBanner({ onClose }) {
     isSubscribed,
     isLoading,
     error,
-    subscribe
+    subscribe,
+    isSyncing,  // NEW: Wait for sync before showing
+    isSynced    // NEW: Only show after sync complete
   } = usePushNotifications();
 
   // Initialize dismissed state from localStorage
@@ -18,6 +20,12 @@ export function PushNotificationBanner({ onClose }) {
     return localStorage.getItem('push_banner_dismissed') === 'true';
   });
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // CRITICAL: Don't show ANYTHING until sync is complete
+  // This prevents the banner from flashing during initial load
+  if (!isSynced || isSyncing) {
+    return null;
+  }
 
   // Don't show if not supported, already subscribed, permission denied, or dismissed
   if (!isSupported || isSubscribed || permission === 'denied' || dismissed) {
