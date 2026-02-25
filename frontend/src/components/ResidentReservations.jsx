@@ -460,11 +460,11 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
   
   const handleSave = async () => {
     if (!form.date) {
-      toast.error('Selecciona una fecha');
+      toast.error(t('reservations.selectDateError'));
       return;
     }
     if (!form.start_time) {
-      toast.error('Selecciona hora de inicio');
+      toast.error(t('reservations.selectTimeError'));
       return;
     }
     
