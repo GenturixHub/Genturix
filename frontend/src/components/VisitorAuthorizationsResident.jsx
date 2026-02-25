@@ -879,42 +879,32 @@ const NotificationsPanel = ({ notifications, onMarkRead, onMarkAllRead, onRefres
 };
 
 // ============================================
-// MAIN COMPONENT
+// MAIN COMPONENT (TanStack Query v5)
 // ============================================
 /**
- * v3.0: Receives notifications from parent (ResidentUI) to avoid duplicate API calls.
- * Only fetches authorizations data locally.
+ * v4.0: Uses TanStack Query for authorizations.
+ * Notifications still come from parent (ResidentUI) via props.
  */
 const VisitorAuthorizationsResident = ({ notifications: parentNotifications = [], onRefreshNotifications }) => {
   const { t } = useTranslation();
-  const [authorizations, setAuthorizations] = useState([]);
-  // Use parent notifications if provided, otherwise use local state
-  const [localNotifications, setLocalNotifications] = useState([]);
-  const notifications = parentNotifications.length > 0 ? parentNotifications : localNotifications;
-  const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingAuth, setEditingAuth] = useState(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
-  // v3.0: Only fetch authorizations - notifications come from parent
-  const fetchData = useCallback(async () => {
-    try {
-      const authData = await api.getMyAuthorizations();
-      setAuthorizations(authData);
-    } catch (error) {
-      console.error('Error fetching authorizations:', error);
-      toast.error(t('visitors.toast.loadError'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, [t]);
-
-  useEffect(() => {
-    fetchData();
-    // v3.0: NO duplicate polling here - parent handles notifications polling
-  }, [fetchData]);
+  // TanStack Query: Authorizations data with caching
+  const { 
+    data: authorizations = [], 
+    isLoading, 
+    refetch: fetchData 
+  } = useResidentAuthorizations();
+  
+  // TanStack Query: Mutations
+  const createAuthMutation = useCreateAuthorization();
+  const deleteAuthMutation = useDeleteAuthorization();
+  
+  // Use parent notifications (from ResidentUI via TanStack Query)
+  const notifications = parentNotifications;
 
   const handleEdit = (auth) => {
     setEditingAuth(auth);
@@ -923,9 +913,8 @@ const VisitorAuthorizationsResident = ({ notifications: parentNotifications = []
 
   const handleDelete = async () => {
     if (!showDeleteConfirm) return;
-    setIsDeleting(true);
     try {
-      await api.deleteAuthorization(showDeleteConfirm.id);
+      await deleteAuthMutation.mutateAsync(showDeleteConfirm.id);
       toast.success(t('visitors.toast.authorizationDeleted'));
       setShowDeleteConfirm(null);
       fetchData();
