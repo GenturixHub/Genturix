@@ -397,7 +397,7 @@ const AuthorizationCard = ({ auth, onEdit, onDelete, t }) => {
 // ============================================
 // CREATE/EDIT AUTHORIZATION DIALOG
 // ============================================
-const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
+const AuthorizationFormDialog = ({ open, onClose, authorization, onSave, t }) => {
   const isEdit = !!authorization;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -416,6 +416,12 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
     company: '',
     service_type: ''
   });
+
+  const AUTHORIZATION_TYPES = getAuthorizationTypes(t);
+  const VISITOR_TYPES = getVisitorTypes(t);
+  const DAYS_OF_WEEK = getDaysOfWeek(t);
+  const DELIVERY_COMPANIES = getDeliveryCompanies(t);
+  const SERVICE_TYPES = getServiceTypes(t);
 
   useEffect(() => {
     if (authorization) {
@@ -465,11 +471,11 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
   // Get the required name field label based on visitor type
   const getNameFieldLabel = () => {
     switch (formData.visitor_type) {
-      case 'delivery': return 'Nombre del Repartidor';
+      case 'delivery': return t('visitors.form.deliveryNameLabel');
       case 'maintenance':
-      case 'technical': return 'Nombre del Técnico';
-      case 'cleaning': return 'Nombre del Personal';
-      default: return 'Nombre del Visitante';
+      case 'technical': return t('visitors.form.technicianNameLabel');
+      case 'cleaning': return t('visitors.form.staffNameLabel');
+      default: return t('visitors.form.visitorNameLabel');
     }
   };
 
@@ -486,7 +492,7 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
 
   const handleSubmit = async () => {
     if (getRequiredFieldsMissing()) {
-      toast.error('Completa los campos requeridos');
+      toast.error(t('visitors.form.completeRequired'));
       return;
     }
 
@@ -519,16 +525,16 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
 
       if (isEdit) {
         await api.updateAuthorization(authorization.id, payload);
-        toast.success('Autorización actualizada');
+        toast.success(t('visitors.toast.authorizationUpdated'));
       } else {
         await api.createAuthorization(payload);
-        toast.success('Autorización creada exitosamente');
+        toast.success(t('visitors.toast.authorizationCreated'));
       }
       
       onSave();
       onClose();
     } catch (error) {
-      toast.error(error.message || 'Error al guardar autorización');
+      toast.error(error.message || t('visitors.toast.saveError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -544,17 +550,17 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <VisitorTypeIcon className={`w-5 h-5 ${visitorTypeConfig?.textColor || 'text-primary'}`} />
-            {isEdit ? 'Editar Autorización' : 'Nueva Autorización'}
+            {isEdit ? t('visitors.form.editAuthorization') : t('visitors.form.newAuthorization')}
           </DialogTitle>
           <DialogDescription>
-            {isEdit ? 'Modifica los datos de la autorización' : 'Crea una autorización para tu visitante'}
+            {isEdit ? t('visitors.form.editDescription') : t('visitors.form.createDescription')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           {/* Visitor Type Selector */}
           <div>
-            <Label className="text-sm text-muted-foreground mb-2 block">Tipo de Persona</Label>
+            <Label className="text-sm text-muted-foreground mb-2 block">{t('visitors.form.personType')}</Label>
             <div className="grid grid-cols-3 gap-2">
               {Object.entries(VISITOR_TYPES).map(([key, config]) => {
                 const Icon = config.icon;
@@ -583,22 +589,22 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
           {['delivery', 'maintenance', 'technical', 'cleaning'].includes(formData.visitor_type) && (
             <div>
               <Label className="text-sm text-muted-foreground">
-                {formData.visitor_type === 'delivery' ? 'Empresa de Delivery *' : 'Empresa / Proveedor *'}
+                {formData.visitor_type === 'delivery' ? t('visitors.form.deliveryCompany') : t('visitors.form.companyProvider')} *
               </Label>
               {formData.visitor_type === 'delivery' ? (
                 <Select value={formData.company} onValueChange={(v) => setFormData({...formData, company: v})}>
                   <SelectTrigger className="bg-[#0F111A] border-[#1E293B] mt-1">
-                    <SelectValue placeholder="Selecciona empresa" />
+                    <SelectValue placeholder={t('visitors.form.selectCompany')} />
                   </SelectTrigger>
                   <SelectContent className="bg-[#0F111A] border-[#1E293B]">
                     {DELIVERY_COMPANIES.map(c => (
-                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                      <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               ) : (
                 <Input
-                  placeholder="Nombre de la empresa"
+                  placeholder={t('visitors.form.companyNamePlaceholder')}
                   value={formData.company}
                   onChange={(e) => setFormData({...formData, company: e.target.value})}
                   className="bg-[#0F111A] border-[#1E293B] mt-1"
@@ -611,7 +617,7 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
           <div>
             <Label className="text-sm text-muted-foreground">{getNameFieldLabel()} *</Label>
             <Input
-              placeholder="Nombre completo"
+              placeholder={t('visitors.form.fullNamePlaceholder')}
               value={formData.visitor_name}
               onChange={(e) => setFormData({...formData, visitor_name: e.target.value})}
               className="bg-[#0F111A] border-[#1E293B] mt-1"
@@ -623,14 +629,14 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
           {['delivery', 'maintenance', 'technical', 'cleaning'].includes(formData.visitor_type) && 
            SERVICE_TYPES[formData.visitor_type] && (
             <div>
-              <Label className="text-sm text-muted-foreground">Tipo de Servicio</Label>
+              <Label className="text-sm text-muted-foreground">{t('visitors.form.serviceType')}</Label>
               <Select value={formData.service_type} onValueChange={(v) => setFormData({...formData, service_type: v})}>
                 <SelectTrigger className="bg-[#0F111A] border-[#1E293B] mt-1">
-                  <SelectValue placeholder="Selecciona tipo" />
+                  <SelectValue placeholder={t('visitors.form.selectServiceType')} />
                 </SelectTrigger>
                 <SelectContent className="bg-[#0F111A] border-[#1E293B]">
-                  {SERVICE_TYPES[formData.visitor_type].map(t => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  {SERVICE_TYPES[formData.visitor_type].map(st => (
+                    <SelectItem key={st.value} value={st.value}>{st.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -640,16 +646,16 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
           {/* ID and Vehicle */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-sm text-muted-foreground">Cédula / ID</Label>
+              <Label className="text-sm text-muted-foreground">{t('visitors.form.idDocument')}</Label>
               <Input
-                placeholder="Documento"
+                placeholder={t('visitors.form.documentPlaceholder')}
                 value={formData.identification_number}
                 onChange={(e) => setFormData({...formData, identification_number: e.target.value})}
                 className="bg-[#0F111A] border-[#1E293B] mt-1"
               />
             </div>
             <div>
-              <Label className="text-sm text-muted-foreground">Placa Vehículo</Label>
+              <Label className="text-sm text-muted-foreground">{t('visitors.form.vehiclePlate')}</Label>
               <Input
                 placeholder="ABC-123"
                 value={formData.vehicle_plate}
@@ -661,7 +667,7 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
 
           {/* Authorization Type */}
           <div>
-            <Label className="text-sm text-muted-foreground">Tipo de Autorización *</Label>
+            <Label className="text-sm text-muted-foreground">{t('visitors.form.authorizationTypeLabel')} *</Label>
             <Select 
               value={formData.authorization_type} 
               onValueChange={(v) => setFormData({...formData, authorization_type: v})}
@@ -687,7 +693,7 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
           {formData.authorization_type === 'temporary' && (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-sm text-muted-foreground">Fecha Desde</Label>
+                <Label className="text-sm text-muted-foreground">{t('visitors.form.dateFrom')}</Label>
                 <Input
                   type="date"
                   value={formData.valid_from}
@@ -696,7 +702,7 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
                 />
               </div>
               <div>
-                <Label className="text-sm text-muted-foreground">Fecha Hasta</Label>
+                <Label className="text-sm text-muted-foreground">{t('visitors.form.dateTo')}</Label>
                 <Input
                   type="date"
                   value={formData.valid_to}
@@ -710,7 +716,7 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
 
           {formData.authorization_type === 'recurring' && (
             <div>
-              <Label className="text-sm text-muted-foreground">Días Permitidos</Label>
+              <Label className="text-sm text-muted-foreground">{t('visitors.form.allowedDays')}</Label>
               <div className="flex flex-wrap gap-2 mt-2">
                 {DAYS_OF_WEEK.map((day) => (
                   <Button
@@ -734,7 +740,7 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
             <>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-sm text-muted-foreground">Fecha Desde</Label>
+                  <Label className="text-sm text-muted-foreground">{t('visitors.form.dateFrom')}</Label>
                   <Input
                     type="date"
                     value={formData.valid_from}
@@ -743,7 +749,7 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
                   />
                 </div>
                 <div>
-                  <Label className="text-sm text-muted-foreground">Fecha Hasta</Label>
+                  <Label className="text-sm text-muted-foreground">{t('visitors.form.dateTo')}</Label>
                   <Input
                     type="date"
                     value={formData.valid_to}
@@ -755,7 +761,7 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-sm text-muted-foreground">Hora Desde</Label>
+                  <Label className="text-sm text-muted-foreground">{t('visitors.form.timeFrom')}</Label>
                   <Input
                     type="time"
                     value={formData.allowed_hours_from}
@@ -764,7 +770,7 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
                   />
                 </div>
                 <div>
-                  <Label className="text-sm text-muted-foreground">Hora Hasta</Label>
+                  <Label className="text-sm text-muted-foreground">{t('visitors.form.timeTo')}</Label>
                   <Input
                     type="time"
                     value={formData.allowed_hours_to}
@@ -778,9 +784,9 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
 
           {/* Notes */}
           <div>
-            <Label className="text-sm text-muted-foreground">Notas (opcional)</Label>
+            <Label className="text-sm text-muted-foreground">{t('visitors.form.notes')}</Label>
             <Textarea
-              placeholder="Información adicional para el guardia..."
+              placeholder={t('visitors.form.notesPlaceholder')}
               value={formData.notes}
               onChange={(e) => setFormData({...formData, notes: e.target.value})}
               className="bg-[#0F111A] border-[#1E293B] mt-1 min-h-[60px]"
@@ -790,7 +796,7 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-            Cancelar
+            {t('visitors.form.cancel')}
           </Button>
           <Button 
             onClick={handleSubmit} 
@@ -802,7 +808,7 @@ const AuthorizationFormDialog = ({ open, onClose, authorization, onSave }) => {
             ) : (
               <UserPlus className="w-4 h-4 mr-2" />
             )}
-            {isEdit ? 'Guardar Cambios' : 'Crear Autorización'}
+            {isEdit ? t('visitors.form.saveChanges') : t('visitors.form.createAuthorization')}
           </Button>
         </DialogFooter>
       </DialogContent>
