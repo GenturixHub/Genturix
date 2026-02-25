@@ -1,5 +1,5 @@
 /**
- * GENTURIX - Resident Reservations Component
+ * GENTURIX - Resident Reservations Component (TanStack Query v5)
  * 
  * Allows residents to:
  * - View available common areas
@@ -7,9 +7,11 @@
  * - Create reservations
  * - Cancel/edit reservations
  * - See status (pending/approved/rejected)
+ * 
+ * Uses TanStack Query for data fetching with caching and background refetch.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -36,6 +38,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { toast } from 'sonner';
 import api from '../services/api';
+// TanStack Query hooks
+import { 
+  useReservationsData, 
+  useCreateReservation, 
+  useCancelReservation 
+} from '../hooks/queries/useResidentQueries';
 import {
   Calendar,
   Clock,
