@@ -828,6 +828,7 @@ const ReservationFormDialog = ({ open, onClose, area, onSave }) => {
 // MAIN COMPONENT
 // ============================================
 const ResidentReservations = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('areas');
   const [areas, setAreas] = useState([]);
   const [myReservations, setMyReservations] = useState([]);
@@ -857,13 +858,13 @@ const ResidentReservations = () => {
       if (!error.message?.includes('módulo') && !error.message?.includes('No encontrado') && error.status !== 404) {
         // Don't show toast for expected "no data" scenarios
         if (error.status >= 500) {
-          toast.error('Error al cargar datos de reservaciones');
+          toast.error(t('reservations.loadError'));
         }
       }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
   
   useEffect(() => {
     loadData();
@@ -877,10 +878,10 @@ const ResidentReservations = () => {
   const handleCreateReservation = async (reservationData) => {
     try {
       await api.createReservation(reservationData);
-      toast.success('Reservación creada exitosamente');
+      toast.success(t('reservations.reservationCreated'));
       loadData();
     } catch (error) {
-      const errorMessage = error?.message || (typeof error === 'string' ? error : 'Error al crear reservación');
+      const errorMessage = error?.message || (typeof error === 'string' ? error : t('reservations.reservationCreateError'));
       toast.error(errorMessage);
       throw error; // Re-throw to let the dialog know
     }
@@ -899,12 +900,12 @@ const ResidentReservations = () => {
     setIsCancelling(true);
     try {
       await api.cancelReservation(reservationToCancel.id);
-      toast.success('Reservación cancelada. El espacio ha sido liberado.');
+      toast.success(t('reservations.reservationCancelled'));
       setShowCancelDialog(false);
       setReservationToCancel(null);
       loadData();
     } catch (error) {
-      const errorMessage = error?.message || (typeof error === 'string' ? error : 'Error al cancelar reservación');
+      const errorMessage = error?.message || (typeof error === 'string' ? error : t('errors.generic'));
       toast.error(errorMessage);
     } finally {
       setIsCancelling(false);
@@ -937,10 +938,10 @@ const ResidentReservations = () => {
       <div className="p-4 border-b border-[#1E293B] flex-shrink-0">
         <h2 className="text-lg font-semibold text-white flex items-center gap-2">
           <Calendar className="w-5 h-5 text-primary" />
-          Reservaciones
+          {t('reservations.title')}
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
-          Reserva áreas comunes del condominio
+          {t('reservations.subtitle')}
         </p>
       </div>
       
@@ -949,11 +950,11 @@ const ResidentReservations = () => {
         <TabsList className="grid grid-cols-2 mx-4 mt-3 bg-[#0A0A0F] flex-shrink-0">
           <TabsTrigger value="areas" className="text-xs" data-testid="tab-areas">
             <Building2 className="w-3.5 h-3.5 mr-1.5" />
-            Áreas
+            {t('reservations.areasTab')}
           </TabsTrigger>
           <TabsTrigger value="mine" className="text-xs" data-testid="tab-my-reservations">
             <CalendarDays className="w-3.5 h-3.5 mr-1.5" />
-            Mis Reservas
+            {t('reservations.myReservationsTab')}
             {pendingReservations.length > 0 && (
               <Badge className="ml-1.5 bg-yellow-500/20 text-yellow-400 h-4 px-1.5 text-[10px]">
                 {pendingReservations.length}
