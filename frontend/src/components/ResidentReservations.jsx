@@ -979,10 +979,10 @@ const ResidentReservations = () => {
                 <div className="text-center py-12">
                   <Building2 className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-30" />
                   <p className="text-sm text-muted-foreground">
-                    No hay áreas comunes disponibles
+                    {t('reservations.noAreasAvailable')}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    El administrador debe habilitar el módulo de reservaciones
+                    {t('reservations.enableModuleHint')}
                   </p>
                 </div>
               )}
@@ -999,7 +999,7 @@ const ResidentReservations = () => {
                 <div>
                   <h3 className="text-xs font-medium text-yellow-400 mb-2 flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5" />
-                    Pendientes ({pendingReservations.length})
+                    {t('reservations.pendingTab')} ({pendingReservations.length})
                   </h3>
                   <div className="space-y-2">
                     {pendingReservations.map(res => (
@@ -1018,7 +1018,7 @@ const ResidentReservations = () => {
                 <div>
                   <h3 className="text-xs font-medium text-green-400 mb-2 flex items-center gap-1.5">
                     <CheckCircle className="w-3.5 h-3.5" />
-                    Aprobadas ({approvedReservations.length})
+                    {t('reservations.approvedTab')} ({approvedReservations.length})
                   </h3>
                   <div className="space-y-2">
                     {approvedReservations.map(res => (
@@ -1037,7 +1037,7 @@ const ResidentReservations = () => {
                 <div>
                   <h3 className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
                     <XCircle className="w-3.5 h-3.5" />
-                    Pasadas/Canceladas ({pastReservations.length})
+                    {t('reservations.pastCancelledTab')} ({pastReservations.length})
                   </h3>
                   <div className="space-y-2">
                     {pastReservations.slice(0, 5).map(res => (
@@ -1056,10 +1056,10 @@ const ResidentReservations = () => {
                 <div className="text-center py-12">
                   <CalendarDays className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-30" />
                   <p className="text-sm text-muted-foreground">
-                    No tienes reservaciones
+                    {t('reservations.noReservationsYet')}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Ve a &quot;Áreas&quot; para hacer tu primera reservación
+                    {t('reservations.goToAreasHint')}
                   </p>
                   <Button 
                     variant="outline" 
@@ -1068,7 +1068,7 @@ const ResidentReservations = () => {
                     onClick={() => setActiveTab('areas')}
                   >
                     <Plus className="w-3.5 h-3.5 mr-1.5" />
-                    Ver Áreas Disponibles
+                    {t('reservations.viewAvailableAreas')}
                   </Button>
                 </div>
               )}
