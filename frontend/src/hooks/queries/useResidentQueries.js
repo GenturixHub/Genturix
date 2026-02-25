@@ -87,7 +87,9 @@ export function useReservationAreas(options = {}) {
       const data = await api.getReservationAreas();
       return (data || []).filter(a => a.is_active !== false);
     },
-    staleTime: 5 * 60_000,       // Areas rarely change, 5 min cache
+    staleTime: 5 * 60_000,        // Areas rarely change, 5 min cache
+    refetchOnMount: false,        // Use cache on mount
+    refetchOnWindowFocus: false,  // Don't refetch on focus
     ...options
   });
 }
