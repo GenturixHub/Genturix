@@ -39,7 +39,7 @@ const queryClient = new QueryClient({
       gcTime: 5 * 60_000,        // Garbage collection after 5 minutes
       refetchOnWindowFocus: false,
       retry: 1,
-      refetchOnMount: true,
+      refetchOnMount: false,     // Use cached data on mount, refetch only if stale
     },
   },
 });
