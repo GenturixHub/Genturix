@@ -4,6 +4,8 @@
  * Wrapper component that includes:
  * - Autorizaciones (existing component)
  * - Historial (new visit history component)
+ * 
+ * v3.0: Receives notifications from parent to avoid duplicate API calls
  */
 
 import React, { useState } from 'react';
@@ -14,7 +16,7 @@ import { Shield, History, Users } from 'lucide-react';
 import VisitorAuthorizationsResident from './VisitorAuthorizationsResident';
 import ResidentVisitHistory from './ResidentVisitHistory';
 
-const ResidentVisitsModule = () => {
+const ResidentVisitsModule = ({ notifications = [], onRefreshNotifications }) => {
   const { t } = useTranslation();
   const [activeSubTab, setActiveSubTab] = useState('authorizations');
   
@@ -43,7 +45,10 @@ const ResidentVisitsModule = () => {
         </TabsList>
         
         <TabsContent value="authorizations" className="flex-1 mt-0 overflow-hidden">
-          <VisitorAuthorizationsResident />
+          <VisitorAuthorizationsResident 
+            notifications={notifications}
+            onRefreshNotifications={onRefreshNotifications}
+          />
         </TabsContent>
         
         <TabsContent value="history" className="flex-1 mt-0 overflow-hidden">
