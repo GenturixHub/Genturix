@@ -1094,10 +1094,10 @@ const ResidentReservations = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-400">
               <AlertCircle className="w-5 h-5" />
-              Cancelar Reservación
+              {t('reservations.cancelConfirmTitle')}
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              ¿Estás seguro que deseas cancelar esta reservación?
+              {t('reservations.cancelConfirmMessage')}
             </DialogDescription>
           </DialogHeader>
           
@@ -1119,7 +1119,7 @@ const ResidentReservations = () => {
           
           <p className="text-xs text-yellow-400 flex items-start gap-2">
             <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            Al cancelar, el espacio quedará disponible para otros residentes.
+            {t('reservations.cancelSpaceReleased')}
           </p>
           
           <DialogFooter className="flex-col sm:flex-row gap-2">
@@ -1129,7 +1129,7 @@ const ResidentReservations = () => {
               disabled={isCancelling}
               className="w-full sm:w-auto"
             >
-              No, mantener
+              {t('reservations.keepReservation')}
             </Button>
             <Button 
               variant="destructive"
@@ -1141,12 +1141,12 @@ const ResidentReservations = () => {
               {isCancelling ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Cancelando...
+                  {t('reservations.cancelling')}
                 </>
               ) : (
                 <>
                   <XCircle className="w-4 h-4 mr-2" />
-                  Sí, cancelar
+                  {t('reservations.yesCancel')}
                 </>
               )}
             </Button>
