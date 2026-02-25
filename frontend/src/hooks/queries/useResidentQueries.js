@@ -99,20 +99,31 @@ export function useMyReservations(options = {}) {
       const data = await api.getReservations();
       return data || [];
     },
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,        // Match areas cache - 5 min
+    refetchOnMount: false,        // Use cache on mount
+    refetchOnWindowFocus: false,  // Don't refetch on focus
     ...options
   });
 }
 
 // Combined hook for Reservations module
+// Returns isFetching for background loading indicator (non-blocking)
+// Returns isInitialLoading for first-time spinner (blocking)
 export function useReservationsData(options = {}) {
   const areasQuery = useReservationAreas(options);
   const reservationsQuery = useMyReservations(options);
   
+  // isInitialLoading = true ONLY when there's no cached data yet
+  // This allows instant render from cache on subsequent visits
+  const isInitialLoading = 
+    (areasQuery.isPending && !areasQuery.data) || 
+    (reservationsQuery.isPending && !reservationsQuery.data);
+  
   return {
     areas: areasQuery.data || [],
     reservations: reservationsQuery.data || [],
-    isLoading: areasQuery.isLoading || reservationsQuery.isLoading,
+    isLoading: isInitialLoading,           // For spinner on FIRST load only
+    isFetching: areasQuery.isFetching || reservationsQuery.isFetching,  // For background indicator
     error: areasQuery.error || reservationsQuery.error,
     refetch: () => {
       areasQuery.refetch();
