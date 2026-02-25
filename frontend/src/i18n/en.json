@@ -555,12 +555,26 @@
   "roles": {
     "superadmin": "Super Administrator",
     "admin": "Administrator",
+    "administrator": "Administrator",
     "supervisor": "Supervisor",
     "guard": "Guard",
     "resident": "Resident",
     "hr": "Human Resources",
     "student": "Student",
-    "other": "Other"
+    "other": "Other",
+    "labels": {
+      "Administrador": "Administrator",
+      "Supervisor": "Supervisor",
+      "HR": "Human Resources",
+      "Guarda": "Guard",
+      "Residente": "Resident",
+      "Estudiante": "Student",
+      "SuperAdmin": "Super Admin"
+    },
+    "descriptions": {
+      "resident": "Access to panic and visits",
+      "guard": "Security panel and alerts"
+    }
   },
   "time": {
     "today": "Today",
