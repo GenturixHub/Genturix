@@ -2254,22 +2254,30 @@ async def notify_guards_of_panic(condominium_id: str, panic_data: dict, sender_i
     """
     result = {"sent": 0, "failed": 0, "total": 0, "excluded": 0, "reason": None}
     
+    # ==================== AUDIT LOG START ====================
+    logger.info(f"[PANIC-PUSH-AUDIT] ======= NOTIFY GUARDS START =======")
+    logger.info(f"[PANIC-PUSH-AUDIT] Input | condo_id={condominium_id} | sender_id={sender_id}")
+    logger.info(f"[PANIC-PUSH-AUDIT] Panic data | type={panic_data.get('panic_type')} | resident={panic_data.get('resident_name')} | apt={panic_data.get('apartment')}")
+    # ==========================================================
+    
     # VALIDATION 1: Condominium is required
     if not condominium_id:
         result["reason"] = "No condominium_id provided"
-        logger.warning("[PANIC-PUSH] Cannot notify guards: missing condominium_id")
+        logger.warning("[PANIC-PUSH-AUDIT] FAILED: missing condominium_id")
         return result
     
     # VALIDATION 2: Verify condominium exists
-    condo = await db.condominiums.find_one({"id": condominium_id}, {"_id": 0, "id": 1, "is_active": 1})
+    condo = await db.condominiums.find_one({"id": condominium_id}, {"_id": 0, "id": 1, "is_active": 1, "name": 1})
     if not condo:
         result["reason"] = "Condominium not found"
-        logger.warning(f"[PANIC-PUSH] Condominium {condominium_id} not found")
+        logger.warning(f"[PANIC-PUSH-AUDIT] FAILED: Condominium {condominium_id} not found in database")
         return result
+    
+    logger.info(f"[PANIC-PUSH-AUDIT] Condominium found | name={condo.get('name')} | is_active={condo.get('is_active', True)}")
     
     if not condo.get("is_active", True):
         result["reason"] = "Condominium is inactive"
-        logger.warning(f"[PANIC-PUSH] Condominium {condominium_id} is inactive")
+        logger.warning(f"[PANIC-PUSH-AUDIT] FAILED: Condominium {condo.get('name')} is inactive")
         return result
     
     # STEP 1: Get ACTIVE guard user IDs for this condominium ONLY
@@ -2284,13 +2292,21 @@ async def notify_guards_of_panic(condominium_id: str, panic_data: dict, sender_i
     if sender_id:
         guard_query["id"] = {"$ne": sender_id}
     
-    guards = await db.users.find(guard_query, {"_id": 0, "id": 1, "full_name": 1}).to_list(None)
+    guards = await db.users.find(guard_query, {"_id": 0, "id": 1, "full_name": 1, "email": 1}).to_list(None)
     guard_ids = [g["id"] for g in guards]
     
-    logger.info(f"[PANIC-PUSH] Found {len(guard_ids)} active guards in condo {condominium_id[:8]}...")
+    # ==================== AUDIT LOG: GUARDS FOUND ====================
+    logger.info(f"[PANIC-PUSH-AUDIT] Guards query | condominium_id={condominium_id} | roles='Guarda' | is_active=True")
+    logger.info(f"[PANIC-PUSH-AUDIT] Guards found | count={len(guard_ids)}")
+    for g in guards[:5]:  # Log first 5 guards
+        logger.info(f"[PANIC-PUSH-AUDIT]   - Guard: {g.get('email')} | id={g.get('id')[:12]}...")
+    if len(guards) > 5:
+        logger.info(f"[PANIC-PUSH-AUDIT]   ... and {len(guards) - 5} more guards")
+    # =================================================================
     
     if not guard_ids:
         result["reason"] = "No active guards found in this condominium"
+        logger.warning(f"[PANIC-PUSH-AUDIT] FAILED: No active guards in condo {condo.get('name')}")
         return result
     
     # STEP 2: Get push subscriptions for these guards ONLY
@@ -2301,11 +2317,36 @@ async def notify_guards_of_panic(condominium_id: str, panic_data: dict, sender_i
         "is_active": True
     }).to_list(None)
     
+    # ==================== AUDIT LOG: SUBSCRIPTIONS ====================
+    logger.info(f"[PANIC-PUSH-AUDIT] Subscriptions query | user_ids={len(guard_ids)} guards | condo={condominium_id[:12]}... | is_active=True")
+    logger.info(f"[PANIC-PUSH-AUDIT] Subscriptions found | count={len(subscriptions)}")
+    
+    # Log subscription details per guard
+    subs_by_guard = {}
+    for sub in subscriptions:
+        uid = sub.get("user_id")
+        if uid not in subs_by_guard:
+            subs_by_guard[uid] = 0
+        subs_by_guard[uid] += 1
+    
+    for gid, count in subs_by_guard.items():
+        guard = next((g for g in guards if g["id"] == gid), None)
+        guard_email = guard.get("email", "unknown") if guard else "unknown"
+        logger.info(f"[PANIC-PUSH-AUDIT]   - Guard {guard_email}: {count} active subscription(s)")
+    
+    # Log guards WITHOUT subscriptions
+    guards_without_subs = [g for g in guards if g["id"] not in subs_by_guard]
+    if guards_without_subs:
+        logger.warning(f"[PANIC-PUSH-AUDIT] Guards WITHOUT subscriptions: {len(guards_without_subs)}")
+        for g in guards_without_subs[:3]:
+            logger.warning(f"[PANIC-PUSH-AUDIT]   - {g.get('email')} has NO push subscription!")
+    # =================================================================
+    
     result["total"] = len(subscriptions)
     
     if not subscriptions:
         result["reason"] = "No push subscriptions for guards"
-        logger.info(f"[PANIC-PUSH] No push subscriptions found for {len(guard_ids)} guards")
+        logger.warning(f"[PANIC-PUSH-AUDIT] FAILED: No push subscriptions found for {len(guard_ids)} guards")
         return result
     
     # STEP 3: Build notification payload
