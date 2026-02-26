@@ -17,8 +17,9 @@ import time
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
-# Test credentials from the problem statement
+# Test credentials
 SUPERADMIN_CREDS = {"email": "superadmin@genturix.com", "password": "Admin123!"}
+ADMIN_CREDS = {"email": "upgradetestadmin@genturix.com", "password": "@%1Kjt2UQ2o3"}
 
 
 class TestSeatUpgradeRequestFeature:
