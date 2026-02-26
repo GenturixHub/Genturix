@@ -10414,6 +10414,534 @@ async def update_condominium_seats(
         "message": f"Asientos actualizados de {previous_seats} a {new_seats}"
     }
 
+# ==================== SINPE BILLING CONTROL ====================
+# Complete financial control for SINPE/manual payments
+# Includes: Payment confirmation, history, upgrade requests, seat protection
+
+@api_router.post("/billing/confirm-payment/{condominium_id}", response_model=ConfirmPaymentResponse)
+async def confirm_sinpe_payment(
+    condominium_id: str,
+    request: Request,
+    payment_data: ConfirmPaymentRequest,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
+):
+    """
+    SINPE BILLING: Confirm a manual/SINPE payment for a condominium.
+    
+    This activates the billing status and calculates the next billing date.
+    Only SuperAdmin can confirm payments.
+    """
+    # Get condominium
+    condo = await db.condominiums.find_one({"id": condominium_id}, {"_id": 0})
+    if not condo:
+        raise HTTPException(status_code=404, detail="Condominio no encontrado")
+    
+    if condo.get("environment") == "demo" or condo.get("is_demo"):
+        raise HTTPException(status_code=403, detail="Los condominios DEMO no tienen facturación")
+    
+    now = datetime.now(timezone.utc)
+    billing_cycle = condo.get("billing_cycle", "monthly")
+    paid_seats = condo.get("paid_seats", 10)
+    previous_status = condo.get("billing_status", "pending_payment")
+    
+    # Calculate next billing date
+    if billing_cycle == "yearly":
+        next_billing = now + timedelta(days=365)
+    else:
+        if now.month == 12:
+            next_billing = now.replace(year=now.year + 1, month=1, day=now.day)
+        else:
+            try:
+                next_billing = now.replace(month=now.month + 1)
+            except ValueError:
+                # Handle months with fewer days
+                next_billing = (now.replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+    
+    # Create payment record
+    payment_id = str(uuid.uuid4())
+    payment_record = {
+        "id": payment_id,
+        "condominium_id": condominium_id,
+        "condominium_name": condo.get("name", "Unknown"),
+        "seats_at_payment": paid_seats,
+        "amount_paid": payment_data.amount_paid,
+        "expected_amount": condo.get("next_invoice_amount", 0),
+        "billing_cycle": billing_cycle,
+        "payment_method": condo.get("billing_provider", "sinpe"),
+        "payment_reference": payment_data.payment_reference,
+        "notes": payment_data.notes,
+        "payment_date": now.isoformat(),
+        "next_billing_date": next_billing.isoformat(),
+        "confirmed_by": current_user["id"],
+        "confirmed_by_name": current_user.get("full_name", current_user.get("email")),
+        "created_at": now.isoformat()
+    }
+    
+    await db.billing_payments.insert_one(payment_record)
+    
+    # Update condominium billing status
+    new_status = "active"
+    update_data = {
+        "billing_status": new_status,
+        "next_billing_date": next_billing.isoformat(),
+        "last_payment_date": now.isoformat(),
+        "last_payment_amount": payment_data.amount_paid,
+        "updated_at": now.isoformat()
+    }
+    
+    await db.condominiums.update_one(
+        {"id": condominium_id},
+        {"$set": update_data}
+    )
+    
+    # Log billing event
+    await log_billing_engine_event(
+        event_type="payment_received",
+        condominium_id=condominium_id,
+        data={
+            "payment_id": payment_id,
+            "amount_paid": payment_data.amount_paid,
+            "payment_method": condo.get("billing_provider", "sinpe"),
+            "payment_reference": payment_data.payment_reference,
+            "seats": paid_seats,
+            "billing_cycle": billing_cycle
+        },
+        triggered_by=current_user["id"],
+        previous_state={"billing_status": previous_status},
+        new_state={"billing_status": new_status, "next_billing_date": next_billing.isoformat()}
+    )
+    
+    logger.info(f"[SINPE-PAYMENT] Confirmed ${payment_data.amount_paid} for condo={condominium_id[:8]}... by {current_user['email']}")
+    
+    return ConfirmPaymentResponse(
+        payment_id=payment_id,
+        condominium_id=condominium_id,
+        amount_paid=payment_data.amount_paid,
+        previous_status=previous_status,
+        new_status=new_status,
+        next_billing_date=next_billing.isoformat(),
+        message=f"Pago de ${payment_data.amount_paid} confirmado. Próximo cobro: {next_billing.strftime('%d/%m/%Y')}"
+    )
+
+@api_router.get("/billing/payments/{condominium_id}")
+async def get_payment_history(
+    condominium_id: str,
+    limit: int = 50,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
+):
+    """
+    SINPE BILLING: Get payment history for a condominium.
+    """
+    # Verify access
+    if current_user["role"] != "super_admin" and current_user.get("condominium_id") != condominium_id:
+        raise HTTPException(status_code=403, detail="No autorizado para ver este historial")
+    
+    payments = await db.billing_payments.find(
+        {"condominium_id": condominium_id},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    # Get condominium info
+    condo = await db.condominiums.find_one({"id": condominium_id}, {"_id": 0, "name": 1, "paid_seats": 1, "billing_status": 1})
+    
+    return {
+        "condominium_id": condominium_id,
+        "condominium_name": condo.get("name") if condo else "Unknown",
+        "current_status": condo.get("billing_status") if condo else "unknown",
+        "payments": payments,
+        "total": len(payments)
+    }
+
+@api_router.get("/billing/payments")
+async def get_all_pending_payments(
+    status: Optional[str] = None,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
+):
+    """
+    SINPE BILLING: Get all condominiums with pending payments (SuperAdmin only).
+    """
+    query = {"environment": {"$ne": "demo"}, "is_demo": {"$ne": True}}
+    if status:
+        query["billing_status"] = status
+    else:
+        query["billing_status"] = {"$in": ["pending_payment", "past_due", "upgrade_pending"]}
+    
+    condos = await db.condominiums.find(
+        query,
+        {"_id": 0, "id": 1, "name": 1, "contact_email": 1, "paid_seats": 1, 
+         "billing_status": 1, "next_invoice_amount": 1, "next_billing_date": 1,
+         "billing_cycle": 1, "billing_provider": 1, "created_at": 1}
+    ).sort("created_at", -1).to_list(100)
+    
+    return {
+        "pending_count": len(condos),
+        "condominiums": condos
+    }
+
+# ==================== SEAT UPGRADE REQUESTS ====================
+
+@api_router.post("/billing/request-seat-upgrade")
+async def request_seat_upgrade(
+    request_data: SeatUpgradeRequestModel,
+    current_user = Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN))
+):
+    """
+    SINPE BILLING: Request additional seats for a condominium.
+    
+    Admin can request, but SuperAdmin must approve.
+    After approval, payment must be confirmed to activate new seats.
+    """
+    condo_id = current_user.get("condominium_id")
+    
+    # SuperAdmin can specify condominium_id in request
+    if current_user["role"] == "super_admin":
+        raise HTTPException(status_code=400, detail="SuperAdmin debe usar /billing/seats/{condo_id} para cambios directos")
+    
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="Usuario sin condominio asignado")
+    
+    # Get condominium
+    condo = await db.condominiums.find_one({"id": condo_id}, {"_id": 0})
+    if not condo:
+        raise HTTPException(status_code=404, detail="Condominio no encontrado")
+    
+    if condo.get("environment") == "demo" or condo.get("is_demo"):
+        raise HTTPException(status_code=403, detail="Los condominios DEMO no pueden solicitar más asientos")
+    
+    current_seats = condo.get("paid_seats", 10)
+    requested_seats = request_data.requested_seats
+    
+    if requested_seats <= current_seats:
+        raise HTTPException(status_code=400, detail=f"Debe solicitar más de {current_seats} asientos actuales")
+    
+    # Check for pending requests
+    existing = await db.seat_upgrade_requests.find_one({
+        "condominium_id": condo_id,
+        "status": "pending"
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Ya existe una solicitud pendiente de aprobación")
+    
+    # Calculate pricing
+    current_preview = await calculate_billing_preview(current_seats, condo.get("billing_cycle", "monthly"), condo_id)
+    new_preview = await calculate_billing_preview(requested_seats, condo.get("billing_cycle", "monthly"), condo_id)
+    
+    now = datetime.now(timezone.utc)
+    request_id = str(uuid.uuid4())
+    
+    upgrade_request = {
+        "id": request_id,
+        "condominium_id": condo_id,
+        "condominium_name": condo.get("name", "Unknown"),
+        "current_seats": current_seats,
+        "requested_seats": requested_seats,
+        "additional_seats": requested_seats - current_seats,
+        "current_amount": current_preview["effective_amount"],
+        "new_amount": new_preview["effective_amount"],
+        "difference_amount": round(new_preview["effective_amount"] - current_preview["effective_amount"], 2),
+        "billing_cycle": condo.get("billing_cycle", "monthly"),
+        "status": "pending",
+        "reason": request_data.reason,
+        "requested_by": current_user["id"],
+        "requested_by_name": current_user.get("full_name", current_user.get("email")),
+        "approved_by": None,
+        "created_at": now.isoformat(),
+        "updated_at": now.isoformat()
+    }
+    
+    await db.seat_upgrade_requests.insert_one(upgrade_request)
+    
+    # Log event
+    await log_billing_engine_event(
+        event_type="upgrade_requested",
+        condominium_id=condo_id,
+        data={
+            "request_id": request_id,
+            "current_seats": current_seats,
+            "requested_seats": requested_seats,
+            "difference_amount": upgrade_request["difference_amount"]
+        },
+        triggered_by=current_user["id"],
+        previous_state={"paid_seats": current_seats},
+        new_state={"requested_seats": requested_seats, "status": "pending"}
+    )
+    
+    logger.info(f"[SEAT-UPGRADE] Request created: {current_seats}→{requested_seats} for condo={condo_id[:8]}...")
+    
+    return {
+        "request_id": request_id,
+        "condominium_id": condo_id,
+        "current_seats": current_seats,
+        "requested_seats": requested_seats,
+        "additional_seats": requested_seats - current_seats,
+        "current_amount": current_preview["effective_amount"],
+        "new_amount": new_preview["effective_amount"],
+        "difference_amount": upgrade_request["difference_amount"],
+        "status": "pending",
+        "message": f"Solicitud creada. Esperando aprobación de SuperAdmin para {requested_seats - current_seats} asientos adicionales (${upgrade_request['difference_amount']}/{'año' if condo.get('billing_cycle') == 'yearly' else 'mes'})"
+    }
+
+@api_router.get("/billing/upgrade-requests")
+async def get_upgrade_requests(
+    status: Optional[str] = "pending",
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
+):
+    """
+    SINPE BILLING: Get all seat upgrade requests (SuperAdmin only).
+    """
+    query = {}
+    if status:
+        query["status"] = status
+    
+    requests = await db.seat_upgrade_requests.find(
+        query,
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    
+    return {
+        "total": len(requests),
+        "requests": requests
+    }
+
+@api_router.patch("/billing/approve-seat-upgrade/{request_id}")
+async def approve_seat_upgrade(
+    request_id: str,
+    approve: bool = True,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
+):
+    """
+    SINPE BILLING: Approve or reject a seat upgrade request.
+    
+    If approved:
+    - Updates paid_seats
+    - Recalculates next_invoice_amount
+    - Sets billing_status to "upgrade_pending" (awaiting payment)
+    
+    Payment must be confirmed separately to activate.
+    """
+    # Get request
+    upgrade_req = await db.seat_upgrade_requests.find_one({"id": request_id}, {"_id": 0})
+    if not upgrade_req:
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+    
+    if upgrade_req["status"] != "pending":
+        raise HTTPException(status_code=400, detail=f"Solicitud ya fue {upgrade_req['status']}")
+    
+    condo_id = upgrade_req["condominium_id"]
+    now = datetime.now(timezone.utc)
+    
+    if approve:
+        # Get condominium
+        condo = await db.condominiums.find_one({"id": condo_id}, {"_id": 0})
+        if not condo:
+            raise HTTPException(status_code=404, detail="Condominio no encontrado")
+        
+        new_seats = upgrade_req["requested_seats"]
+        new_preview = await calculate_billing_preview(new_seats, condo.get("billing_cycle", "monthly"), condo_id)
+        
+        # Update condominium
+        await db.condominiums.update_one(
+            {"id": condo_id},
+            {"$set": {
+                "paid_seats": new_seats,
+                "max_users": new_seats,
+                "next_invoice_amount": new_preview["effective_amount"],
+                "billing_status": "upgrade_pending",  # Awaiting payment for upgrade
+                "updated_at": now.isoformat()
+            }}
+        )
+        
+        # Update request
+        await db.seat_upgrade_requests.update_one(
+            {"id": request_id},
+            {"$set": {
+                "status": "approved",
+                "approved_by": current_user["id"],
+                "approved_by_name": current_user.get("full_name", current_user.get("email")),
+                "updated_at": now.isoformat()
+            }}
+        )
+        
+        # Log event
+        await log_billing_engine_event(
+            event_type="upgrade_approved",
+            condominium_id=condo_id,
+            data={
+                "request_id": request_id,
+                "previous_seats": upgrade_req["current_seats"],
+                "new_seats": new_seats,
+                "new_amount": new_preview["effective_amount"]
+            },
+            triggered_by=current_user["id"],
+            previous_state={"paid_seats": upgrade_req["current_seats"]},
+            new_state={"paid_seats": new_seats, "billing_status": "upgrade_pending"}
+        )
+        
+        logger.info(f"[SEAT-UPGRADE] Approved: {upgrade_req['current_seats']}→{new_seats} for condo={condo_id[:8]}...")
+        
+        return {
+            "request_id": request_id,
+            "status": "approved",
+            "condominium_id": condo_id,
+            "new_seats": new_seats,
+            "new_amount": new_preview["effective_amount"],
+            "billing_status": "upgrade_pending",
+            "message": f"Solicitud aprobada. Asientos actualizados a {new_seats}. Esperando confirmación de pago."
+        }
+    else:
+        # Reject
+        await db.seat_upgrade_requests.update_one(
+            {"id": request_id},
+            {"$set": {
+                "status": "rejected",
+                "approved_by": current_user["id"],
+                "approved_by_name": current_user.get("full_name", current_user.get("email")),
+                "updated_at": now.isoformat()
+            }}
+        )
+        
+        await log_billing_engine_event(
+            event_type="upgrade_rejected",
+            condominium_id=condo_id,
+            data={"request_id": request_id, "requested_seats": upgrade_req["requested_seats"]},
+            triggered_by=current_user["id"]
+        )
+        
+        return {
+            "request_id": request_id,
+            "status": "rejected",
+            "message": "Solicitud rechazada"
+        }
+
+# ==================== SEAT PROTECTION MIDDLEWARE ====================
+
+async def check_seat_limit(condominium_id: str) -> dict:
+    """
+    SEAT PROTECTION: Check if condominium can create more users.
+    
+    Returns:
+        {
+            "can_create": bool,
+            "current_users": int,
+            "paid_seats": int,
+            "remaining": int,
+            "reason": str or None
+        }
+    """
+    condo = await db.condominiums.find_one(
+        {"id": condominium_id},
+        {"_id": 0, "paid_seats": 1, "billing_status": 1, "environment": 1, "is_demo": 1, "name": 1}
+    )
+    
+    if not condo:
+        return {"can_create": False, "reason": "Condominio no encontrado"}
+    
+    # Demo condos have fixed limit of 10
+    is_demo = condo.get("environment") == "demo" or condo.get("is_demo")
+    paid_seats = 10 if is_demo else condo.get("paid_seats", 10)
+    
+    # Count active users (excluding super_admin)
+    current_users = await db.users.count_documents({
+        "condominium_id": condominium_id,
+        "role": {"$ne": "super_admin"},
+        "is_active": {"$ne": False}
+    })
+    
+    remaining = paid_seats - current_users
+    
+    # Check billing status for production condos
+    billing_status = condo.get("billing_status", "active")
+    blocked_statuses = ["suspended", "cancelled"]
+    
+    if not is_demo and billing_status in blocked_statuses:
+        return {
+            "can_create": False,
+            "current_users": current_users,
+            "paid_seats": paid_seats,
+            "remaining": remaining,
+            "billing_status": billing_status,
+            "reason": f"Condominio suspendido por falta de pago. Contacte soporte."
+        }
+    
+    if current_users >= paid_seats:
+        return {
+            "can_create": False,
+            "current_users": current_users,
+            "paid_seats": paid_seats,
+            "remaining": 0,
+            "billing_status": billing_status,
+            "reason": f"Límite de {paid_seats} asientos alcanzado. Solicite más asientos para continuar."
+        }
+    
+    return {
+        "can_create": True,
+        "current_users": current_users,
+        "paid_seats": paid_seats,
+        "remaining": remaining,
+        "billing_status": billing_status,
+        "reason": None
+    }
+
+async def check_module_access(condominium_id: str, module_id: str = None) -> dict:
+    """
+    MODULE PROTECTION: Check if condominium can access modules.
+    
+    Blocks access if billing_status is past_due or suspended.
+    """
+    condo = await db.condominiums.find_one(
+        {"id": condominium_id},
+        {"_id": 0, "billing_status": 1, "environment": 1, "is_demo": 1, "modules": 1}
+    )
+    
+    if not condo:
+        return {"can_access": False, "reason": "Condominio no encontrado"}
+    
+    is_demo = condo.get("environment") == "demo" or condo.get("is_demo")
+    
+    # Demo condos always have access
+    if is_demo:
+        return {"can_access": True, "reason": None}
+    
+    billing_status = condo.get("billing_status", "active")
+    blocked_statuses = ["past_due", "suspended", "cancelled"]
+    
+    if billing_status in blocked_statuses:
+        return {
+            "can_access": False,
+            "billing_status": billing_status,
+            "reason": f"Acceso bloqueado: {billing_status}. Por favor regularice su pago."
+        }
+    
+    return {
+        "can_access": True,
+        "billing_status": billing_status,
+        "reason": None
+    }
+
+@api_router.get("/billing/seat-status/{condominium_id}")
+async def get_seat_status(
+    condominium_id: str,
+    current_user = Depends(get_current_user)
+):
+    """
+    SEAT PROTECTION: Get current seat usage status for a condominium.
+    """
+    # Verify access
+    if current_user["role"] != "super_admin" and current_user.get("condominium_id") != condominium_id:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    
+    status = await check_seat_limit(condominium_id)
+    
+    # Add percentage
+    if status.get("paid_seats", 0) > 0:
+        status["usage_percent"] = round((status.get("current_users", 0) / status["paid_seats"]) * 100, 1)
+    else:
+        status["usage_percent"] = 0
+    
+    return status
+
+# ==================== END SINPE BILLING CONTROL ====================
+
 @api_router.get("/payments/pricing")
 async def get_pricing_info(current_user = Depends(get_current_user)):
     """
