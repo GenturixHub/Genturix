@@ -1,5 +1,5 @@
 # Trigger redeploy - 2026-02-25
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Request, Body
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Request, Body, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse, Response
 from dotenv import load_dotenv
