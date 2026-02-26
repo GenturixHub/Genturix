@@ -403,11 +403,17 @@ class ApiService {
   // Check if can create a new user
   canCreateUser = () => this.get('/billing/can-create-user');
   
-  // Upgrade seats - creates Stripe checkout session
-  upgradeSeats = (additionalSeats, originUrl = window.location.origin) => {
-    const params = new URLSearchParams({ origin_url: originUrl });
-    return this.post(`/billing/upgrade-seats?${params.toString()}`, { additional_seats: additionalSeats });
-  };
+  // Request seat upgrade (Admin -> creates pending request)
+  requestSeatUpgrade = (data) => this.post('/billing/request-seat-upgrade', data);
+  
+  // Get pending seat upgrade request for current admin
+  getMyPendingUpgradeRequest = () => this.get('/billing/my-pending-request');
+  
+  // Upgrade seats - DEPRECATED: Only SuperAdmin can use this now
+  // upgradeSeats = (additionalSeats, originUrl = window.location.origin) => {
+  //   const params = new URLSearchParams({ origin_url: originUrl });
+  //   return this.post(`/billing/upgrade-seats?${params.toString()}`, { additional_seats: additionalSeats });
+  // };
   
   // Get billing transaction history
   getBillingHistory = () => this.get('/billing/history');
