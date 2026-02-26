@@ -1,8 +1,47 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 26, 2026 (Billing Audit - Frontend Fixes)
+## Last Updated: February 26, 2026 (Onboarding Wizard Billing Integration)
 
 ## Changelog
+
+### 2026-02-26 (Session 84) - Onboarding Wizard Billing Integration ✅
+
+**CRITICAL FIX COMPLETE: Multi-step Onboarding Wizard Now Integrated with Billing Engine**
+
+The main onboarding wizard at `/super-admin/onboarding` was completely disconnected from the billing engine. New condominiums were being created with `paid_seats: null`, bypassing all revenue protection logic.
+
+**Changes Made:**
+
+1. **Frontend - OnboardingWizard.js:**
+   - Added new Step 4 "Plan y Facturación" between Modules and Areas
+   - Wizard now has 6 steps instead of 5
+   - New `Step4Billing` component with:
+     - Slider + input for `initial_units` (1-10,000 seats)
+     - Monthly/Yearly cycle toggle with 10% discount badge
+     - Billing provider selector (SINPE, Stripe, Manual)
+     - Dynamic billing preview card from `/api/billing/preview`
+   - Updated `Step6Summary` to display billing info
+   - Updated state management to include `billingData`
+   - Updated localStorage persistence for billing state
+   - Updated `handleSubmit` to pass billing data to backend
+
+2. **API Integration:**
+   - Added `getBillingPreview(initial_units, billing_cycle)` to api.js
+   - Preview updates dynamically with debounce as user changes values
+
+3. **Data Flow:**
+   - Frontend collects: `initial_units`, `billing_cycle`, `billing_provider`
+   - Backend `OnboardingWizardRequest` model accepts `billing: OnboardingBillingInfo`
+   - Condominium created with correct `paid_seats`, `billing_status`, `next_invoice_amount`
+
+**Test Results:**
+- ✅ Backend: 100% (13/13 tests passed)
+- ✅ Frontend: 100% (all features tested)
+- ✅ paid_seats correctly saved in database
+- ✅ Step navigation works correctly (6 steps)
+- ✅ Areas step skipped when reservations disabled
+
+---
 
 ### 2026-02-26 (Session 83c) - Billing Audit + Frontend Fixes ✅
 
