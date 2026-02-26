@@ -418,9 +418,20 @@ class ApiService {
   // Get billing transaction history
   getBillingHistory = () => this.get('/billing/history');
   
-  // SuperAdmin: Get all condominiums billing overview
-  getAllCondominiumsBilling = () => this.get('/super-admin/billing/overview');
-  getSuperAdminBillingOverview = () => this.get('/super-admin/billing/overview');
+  // SuperAdmin: Get all condominiums billing overview with pagination
+  getAllCondominiumsBilling = (params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page);
+    if (params.page_size) queryParams.append('page_size', params.page_size);
+    if (params.billing_status) queryParams.append('billing_status', params.billing_status);
+    if (params.search) queryParams.append('search', params.search);
+    if (params.sort_by) queryParams.append('sort_by', params.sort_by);
+    if (params.sort_order) queryParams.append('sort_order', params.sort_order);
+    const queryString = queryParams.toString();
+    return this.get(`/super-admin/billing/overview${queryString ? `?${queryString}` : ''}`);
+  };
+  
+  getSuperAdminBillingOverview = (params = {}) => this.getAllCondominiumsBilling(params);
   
   // SuperAdmin: Get payment history for a specific condominium
   getCondominiumPaymentHistory = (condoId) => this.get(`/billing/payments/${condoId}`);
