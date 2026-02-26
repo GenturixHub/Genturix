@@ -236,9 +236,24 @@ const FinancialPortfolioPage = () => {
     fetchCondos(newPage);
   };
 
-  const handleConfirmPayment = (condo) => {
+  const handleConfirmPayment = async (condo) => {
     setSelectedCondo(condo);
+    setPaymentAmount('');
+    setPaymentReference('');
+    setBillingBalance(null);
     setShowPaymentDialog(true);
+    
+    // Load billing balance for partial payment support
+    try {
+      const balance = await api.getBillingBalance(condo.condominium_id);
+      setBillingBalance(balance);
+      // Pre-fill with balance due or invoice amount
+      setPaymentAmount(String(balance.balance_due > 0 ? balance.balance_due : balance.invoice_amount));
+    } catch (err) {
+      console.error('Error loading balance:', err);
+      // Fallback to invoice amount
+      setPaymentAmount(String(condo.next_invoice_amount || 0));
+    }
   };
 
   const handleViewHistory = async (condo) => {
