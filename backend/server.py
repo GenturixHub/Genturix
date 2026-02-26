@@ -12563,7 +12563,7 @@ async def get_all_condominiums_billing_legacy(current_user = Depends(require_rol
     }
 
 
-@api_router.patch("/super-admin/condominiums/{condo_id}/billing")
+@billing_super_admin_router.patch("/condominiums/{condo_id}")
 async def update_condominium_billing(
     condo_id: str,
     paid_seats: Optional[int] = None,
