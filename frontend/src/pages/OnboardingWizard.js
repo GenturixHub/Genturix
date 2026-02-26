@@ -6,8 +6,9 @@
  * 1. Condominium Info (name, address, country, timezone)
  * 2. Create Admin (name, email - password auto-generated)
  * 3. Enable Modules (security mandatory, others optional)
- * 4. Create Areas (if Reservations enabled)
- * 5. Summary & Confirm
+ * 4. Billing & Plan (initial_units, billing_cycle, billing_provider) - NEW
+ * 5. Create Areas (if Reservations enabled)
+ * 6. Summary & Confirm
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -19,6 +20,7 @@ import { Label } from '../components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Switch } from '../components/ui/switch';
+import { Slider } from '../components/ui/slider';
 import {
   Select,
   SelectContent,
@@ -61,7 +63,11 @@ import {
   Trash2,
   X,
   CheckCircle,
-  Lock
+  Lock,
+  DollarSign,
+  Percent,
+  Calculator,
+  TrendingUp
 } from 'lucide-react';
 
 // ============================================
