@@ -1107,6 +1107,19 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin, na
           onSuccess={() => { setShowDeleteDialog(false); setDeleteTargetCondo(null); onRefresh(); }}
         />
       )}
+
+      {/* SINPE Payment Confirmation Dialog */}
+      {paymentTargetCondo && (
+        <ConfirmPaymentDialog
+          condo={paymentTargetCondo}
+          open={showPaymentDialog}
+          onClose={() => { setShowPaymentDialog(false); setPaymentTargetCondo(null); }}
+          onSuccess={() => { setShowPaymentDialog(false); setPaymentTargetCondo(null); onRefresh(); }}
+        />
+      )}
+
+      {/* Upgrade Requests Alert */}
+      <UpgradeRequestsSection onRefresh={onRefresh} />
     </div>
   );
 };
