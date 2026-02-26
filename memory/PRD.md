@@ -1,8 +1,70 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 26, 2026 (Backend Modularization - Billing)
+## Last Updated: February 26, 2026 (Backend Modularization - Phase 2 Complete)
 
 ## Changelog
+
+### 2026-02-26 (Session 93) - Modularización Backend: Phase 2 - Router Migration ✅
+
+**REFACTOR: Billing Endpoints Migration to Dedicated APIRouters**
+
+Completed Phase 2 of the backend modularization effort. All 21 billing-related API endpoints have been migrated from `@api_router` to dedicated `billing_router` and `billing_super_admin_router` instances.
+
+**Changes Made:**
+
+1. **Created Two New APIRouters in server.py:**
+   - `billing_router = APIRouter(prefix="/billing", tags=["billing"])` - 19 endpoints
+   - `billing_super_admin_router = APIRouter(prefix="/super-admin/billing", tags=["super-admin-billing"])` - 2 endpoints
+
+2. **Migrated Endpoints to billing_router:**
+   - `/scheduler/run-now` (POST)
+   - `/scheduler/history` (GET)
+   - `/scheduler/status` (GET)
+   - `/preview` (POST)
+   - `/events/{condominium_id}` (GET)
+   - `/seats/{condominium_id}` (PATCH)
+   - `/confirm-payment/{condominium_id}` (POST)
+   - `/payments/{condominium_id}` (GET)
+   - `/payments` (GET)
+   - `/balance/{condominium_id}` (GET)
+   - `/request-seat-upgrade` (POST)
+   - `/my-pending-request` (GET)
+   - `/upgrade-requests` (GET)
+   - `/approve-seat-upgrade/{request_id}` (PATCH)
+   - `/seat-status/{condominium_id}` (GET)
+   - `/info` (GET)
+   - `/can-create-user` (GET)
+   - `/upgrade-seats` (POST)
+   - `/history` (GET)
+
+3. **Migrated Endpoints to billing_super_admin_router:**
+   - `/overview` (GET) - paginated billing overview
+   - `/overview-legacy` (GET) - deprecated
+
+4. **Endpoints Remaining in api_router (different path patterns):**
+   - `PATCH /super-admin/condominiums/{condo_id}/billing`
+   - `GET /condominiums/{condo_id}/billing`
+   - `PUT /condominiums/{condominium_id}/grace-period`
+
+5. **Router Registration:**
+   ```python
+   api_router.include_router(billing_router)
+   api_router.include_router(billing_super_admin_router)
+   app.include_router(api_router)
+   ```
+
+**Testing Results:**
+- ✅ 26/26 tests passed (100% success rate)
+- ✅ All endpoint paths preserved (/api/billing/*, /api/super-admin/billing/*)
+- ✅ Access control properly maintained
+- ✅ Pagination on overview endpoint working
+- ✅ No business logic changes
+
+**Files Modified:**
+- `/app/backend/server.py`: Added billing_router and billing_super_admin_router, changed endpoint decorators
+- `/app/backend/modules/billing/router.py`: Updated documentation
+
+---
 
 ### 2026-02-26 (Session 92) - Modularización Backend: Billing Module ✅
 
