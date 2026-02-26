@@ -10207,7 +10207,7 @@ async def update_condominium_billing_status(
     )
     
     # Log event
-    await log_billing_event(
+    await log_billing_engine_event(
         event_type="status_changed",
         condominium_id=condominium_id,
         data={"from": previous_status, "to": new_status, **(additional_data or {})},
