@@ -1038,6 +1038,7 @@ class CondominiumResponse(BaseModel):
     next_billing_date: Optional[str] = None
     billing_started_at: Optional[str] = None
     yearly_discount_percent: float = 10.0  # Default 10% discount for yearly
+    grace_period_days: int = 5  # Days after due date before suspension
     # Computed fields
     active_users: int = 0  # Real count of active users (excluding SuperAdmin)
     remaining_seats: int = 10  # paid_seats - active_users
