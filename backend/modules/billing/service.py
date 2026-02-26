@@ -9,7 +9,7 @@ import uuid
 import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
-from typing import Optional
+from typing import Optional, Callable
 
 import resend
 
@@ -25,31 +25,62 @@ YEARLY_DISCOUNT_PERCENT = 10
 # Default grace period in days
 DEFAULT_GRACE_PERIOD_DAYS = 5
 
+# Reference to log_billing_engine_event from main app (to avoid circular import)
+_log_billing_engine_event: Optional[Callable] = None
 
-def init_service(database, resend_key, sender_email, yearly_discount, log):
+
+def init_service(database, resend_key, sender_email, yearly_discount, log, log_event_fn=None):
     """Initialize service with dependencies from main app."""
-    global db, RESEND_API_KEY, SENDER_EMAIL, YEARLY_DISCOUNT_PERCENT, logger
+    global db, RESEND_API_KEY, SENDER_EMAIL, YEARLY_DISCOUNT_PERCENT, logger, _log_billing_engine_event
     db = database
     RESEND_API_KEY = resend_key
     SENDER_EMAIL = sender_email
     YEARLY_DISCOUNT_PERCENT = yearly_discount
     logger = log
+    if log_event_fn:
+        _log_billing_engine_event = log_event_fn
 
 
-# Import helper functions that will be needed
-# These need to be available in server.py scope
-async def get_effective_seat_price(condominium_id: str) -> float:
-    """Get effective seat price for a condominium."""
-    # This function is defined in server.py, we'll reference it there
-    raise NotImplementedError("Must be called from server.py context")
-
-
-async def get_global_pricing() -> dict:
-    """Get global pricing configuration."""
-    raise NotImplementedError("Must be called from server.py context")
-
-
-# Email templates for billing notifications
+async def log_billing_engine_event(
+    event_type: str,
+    condominium_id: str,
+    data: dict,
+    triggered_by: str = None,
+    previous_state: dict = None,
+    new_state: dict = None
+):
+    """
+    BILLING ENGINE: Log billing event to billing_events collection.
+    Creates audit trail for all billing-related changes.
+    
+    Uses injected function if available, otherwise logs directly.
+    """
+    if _log_billing_engine_event:
+        return await _log_billing_engine_event(
+            event_type=event_type,
+            condominium_id=condominium_id,
+            data=data,
+            triggered_by=triggered_by,
+            previous_state=previous_state,
+            new_state=new_state
+        )
+    
+    # Fallback: Log directly to db
+    event = {
+        "id": str(uuid.uuid4()),
+        "condominium_id": condominium_id,
+        "event_type": event_type,
+        "data": data,
+        "previous_state": previous_state,
+        "new_state": new_state,
+        "triggered_by": triggered_by,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.billing_events.insert_one(event)
+    logger.info(f"[BILLING-EVENT] {event_type} | condo={condominium_id[:8]}... | data={data}")
+    
+    return event
 BILLING_EMAIL_TEMPLATES = {
     "reminder_3_days": {
         "subject": "Recordatorio: Tu suscripción vence en 3 días - {condo_name}",
