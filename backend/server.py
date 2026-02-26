@@ -16525,22 +16525,49 @@ async def initialize_indexes():
             return False, str(e)
     
     indexes_to_create = [
-        # Users collection
+        # ==================== USERS ====================
         (db.users, "email", {"unique": True, "background": True}),
         (db.users, "condominium_id", {"background": True}),
-        # Push subscriptions - compound unique index for deduplication
+        
+        # ==================== BILLING (HIGH IMPACT) ====================
+        # Optimizes payment history queries by condominium
+        (db.billing_payments, [("condominium_id", 1), ("created_at", -1)], {"background": True}),
+        # Optimizes billing events audit trail
+        (db.billing_events, [("condominium_id", 1), ("created_at", -1)], {"background": True}),
+        # Optimizes financial dashboard and portfolio queries
+        (db.condominiums, "billing_status", {"background": True}),
+        # Optimizes lookups by id (if not already unique)
+        (db.condominiums, "id", {"unique": True, "background": True}),
+        # Optimizes seat upgrade request lookups
+        (db.seat_upgrade_requests, [("condominium_id", 1), ("status", 1)], {"background": True}),
+        # Optimizes billing scheduler runs queries
+        (db.billing_scheduler_runs, "run_date", {"background": True}),
+        # Optimizes email deduplication checks
+        (db.billing_email_log, [("condominium_id", 1), ("email_type", 1), ("sent_date", 1)], {"background": True}),
+        
+        # ==================== GUARDS & SHIFTS ====================
+        # Optimizes guard queries by condominium
+        (db.guards, "condominium_id", {"background": True}),
+        # Optimizes shift reports and lookups
+        (db.shifts, [("condominium_id", 1), ("guard_id", 1)], {"background": True}),
+        (db.shifts, [("condominium_id", 1), ("start_time", -1)], {"background": True}),
+        
+        # ==================== PUSH NOTIFICATIONS ====================
+        # Compound unique index for deduplication
         (db.push_subscriptions, [("user_id", 1), ("endpoint", 1)], {"unique": True, "background": True}),
         (db.push_subscriptions, "condominium_id", {"background": True}),
-        # Audit logs
+        
+        # ==================== AUDIT LOGS ====================
         (db.audit_logs, "user_id", {"background": True}),
         (db.audit_logs, "created_at", {"background": True, "expireAfterSeconds": 60*60*24*90}),  # 90-day TTL
-        # Reservations
+        
+        # ==================== RESERVATIONS ====================
         (db.reservations, "condominium_id", {"background": True}),
         (db.reservations, "start_time", {"background": True}),
-        # Visitor authorizations (multi-tenant queries)
+        
+        # ==================== VISITORS ====================
         (db.visitor_authorizations, "condominium_id", {"background": True}),
         (db.visitor_authorizations, "created_by", {"background": True}),
-        # Visitor entries (multi-tenant queries)
         (db.visitor_entries, "condominium_id", {"background": True}),
     ]
     
