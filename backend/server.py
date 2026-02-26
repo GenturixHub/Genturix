@@ -12285,7 +12285,7 @@ async def stripe_subscription_webhook(request: Request):
         logger.error(f"Subscription webhook error: {e}")
         return {"status": "error", "message": str(e)}
 
-@api_router.get("/billing/history")
+@billing_router.get("/history")
 async def get_billing_history(current_user = Depends(require_role("Administrador"))):
     """Get billing transaction history for the condominium"""
     condo_id = current_user.get("condominium_id")
