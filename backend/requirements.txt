@@ -53,3 +53,4 @@ emergentintegrations==0.1.0
 aiohttp==3.13.3
 anyio==4.12.0
 typing_extensions==4.15.0
+apscheduler==3.11.2
