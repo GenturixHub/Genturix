@@ -1011,6 +1011,15 @@ const OnboardingWizard = () => {
 
   const [areasData, setAreasData] = useState([]);
 
+  // BILLING ENGINE: Billing state
+  const [billingData, setBillingData] = useState({
+    initial_units: 10,
+    billing_cycle: 'monthly',
+    billing_provider: 'sinpe'
+  });
+  const [billingPreview, setBillingPreview] = useState(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+
   // Load timezones
   useEffect(() => {
     const loadTimezones = async () => {
