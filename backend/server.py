@@ -401,6 +401,9 @@ api_router = APIRouter(prefix="/api")
 # It uses /api/billing prefix via api_router include
 billing_router = APIRouter(prefix="/billing", tags=["billing"])
 
+# SuperAdmin billing router - uses /api/super-admin/billing/* path
+billing_super_admin_router = APIRouter(prefix="/super-admin/billing", tags=["super-admin-billing"])
+
 # ==================== HEALTH & READINESS ENDPOINTS ====================
 
 # Application version
