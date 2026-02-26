@@ -398,8 +398,191 @@ const Step3Modules = ({ data, onChange }) => {
   );
 };
 
-// Step 4: Areas
-const Step4Areas = ({ data, onChange, reservationsEnabled }) => {
+// Step 4: Billing & Plan (BILLING ENGINE INTEGRATION)
+const Step4Billing = ({ data, onChange, billingPreview, isLoadingPreview }) => {
+  return (
+    <div className="space-y-6">
+      {/* Explanation Banner */}
+      <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+        <div className="flex items-start gap-3">
+          <Calculator className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-blue-300">Modelo de Facturación por Asientos</p>
+            <p className="text-xs text-blue-200/70 mt-1">
+              Cada unidad habitacional o residente cuenta como un asiento facturable. 
+              Define cuántos asientos necesitas para comenzar.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Initial Units (Seats) */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-medium flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Asientos Iniciales (Unidades) *
+          </Label>
+          <span className="text-2xl font-bold text-primary">{data.initial_units}</span>
+        </div>
+        
+        <Slider
+          value={[data.initial_units]}
+          onValueChange={(value) => onChange({ ...data, initial_units: value[0] })}
+          min={5}
+          max={500}
+          step={5}
+          className="py-4"
+          data-testid="billing-units-slider"
+        />
+        
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span>5 asientos</span>
+          <span>500 asientos</span>
+        </div>
+        
+        <Input
+          type="number"
+          value={data.initial_units}
+          onChange={(e) => {
+            const val = Math.min(10000, Math.max(1, parseInt(e.target.value) || 5));
+            onChange({ ...data, initial_units: val });
+          }}
+          min={1}
+          max={10000}
+          className="bg-[#0A0A0F] border-[#1E293B] h-12 text-center text-lg font-bold"
+          data-testid="billing-units-input"
+        />
+        <p className="text-xs text-muted-foreground text-center">
+          Ingresa un número personalizado (1-10,000) o usa el slider
+        </p>
+      </div>
+
+      {/* Billing Cycle */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium flex items-center gap-2">
+          <Calendar className="w-4 h-4" />
+          Ciclo de Facturación
+        </Label>
+        <div className="grid grid-cols-2 gap-4">
+          <button
+            type="button"
+            onClick={() => onChange({ ...data, billing_cycle: 'monthly' })}
+            className={`p-4 rounded-lg border transition-all ${
+              data.billing_cycle === 'monthly'
+                ? 'bg-primary/20 border-primary'
+                : 'bg-[#0A0A0F] border-[#1E293B] hover:border-[#3E495B]'
+            }`}
+            data-testid="billing-cycle-monthly"
+          >
+            <div className="text-sm font-medium">Mensual</div>
+            <div className="text-xs text-muted-foreground mt-1">Pago cada mes</div>
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange({ ...data, billing_cycle: 'yearly' })}
+            className={`p-4 rounded-lg border transition-all relative ${
+              data.billing_cycle === 'yearly'
+                ? 'bg-green-500/20 border-green-500'
+                : 'bg-[#0A0A0F] border-[#1E293B] hover:border-[#3E495B]'
+            }`}
+            data-testid="billing-cycle-yearly"
+          >
+            <Badge className="absolute -top-2 -right-2 bg-green-500 text-white text-[10px]">
+              <Percent className="w-3 h-3 mr-1" />
+              -15%
+            </Badge>
+            <div className="text-sm font-medium">Anual</div>
+            <div className="text-xs text-muted-foreground mt-1">Ahorra 15%</div>
+          </button>
+        </div>
+      </div>
+
+      {/* Billing Provider */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium flex items-center gap-2">
+          <CreditCard className="w-4 h-4" />
+          Método de Pago
+        </Label>
+        <Select 
+          value={data.billing_provider} 
+          onValueChange={(value) => onChange({ ...data, billing_provider: value })}
+        >
+          <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B] h-12" data-testid="billing-provider-select">
+            <SelectValue placeholder="Seleccionar método de pago" />
+          </SelectTrigger>
+          <SelectContent>
+            {BILLING_PROVIDERS.map((provider) => (
+              <SelectItem key={provider.value} value={provider.value}>
+                <div className="flex flex-col">
+                  <span>{provider.label}</span>
+                  <span className="text-xs text-muted-foreground">{provider.description}</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Billing Preview Card */}
+      {billingPreview && (
+        <Card className="bg-gradient-to-br from-[#0F111A] to-[#1a1f2e] border-primary/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-green-400" />
+              Resumen de Facturación
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {isLoadingPreview ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Precio por asiento</span>
+                  <span className="font-medium">${billingPreview.price_per_seat}/mes</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Asientos</span>
+                  <span className="font-medium">{billingPreview.seats}</span>
+                </div>
+                {billingPreview.discount_percent > 0 && (
+                  <div className="flex justify-between items-center text-green-400">
+                    <span className="text-sm">Descuento anual</span>
+                    <span className="font-medium">-{billingPreview.discount_percent}%</span>
+                  </div>
+                )}
+                <div className="h-px bg-[#1E293B]" />
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Total a pagar</span>
+                  <div className="text-right">
+                    <span className="text-2xl font-bold text-primary">
+                      ${billingPreview.effective_amount.toLocaleString()}
+                    </span>
+                    <span className="text-sm text-muted-foreground">
+                      /{billingPreview.billing_cycle === 'yearly' ? 'año' : 'mes'}
+                    </span>
+                  </div>
+                </div>
+                {billingPreview.billing_cycle === 'yearly' && billingPreview.savings > 0 && (
+                  <div className="flex items-center justify-end gap-2 text-green-400">
+                    <TrendingUp className="w-4 h-4" />
+                    <span className="text-sm">Ahorras ${billingPreview.savings.toLocaleString()}/año</span>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+};
+
+// Step 5: Areas
+const Step5Areas = ({ data, onChange, reservationsEnabled }) => {
   const addArea = () => {
     onChange([...data, {
       name: '',
