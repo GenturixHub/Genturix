@@ -424,6 +424,7 @@ class ApiService {
     if (params.page) queryParams.append('page', params.page);
     if (params.page_size) queryParams.append('page_size', params.page_size);
     if (params.billing_status) queryParams.append('billing_status', params.billing_status);
+    if (params.billing_provider) queryParams.append('billing_provider', params.billing_provider);
     if (params.search) queryParams.append('search', params.search);
     if (params.sort_by) queryParams.append('sort_by', params.sort_by);
     if (params.sort_order) queryParams.append('sort_order', params.sort_order);
