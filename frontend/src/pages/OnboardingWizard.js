@@ -548,10 +548,10 @@ const Step4Billing = ({ data, onChange, billingPreview, isLoadingPreview }) => {
                   <span className="text-sm text-muted-foreground">Asientos</span>
                   <span className="font-medium">{billingPreview.seats}</span>
                 </div>
-                {billingPreview.discount_percent > 0 && (
+                {billingPreview.yearly_discount_percent > 0 && billingPreview.billing_cycle === 'yearly' && (
                   <div className="flex justify-between items-center text-green-400">
                     <span className="text-sm">Descuento anual</span>
-                    <span className="font-medium">-{billingPreview.discount_percent}%</span>
+                    <span className="font-medium">-{billingPreview.yearly_discount_percent}%</span>
                   </div>
                 )}
                 <div className="h-px bg-[#1E293B]" />
@@ -559,17 +559,19 @@ const Step4Billing = ({ data, onChange, billingPreview, isLoadingPreview }) => {
                   <span className="font-medium">Total a pagar</span>
                   <div className="text-right">
                     <span className="text-2xl font-bold text-primary">
-                      ${billingPreview.effective_amount.toLocaleString()}
+                      ${billingPreview.effective_amount?.toLocaleString()}
                     </span>
                     <span className="text-sm text-muted-foreground">
                       /{billingPreview.billing_cycle === 'yearly' ? 'año' : 'mes'}
                     </span>
                   </div>
                 </div>
-                {billingPreview.billing_cycle === 'yearly' && billingPreview.savings > 0 && (
+                {billingPreview.billing_cycle === 'yearly' && billingPreview.monthly_amount && (
                   <div className="flex items-center justify-end gap-2 text-green-400">
                     <TrendingUp className="w-4 h-4" />
-                    <span className="text-sm">Ahorras ${billingPreview.savings.toLocaleString()}/año</span>
+                    <span className="text-sm">
+                      Ahorras ${((billingPreview.monthly_amount * 12) - billingPreview.effective_amount).toLocaleString()}/año
+                    </span>
                   </div>
                 )}
               </>
