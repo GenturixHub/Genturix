@@ -12541,20 +12541,7 @@ class UserStatusUpdateV2(BaseModel):
     status: str = Field(..., pattern="^(active|blocked|suspended)$")
     reason: Optional[str] = None  # Optional reason for blocking/suspending
 
-class SeatUsageResponse(BaseModel):
-    """Response model for seat usage information"""
-    seat_limit: int
-    active_residents: int
-    available_seats: int
-    total_users: int
-    users_by_role: Dict[str, int]
-    users_by_status: Dict[str, int]
-    can_add_resident: bool
-    billing_status: str
-
-class SeatReductionValidation(BaseModel):
-    """Validate if seat reduction is allowed"""
-    new_seat_limit: int = Field(..., ge=1)
+# NOTE: SeatUsageResponse and SeatReductionValidation are imported from modules.billing.models
 
 # ==================== SEAT MANAGEMENT ENDPOINTS ====================
 
