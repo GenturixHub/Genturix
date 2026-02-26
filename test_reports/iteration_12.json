@@ -1,0 +1,113 @@
+{
+  "summary": "Commercial Flexibility Features (MEJORA COMERCIAL) testing complete. All 14 backend tests PASSED. Frontend UI testing PASSED for all new features: seat_price_override input, yearly_discount_percent slider (0-50%), email preview modal with billing details.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_commercial_flexibility.py",
+    "/app/test_reports/pytest/commercial_flexibility_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "BillingPreviewRequest model correctly accepts seat_price_override (0-1000) and yearly_discount_percent (0-50%)",
+    "OnboardingBillingInfo model at line 14720 correctly includes seat_price_override and yearly_discount_percent fields",
+    "calculate_invoice function at line 10157 correctly uses seat_price_override and yearly_discount_override",
+    "Condominium creation saves all custom billing fields: seat_price_override, yearly_discount_percent to database",
+    "Frontend Step4Billing component correctly renders: slider for 5-10,000 seats, custom price input, yearly discount slider, billing preview card",
+    "EmailPreviewModal shows complete billing summary with custom pricing label"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_commercial_flexibility.py"
+  ],
+  "success_rate": {
+    "backend": "100% (14/14 tests passed)",
+    "frontend": "100% (all features tested via Playwright)"
+  },
+  "test_credentials": {
+    "superadmin": {
+      "email": "superadmin@genturix.com",
+      "password": "Admin123!"
+    }
+  },
+  "seed_data_creation": "Multiple test condominiums created with custom pricing during E2E testing",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Commercial flexibility features fully implemented and tested. Backend accepts seat_price_override and yearly_discount_percent in billing preview and onboarding. Frontend displays yearly discount slider (0-50%) when yearly cycle selected. Email preview modal shows all billing details including custom pricing label.",
+  "features_tested": {
+    "backend_billing_preview_seat_price_override": {
+      "status": "PASS",
+      "endpoint": "POST /api/billing/preview",
+      "details": "Accepts seat_price_override parameter and uses it in calculations"
+    },
+    "backend_billing_preview_yearly_discount": {
+      "status": "PASS",
+      "endpoint": "POST /api/billing/preview",
+      "details": "Accepts yearly_discount_percent parameter (0-50%) and applies to yearly calculations"
+    },
+    "backend_combined_custom_pricing": {
+      "status": "PASS",
+      "details": "100 seats * $1.50 * 12 * 0.75 (25% off) = $1,350/year - calculation verified"
+    },
+    "backend_validation_discount_max_50": {
+      "status": "PASS",
+      "details": "Returns 422 for yearly_discount_percent > 50"
+    },
+    "backend_validation_discount_min_0": {
+      "status": "PASS",
+      "details": "Accepts 0% discount (no discount)"
+    },
+    "backend_seats_limit_10000": {
+      "status": "PASS",
+      "details": "Accepts up to 10,000 seats"
+    },
+    "backend_seat_price_validation": {
+      "status": "PASS",
+      "details": "Rejects negative and > $1000 seat prices"
+    },
+    "e2e_create_condo_custom_pricing": {
+      "status": "PASS",
+      "details": "Created condo with seat_price_override=1.25, yearly_discount_percent=30 - verified saved in DB"
+    },
+    "e2e_billing_events_logged": {
+      "status": "PASS",
+      "details": "billing_events collection logs custom pricing on condominium creation"
+    },
+    "frontend_slider_10000_seats": {
+      "status": "PASS",
+      "details": "Slider UI shows range 5-10,000 asientos"
+    },
+    "frontend_seat_price_input": {
+      "status": "PASS",
+      "details": "Precio por Asiento (Opcional) input field visible and functional with placeholder '$2.99 global'"
+    },
+    "frontend_yearly_discount_slider": {
+      "status": "PASS",
+      "details": "Descuento Anual Personalizado slider (0-50%) appears when yearly cycle selected"
+    },
+    "frontend_email_preview_modal": {
+      "status": "PASS",
+      "details": "Vista Previa del Email shows: seats, price per seat with '(Precio especial)' label, discount %, total"
+    },
+    "frontend_billing_preview_card": {
+      "status": "PASS",
+      "details": "Resumen de Facturación dynamically updates with custom pricing"
+    }
+  },
+  "api_tests": {
+    "POST /api/auth/login": "PASS",
+    "GET /api/health": "PASS",
+    "POST /api/billing/preview (monthly, seat_price_override)": "PASS",
+    "POST /api/billing/preview (yearly, yearly_discount_percent)": "PASS",
+    "POST /api/billing/preview (combined custom pricing)": "PASS",
+    "POST /api/billing/preview (validation - max discount 50%)": "PASS",
+    "POST /api/billing/preview (validation - max seats 10000)": "PASS",
+    "POST /api/super-admin/onboarding/create-condominium (with custom pricing)": "PASS",
+    "GET /api/condominiums (verify persistence)": "PASS"
+  }
+}
