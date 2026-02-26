@@ -722,11 +722,16 @@ const Step5Areas = ({ data, onChange, reservationsEnabled }) => {
   );
 };
 
-// Step 5: Summary
-const Step5Summary = ({ condoData, adminData, modulesData, areasData }) => {
+// Step 6: Summary (includes Billing info)
+const Step6Summary = ({ condoData, adminData, modulesData, billingData, billingPreview, areasData }) => {
   const enabledModules = Object.entries(modulesData)
     .filter(([_, enabled]) => enabled)
     .map(([key]) => MODULES_CONFIG[key]?.label || key);
+
+  const getBillingProviderLabel = (provider) => {
+    const found = BILLING_PROVIDERS.find(p => p.value === provider);
+    return found ? found.label : provider;
+  };
 
   return (
     <div className="space-y-4">
@@ -792,6 +797,44 @@ const Step5Summary = ({ condoData, adminData, modulesData, areasData }) => {
             <span className="text-muted-foreground">Contraseña:</span>
             <span className="text-amber-400">Se generará automáticamente</span>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Billing Info - BILLING ENGINE */}
+      <Card className="bg-gradient-to-br from-[#0F111A] to-[#1a1f2e] border-green-500/30">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <CreditCard className="w-4 h-4 text-green-400" />
+            Plan y Facturación
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Asientos contratados:</span>
+            <span className="font-bold text-primary">{billingData.initial_units} unidades</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Ciclo de facturación:</span>
+            <span className="font-medium">{billingData.billing_cycle === 'yearly' ? 'Anual' : 'Mensual'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Método de pago:</span>
+            <span>{getBillingProviderLabel(billingData.billing_provider)}</span>
+          </div>
+          {billingPreview && (
+            <>
+              <div className="h-px bg-[#1E293B] my-2" />
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Total a pagar:</span>
+                <span className="text-xl font-bold text-green-400">
+                  ${billingPreview.effective_amount?.toLocaleString() || '0'}
+                  <span className="text-sm text-muted-foreground">
+                    /{billingData.billing_cycle === 'yearly' ? 'año' : 'mes'}
+                  </span>
+                </span>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
