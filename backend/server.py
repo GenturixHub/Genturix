@@ -14879,6 +14879,8 @@ async def onboarding_create_condominium(
                 "name": wizard_data.condominium.name,
                 "paid_seats": wizard_data.billing.initial_units,
                 "price_per_seat": billing_preview["price_per_seat"],
+                "seat_price_override": wizard_data.billing.seat_price_override,
+                "yearly_discount_percent": billing_preview["yearly_discount_percent"],
                 "billing_cycle": wizard_data.billing.billing_cycle,
                 "billing_provider": wizard_data.billing.billing_provider,
                 "monthly_amount": billing_preview["monthly_amount"],
@@ -14890,7 +14892,9 @@ async def onboarding_create_condominium(
             new_state={
                 "paid_seats": wizard_data.billing.initial_units,
                 "billing_status": "pending_payment",
-                "billing_cycle": wizard_data.billing.billing_cycle
+                "billing_cycle": wizard_data.billing.billing_cycle,
+                "seat_price_override": wizard_data.billing.seat_price_override,
+                "yearly_discount_percent": billing_preview["yearly_discount_percent"]
             }
         )
         
