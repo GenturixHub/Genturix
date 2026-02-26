@@ -457,9 +457,9 @@ class TestVerifyPaidSeats:
         assert billing_response.status_code == 200, f"Failed to get billing overview: {billing_response.text}"
         billing_data = billing_response.json()
         
-        # Find our condo in the overview
+        # Find our condo in the overview (note: field is condominium_id, not id)
         condos = billing_data.get("condominiums", [])
-        our_condo = next((c for c in condos if c.get("id") == condo_id), None)
+        our_condo = next((c for c in condos if c.get("condominium_id") == condo_id), None)
         
         assert our_condo is not None, f"Created condo not found in billing overview. Condo ID: {condo_id}"
         assert "paid_seats" in our_condo, f"Missing paid_seats in condo: {our_condo}"
