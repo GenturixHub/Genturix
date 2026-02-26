@@ -10321,7 +10321,7 @@ async def update_condominium_seats(
     )
     
     # Log billing event
-    await log_billing_event(
+    await log_billing_engine_event(
         event_type=event_type,
         condominium_id=condominium_id,
         data={
