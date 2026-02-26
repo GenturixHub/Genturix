@@ -1,57 +1,49 @@
 <analysis>**original_problem_statement:**
-The user's primary objective is to harden and prepare the Genturix application for a production launch. The most recent and critical initiative is to build a robust, scalable, seat-based SaaS billing model. This started with an architectural analysis, followed by the implementation of an internal billing engine, a control system for manual SINPE payments, and revenue protection middleware.
+The user's primary objective is to harden the Genturix application for production. This session focused on a series of critical audits and corrections to the recently implemented SaaS billing model.
 
-The current critical task is to audit and correct the main user onboarding wizard, which was discovered to be completely disconnected from the new billing engine, creating condominiums without any billable seats () and bypassing all financial logic.
+Initial Task: The primary onboarding wizard was disconnected from the new billing engine, a critical revenue-losing bug that needed to be fixed.
 
-PRODUCT REQUIREMENTS:
-1.  **SaaS Billing Engine:** Implement a full-featured, seat-based billing system, starting with an internal engine and then adding payment provider integrations.
-2.  **Onboarding Integration:** Ensure the primary new condominium onboarding wizard is fully integrated with the billing engine, making  a mandatory and central part of the setup.
-3.  **Revenue Protection:** Implement strict backend controls to prevent users from exceeding their allocated  and block module access for delinquent accounts.
-4.  **Production Hardening & Security:** Fix all critical security vulnerabilities, including moving JWT refresh tokens from localStorage to secure httpOnly cookies.
-5.  **Performance Optimization:** Continue diagnosing and resolving all frontend and backend performance bottlenecks.
-6.  **Mobile-First Refactor & UI/UX Polish:** Transform the frontend to a modern, responsive, mobile-first layout.
-7.  **Internationalization (i18n):** Fully migrate all critical user flows to be multi-language capable.
-8.  **Code Quality & Architecture:** Refactor monolithic components and the main  file.
+Follow-up Tasks Driven by User:
+1.  **MEJORA COMERCIAL - FLEXIBILIDAD DE PLAN EN ONBOARDING:** After fixing the wizard, the user requested more commercial flexibility, including a higher seat limit (10,000), custom pricing per condominium (), and an editable annual discount. An email preview modal was also requested before final creation.
+2.  **REESTRUCTURACIÓN UI - ADMIN DEL CONDOMINIO (CONTROL FINANCIERO):** The user then requested to restrict the Condominium Admin's UI, making billing information read-only and replacing direct seat upgrades with a request/approval flow managed by the SuperAdmin.
+3.  **AUDITORÍA Y CORRECCIÓN - BANNER DE NOTIFICACIONES PUSH:** The user reported that the Activate notifications banner was showing incorrectly even for subscribed users.
+4.  **AUDITORÍA Y CORRECCIÓN - VISTA DE CONDOMINIOS CON DEUDA:** The user reported that the SuperAdmin dashboard only showed a maximum of two condos with pending payments and requested a full, paginated Gestión de Cartera (Financial Portfolio) view.
+5.  **CORRECCIÓN CRÍTICA - PAGINACIÓN REAL + ELIMINAR N+1 EN CARTERA:** After the agent built the Gestión de Cartera view, the user initiated a technical audit which revealed a critical performance bottleneck: the backend endpoint loaded all condominiums into memory, performed filtering on the frontend, and suffered from a classic N+1 query problem. The current task is to fix this by implementing server-side pagination and aggregation.
 
 **User's preferred language**: Español
 
 **what currently exists?**
-The application features a comprehensive internal SaaS billing engine, independent of any payment provider. This engine correctly handles , calculates  based on a dynamic pricing system, and manages billing cycles and statuses. A full control system for manual SINPE payments is also implemented, including endpoints for payment confirmation, viewing payment history, and handling seat upgrade requests. Crucially, a seat protection middleware is active, preventing resident creation beyond the  limit.
-
-However, a critical flaw was identified: the main multi-step onboarding wizard for creating new condominiums is completely disconnected from this new billing engine.
+The application has a robust internal billing engine. The main onboarding wizard is now fully integrated with this engine and supports flexible, custom pricing per condominium. The Condominium Admin UI has been restricted to a read-only view for billing, with a new flow for requesting seat upgrades. The push notification banner display logic has been fixed. A new Gestión de Cartera (Financial Portfolio) page exists for SuperAdmins, but its backend endpoint is unscalable and suffers from major performance issues (N+1 queries, no server-side pagination). The agent has created a new, optimized V2 endpoint and is in the process of refactoring the frontend to use it.
 
 **Last working item**:
--   Last item agent was working: Auditing and correcting the multi-step onboarding wizard () which was creating condominiums without any billing information. The agent confirmed the issue by inspecting the database (new condos had ) and the code, then began the correction.
+-   Last item agent was working: Refactoring the Gestión de Cartera (Financial Portfolio) page to address a critical performance issue. The agent created a new optimized backend endpoint () that uses a MongoDB aggregation pipeline to handle filtering and pagination on the server-side, eliminating the N+1 query problem. The agent then started modifying the frontend component  to consume this new V2 endpoint.
 -   Status: IN PROGRESS
 -   Agent Testing Done: N
--   Which testing method agent to use? Frontend testing agent. The test must cover the entire onboarding wizard flow. It should verify that the new Plan y Facturación step appears, the dynamic price preview works correctly, and the final created condominium in the database has the correct values for , , , and .
+-   Which testing method agent to use? both. The backend agent should verify the new endpoint () correctly paginates and filters results. The frontend agent should confirm the UI correctly interacts with the new paginated API, including making requests for different pages and applying filters.
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Onboarding wizard is disconnected from the billing engine (P0)**
-    -   **Description:** The multi-step onboarding wizard () doesn't have fields for setting , billing cycle, or provider. Consequently, new condominiums created via the wizard have , bypassing the entire SaaS billing logic and revenue protection system.
-    -   **Attempted fixes:** The agent has already updated the backend model () and the corresponding endpoint () to accept and process billing data using the billing engine. The agent then started modifying the frontend wizard component to add a new Plan y Facturación step.
+-   **Issue 1: (P0) Unscalable Financial Portfolio Endpoint**
+    -   **Description:** The original endpoint () for the Gestión de Cartera page is highly inefficient. It loads up to 1000 condominiums from the database into memory, performs an additional database query for each condo to count users (N+1 problem), and sends the entire list to the frontend, which then handles filtering and pagination. This is not scalable for a production environment.
+    -   **Attempted fixes:** A new, optimized endpoint  has been created in . This new endpoint uses a MongoDB aggregation pipeline to efficiently perform filtering and pagination directly in the database, and it leverages the persisted  field to avoid the N+1 query problem. The frontend file  is currently being modified to use this new endpoint.
     -   **Next debug checklist:**
-        1.  Resume and complete the modification of .
-        2.  Correctly add the new Plan y Facturación step to the wizard's step logic (the  array and the  function).
-        3.  Integrate the new billing state (, , , ) into the main  state object.
-        4.  Update the  function to pass the new billing data to the  endpoint.
-        5.  Run yarn run v1.22.22
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command. and yarn run v1.22.22
-info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command. to check for frontend errors.
-        6.  Once built, use the testing agent to perform a full end-to-end test of the wizard.
-    -   **Why fix this issue and what will be achieved with the fix?** This is a critical business logic flaw. Fixing it ensures that every new condominium is correctly set up for billing from the moment of creation, preventing revenue loss and aligning the onboarding flow with the SaaS model.
+        1.  Complete the modifications to .
+        2.  Ensure the component's state correctly manages , , , and .
+        3.  Verify that the  hook correctly calls the new  endpoint with the appropriate query parameters (, , , , ).
+        4.  Update the UI to correctly render the pagination controls and interact with the server-side pagination data (, ).
+        5.  Test the end-to-end flow: filtering, searching, and navigating between pages must trigger API calls to the new endpoint.
+    -   **Why fix this issue and what will be achieved with the fix?** Fixing this is critical for application performance and scalability. It will prevent backend timeouts and high memory usage as the number of condominiums grows, ensuring the SuperAdmin's financial dashboard remains fast and reliable.
     -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** Both
+    -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on other issue:** None.
 
 **In progress Task List**:
--   **Task 1: Integrate Billing Engine into the Onboarding Wizard (P0)**
-    -   **Where to resume:** Continue editing . The agent had just defined the new  component and updated the backend. The next action is to fully integrate this step into the wizard's state management, step rendering logic, and final submission handler.
-    -   **What will be achieved with this?** The primary onboarding flow for new users will be correctly connected to the SaaS billing engine, making  a mandatory and central part of creating a new condominium.
+-   **Task 1: (P0) Complete the Performance Refactor of the Financial Portfolio**
+    -   **Where to resume:** Continue editing . The agent has started refactoring the component to use the new  endpoint but needs to complete the state management and data fetching logic for server-side pagination and filtering.
+    -   **What will be achieved with this?** The Gestión de Cartera page will become scalable and performant, capable of handling thousands of condominiums without crashing the server or the browser.
     -   **Status:** IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?** Both
+    -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on something:** None.
 
 **Upcoming and Future Tasks**
@@ -68,12 +60,13 @@ info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this comm
     -   **(P3) Refactor the monolithic  file.**
 
 **Completed work in this session**
--   **AUDIT & FIX: Seat-Based Billing Core Logic:** Audited the entire application to confirm that  is the central pillar of the billing system. Corrected frontend dashboard components to display accurate billing data from the engine (, ) instead of legacy values.
--   **FEATURE: SINPE Billing Control & Seat Protection:** Implemented a full financial control system for manual SINPE payments, including endpoints for payment confirmation, viewing payment history, and managing seat upgrade requests. Crucially, implemented a seat protection middleware to block resident creation when .
--   **FEATURE: Internal SaaS Billing Engine:** Architected and built a provider-agnostic internal billing engine from scratch. This included extending data models, creating a central  function, and establishing a  collection for an audit trail.
--   **PERFORMANCE: Cache Persistence & Module Optimization:** Implemented TanStack Query cache persistence to  for instant app-like reloads. Diagnosed and eliminated a ~3-second loading spinner in the Reservations module, achieving a ~96% performance improvement on cached loads.
--   **UI: Framer Motion Transitions:** Added smooth, horizontal slide animations to the main resident modules using Framer Motion.
--   **VERIFICATION: Guard UI TanStack Migration:** Completed and verified the migration of the Guard UI to TanStack Query, confirming all real-time polling and caching functions work correctly.
+-   **FIX: Onboarding Wizard Billing Integration:** Corrected the critical bug where the onboarding wizard was disconnected from the billing engine. The wizard now has a dedicated Plan y Facturación step, ensuring all new condominiums are created with  and proper billing setup.
+-   **FEATURE: Flexible Onboarding Pricing:** Enhanced the onboarding wizard to allow SuperAdmins to set a custom price per seat () and a custom annual discount percentage for each new condominium, providing significant commercial flexibility. The seat limit was increased to 10,000.
+-   **FEATURE: Onboarding Email Preview:** Added a modal dialog in the final step of the onboarding wizard that shows a preview of the welcome email the new administrator will receive, summarizing their plan details before final creation.
+-   **REFACTOR: Condo Admin Billing UI:** Reworked the Condominium Admin's dashboard to be a read-only view for billing details. Direct seat upgrades were removed and replaced with a Request More Seats flow, which creates a  for SuperAdmin approval, enforcing financial controls.
+-   **FIX: Push Notification Banner Logic:** Corrected a race condition that caused the Activate Notifications banner to appear even when push notifications were already enabled. The fix involves using  to cache the subscription status for an instant UI check.
+-   **FEATURE: Financial Portfolio Page:** Created a new page at  for SuperAdmins to view a comprehensive, filterable, and sortable list of all condominiums with pending, overdue, or suspended payments.
+-   **REFACTOR (In-Progress): Financial Portfolio Performance:** Identified and began fixing a critical N+1 query and lack of server-side pagination in the financial portfolio's backend endpoint by creating a new, optimized V2 endpoint with a MongoDB aggregation pipeline.
 
 **Earlier issues found/mentioned but not fixed**
 -   **Issue 1: Resend uses Sandbox Domain:** The  is . Requires user input for a verified custom domain.
@@ -87,72 +80,67 @@ info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this comm
 
 
 **Key Technical Concepts**
--   **Internal Billing Engine:** A provider-agnostic system for SaaS billing logic built directly into the application, tracking seats, calculating invoices, and managing billing states before involving an external payment provider.
--   **Seat-Based Billing Model:** The core business logic where pricing and access control ( vs ) are the central pillars of the application's monetization strategy.
--   **Revenue Protection Middleware:** Backend logic () that acts as a gatekeeper, preventing resource creation if billing limits are exceeded, thus directly protecting against revenue loss.
--   **TanStack Query Cache Persistence:** Using  and  to persist the query cache across page reloads, providing an instant app feel on subsequent visits.
+-   **Internal Billing Engine:** Provider-agnostic system for SaaS billing logic.
+-   **Seat-Based Billing Model:** Core business logic where pricing and access control are central.
+-   **Revenue Protection Middleware:** Backend logic preventing resource creation if billing limits are exceeded.
+-   **MongoDB Aggregation Pipeline:** Used in the new  endpoint to efficiently perform server-side filtering, lookups, and pagination, solving a critical N+1 query problem.
+-   **Frontend State Caching ():** Used to fix a race condition in the UI by providing an instant source of truth for the push notification subscription status.
 
 **key DB schema**
--   **New Collections:**
-    -   : { condominium_id, event_type, previous_state, new_state, triggered_by, created_at }
-    -   : { condominium_id, amount_paid, seats_at_payment, payment_method, next_billing_date, confirmed_by }
-    -   : { condominium_id, current_seats, requested_seats, status }
--   **Modified  collection:** Added several new fields to support the SaaS model, including , , , , , , .
+-   No new collections or schema changes were made in this session. The focus was on fixing logic and optimizing queries on existing collections (, ).
 
 **All files of reference**
--   : Contains all new backend billing logic.
--   : The main dashboard displaying billing information.
--   : The file currently being worked on to fix the critical disconnection.
+-   : The core backend file, modified for all new features and fixes.
+-   : The multi-step wizard that was fixed and enhanced.
+-   : The condo admin's dashboard, which was restricted.
+-   : The new page for financial management, currently being refactored.
+-   : The hook that was fixed to prevent incorrect banner displays.
 
 **Areas that need refactoring**:
--   **:** Now critically oversized at over 15,000 lines due to the addition of the entire billing engine. Refactoring this into a modular structure (e.g., using FastAPI routers for billing, users, condos) is a high-priority future task.
--   **:** The component is a large, monolithic wizard. The current modification to add a billing step is a good opportunity to refactor its state management for better clarity and maintainability.
+-   ** & :** The immediate refactoring of the financial portfolio feature (from frontend filtering to backend pagination) is in progress and is the highest priority.
+-   **:** Remains critically oversized. The creation of the  endpoint is a good pattern, but the entire file needs a major structural overhaul into routers/modules.
 
 **key api endpoints**
--   **New Billing Endpoints:**
-    -   
-    -   
-    -   
-    -   
-    -   
+-   **New/Optimized Endpoints:**
+    -   : **(New & Optimized)** The paginated and performant endpoint for the financial portfolio.
+    -   : **(New)** Endpoint for the condo admin to see their pending upgrade request.
 -   **Modified Endpoints:**
-    -   : The endpoint being modified to integrate the billing engine.
-    -   : Now protected by the  seat protection middleware.
+    -   : Updated to accept flexible pricing (, ).
+    -   : Endpoint now used by condo admins to request more seats.
+    -   : Now protected to be used only by SuperAdmins.
+-   **Inefficient Endpoints (To be deprecated):**
+    -   : The original unscalable endpoint that is being replaced.
 
 **Critical Info for New Agent**
-1.  **FINISH THE ONBOARDING WIZARD FIX (P0):** Your absolute first priority is to fix the critical disconnection between the multi-step onboarding wizard and the billing engine. The backend is already updated. You must resume work on  to add the new Plan y Facturación step, connect it to the wizard's state, and ensure the final submission includes , , and .
-2.  **BILLING ENGINE IS THE SOURCE OF TRUTH:** The application now has a robust internal billing engine. All logic related to pricing, seats, and billing status MUST use the data from the  collection (e.g., , ) and the functions in the engine. Do not add any manual calculations in the frontend.
-3.  **MAINTAIN SPANISH:** All user-facing communication, including plans and summaries, must be in Spanish.
+1.  **FINISH THE PORTFOLIO REFACTOR (P0):** Your absolute first priority is to complete the performance refactoring of the Gestión de Cartera page. The new, performant backend endpoint () is already built. You must resume work on , finish implementing the frontend logic to support server-side pagination and filtering, and then test the entire flow thoroughly.
+2.  **USE THE V2 ENDPOINT:** All development on the financial portfolio page must use the new  endpoint. The old endpoint should be considered deprecated.
+3.  **MAINTAIN SPANISH:** All user-facing communication, including plans and summaries, must remain in Spanish.
 
 **documents and test reports created in this job**
 -    (Updated multiple times)
--   
--   
--   
--   
--   
+-   Test reports from multiple  runs are available, confirming the functionality of the onboarding wizard, flexible pricing, and admin UI restrictions.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **AUDIT + CORRECTION - ONBOARDING Y ASIENTOS (IN PROGRESS):** The current, active task to fix the onboarding wizard's disconnection from the billing engine.
-2.  **AUDITORÍA CRÍTICA - ASIENTOS POR CONDOMINIO (Completed):** User requested a repeat audit, which the agent confirmed was already done.
-3.  **AUDITORÍA CRÍTICA - ASIENTOS POR CONDOMINIO (Completed):** An audit to verify  is the core of the billing system.
-4.  **IMPLEMENTACIÓN COMPLETA - SINPE BILLING CONTROL + SEAT PROTECTION (Completed):** Build the financial control system for SINPE payments.
-5.  **IMPLEMENTACIÓN FASE 1 - BILLING ENGINE INTERNO (Completed):** Build the internal, provider-agnostic billing engine.
-6.  **ANÁLISIS ARQUITECTURAL - CREACIÓN DE CONDOMINIO CON MODELO SaaS (Completed):** An architectural analysis to plan the SaaS model implementation.
-7.  **OPTIMIZACIÓN ESPECÍFICA - DELAY EN MÓDULO RESERVACIONES (Completed):** Fix the ~3-second loading spinner in the Reservations module.
-8.  **PERSIST TanStack Query CACHE (Completed):** Implement cache persistence across page reloads.
-9.  **INTRODUCE SMOOTH TRANSITIONS (Completed):** Add Framer Motion animations to module switching.
-10. **DIAGNOSE AND ELIMINATE DELAY (Profile/Reservations) (Completed):** Fix performance delays in the Profile and Reservations modules.
+10. **Final User Approval:** User approved the plan to fix the performance issue.
+9.  **User Request:** .
+8.  **Agent Response:** The agent provided a detailed technical audit confirming the performance issues.
+7.  **User Request:** .
+6.  **Agent :** The agent finished implementing the new Gestión de Cartera page.
+5.  **User Request:** .
+4.  **Agent :** The agent finished fixing the push notification banner.
+3.  **User Request:** .
+2.  **Agent :** The agent finished restricting the Condo Admin UI.
+1.  **User Request:** .
 
 **Project Health Check:**
--   **Broken:** The primary onboarding flow for new condominiums is critically broken. It does not connect to the billing engine, causing new condominiums to be created without any  or billing information, leading to potential revenue loss.
+-   **Broken:** The Gestión de Cartera () page is functionally complete but relies on a critically unscalable backend endpoint () that will fail in production. This is the highest priority issue to resolve.
 
 **3rd Party Integrations**
 -    (v5)
 -   
 -    (v5)
 -   Resend (Email)
--   Stripe (Payments - partially integrated for one-time checkout, not subscriptions)
+-   Stripe (Payments - partially integrated)
 -   Web Push ()
 -   Firebase Cloud Messaging
 -    / 
@@ -169,4 +157,4 @@ info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this comm
 -   **Guard:**  / 
 
 **What agent forgot to execute**
-While implementing the comprehensive billing engine, the agent correctly updated the  used within the SuperAdmin dashboard. However, it overlooked the separate, multi-step  component, which serves as the primary flow for creating new condominiums. This oversight led to the current critical disconnection where the main onboarding path does not use the new billing system. The current task is to rectify this omission.</analysis>
+The agent initially implemented the Gestión de Cartera feature with a significant performance oversight (client-side pagination and an N+1 query problem). The user had to perform a technical audit and explicitly request a correction. The current task is to rectify this oversight by completing the migration to a scalable, server-side paginated architecture.</analysis>

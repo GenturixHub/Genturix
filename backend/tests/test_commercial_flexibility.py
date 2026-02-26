@@ -19,7 +19,7 @@ import time
 import uuid
 from datetime import datetime
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://saas-wizard-fix.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://genturix-finances.preview.emergentagent.com').rstrip('/')
 
 class TestCommercialFlexibility:
     """Test suite for commercial flexibility features in onboarding"""
