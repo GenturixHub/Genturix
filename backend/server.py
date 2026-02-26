@@ -10905,7 +10905,7 @@ async def check_billing_access_dependency(
 
 # ==================== BILLING SCHEDULER ADMIN ENDPOINTS ====================
 
-@api_router.post("/billing/scheduler/run-now")
+@billing_router.post("/scheduler/run-now")
 async def run_billing_scheduler_now(
     current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
 ):
@@ -10928,7 +10928,7 @@ async def run_billing_scheduler_now(
     }
 
 
-@api_router.get("/billing/scheduler/history")
+@billing_router.get("/scheduler/history")
 async def get_scheduler_run_history(
     limit: int = Query(30, ge=1, le=100),
     current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
@@ -10947,7 +10947,7 @@ async def get_scheduler_run_history(
     }
 
 
-@api_router.get("/billing/scheduler/status")
+@billing_router.get("/scheduler/status")
 async def get_scheduler_status(
     current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
 ):
@@ -11006,7 +11006,7 @@ async def update_grace_period(
 
 # ==================== END AUTOMATIC BILLING SCHEDULER ====================
 
-@api_router.post("/billing/preview", response_model=BillingPreviewResponse)
+@billing_router.post("/preview", response_model=BillingPreviewResponse)
 async def get_billing_preview(
     preview_request: BillingPreviewRequest,
     current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
@@ -11039,7 +11039,7 @@ async def get_billing_preview(
         currency=preview["currency"]
     )
 
-@api_router.get("/billing/events/{condominium_id}")
+@billing_router.get("/events/{condominium_id}")
 async def get_billing_events(
     condominium_id: str,
     limit: int = 50,
@@ -11060,7 +11060,7 @@ async def get_billing_events(
         "total": len(events)
     }
 
-@api_router.patch("/billing/seats/{condominium_id}")
+@billing_router.patch("/seats/{condominium_id}")
 async def update_condominium_seats(
     condominium_id: str,
     request: Request,
