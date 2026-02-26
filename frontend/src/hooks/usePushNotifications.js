@@ -409,6 +409,8 @@ export function usePushNotifications() {
       }
 
       setIsSubscribed(false);
+      // v3.1: Clear localStorage when unsubscribing
+      localStorage.removeItem(PUSH_SUBSCRIBED_KEY);
       return true;
 
     } catch (err) {
