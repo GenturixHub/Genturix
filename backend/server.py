@@ -10659,8 +10659,9 @@ async def request_seat_upgrade(
     """
     condo_id = current_user.get("condominium_id")
     
-    # SuperAdmin can specify condominium_id in request
-    if current_user["role"] == "super_admin":
+    # SuperAdmin can specify condominium_id in request - they should use direct methods instead
+    user_roles = current_user.get("roles", [])
+    if "SuperAdmin" in user_roles:
         raise HTTPException(status_code=400, detail="SuperAdmin debe usar /billing/seats/{condo_id} para cambios directos")
     
     if not condo_id:
