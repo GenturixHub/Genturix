@@ -14835,6 +14835,7 @@ async def onboarding_create_condominium(
             "max_users": wizard_data.billing.initial_units,  # Sync with paid_seats
             "current_users": 1,  # Admin user
             "price_per_seat": await get_effective_seat_price(None),
+            "seat_price_override": wizard_data.billing.seat_price_override,  # Custom price (optional)
             "billing_cycle": wizard_data.billing.billing_cycle,
             "billing_provider": wizard_data.billing.billing_provider,
             "billing_enabled": True,
@@ -14842,7 +14843,7 @@ async def onboarding_create_condominium(
             "next_invoice_amount": 0,  # Will be calculated below
             "next_billing_date": None,  # Will be set after first payment
             "billing_started_at": datetime.now(timezone.utc).isoformat(),
-            "yearly_discount_percent": YEARLY_DISCOUNT_PERCENT,
+            "yearly_discount_percent": wizard_data.billing.yearly_discount_percent if wizard_data.billing.yearly_discount_percent is not None else YEARLY_DISCOUNT_PERCENT,
             # Legacy fields for backward compatibility
             "price_per_user": 1.0,
             "discount_percent": 0,
@@ -14857,11 +14858,13 @@ async def onboarding_create_condominium(
             "onboarding_completed_at": datetime.now(timezone.utc).isoformat()
         }
         
-        # BILLING ENGINE: Calculate invoice amount
+        # BILLING ENGINE: Calculate invoice amount (using overrides if provided)
         billing_preview = await calculate_billing_preview(
             initial_units=wizard_data.billing.initial_units,
             billing_cycle=wizard_data.billing.billing_cycle,
-            condominium_id=None
+            condominium_id=None,
+            seat_price_override=wizard_data.billing.seat_price_override,
+            yearly_discount_override=wizard_data.billing.yearly_discount_percent
         )
         condo_doc["next_invoice_amount"] = billing_preview["effective_amount"]
         condo_doc["price_per_seat"] = billing_preview["price_per_seat"]
