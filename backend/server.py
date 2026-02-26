@@ -10279,48 +10279,8 @@ async def calculate_billing_preview(
 # - BILLING_EMAIL_TEMPLATES (from modules.billing.service)
 
 # ==================== PARTIAL BLOCKING MIDDLEWARE ====================
-    additional_data: dict = None
-):
-    """
-    Update condominium billing status with audit logging.
-    """
-    # Get current state
-    condo = await db.condominiums.find_one({"id": condominium_id}, {"_id": 0})
-    if not condo:
-        return None
-    
-    previous_status = condo.get("billing_status", "unknown")
-    
-    # Update condominium
-    update_data = {
-        "billing_status": new_status,
-        "updated_at": datetime.now(timezone.utc).isoformat()
-    }
-    if additional_data:
-        update_data.update(additional_data)
-    
-    await db.condominiums.update_one(
-        {"id": condominium_id},
-        {"$set": update_data}
-    )
-    
-    # Log event
-    await log_billing_engine_event(
-        event_type="status_changed",
-        condominium_id=condominium_id,
-        data={"from": previous_status, "to": new_status, **(additional_data or {})},
-        triggered_by=triggered_by,
-        previous_state={"billing_status": previous_status},
-        new_state={"billing_status": new_status}
-    )
-    
-    return {"previous_status": previous_status, "new_status": new_status}
-
-# ==================== END BILLING ENGINE ====================
-
-# ==================== AUTOMATIC BILLING SCHEDULER ====================
 """
-SISTEMA AUTOMÁTICO DE VENCIMIENTOS Y BLOQUEO PARCIAL
+BLOQUEO PARCIAL INTELIGENTE
 
 Características:
 1. Scheduler diario a las 2AM (configurable)
