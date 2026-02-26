@@ -11472,6 +11472,7 @@ async def get_all_condominiums_billing(
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(50, ge=1, le=100, description="Items per page"),
     billing_status: Optional[str] = Query(None, description="Filter by billing_status (comma-separated for multiple)"),
+    billing_provider: Optional[str] = Query(None, description="Filter by billing_provider (sinpe, stripe, manual)"),
     search: Optional[str] = Query(None, description="Search by name or email"),
     sort_by: str = Query("next_invoice_amount", description="Sort field"),
     sort_order: str = Query("desc", pattern="^(asc|desc)$", description="Sort order")
@@ -11481,7 +11482,7 @@ async def get_all_condominiums_billing(
     
     OPTIMIZED v2.0:
     - Real backend pagination with skip/limit
-    - Direct MongoDB filtering by billing_status
+    - Direct MongoDB filtering by billing_status and billing_provider
     - Eliminates N+1 by using aggregation pipeline
     - Uses persisted current_users field (falls back to count if not set)
     
@@ -11489,6 +11490,7 @@ async def get_all_condominiums_billing(
     - page: Page number (1-indexed)
     - page_size: Items per page (max 100)
     - billing_status: Filter by status (comma-separated, e.g., "pending_payment,past_due")
+    - billing_provider: Filter by provider (sinpe, stripe, manual)
     - search: Search by condominium name or admin email
     - sort_by: Sort field (next_invoice_amount, paid_seats, condominium_name, etc.)
     - sort_order: asc or desc
@@ -11505,6 +11507,10 @@ async def get_all_condominiums_billing(
         status_list = [s.strip() for s in billing_status.split(",") if s.strip()]
         if status_list:
             mongo_filter["billing_status"] = {"$in": status_list}
+    
+    # Filter by billing_provider if provided
+    if billing_provider:
+        mongo_filter["billing_provider"] = billing_provider
     
     # Search filter
     if search:
