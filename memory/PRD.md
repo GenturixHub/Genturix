@@ -1,8 +1,47 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 26, 2026 (Commercial Flexibility Enhancement)
+## Last Updated: February 26, 2026 (Admin Financial Control Restructure)
 
 ## Changelog
+
+### 2026-02-26 (Session 86) - Admin Financial Control Restructure ✅
+
+**SECURITY COMPLETE: Admin UI Now Read-Only for Billing, Request Flow Implemented**
+
+Restructured the Admin interface to prevent direct modification of billing parameters. Admins can now only VIEW billing information and REQUEST seat upgrades.
+
+**Changes Made:**
+
+1. **Backend Security:**
+   - `POST /billing/upgrade-seats`: Changed from `Administrador` to `SuperAdmin` only
+   - `SeatUpgradeRequest` model: Added optional `condominium_id` for SuperAdmin use
+   - NEW: `GET /billing/my-pending-request`: Returns Admin's pending upgrade request
+   - BUG FIX: Fixed KeyError in `request-seat-upgrade` (used 'role' instead of 'roles' list)
+
+2. **Frontend DashboardPage.js:**
+   - Billing dialog now shows Lock icon + "Información de solo lectura"
+   - Removed direct upgrade form (buttons +10/-10, "Actualizar Plan")
+   - Added "Solicitar más asientos" button and request form
+   - Shows pending request status when one exists
+   - Added reason textarea for upgrade justification
+
+3. **API Changes:**
+   - `api.requestSeatUpgrade(data)`: Creates pending seat upgrade request
+   - `api.getMyPendingUpgradeRequest()`: Gets Admin's pending request
+   - Deprecated: `api.upgradeSeats()` - only SuperAdmin can use now
+
+4. **Security Validation:**
+   - ✅ Admin cannot modify paid_seats, seat_price_override, yearly_discount_percent directly
+   - ✅ Admin cannot call /billing/upgrade-seats (403 Forbidden)
+   - ✅ Admin cannot call /billing/approve-seat-upgrade (403 Forbidden)
+   - ✅ All billing changes logged in billing_events collection
+
+**Test Results:**
+- ✅ Backend: 100% (11/11 tests passed)
+- ✅ Frontend: 100% (all UI features verified)
+- ✅ Security: Admin cannot bypass restrictions
+
+---
 
 ### 2026-02-26 (Session 85) - Commercial Flexibility Enhancement ✅
 
