@@ -71,8 +71,9 @@ const STEPS = [
   { id: 1, title: 'Información', icon: Building2 },
   { id: 2, title: 'Administrador', icon: User },
   { id: 3, title: 'Módulos', icon: Shield },
-  { id: 4, title: 'Áreas', icon: Calendar },
-  { id: 5, title: 'Confirmar', icon: Check }
+  { id: 4, title: 'Facturación', icon: CreditCard },  // NEW: Billing step
+  { id: 5, title: 'Áreas', icon: Calendar },
+  { id: 6, title: 'Confirmar', icon: Check }
 ];
 
 const MODULES_CONFIG = {
