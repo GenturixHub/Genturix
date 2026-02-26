@@ -1,8 +1,92 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 26, 2026 (Partial Payments Support)
+## Last Updated: February 26, 2026 (Backend Modularization - Billing)
 
 ## Changelog
+
+### 2026-02-26 (Session 92) - Modularización Backend: Billing Module ✅
+
+**REFACTOR: Backend Billing Module Extraction**
+
+Created modular structure for billing domain without changing behavior. This is Phase 1 of the backend modularization effort.
+
+**Structure Created:**
+```
+backend/modules/
+├── __init__.py
+└── billing/
+    ├── __init__.py      # 89 lines - exports
+    ├── models.py        # 188 lines - Pydantic models & enums
+    ├── router.py        # 32 lines - placeholder for endpoints
+    ├── scheduler.py     # 325 lines - APScheduler logic
+    └── service.py       # 307 lines - core service functions
+```
+
+**Total: 941 lines of modularized code**
+
+**What was moved to modules/billing/models.py:**
+- `BillingStatus` enum
+- `BillingCycle` enum
+- `BillingProvider` enum
+- `BillingEventType` enum
+- `SeatUpgradeRequestStatus` enum
+- `ConfirmPaymentRequest` model
+- `ConfirmPaymentResponse` model
+- `PaymentHistoryResponse` model
+- `SeatUpgradeRequestModel` model
+- `SeatUpgradeRequestResponse` model
+- `SeatUpgradeRequest` model
+- `SeatUpdateRequest` model
+- `BillingPreviewRequest` model
+- `BillingPreviewResponse` model
+- `BillingInfoResponse` model
+- `SeatUsageResponse` model
+- `SeatReductionValidation` model
+
+**What was moved to modules/billing/service.py:**
+- `BILLING_EMAIL_TEMPLATES` dict
+- `DEFAULT_GRACE_PERIOD_DAYS` constant
+- `send_billing_notification_email()` function
+- `check_and_log_email_sent()` function
+- `log_email_sent()` function
+- `log_billing_engine_event()` function
+- `update_condominium_billing_status()` function
+
+**What was moved to modules/billing/scheduler.py:**
+- `billing_scheduler` global
+- `process_billing_for_condominium()` function
+- `run_daily_billing_check()` function
+- `start_billing_scheduler()` function
+- `stop_billing_scheduler()` function
+- `get_scheduler_instance()` function
+
+**What was moved to modules/billing/router.py:**
+- Placeholder documentation of all billing endpoints
+- Future: All `/api/billing/*` endpoints will migrate here
+
+**Endpoints NOT moved (remain in server.py):**
+- `POST /api/billing/confirm-payment/{condo_id}`
+- `GET /api/billing/info`
+- `GET /api/billing/preview`
+- `GET /api/billing/balance/{condo_id}`
+- `GET /api/billing/payments`
+- `GET /api/billing/scheduler/status`
+- `POST /api/billing/scheduler/run-now`
+- `GET /api/super-admin/billing/overview`
+- etc.
+
+**Verification:**
+- ✅ All billing endpoints respond correctly
+- ✅ Scheduler runs at 2AM as configured
+- ✅ Confirm payment works (partial + full)
+- ✅ Partial payments maintain correct status
+- ✅ No logic changes - behavior identical
+
+**Files Modified:**
+- `/app/backend/server.py`: Imports billing models from module, removed duplicate definitions
+- Created: `/app/backend/modules/billing/*`
+
+---
 
 ### 2026-02-26 (Session 91) - Corrección Crítica: Manejo de Pagos Parciales ✅
 
