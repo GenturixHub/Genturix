@@ -749,11 +749,11 @@ const DashboardPage = () => {
                     )}
                   </div>
                   
-                  {/* Billing & Plan Button */}
+                  {/* Billing & Plan Button - READ ONLY for Admin */}
                   <Button
                     variant="outline"
                     className="w-full justify-between h-12 border-[#1E293B] hover:bg-muted"
-                    onClick={() => setShowUpgradeDialog(true)}
+                    onClick={() => setShowBillingDialog(true)}
                     data-testid="billing-btn"
                   >
                     <span className="flex items-center gap-3">
