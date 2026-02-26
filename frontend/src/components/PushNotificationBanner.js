@@ -3,9 +3,13 @@ import { Bell, BellOff, X, Check, AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import usePushNotifications from '../hooks/usePushNotifications';
 
+// LocalStorage key to track successful push subscription
+const PUSH_SUBSCRIBED_KEY = 'push_subscription_active';
+
 /**
- * v3.0: Non-blocking push notification banner
+ * v3.1: Non-blocking push notification banner
  * Uses isInitialized (fast local check) instead of waiting for backend sync
+ * Added localStorage cache check for instant banner hide when already subscribed
  */
 export function PushNotificationBanner({ onClose }) {
   const {
@@ -24,20 +28,41 @@ export function PushNotificationBanner({ onClose }) {
   });
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // v3.1: Fast check - if localStorage says subscribed, don't show banner
+  // This prevents flash even before isInitialized becomes true
+  const storedSubscriptionState = localStorage.getItem(PUSH_SUBSCRIBED_KEY);
+  if (storedSubscriptionState === 'true') {
+    return null;
+  }
+
   // v3.0: Only wait for fast local SW check (instant)
   // No longer waits for backend sync
   if (!isInitialized) {
     return null;
   }
 
+  // v3.1: Update localStorage when subscription state is confirmed
+  if (isSubscribed) {
+    localStorage.setItem(PUSH_SUBSCRIBED_KEY, 'true');
+  }
+
   // Don't show if not supported, already subscribed, permission denied, or dismissed
   if (!isSupported || isSubscribed || permission === 'denied' || dismissed) {
+    return null;
+  }
+  
+  // v3.1: Don't show banner if permission is granted but not subscribed
+  // This means user unsubscribed - they should use settings to re-enable
+  if (permission === 'granted') {
+    localStorage.removeItem(PUSH_SUBSCRIBED_KEY);
     return null;
   }
 
   const handleSubscribe = async () => {
     const success = await subscribe();
     if (success) {
+      // v3.1: Mark as subscribed in localStorage
+      localStorage.setItem(PUSH_SUBSCRIBED_KEY, 'true');
       setShowSuccess(true);
       setTimeout(() => {
         onClose?.();
