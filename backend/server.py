@@ -1017,20 +1017,31 @@ class CondominiumResponse(BaseModel):
     modules: Dict[str, Any] = {}
     is_active: bool = True
     created_at: str
-    price_per_user: float = 1.0  # $1 USD per user per month
+    price_per_user: float = 1.0  # $1 USD per user per month (legacy)
     status: str = "active"  # active, demo, suspended
     is_demo: bool = False
     discount_percent: float = 0.0
     plan: str = "basic"
     # Environment: "demo" or "production"
     environment: str = "production"
-    # SaaS Billing Fields
+    # SaaS Billing Fields - ENHANCED
+    billing_model: str = "per_seat"
     paid_seats: int = 10  # How many users are paid for
+    price_per_seat: float = 1.50  # Dynamic price per seat
+    billing_cycle: str = "monthly"  # monthly or yearly
+    billing_provider: str = "stripe"  # stripe, sinpe, ticopay, manual
+    billing_email: Optional[str] = None  # Email for invoices
+    billing_status: str = "pending_payment"  # pending_payment, active, past_due, cancelled, trialing
+    next_invoice_amount: float = 0.0  # Calculated monthly/yearly total
+    next_billing_date: Optional[str] = None
+    billing_started_at: Optional[str] = None
+    yearly_discount_percent: float = 10.0  # Default 10% discount for yearly
+    # Computed fields
     active_users: int = 0  # Real count of active users (excluding SuperAdmin)
     remaining_seats: int = 10  # paid_seats - active_users
+    # Legacy Stripe fields (for future integration)
     stripe_customer_id: Optional[str] = None
     stripe_subscription_id: Optional[str] = None
-    billing_status: str = "active"  # active, past_due, cancelled, trialing
     billing_period_end: Optional[str] = None
 
 # SaaS Billing Models
