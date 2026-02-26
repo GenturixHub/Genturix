@@ -906,20 +906,15 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin, na
                 Monto total: ${pendingPaymentCondos.reduce((sum, c) => sum + (c.next_invoice_amount || 0), 0).toFixed(2)}
               </p>
             </div>
-            <div className="flex gap-2">
-              {pendingPaymentCondos.slice(0, 2).map(condo => (
-                <Button
-                  key={condo.id}
-                  size="sm"
-                  variant="outline"
-                  className="text-yellow-400 border-yellow-400/30 hover:bg-yellow-400/10"
-                  onClick={() => handleConfirmPayment(condo)}
-                >
-                  <DollarSign className="w-3 h-3 mr-1" />
-                  {condo.name.slice(0, 15)}...
-                </Button>
-              ))}
-            </div>
+            <Button
+              size="sm"
+              className="bg-yellow-500 hover:bg-yellow-600 text-black"
+              onClick={() => navigate('/super-admin/finanzas/cartera')}
+              data-testid="view-portfolio-btn"
+            >
+              <DollarSign className="w-3 h-3 mr-1" />
+              Ver Cartera Completa
+            </Button>
           </div>
         </div>
       )}
