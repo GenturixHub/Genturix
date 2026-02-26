@@ -1,8 +1,54 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 26, 2026 (Backend Modularization - Phase 2 Complete)
+## Last Updated: February 26, 2026 (Backend Modularization - Phase 3 Complete)
 
 ## Changelog
+
+### 2026-02-26 (Session 93) - Modularización Backend: Phase 3 - Real Decoupling ✅
+
+**REFACTOR: Complete Billing Module Decoupling**
+
+Completed Phase 3 of the backend modularization. **489 lines of duplicate code removed** from server.py. The billing module is now the **SINGLE SOURCE OF TRUTH** for all billing logic.
+
+**Changes Made:**
+
+1. **Functions Moved from server.py to modules.billing.service:**
+   - `log_billing_engine_event`
+   - `send_billing_notification_email`
+   - `update_condominium_billing_status`
+   - `DEFAULT_GRACE_PERIOD_DAYS`
+   - `BILLING_EMAIL_TEMPLATES`
+
+2. **Functions Moved from server.py to modules.billing.scheduler:**
+   - `process_billing_for_condominium`
+   - `run_daily_billing_check`
+   - `start_billing_scheduler`
+   - `stop_billing_scheduler`
+   - `get_scheduler_instance`
+
+3. **Models Removed from server.py (now imported from module):**
+   - `SeatUsageResponse`
+   - `SeatReductionValidation`
+
+4. **Module Initialization Added at Startup:**
+   ```python
+   init_billing_service(database=db, resend_key=..., ...)
+   init_billing_scheduler(database=db, log=logger)
+   start_billing_scheduler()
+   ```
+
+5. **Code Reduction:**
+   - Before: 17,057 lines
+   - After: 16,529 lines
+   - Removed: 528 lines (489 functions + 39 models)
+
+**Testing Results:**
+- ✅ 27/27 tests passed (100% success rate)
+- ✅ Scheduler running correctly with get_scheduler_instance()
+- ✅ All billing endpoints functional
+- ✅ No behavior changes - pure structural refactor
+
+---
 
 ### 2026-02-26 (Session 93) - Modularización Backend: Phase 2 - Router Migration ✅
 
