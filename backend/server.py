@@ -1158,13 +1158,17 @@ class ConfirmPaymentRequest(BaseModel):
     notes: Optional[str] = None
 
 class ConfirmPaymentResponse(BaseModel):
-    """Response after payment confirmation"""
+    """Response after payment confirmation - supports partial payments"""
     payment_id: str
     condominium_id: str
     amount_paid: float
+    invoice_amount: float  # Total due for current cycle
+    total_paid_cycle: float  # Total paid in current billing cycle
+    balance_due: float  # Remaining balance (invoice_amount - total_paid_cycle)
     previous_status: str
     new_status: str
-    next_billing_date: str
+    next_billing_date: Optional[str] = None  # Only set when fully paid
+    is_fully_paid: bool  # True if balance_due <= 0
     message: str
 
 class PaymentHistoryResponse(BaseModel):
