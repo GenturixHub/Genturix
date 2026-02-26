@@ -14682,6 +14682,8 @@ class OnboardingBillingInfo(BaseModel):
     billing_cycle: str = Field(default="monthly", pattern="^(monthly|yearly)$")
     billing_provider: str = Field(default="sinpe", pattern="^(stripe|sinpe|ticopay|manual)$")
     billing_email: Optional[EmailStr] = None  # If different from admin email
+    seat_price_override: Optional[float] = Field(default=None, gt=0, le=1000, description="Custom price per seat")
+    yearly_discount_percent: Optional[float] = Field(default=None, ge=0, le=50, description="Custom yearly discount 0-50%")
 
 class OnboardingAdminInfo(BaseModel):
     full_name: str = Field(..., min_length=2, max_length=100)
