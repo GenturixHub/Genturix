@@ -713,41 +713,123 @@ const FinancialPortfolioPage = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-green-400" />
-              Confirmar Pago
+              Registrar Pago
             </DialogTitle>
             <DialogDescription>
-              Confirmar recepción de pago para {selectedCondo?.condominium_name}
+              Registrar pago para {selectedCondo?.condominium_name}
             </DialogDescription>
           </DialogHeader>
           
           {selectedCondo && (
             <div className="space-y-4 py-4">
+              {/* Balance Summary */}
               <div className="p-4 bg-[#1E293B]/30 rounded-lg space-y-2">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Condominio:</span>
                   <span className="font-medium">{selectedCondo.condominium_name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Monto:</span>
-                  <span className="text-xl font-bold text-green-400">
-                    ${selectedCondo.next_invoice_amount?.toLocaleString()}
+                  <span className="text-muted-foreground">Monto del ciclo:</span>
+                  <span className="font-medium">
+                    ${(billingBalance?.invoice_amount || selectedCondo.next_invoice_amount)?.toLocaleString()}
                   </span>
                 </div>
+                
+                {/* Partial payment info */}
+                {billingBalance && billingBalance.total_paid_cycle > 0 && (
+                  <>
+                    <div className="flex justify-between text-emerald-400">
+                      <span>Pagado este ciclo:</span>
+                      <span className="font-medium">${billingBalance.total_paid_cycle?.toFixed(2)}</span>
+                    </div>
+                    <div className="h-px bg-[#1E293B]" />
+                  </>
+                )}
+                
                 <div className="flex justify-between">
+                  <span className="text-muted-foreground font-medium">Saldo pendiente:</span>
+                  <span className={`text-xl font-bold ${(billingBalance?.balance_due || selectedCondo.next_invoice_amount) > 0 ? 'text-yellow-400' : 'text-emerald-400'}`}>
+                    ${(billingBalance?.balance_due ?? selectedCondo.next_invoice_amount)?.toFixed(2)}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Asientos:</span>
                   <span>{selectedCondo.paid_seats}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Proveedor:</span>
-                  <span>{selectedCondo.billing_provider}</span>
+                  <span className="uppercase">{selectedCondo.billing_provider}</span>
                 </div>
               </div>
               
-              <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                <p className="text-sm text-yellow-200">
-                  Al confirmar, el estado del condominio cambiará a "Activo" y se actualizará la fecha de próximo cobro.
-                </p>
+              {/* Payment Input Form */}
+              <div className="space-y-3">
+                <div>
+                  <label className="text-sm text-muted-foreground mb-1 block">Monto a registrar (USD)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full p-2 rounded bg-[#1E293B] border border-[#2D3748] text-white"
+                    data-testid="payment-amount-input"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-muted-foreground mb-1 block">Referencia SINPE (opcional)</label>
+                  <input
+                    type="text"
+                    value={paymentReference}
+                    onChange={(e) => setPaymentReference(e.target.value)}
+                    placeholder="Ej: SINPE-123456"
+                    className="w-full p-2 rounded bg-[#1E293B] border border-[#2D3748] text-white"
+                    data-testid="payment-reference-input"
+                  />
+                </div>
               </div>
+              
+              {/* Quick amount buttons */}
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setPaymentAmount(String(billingBalance?.balance_due || selectedCondo.next_invoice_amount))}
+                  className="flex-1"
+                  data-testid="pay-full-btn"
+                >
+                  Pago Completo
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setPaymentAmount(String((billingBalance?.balance_due || selectedCondo.next_invoice_amount) / 2))}
+                  className="flex-1"
+                  data-testid="pay-half-btn"
+                >
+                  50% del saldo
+                </Button>
+              </div>
+              
+              {/* Warning about partial payment */}
+              {paymentAmount && parseFloat(paymentAmount) < (billingBalance?.balance_due || selectedCondo.next_invoice_amount) && (
+                <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                  <p className="text-sm text-yellow-200">
+                    ⚠️ Este es un pago parcial. La cuenta permanecerá en estado "Pago Pendiente" hasta que se cubra el saldo completo.
+                  </p>
+                </div>
+              )}
+              
+              {/* Full payment message */}
+              {paymentAmount && parseFloat(paymentAmount) >= (billingBalance?.balance_due || selectedCondo.next_invoice_amount) && (
+                <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                  <p className="text-sm text-green-200">
+                    ✓ Este pago completará el saldo. La cuenta cambiará a "Activo" y se programará el próximo cobro.
+                  </p>
+                </div>
+              )}
             </div>
           )}
           
@@ -757,8 +839,9 @@ const FinancialPortfolioPage = () => {
             </Button>
             <Button 
               onClick={confirmPayment} 
-              disabled={isProcessing}
+              disabled={isProcessing || !paymentAmount || parseFloat(paymentAmount) <= 0}
               className="bg-green-600 hover:bg-green-700"
+              data-testid="confirm-payment-btn"
             >
               {isProcessing ? (
                 <>
@@ -768,7 +851,7 @@ const FinancialPortfolioPage = () => {
               ) : (
                 <>
                   <CheckCircle className="w-4 h-4 mr-2" />
-                  Confirmar Pago
+                  Registrar Pago
                 </>
               )}
             </Button>
