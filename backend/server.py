@@ -11521,24 +11521,49 @@ async def stripe_webhook(request: Request):
     body = await request.body()
     signature = request.headers.get("Stripe-Signature")
     
-    # ==================== SECURITY: SIGNATURE VERIFICATION ====================
-    if STRIPE_WEBHOOK_SECRET:
+    # ==================== SECURITY: FAIL-CLOSED MODE ====================
+    # In production: ALWAYS require STRIPE_WEBHOOK_SECRET
+    # In development: Allow without secret (with warning)
+    
+    if ENVIRONMENT == "production":
+        if not STRIPE_WEBHOOK_SECRET:
+            logger.error("[SECURITY] Stripe webhook secret missing in PRODUCTION - rejecting request")
+            raise HTTPException(
+                status_code=500, 
+                detail="Webhook security not configured. Contact administrator."
+            )
+        # Production with secret: verify signature
         try:
-            # Verify webhook signature using Stripe's library
             stripe.Webhook.construct_event(
                 payload=body,
                 sig_header=signature,
                 secret=STRIPE_WEBHOOK_SECRET
             )
-            logger.debug("[STRIPE-WEBHOOK] Signature verified successfully")
+            logger.info("[SECURITY] Stripe webhook verified successfully")
         except stripe.error.SignatureVerificationError as e:
-            logger.error(f"[STRIPE-WEBHOOK] Invalid signature: {e}")
+            logger.error(f"[SECURITY] Stripe signature invalid: {e}")
             raise HTTPException(status_code=400, detail="Invalid webhook signature")
         except Exception as e:
-            logger.error(f"[STRIPE-WEBHOOK] Signature verification error: {e}")
+            logger.error(f"[SECURITY] Stripe signature verification error: {e}")
             raise HTTPException(status_code=400, detail="Webhook signature verification failed")
     else:
-        logger.warning("[STRIPE-WEBHOOK] Processing without signature verification - STRIPE_WEBHOOK_SECRET not set")
+        # Development/staging: verify if secret exists, warn if not
+        if STRIPE_WEBHOOK_SECRET:
+            try:
+                stripe.Webhook.construct_event(
+                    payload=body,
+                    sig_header=signature,
+                    secret=STRIPE_WEBHOOK_SECRET
+                )
+                logger.debug("[STRIPE-WEBHOOK] Signature verified successfully (dev mode)")
+            except stripe.error.SignatureVerificationError as e:
+                logger.error(f"[STRIPE-WEBHOOK] Invalid signature: {e}")
+                raise HTTPException(status_code=400, detail="Invalid webhook signature")
+            except Exception as e:
+                logger.error(f"[STRIPE-WEBHOOK] Signature verification error: {e}")
+                raise HTTPException(status_code=400, detail="Webhook signature verification failed")
+        else:
+            logger.warning("[STRIPE-WEBHOOK] Processing without signature verification (dev mode) - STRIPE_WEBHOOK_SECRET not set")
     # ==========================================================================
     
     host_url = str(request.base_url).rstrip('/')
