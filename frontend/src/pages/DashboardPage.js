@@ -525,9 +525,13 @@ const DashboardPage = () => {
   const [showCreateUser, setShowCreateUser] = useState(false);
   // SaaS Billing State
   const [billingInfo, setBillingInfo] = useState(null);
-  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
-  const [additionalSeats, setAdditionalSeats] = useState(10);
-  const [isUpgrading, setIsUpgrading] = useState(false);
+  const [showBillingDialog, setShowBillingDialog] = useState(false);
+  const [pendingRequest, setPendingRequest] = useState(null);
+  // Seat Request Form State
+  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [requestedSeats, setRequestedSeats] = useState(0);
+  const [requestReason, setRequestReason] = useState('');
+  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -540,6 +544,11 @@ const DashboardPage = () => {
         setStats(statsData);
         setActivities(activityData);
         setBillingInfo(billingData);
+        
+        // Initialize requested seats to current + 10
+        if (billingData?.paid_seats) {
+          setRequestedSeats(billingData.paid_seats + 10);
+        }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
       } finally {
@@ -550,21 +559,44 @@ const DashboardPage = () => {
     fetchData();
   }, []);
 
-  // Handle seat upgrade
-  const handleUpgradeSeats = async () => {
-    if (additionalSeats < 1) return;
-    
-    setIsUpgrading(true);
-    try {
-      const result = await api.upgradeSeats(additionalSeats);
-      if (result.url) {
-        window.location.href = result.url;
+  // Fetch pending seat upgrade request
+  useEffect(() => {
+    const fetchPendingRequest = async () => {
+      try {
+        const response = await api.getMyPendingUpgradeRequest();
+        setPendingRequest(response);
+      } catch (error) {
+        // No pending request, that's ok
+        setPendingRequest(null);
       }
+    };
+    fetchPendingRequest();
+  }, [showBillingDialog]);
+
+  // Handle seat upgrade REQUEST (not direct upgrade)
+  const handleRequestSeats = async () => {
+    if (requestedSeats <= (billingInfo?.paid_seats || 0)) {
+      alert('Debe solicitar más asientos que los actuales');
+      return;
+    }
+    
+    setIsSubmittingRequest(true);
+    try {
+      await api.requestSeatUpgrade({
+        requested_seats: requestedSeats,
+        reason: requestReason || null
+      });
+      setShowRequestForm(false);
+      setRequestReason('');
+      // Refresh to show pending request
+      const response = await api.getMyPendingUpgradeRequest();
+      setPendingRequest(response);
+      alert('Solicitud enviada correctamente. El SuperAdmin revisará tu solicitud.');
     } catch (error) {
-      console.error('Error creating upgrade checkout:', error);
-      alert(error.message || 'Error al procesar la actualización');
+      console.error('Error requesting seat upgrade:', error);
+      alert(error.data?.detail || error.message || 'Error al enviar la solicitud');
     } finally {
-      setIsUpgrading(false);
+      setIsSubmittingRequest(false);
     }
   };
 
