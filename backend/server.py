@@ -10220,6 +10220,134 @@ async def update_condominium_billing_status(
 
 # ==================== END BILLING ENGINE ====================
 
+@api_router.post("/billing/preview", response_model=BillingPreviewResponse)
+async def get_billing_preview(
+    preview_request: BillingPreviewRequest,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
+):
+    """
+    BILLING ENGINE: Calculate billing preview before creating/modifying condominium.
+    
+    Use this endpoint to show users the cost breakdown before they commit.
+    Does NOT create any records - purely informational.
+    """
+    preview = await calculate_billing_preview(
+        initial_units=preview_request.initial_units,
+        billing_cycle=preview_request.billing_cycle,
+        condominium_id=preview_request.condominium_id
+    )
+    
+    return BillingPreviewResponse(
+        seats=preview["seats"],
+        price_per_seat=preview["price_per_seat"],
+        billing_cycle=preview["billing_cycle"],
+        monthly_amount=preview["monthly_amount"],
+        yearly_amount=preview["yearly_amount"],
+        yearly_discount_percent=preview["yearly_discount_percent"],
+        effective_amount=preview["effective_amount"],
+        next_billing_date=preview["next_billing_date"],
+        currency=preview["currency"]
+    )
+
+@api_router.get("/billing/events/{condominium_id}")
+async def get_billing_events(
+    condominium_id: str,
+    limit: int = 50,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
+):
+    """
+    BILLING ENGINE: Get billing event history for a condominium.
+    SuperAdmin only - audit trail for billing changes.
+    """
+    events = await db.billing_events.find(
+        {"condominium_id": condominium_id},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    return {
+        "condominium_id": condominium_id,
+        "events": events,
+        "total": len(events)
+    }
+
+@api_router.patch("/billing/seats/{condominium_id}")
+async def update_condominium_seats(
+    condominium_id: str,
+    request: Request,
+    seat_update: SeatUpdateRequest,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
+):
+    """
+    BILLING ENGINE: Update seat count for a condominium.
+    Recalculates billing and logs the change.
+    Does NOT integrate with payment providers yet.
+    """
+    # Get current condominium
+    condo = await db.condominiums.find_one({"id": condominium_id}, {"_id": 0})
+    if not condo:
+        raise HTTPException(status_code=404, detail="Condominio no encontrado")
+    
+    if condo.get("environment") == "demo" or condo.get("is_demo"):
+        raise HTTPException(status_code=403, detail="No se pueden modificar asientos en condominios DEMO")
+    
+    previous_seats = condo.get("paid_seats", 10)
+    new_seats = seat_update.new_seat_count
+    
+    if new_seats == previous_seats:
+        raise HTTPException(status_code=400, detail="La cantidad de asientos es la misma")
+    
+    # Calculate new billing
+    new_preview = await calculate_billing_preview(
+        initial_units=new_seats,
+        billing_cycle=condo.get("billing_cycle", "monthly"),
+        condominium_id=condominium_id
+    )
+    
+    # Determine event type
+    event_type = "seats_upgraded" if new_seats > previous_seats else "seats_downgraded"
+    
+    # Update condominium
+    update_data = {
+        "paid_seats": new_seats,
+        "max_users": new_seats,
+        "next_invoice_amount": new_preview["effective_amount"],
+        "price_per_seat": new_preview["price_per_seat"],
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.condominiums.update_one(
+        {"id": condominium_id},
+        {"$set": update_data}
+    )
+    
+    # Log billing event
+    await log_billing_event(
+        event_type=event_type,
+        condominium_id=condominium_id,
+        data={
+            "previous_seats": previous_seats,
+            "new_seats": new_seats,
+            "change": new_seats - previous_seats,
+            "previous_amount": condo.get("next_invoice_amount", 0),
+            "new_amount": new_preview["effective_amount"],
+            "reason": seat_update.reason
+        },
+        triggered_by=current_user["id"],
+        previous_state={"paid_seats": previous_seats},
+        new_state={"paid_seats": new_seats}
+    )
+    
+    return {
+        "condominium_id": condominium_id,
+        "previous_seats": previous_seats,
+        "new_seats": new_seats,
+        "change": new_seats - previous_seats,
+        "new_monthly_amount": new_preview["monthly_amount"],
+        "new_effective_amount": new_preview["effective_amount"],
+        "billing_cycle": condo.get("billing_cycle", "monthly"),
+        "message": f"Asientos actualizados de {previous_seats} a {new_seats}"
+    }
+
 @api_router.get("/payments/pricing")
 async def get_pricing_info(current_user = Depends(get_current_user)):
     """
