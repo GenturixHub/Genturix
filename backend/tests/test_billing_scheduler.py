@@ -122,8 +122,8 @@ class TestBillingSchedulerAPI:
     def test_update_grace_period_for_condo(self):
         """PUT /api/condominiums/{condo_id}/grace-period should update grace period"""
         # First, get a production condo to test with
-        condos_resp = self.session.get(f"{BASE_URL}/api/super-admin/condominiums")
-        assert condos_resp.status_code == 200
+        condos_resp = self.session.get(f"{BASE_URL}/api/condominiums")
+        assert condos_resp.status_code == 200, f"Failed to list condos: {condos_resp.status_code} - {condos_resp.text}"
         
         condos = condos_resp.json()
         # Find a production condo (not demo)
@@ -157,7 +157,7 @@ class TestBillingSchedulerAPI:
     def test_update_grace_period_invalid_range(self):
         """PUT /api/condominiums/{condo_id}/grace-period should reject invalid values"""
         # Get any condo
-        condos_resp = self.session.get(f"{BASE_URL}/api/super-admin/condominiums")
+        condos_resp = self.session.get(f"{BASE_URL}/api/condominiums")
         assert condos_resp.status_code == 200
         condos = condos_resp.json()
         
@@ -235,7 +235,7 @@ class TestBillingStatusTransitions:
             "billing_provider": "sinpe"
         }
         
-        resp = self.session.post(f"{BASE_URL}/api/super-admin/condominiums/production", json=condo_data)
+        resp = self.session.post(f"{BASE_URL}/api/condominiums", json=condo_data)
         if resp.status_code != 201:
             pytest.fail(f"Failed to create test condo: {resp.status_code} - {resp.text}")
         
