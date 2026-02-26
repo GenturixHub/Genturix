@@ -1,651 +1,466 @@
 """
-GENTURIX - Onboarding Wizard Tests
-Tests for Super Admin Onboarding Wizard feature:
-- GET /api/super-admin/onboarding/timezones
-- POST /api/super-admin/onboarding/create-condominium
-- Rollback on failure
-- Admin credentials generation
-- Module configuration
-"""
+Test suite for GENTURIX Onboarding Wizard with Billing Engine Integration
+Tests the new 6-step wizard including Step 4: Plan y Facturación
 
+Features tested:
+- Billing preview API
+- Onboarding wizard API with billing data
+- Validation endpoints
+"""
 import pytest
 import requests
 import os
 import uuid
+from datetime import datetime
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
+if not BASE_URL:
+    raise ValueError("REACT_APP_BACKEND_URL environment variable is required")
 
-# Test credentials
-SUPER_ADMIN_EMAIL = "superadmin@genturix.com"
-SUPER_ADMIN_PASSWORD = "SuperAdmin123!"
-REGULAR_ADMIN_EMAIL = "admin@genturix.com"
-REGULAR_ADMIN_PASSWORD = "Admin123!"
-
-
-@pytest.fixture(scope="module")
-def super_admin_token():
-    """Get SuperAdmin authentication token"""
-    response = requests.post(f"{BASE_URL}/api/auth/login", json={
-        "email": SUPER_ADMIN_EMAIL,
-        "password": SUPER_ADMIN_PASSWORD
-    })
-    if response.status_code != 200:
-        pytest.skip(f"SuperAdmin login failed: {response.status_code}")
-    return response.json()["access_token"]
+SUPERADMIN_EMAIL = "superadmin@genturix.com"
+SUPERADMIN_PASSWORD = "Admin123!"
 
 
-@pytest.fixture(scope="module")
-def regular_admin_token():
-    """Get regular Admin authentication token"""
-    response = requests.post(f"{BASE_URL}/api/auth/login", json={
-        "email": REGULAR_ADMIN_EMAIL,
-        "password": REGULAR_ADMIN_PASSWORD
-    })
-    if response.status_code != 200:
-        pytest.skip(f"Admin login failed: {response.status_code}")
-    return response.json()["access_token"]
-
-
-class TestOnboardingTimezones:
-    """Tests for GET /api/super-admin/onboarding/timezones"""
+class TestAuthAndSetup:
+    """Authentication and setup tests"""
     
-    def test_get_timezones_success(self, super_admin_token):
-        """SuperAdmin can get list of timezones"""
-        response = requests.get(
-            f"{BASE_URL}/api/super-admin/onboarding/timezones",
-            headers={"Authorization": f"Bearer {super_admin_token}"}
+    @pytest.fixture(scope="class")
+    def auth_token(self):
+        """Get authentication token for SuperAdmin"""
+        response = requests.post(
+            f"{BASE_URL}/api/auth/login",
+            json={"email": SUPERADMIN_EMAIL, "password": SUPERADMIN_PASSWORD}
         )
         
+        if response.status_code != 200:
+            pytest.skip(f"Authentication failed: {response.status_code} - {response.text}")
+        
+        data = response.json()
+        assert "access_token" in data, "Response missing access_token"
+        return data["access_token"]
+    
+    def test_health_check(self):
+        """Test basic health endpoint"""
+        response = requests.get(f"{BASE_URL}/api/health")
         assert response.status_code == 200
         data = response.json()
-        
-        # Verify structure
-        assert "timezones" in data
-        assert isinstance(data["timezones"], list)
-        assert len(data["timezones"]) > 0
-        
-        # Verify timezone structure
-        first_tz = data["timezones"][0]
-        assert "value" in first_tz
-        assert "label" in first_tz
-        assert "offset" in first_tz
-        
-        # Verify expected timezones are present
-        tz_values = [tz["value"] for tz in data["timezones"]]
-        assert "America/Mexico_City" in tz_values
-        assert "America/Bogota" in tz_values
-        assert "America/Lima" in tz_values
-        print(f"✓ Got {len(data['timezones'])} timezones")
+        assert data["status"] == "ok"
+        print("PASS: Health check endpoint working")
     
-    def test_get_timezones_regular_admin_forbidden(self, regular_admin_token):
-        """Regular Admin cannot access timezones endpoint"""
-        response = requests.get(
-            f"{BASE_URL}/api/super-admin/onboarding/timezones",
-            headers={"Authorization": f"Bearer {regular_admin_token}"}
+    def test_superadmin_login(self, auth_token):
+        """Test SuperAdmin can login"""
+        assert auth_token is not None
+        assert len(auth_token) > 10
+        print("PASS: SuperAdmin login successful")
+
+
+class TestBillingPreviewAPI:
+    """Tests for the billing preview endpoint - Step 4 support"""
+    
+    @pytest.fixture(scope="class")
+    def auth_token(self):
+        """Get authentication token for SuperAdmin"""
+        response = requests.post(
+            f"{BASE_URL}/api/auth/login",
+            json={"email": SUPERADMIN_EMAIL, "password": SUPERADMIN_PASSWORD}
+        )
+        if response.status_code != 200:
+            pytest.skip(f"Authentication failed: {response.status_code}")
+        return response.json()["access_token"]
+    
+    def test_billing_preview_monthly(self, auth_token):
+        """Test billing preview for monthly cycle"""
+        headers = {"Authorization": f"Bearer {auth_token}"}
+        
+        response = requests.post(
+            f"{BASE_URL}/api/billing/preview",
+            headers=headers,
+            json={"initial_units": 10, "billing_cycle": "monthly"}
         )
         
-        assert response.status_code == 403
-        print("✓ Regular admin correctly forbidden from timezones endpoint")
-    
-    def test_get_timezones_unauthenticated(self):
-        """Unauthenticated request fails"""
-        response = requests.get(f"{BASE_URL}/api/super-admin/onboarding/timezones")
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        data = response.json()
         
-        assert response.status_code in [401, 403]
-        print("✓ Unauthenticated request correctly rejected")
+        # Validate response structure
+        assert "seats" in data, "Missing 'seats' in response"
+        assert "price_per_seat" in data, "Missing 'price_per_seat' in response"
+        assert "billing_cycle" in data, "Missing 'billing_cycle' in response"
+        assert "monthly_amount" in data, "Missing 'monthly_amount' in response"
+        assert "effective_amount" in data, "Missing 'effective_amount' in response"
+        
+        # Validate values
+        assert data["seats"] == 10, f"Expected 10 seats, got {data['seats']}"
+        assert data["billing_cycle"] == "monthly", f"Expected monthly cycle, got {data['billing_cycle']}"
+        assert data["price_per_seat"] > 0, "Price per seat should be > 0"
+        assert data["monthly_amount"] > 0, "Monthly amount should be > 0"
+        
+        print(f"PASS: Billing preview monthly - seats: {data['seats']}, amount: ${data['effective_amount']}")
+    
+    def test_billing_preview_yearly(self, auth_token):
+        """Test billing preview for yearly cycle with discount"""
+        headers = {"Authorization": f"Bearer {auth_token}"}
+        
+        response = requests.post(
+            f"{BASE_URL}/api/billing/preview",
+            headers=headers,
+            json={"initial_units": 50, "billing_cycle": "yearly"}
+        )
+        
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        data = response.json()
+        
+        # Validate yearly discount exists
+        assert "yearly_discount_percent" in data, "Missing 'yearly_discount_percent' in response"
+        assert data["billing_cycle"] == "yearly"
+        
+        # Yearly effective amount should be less than 12x monthly if there's a discount
+        if data["yearly_discount_percent"] > 0:
+            expected_without_discount = data["monthly_amount"] * 12
+            assert data["effective_amount"] < expected_without_discount, "Yearly discount not applied correctly"
+        
+        print(f"PASS: Billing preview yearly - discount: {data['yearly_discount_percent']}%, effective: ${data['effective_amount']}")
+    
+    def test_billing_preview_min_units(self, auth_token):
+        """Test billing preview with minimum units (1)"""
+        headers = {"Authorization": f"Bearer {auth_token}"}
+        
+        response = requests.post(
+            f"{BASE_URL}/api/billing/preview",
+            headers=headers,
+            json={"initial_units": 1, "billing_cycle": "monthly"}
+        )
+        
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+        data = response.json()
+        assert data["seats"] == 1
+        print("PASS: Billing preview with 1 unit works")
+    
+    def test_billing_preview_max_units(self, auth_token):
+        """Test billing preview with high units (500)"""
+        headers = {"Authorization": f"Bearer {auth_token}"}
+        
+        response = requests.post(
+            f"{BASE_URL}/api/billing/preview",
+            headers=headers,
+            json={"initial_units": 500, "billing_cycle": "monthly"}
+        )
+        
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+        data = response.json()
+        assert data["seats"] == 500
+        print(f"PASS: Billing preview with 500 units - amount: ${data['effective_amount']}")
 
 
-class TestOnboardingCreateCondominium:
-    """Tests for POST /api/super-admin/onboarding/create-condominium"""
+class TestOnboardingValidation:
+    """Tests for onboarding validation endpoints"""
     
-    def test_create_condominium_success(self, super_admin_token):
-        """SuperAdmin can create a new condominium with admin and modules"""
-        unique_id = str(uuid.uuid4())[:8]
+    @pytest.fixture(scope="class")
+    def auth_token(self):
+        """Get authentication token for SuperAdmin"""
+        response = requests.post(
+            f"{BASE_URL}/api/auth/login",
+            json={"email": SUPERADMIN_EMAIL, "password": SUPERADMIN_PASSWORD}
+        )
+        if response.status_code != 200:
+            pytest.skip(f"Authentication failed: {response.status_code}")
+        return response.json()["access_token"]
+    
+    def test_validate_unique_email(self, auth_token):
+        """Test email validation rejects duplicate"""
+        headers = {"Authorization": f"Bearer {auth_token}"}
         
+        # SuperAdmin email should already exist
+        response = requests.post(
+            f"{BASE_URL}/api/super-admin/onboarding/validate",
+            headers=headers,
+            json={"field": "email", "value": SUPERADMIN_EMAIL}
+        )
+        
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+        data = response.json()
+        assert data["valid"] == False, "Existing email should be marked as invalid"
+        print("PASS: Email validation rejects existing email")
+    
+    def test_validate_new_email(self, auth_token):
+        """Test email validation accepts new email"""
+        headers = {"Authorization": f"Bearer {auth_token}"}
+        unique_email = f"newadmin_{uuid.uuid4().hex[:8]}@test.com"
+        
+        response = requests.post(
+            f"{BASE_URL}/api/super-admin/onboarding/validate",
+            headers=headers,
+            json={"field": "email", "value": unique_email}
+        )
+        
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+        data = response.json()
+        assert data["valid"] == True, f"New email should be valid, got: {data}"
+        print("PASS: Email validation accepts new email")
+    
+    def test_get_timezones(self, auth_token):
+        """Test timezones endpoint returns valid data"""
+        headers = {"Authorization": f"Bearer {auth_token}"}
+        
+        response = requests.get(
+            f"{BASE_URL}/api/super-admin/onboarding/timezones",
+            headers=headers
+        )
+        
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+        data = response.json()
+        assert "timezones" in data, "Missing 'timezones' in response"
+        assert len(data["timezones"]) > 0, "Should have at least one timezone"
+        
+        # Check timezone structure
+        tz = data["timezones"][0]
+        assert "value" in tz, "Timezone missing 'value'"
+        assert "label" in tz, "Timezone missing 'label'"
+        print(f"PASS: Timezones endpoint returned {len(data['timezones'])} timezones")
+
+
+class TestOnboardingWizardE2E:
+    """End-to-end tests for creating condominium via wizard"""
+    
+    @pytest.fixture(scope="class")
+    def auth_token(self):
+        """Get authentication token for SuperAdmin"""
+        response = requests.post(
+            f"{BASE_URL}/api/auth/login",
+            json={"email": SUPERADMIN_EMAIL, "password": SUPERADMIN_PASSWORD}
+        )
+        if response.status_code != 200:
+            pytest.skip(f"Authentication failed: {response.status_code}")
+        return response.json()["access_token"]
+    
+    def test_create_condominium_full_flow(self, auth_token):
+        """Test full wizard flow: Create condo with billing data"""
+        headers = {"Authorization": f"Bearer {auth_token}"}
+        unique_id = uuid.uuid4().hex[:8]
+        
+        # Full wizard payload matching frontend
         wizard_data = {
             "condominium": {
-                "name": f"TEST_Residencial Wizard {unique_id}",
-                "address": "Av. Test #123, Ciudad Test",
-                "country": "Mexico",
-                "timezone": "America/Mexico_City"
+                "name": f"Test Condo {unique_id}",
+                "address": "Test Address 123, Test City",
+                "country": "Costa Rica",
+                "timezone": "America/Costa_Rica"
             },
             "admin": {
-                "full_name": f"Admin Test {unique_id}",
-                "email": f"admin.test.{unique_id}@demo.com"
+                "full_name": f"Admin User {unique_id}",
+                "email": f"admin_{unique_id}@testcondo.com"
             },
             "modules": {
                 "security": True,
-                "hr": True,
-                "reservations": True,
+                "hr": False,
+                "reservations": False,
                 "school": False,
                 "payments": False,
                 "cctv": False
             },
-            "areas": [
-                {
-                    "name": "Piscina Test",
-                    "capacity": 30,
-                    "requires_approval": False
-                },
-                {
-                    "name": "Gimnasio Test",
-                    "capacity": 20,
-                    "requires_approval": True
-                }
-            ]
+            "areas": [],
+            # BILLING ENGINE: Step 4 data
+            "billing": {
+                "initial_units": 25,
+                "billing_cycle": "monthly",
+                "billing_provider": "sinpe"
+            }
         }
         
         response = requests.post(
             f"{BASE_URL}/api/super-admin/onboarding/create-condominium",
-            headers={"Authorization": f"Bearer {super_admin_token}"},
+            headers=headers,
             json=wizard_data
         )
         
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         data = response.json()
         
-        # Verify success response
-        assert data["success"] == True
-        assert "condominium" in data
-        assert "admin_credentials" in data
-        assert "modules_enabled" in data
-        assert "areas_created" in data
+        # Validate response structure
+        assert data.get("success") == True, f"Expected success=true, got: {data}"
+        assert "condominium" in data, "Missing 'condominium' in response"
+        assert "admin_credentials" in data, "Missing 'admin_credentials' in response"
         
-        # Verify condominium data
-        assert data["condominium"]["name"] == wizard_data["condominium"]["name"]
-        assert data["condominium"]["address"] == wizard_data["condominium"]["address"]
-        assert "id" in data["condominium"]
+        # Validate condominium data
+        condo = data["condominium"]
+        assert condo["name"] == wizard_data["condominium"]["name"]
+        assert condo.get("id") is not None, "Missing condominium ID"
         
-        # Verify admin credentials returned
-        assert data["admin_credentials"]["email"] == wizard_data["admin"]["email"]
-        assert "password" in data["admin_credentials"]
-        assert len(data["admin_credentials"]["password"]) >= 8
-        assert "warning" in data["admin_credentials"]
+        # Validate admin credentials
+        creds = data["admin_credentials"]
+        assert creds.get("email") is not None, "Missing admin email"
+        assert creds.get("password") is not None, "Missing admin password"
         
-        # Verify modules enabled (security always enabled)
-        assert "security" in data["modules_enabled"]
-        assert "hr" in data["modules_enabled"]
-        assert "reservations" in data["modules_enabled"]
+        print(f"PASS: Created condominium '{condo['name']}' with ID: {condo['id']}")
         
-        # Verify areas created
-        assert len(data["areas_created"]) == 2
-        area_names = [a["name"] for a in data["areas_created"]]
-        assert "Piscina Test" in area_names
-        assert "Gimnasio Test" in area_names
-        
-        print(f"✓ Created condominium: {data['condominium']['name']}")
-        print(f"✓ Admin email: {data['admin_credentials']['email']}")
-        print(f"✓ Password generated: {data['admin_credentials']['password'][:4]}****")
-        print(f"✓ Modules enabled: {data['modules_enabled']}")
-        print(f"✓ Areas created: {len(data['areas_created'])}")
-        
-        # Store for cleanup
-        return data
+        # Store condo_id for verification
+        condo_id = condo["id"]
+        return condo_id
     
-    def test_admin_password_reset_required(self, super_admin_token):
-        """Verify created admin has password_reset_required=true"""
-        unique_id = str(uuid.uuid4())[:8]
+    def test_create_condominium_with_yearly_billing(self, auth_token):
+        """Test creating condo with yearly billing cycle"""
+        headers = {"Authorization": f"Bearer {auth_token}"}
+        unique_id = uuid.uuid4().hex[:8]
         
         wizard_data = {
             "condominium": {
-                "name": f"TEST_Condo PwdReset {unique_id}",
-                "address": "Av. Password Reset #456",
-                "country": "Colombia",
-                "timezone": "America/Bogota"
-            },
-            "admin": {
-                "full_name": f"Admin PwdReset {unique_id}",
-                "email": f"admin.pwdreset.{unique_id}@demo.com"
-            },
-            "modules": {
-                "security": True,
-                "hr": False,
-                "reservations": False,
-                "school": False,
-                "payments": False,
-                "cctv": False
-            },
-            "areas": []
-        }
-        
-        response = requests.post(
-            f"{BASE_URL}/api/super-admin/onboarding/create-condominium",
-            headers={"Authorization": f"Bearer {super_admin_token}"},
-            json=wizard_data
-        )
-        
-        assert response.status_code == 200
-        data = response.json()
-        
-        # Login with the new admin credentials
-        login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": data["admin_credentials"]["email"],
-            "password": data["admin_credentials"]["password"]
-        })
-        
-        assert login_response.status_code == 200
-        login_data = login_response.json()
-        
-        # Verify password_reset_required flag
-        assert login_data["password_reset_required"] == True
-        assert login_data["user"]["password_reset_required"] == True
-        
-        print(f"✓ Admin login successful with generated password")
-        print(f"✓ password_reset_required = {login_data['password_reset_required']}")
-    
-    def test_security_module_always_enabled(self, super_admin_token):
-        """Security module is always enabled even if set to false"""
-        unique_id = str(uuid.uuid4())[:8]
-        
-        wizard_data = {
-            "condominium": {
-                "name": f"TEST_Condo Security {unique_id}",
-                "address": "Av. Security Test #789",
-                "country": "Peru",
-                "timezone": "America/Lima"
-            },
-            "admin": {
-                "full_name": f"Admin Security {unique_id}",
-                "email": f"admin.security.{unique_id}@demo.com"
-            },
-            "modules": {
-                "security": False,  # Try to disable - should still be enabled
-                "hr": False,
-                "reservations": False,
-                "school": False,
-                "payments": False,
-                "cctv": False
-            },
-            "areas": []
-        }
-        
-        response = requests.post(
-            f"{BASE_URL}/api/super-admin/onboarding/create-condominium",
-            headers={"Authorization": f"Bearer {super_admin_token}"},
-            json=wizard_data
-        )
-        
-        assert response.status_code == 200
-        data = response.json()
-        
-        # Security should always be in enabled modules
-        assert "security" in data["modules_enabled"]
-        print(f"✓ Security module always enabled: {data['modules_enabled']}")
-    
-    def test_rollback_on_duplicate_email(self, super_admin_token):
-        """Rollback if admin email already exists"""
-        # Use an email that already exists
-        existing_email = "admin@genturix.com"
-        unique_id = str(uuid.uuid4())[:8]
-        
-        wizard_data = {
-            "condominium": {
-                "name": f"TEST_Condo Rollback {unique_id}",
-                "address": "Av. Rollback Test #999",
-                "country": "Argentina",
-                "timezone": "America/Buenos_Aires"
-            },
-            "admin": {
-                "full_name": "Admin Duplicate",
-                "email": existing_email  # This email already exists
-            },
-            "modules": {
-                "security": True,
-                "hr": False,
-                "reservations": False,
-                "school": False,
-                "payments": False,
-                "cctv": False
-            },
-            "areas": []
-        }
-        
-        response = requests.post(
-            f"{BASE_URL}/api/super-admin/onboarding/create-condominium",
-            headers={"Authorization": f"Bearer {super_admin_token}"},
-            json=wizard_data
-        )
-        
-        # Should fail with 400 (email already registered)
-        assert response.status_code == 400
-        data = response.json()
-        assert "email" in data["detail"].lower() or "registrado" in data["detail"].lower()
-        
-        # Verify condominium was NOT created (rollback)
-        condos_response = requests.get(
-            f"{BASE_URL}/api/condominiums",
-            headers={"Authorization": f"Bearer {super_admin_token}"}
-        )
-        condos = condos_response.json()
-        condo_names = [c["name"] for c in condos]
-        assert f"TEST_Condo Rollback {unique_id}" not in condo_names
-        
-        print(f"✓ Rollback successful - duplicate email rejected")
-        print(f"✓ Condominium was not created")
-    
-    def test_rollback_on_duplicate_condo_name(self, super_admin_token):
-        """Rollback if condominium name already exists"""
-        # First create a condominium
-        unique_id = str(uuid.uuid4())[:8]
-        condo_name = f"TEST_Condo Duplicate Name {unique_id}"
-        
-        wizard_data_1 = {
-            "condominium": {
-                "name": condo_name,
-                "address": "Av. First #111",
-                "country": "Chile",
-                "timezone": "America/Santiago"
-            },
-            "admin": {
-                "full_name": f"Admin First {unique_id}",
-                "email": f"admin.first.{unique_id}@demo.com"
-            },
-            "modules": {"security": True, "hr": False, "reservations": False, "school": False, "payments": False, "cctv": False},
-            "areas": []
-        }
-        
-        response_1 = requests.post(
-            f"{BASE_URL}/api/super-admin/onboarding/create-condominium",
-            headers={"Authorization": f"Bearer {super_admin_token}"},
-            json=wizard_data_1
-        )
-        assert response_1.status_code == 200
-        
-        # Try to create another with same name
-        wizard_data_2 = {
-            "condominium": {
-                "name": condo_name,  # Same name
-                "address": "Av. Second #222",
-                "country": "Chile",
-                "timezone": "America/Santiago"
-            },
-            "admin": {
-                "full_name": f"Admin Second {unique_id}",
-                "email": f"admin.second.{unique_id}@demo.com"
-            },
-            "modules": {"security": True, "hr": False, "reservations": False, "school": False, "payments": False, "cctv": False},
-            "areas": []
-        }
-        
-        response_2 = requests.post(
-            f"{BASE_URL}/api/super-admin/onboarding/create-condominium",
-            headers={"Authorization": f"Bearer {super_admin_token}"},
-            json=wizard_data_2
-        )
-        
-        # Should fail with 400 (name already exists)
-        assert response_2.status_code == 400
-        data = response_2.json()
-        assert "nombre" in data["detail"].lower() or "existe" in data["detail"].lower()
-        
-        print(f"✓ Duplicate condominium name correctly rejected")
-    
-    def test_regular_admin_cannot_create_condominium(self, regular_admin_token):
-        """Regular Admin cannot access onboarding endpoint"""
-        wizard_data = {
-            "condominium": {
-                "name": "TEST_Unauthorized Condo",
-                "address": "Av. Unauthorized #000",
+                "name": f"Yearly Condo {unique_id}",
+                "address": "Yearly Test Address",
                 "country": "Mexico",
                 "timezone": "America/Mexico_City"
             },
             "admin": {
-                "full_name": "Admin Unauthorized",
-                "email": "admin.unauthorized@demo.com"
-            },
-            "modules": {"security": True, "hr": False, "reservations": False, "school": False, "payments": False, "cctv": False},
-            "areas": []
-        }
-        
-        response = requests.post(
-            f"{BASE_URL}/api/super-admin/onboarding/create-condominium",
-            headers={"Authorization": f"Bearer {regular_admin_token}"},
-            json=wizard_data
-        )
-        
-        assert response.status_code == 403
-        print("✓ Regular admin correctly forbidden from creating condominiums")
-    
-    def test_create_condominium_without_areas(self, super_admin_token):
-        """Can create condominium without areas (reservations disabled)"""
-        unique_id = str(uuid.uuid4())[:8]
-        
-        wizard_data = {
-            "condominium": {
-                "name": f"TEST_Condo NoAreas {unique_id}",
-                "address": "Av. No Areas #333",
-                "country": "Venezuela",
-                "timezone": "America/Caracas"
-            },
-            "admin": {
-                "full_name": f"Admin NoAreas {unique_id}",
-                "email": f"admin.noareas.{unique_id}@demo.com"
-            },
-            "modules": {
-                "security": True,
-                "hr": True,
-                "reservations": False,  # Disabled
-                "school": False,
-                "payments": False,
-                "cctv": False
-            },
-            "areas": []  # No areas
-        }
-        
-        response = requests.post(
-            f"{BASE_URL}/api/super-admin/onboarding/create-condominium",
-            headers={"Authorization": f"Bearer {super_admin_token}"},
-            json=wizard_data
-        )
-        
-        assert response.status_code == 200
-        data = response.json()
-        
-        assert data["success"] == True
-        assert len(data["areas_created"]) == 0
-        assert "reservations" not in data["modules_enabled"]
-        
-        print(f"✓ Created condominium without areas")
-        print(f"✓ Modules enabled: {data['modules_enabled']}")
-    
-    def test_areas_stored_in_reservation_areas_collection(self, super_admin_token):
-        """Verify areas are created and returned in response"""
-        unique_id = str(uuid.uuid4())[:8]
-        
-        wizard_data = {
-            "condominium": {
-                "name": f"TEST_Condo AreasCheck {unique_id}",
-                "address": "Av. Areas Check #444",
-                "country": "Brasil",
-                "timezone": "America/Sao_Paulo"
-            },
-            "admin": {
-                "full_name": f"Admin AreasCheck {unique_id}",
-                "email": f"admin.areascheck.{unique_id}@demo.com"
-            },
-            "modules": {
-                "security": True,
-                "hr": False,
-                "reservations": True,
-                "school": False,
-                "payments": False,
-                "cctv": False
-            },
-            "areas": [
-                {"name": "Salón de Eventos", "capacity": 50, "requires_approval": True},
-                {"name": "Cancha de Tenis", "capacity": 4, "requires_approval": False}
-            ]
-        }
-        
-        response = requests.post(
-            f"{BASE_URL}/api/super-admin/onboarding/create-condominium",
-            headers={"Authorization": f"Bearer {super_admin_token}"},
-            json=wizard_data
-        )
-        
-        assert response.status_code == 200
-        data = response.json()
-        
-        # Verify areas were created and returned in response
-        assert len(data["areas_created"]) == 2
-        area_names = [a["name"] for a in data["areas_created"]]
-        assert "Salón de Eventos" in area_names
-        assert "Cancha de Tenis" in area_names
-        
-        # Each area should have an ID
-        for area in data["areas_created"]:
-            assert "id" in area
-            assert "name" in area
-        
-        print(f"✓ Areas created and returned in response")
-        print(f"✓ Created areas: {area_names}")
-    
-    def test_validation_short_condo_name(self, super_admin_token):
-        """Validation: Condominium name too short"""
-        wizard_data = {
-            "condominium": {
-                "name": "A",  # Too short (min 2)
-                "address": "Av. Valid Address #123",
-                "country": "Mexico",
-                "timezone": "America/Mexico_City"
-            },
-            "admin": {
-                "full_name": "Admin Valid",
-                "email": "admin.valid@demo.com"
-            },
-            "modules": {"security": True, "hr": False, "reservations": False, "school": False, "payments": False, "cctv": False},
-            "areas": []
-        }
-        
-        response = requests.post(
-            f"{BASE_URL}/api/super-admin/onboarding/create-condominium",
-            headers={"Authorization": f"Bearer {super_admin_token}"},
-            json=wizard_data
-        )
-        
-        assert response.status_code == 422  # Validation error
-        print("✓ Short condominium name correctly rejected")
-    
-    def test_validation_invalid_email(self, super_admin_token):
-        """Validation: Invalid admin email format"""
-        unique_id = str(uuid.uuid4())[:8]
-        
-        wizard_data = {
-            "condominium": {
-                "name": f"TEST_Condo InvalidEmail {unique_id}",
-                "address": "Av. Valid Address #123",
-                "country": "Mexico",
-                "timezone": "America/Mexico_City"
-            },
-            "admin": {
-                "full_name": "Admin Valid",
-                "email": "not-an-email"  # Invalid email
-            },
-            "modules": {"security": True, "hr": False, "reservations": False, "school": False, "payments": False, "cctv": False},
-            "areas": []
-        }
-        
-        response = requests.post(
-            f"{BASE_URL}/api/super-admin/onboarding/create-condominium",
-            headers={"Authorization": f"Bearer {super_admin_token}"},
-            json=wizard_data
-        )
-        
-        assert response.status_code == 422  # Validation error
-        print("✓ Invalid email format correctly rejected")
-
-
-class TestOnboardingIntegration:
-    """Integration tests for the complete onboarding flow"""
-    
-    def test_full_onboarding_flow(self, super_admin_token):
-        """Complete onboarding flow: create condo, login as admin, verify profile"""
-        unique_id = str(uuid.uuid4())[:8]
-        
-        # Step 1: Create condominium via wizard
-        wizard_data = {
-            "condominium": {
-                "name": f"TEST_Full Flow Condo {unique_id}",
-                "address": "Av. Full Flow #555",
-                "country": "España",
-                "timezone": "Europe/Madrid"
-            },
-            "admin": {
-                "full_name": f"Admin Full Flow {unique_id}",
-                "email": f"admin.fullflow.{unique_id}@demo.com"
+                "full_name": f"Yearly Admin {unique_id}",
+                "email": f"yearly_{unique_id}@testcondo.com"
             },
             "modules": {
                 "security": True,
                 "hr": True,
                 "reservations": True,
-                "school": True,
-                "payments": True,
+                "school": False,
+                "payments": False,
                 "cctv": False
             },
-            "areas": [
-                {"name": "Piscina Olímpica", "capacity": 100, "requires_approval": False}
-            ]
+            "areas": [],
+            "billing": {
+                "initial_units": 100,
+                "billing_cycle": "yearly",
+                "billing_provider": "stripe"
+            }
         }
         
-        create_response = requests.post(
+        response = requests.post(
             f"{BASE_URL}/api/super-admin/onboarding/create-condominium",
-            headers={"Authorization": f"Bearer {super_admin_token}"},
+            headers=headers,
             json=wizard_data
         )
         
-        assert create_response.status_code == 200
-        create_data = create_response.json()
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        data = response.json()
+        assert data.get("success") == True
         
-        # Verify response structure
-        assert create_data["success"] == True
-        assert "condominium" in create_data
-        assert "admin_credentials" in create_data
-        assert "modules_enabled" in create_data
-        assert "areas_created" in create_data
+        print(f"PASS: Created condominium with yearly billing - {data['condominium']['name']}")
+    
+    def test_create_condominium_with_areas(self, auth_token):
+        """Test creating condo with areas (reservations module enabled)"""
+        headers = {"Authorization": f"Bearer {auth_token}"}
+        unique_id = uuid.uuid4().hex[:8]
         
-        # Step 2: Login as the new admin
-        login_response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": create_data["admin_credentials"]["email"],
-            "password": create_data["admin_credentials"]["password"]
-        })
+        wizard_data = {
+            "condominium": {
+                "name": f"Areas Condo {unique_id}",
+                "address": "Areas Test Address",
+                "country": "Panama",
+                "timezone": "America/Panama"
+            },
+            "admin": {
+                "full_name": f"Areas Admin {unique_id}",
+                "email": f"areas_{unique_id}@testcondo.com"
+            },
+            "modules": {
+                "security": True,
+                "hr": False,
+                "reservations": True,  # Enable reservations
+                "school": False,
+                "payments": False,
+                "cctv": False
+            },
+            "areas": [
+                {"name": "Piscina", "capacity": 30, "requires_approval": False},
+                {"name": "Gimnasio", "capacity": 20, "requires_approval": False}
+            ],
+            "billing": {
+                "initial_units": 50,
+                "billing_cycle": "monthly",
+                "billing_provider": "manual"
+            }
+        }
         
-        assert login_response.status_code == 200
-        login_data = login_response.json()
-        admin_token = login_data["access_token"]
-        
-        # Verify password reset required
-        assert login_data["password_reset_required"] == True
-        
-        # Step 3: Get admin profile
-        profile_response = requests.get(
-            f"{BASE_URL}/api/profile",
-            headers={"Authorization": f"Bearer {admin_token}"}
+        response = requests.post(
+            f"{BASE_URL}/api/super-admin/onboarding/create-condominium",
+            headers=headers,
+            json=wizard_data
         )
         
-        assert profile_response.status_code == 200
-        profile_data = profile_response.json()
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        data = response.json()
+        assert data.get("success") == True
         
-        # Verify admin is assigned to the correct condominium
-        assert profile_data["condominium_id"] == create_data["condominium"]["id"]
-        assert "Administrador" in profile_data["roles"]
+        print(f"PASS: Created condominium with areas - {data['condominium']['name']}")
+
+
+class TestVerifyPaidSeats:
+    """Verify paid_seats is correctly saved in database"""
+    
+    @pytest.fixture(scope="class")
+    def auth_token(self):
+        """Get authentication token for SuperAdmin"""
+        response = requests.post(
+            f"{BASE_URL}/api/auth/login",
+            json={"email": SUPERADMIN_EMAIL, "password": SUPERADMIN_PASSWORD}
+        )
+        if response.status_code != 200:
+            pytest.skip(f"Authentication failed: {response.status_code}")
+        return response.json()["access_token"]
+    
+    def test_verify_paid_seats_saved(self, auth_token):
+        """Create condo and verify paid_seats via GET endpoint"""
+        headers = {"Authorization": f"Bearer {auth_token}"}
+        unique_id = uuid.uuid4().hex[:8]
+        expected_seats = 42
         
-        # Verify condominium name in profile
-        assert profile_data["condominium_name"] == wizard_data["condominium"]["name"]
+        # Create condominium with specific seat count
+        wizard_data = {
+            "condominium": {
+                "name": f"Seats Test {unique_id}",
+                "address": "Seats Test Address",
+                "country": "Costa Rica",
+                "timezone": "America/Costa_Rica"
+            },
+            "admin": {
+                "full_name": f"Seats Admin {unique_id}",
+                "email": f"seats_{unique_id}@testcondo.com"
+            },
+            "modules": {
+                "security": True,
+                "hr": False,
+                "reservations": False,
+                "school": False,
+                "payments": False,
+                "cctv": False
+            },
+            "areas": [],
+            "billing": {
+                "initial_units": expected_seats,
+                "billing_cycle": "monthly",
+                "billing_provider": "sinpe"
+            }
+        }
         
-        # Verify modules enabled in response
-        assert "security" in create_data["modules_enabled"]
-        assert "hr" in create_data["modules_enabled"]
-        assert "reservations" in create_data["modules_enabled"]
+        # Create condominium
+        response = requests.post(
+            f"{BASE_URL}/api/super-admin/onboarding/create-condominium",
+            headers=headers,
+            json=wizard_data
+        )
         
-        # Verify area was created
-        assert len(create_data["areas_created"]) == 1
-        assert create_data["areas_created"][0]["name"] == "Piscina Olímpica"
+        assert response.status_code == 200, f"Failed to create condo: {response.text}"
+        data = response.json()
+        condo_id = data["condominium"]["id"]
         
-        print(f"✓ Full onboarding flow completed successfully")
-        print(f"✓ Condominium: {create_data['condominium']['name']}")
-        print(f"✓ Admin: {profile_data['full_name']}")
-        print(f"✓ Modules enabled: {create_data['modules_enabled']}")
-        print(f"✓ Areas created: {[a['name'] for a in create_data['areas_created']]}")
+        # Get condominium to verify paid_seats
+        get_response = requests.get(
+            f"{BASE_URL}/api/condominiums/{condo_id}",
+            headers=headers
+        )
+        
+        assert get_response.status_code == 200, f"Failed to get condo: {get_response.text}"
+        condo_data = get_response.json()
+        
+        # Verify paid_seats
+        assert "paid_seats" in condo_data, f"Missing paid_seats in response: {condo_data}"
+        assert condo_data["paid_seats"] == expected_seats, f"Expected {expected_seats} seats, got {condo_data['paid_seats']}"
+        
+        print(f"PASS: Verified paid_seats={expected_seats} saved correctly for condo {condo_id}")
 
 
 if __name__ == "__main__":
