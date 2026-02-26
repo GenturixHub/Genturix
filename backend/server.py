@@ -11467,8 +11467,212 @@ async def get_billing_history(current_user = Depends(require_role("Administrador
     return transactions
 
 @api_router.get("/super-admin/billing/overview")
-async def get_all_condominiums_billing(current_user = Depends(require_role("SuperAdmin"))):
-    """SuperAdmin: Get billing overview for all condominiums"""
+async def get_all_condominiums_billing(
+    current_user = Depends(require_role("SuperAdmin")),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(50, ge=1, le=100, description="Items per page"),
+    billing_status: Optional[str] = Query(None, description="Filter by billing_status (comma-separated for multiple)"),
+    search: Optional[str] = Query(None, description="Search by name or email"),
+    sort_by: str = Query("next_invoice_amount", description="Sort field"),
+    sort_order: str = Query("desc", pattern="^(asc|desc)$", description="Sort order")
+):
+    """
+    SuperAdmin: Get billing overview for all condominiums.
+    
+    OPTIMIZED v2.0:
+    - Real backend pagination with skip/limit
+    - Direct MongoDB filtering by billing_status
+    - Eliminates N+1 by using aggregation pipeline
+    - Uses persisted current_users field (falls back to count if not set)
+    
+    Query params:
+    - page: Page number (1-indexed)
+    - page_size: Items per page (max 100)
+    - billing_status: Filter by status (comma-separated, e.g., "pending_payment,past_due")
+    - search: Search by condominium name or admin email
+    - sort_by: Sort field (next_invoice_amount, paid_seats, condominium_name, etc.)
+    - sort_order: asc or desc
+    """
+    
+    # Build MongoDB filter
+    mongo_filter = {
+        "is_demo": {"$ne": True},
+        "environment": {"$ne": "demo"}
+    }
+    
+    # Filter by billing_status if provided
+    if billing_status:
+        status_list = [s.strip() for s in billing_status.split(",") if s.strip()]
+        if status_list:
+            mongo_filter["billing_status"] = {"$in": status_list}
+    
+    # Search filter
+    if search:
+        search_regex = {"$regex": search, "$options": "i"}
+        mongo_filter["$or"] = [
+            {"name": search_regex},
+            {"admin_email": search_regex},
+            {"contact_email": search_regex}
+        ]
+    
+    # Get global pricing config
+    global_config = await get_global_pricing()
+    default_price = global_config.get("price_per_seat", 2.99)
+    
+    # Build aggregation pipeline (ELIMINATES N+1)
+    pipeline = [
+        # Stage 1: Match filter
+        {"$match": mongo_filter},
+        
+        # Stage 2: Lookup users count per condominium (single query, not N+1)
+        {"$lookup": {
+            "from": "users",
+            "let": {"condo_id": "$id"},
+            "pipeline": [
+                {"$match": {
+                    "$expr": {
+                        "$and": [
+                            {"$eq": ["$condominium_id", "$$condo_id"]},
+                            {"$eq": ["$is_active", True]}
+                        ]
+                    }
+                }},
+                {"$count": "count"}
+            ],
+            "as": "user_count_result"
+        }},
+        
+        # Stage 3: Add computed fields
+        {"$addFields": {
+            "active_users_computed": {
+                "$ifNull": [
+                    {"$arrayElemAt": ["$user_count_result.count", 0]},
+                    {"$ifNull": ["$current_users", 0]}
+                ]
+            },
+            "effective_price": {
+                "$ifNull": [
+                    "$seat_price_override",
+                    {"$ifNull": ["$price_per_seat", default_price]}
+                ]
+            }
+        }},
+        
+        # Stage 4: Project final fields
+        {"$project": {
+            "_id": 0,
+            "condominium_id": "$id",
+            "condominium_name": "$name",
+            "admin_email": {"$ifNull": ["$admin_email", "$contact_email"]},
+            "paid_seats": {"$ifNull": ["$paid_seats", 10]},
+            "current_users": "$active_users_computed",
+            "remaining_seats": {
+                "$max": [0, {"$subtract": [{"$ifNull": ["$paid_seats", 10]}, "$active_users_computed"]}]
+            },
+            "billing_status": {"$ifNull": ["$billing_status", "active"]},
+            "billing_cycle": {"$ifNull": ["$billing_cycle", "monthly"]},
+            "billing_provider": {"$ifNull": ["$billing_provider", "manual"]},
+            "next_invoice_amount": {"$ifNull": ["$next_invoice_amount", 0]},
+            "next_billing_date": "$next_billing_date",
+            "price_per_seat": "$effective_price",
+            "seat_price_override": "$seat_price_override",
+            "yearly_discount_percent": {"$ifNull": ["$yearly_discount_percent", 10]},
+            "uses_override": {
+                "$and": [
+                    {"$ne": ["$seat_price_override", None]},
+                    {"$gt": ["$seat_price_override", 0]}
+                ]
+            },
+            "stripe_customer_id": "$stripe_customer_id",
+            "stripe_subscription_id": "$stripe_subscription_id",
+            "environment": "$environment",
+            "is_demo": "$is_demo",
+            "created_at": "$created_at"
+        }}
+    ]
+    
+    # Build sort stage
+    sort_field_map = {
+        "next_invoice_amount": "next_invoice_amount",
+        "paid_seats": "paid_seats",
+        "condominium_name": "condominium_name",
+        "billing_status": "billing_status",
+        "next_billing_date": "next_billing_date",
+        "current_users": "current_users"
+    }
+    sort_field = sort_field_map.get(sort_by, "next_invoice_amount")
+    sort_direction = 1 if sort_order == "asc" else -1
+    pipeline.append({"$sort": {sort_field: sort_direction}})
+    
+    # Get total count before pagination (using same filter)
+    total_count = await db.condominiums.count_documents(mongo_filter)
+    
+    # Add pagination
+    skip = (page - 1) * page_size
+    pipeline.append({"$skip": skip})
+    pipeline.append({"$limit": page_size})
+    
+    # Execute aggregation
+    condos = await db.condominiums.aggregate(pipeline).to_list(page_size)
+    
+    # Calculate totals for filtered results (separate aggregation for accuracy)
+    totals_pipeline = [
+        {"$match": mongo_filter},
+        {"$lookup": {
+            "from": "users",
+            "let": {"condo_id": "$id"},
+            "pipeline": [
+                {"$match": {"$expr": {"$and": [
+                    {"$eq": ["$condominium_id", "$$condo_id"]},
+                    {"$eq": ["$is_active", True]}
+                ]}}},
+                {"$count": "count"}
+            ],
+            "as": "user_count_result"
+        }},
+        {"$group": {
+            "_id": None,
+            "total_paid_seats": {"$sum": {"$ifNull": ["$paid_seats", 10]}},
+            "total_active_users": {
+                "$sum": {"$ifNull": [{"$arrayElemAt": ["$user_count_result.count", 0]}, {"$ifNull": ["$current_users", 0]}]}
+            },
+            "total_monthly_revenue": {"$sum": {"$ifNull": ["$next_invoice_amount", 0]}}
+        }}
+    ]
+    
+    totals_result = await db.condominiums.aggregate(totals_pipeline).to_list(1)
+    totals = totals_result[0] if totals_result else {
+        "total_paid_seats": 0,
+        "total_active_users": 0,
+        "total_monthly_revenue": 0
+    }
+    
+    return {
+        "condominiums": condos,
+        "pagination": {
+            "page": page,
+            "page_size": page_size,
+            "total_count": total_count,
+            "total_pages": (total_count + page_size - 1) // page_size if total_count > 0 else 0,
+            "has_next": skip + page_size < total_count,
+            "has_prev": page > 1
+        },
+        "totals": {
+            "total_condominiums": total_count,
+            "total_paid_seats": totals.get("total_paid_seats", 0),
+            "total_active_users": totals.get("total_active_users", 0),
+            "total_monthly_revenue": round(totals.get("total_monthly_revenue", 0), 2)
+        }
+    }
+
+
+# Legacy endpoint for backwards compatibility (deprecated)
+@api_router.get("/super-admin/billing/overview-legacy")
+async def get_all_condominiums_billing_legacy(current_user = Depends(require_role("SuperAdmin"))):
+    """
+    DEPRECATED: Use /super-admin/billing/overview with pagination params instead.
+    This endpoint is kept for backwards compatibility but will be removed.
+    """
     condos = await db.condominiums.find({"is_active": True}, {"_id": 0}).to_list(1000)
     
     # Get global pricing for comparison
@@ -11515,6 +11719,7 @@ async def get_all_condominiums_billing(current_user = Depends(require_role("Supe
             "total_monthly_revenue": total_revenue
         }
     }
+
 
 @api_router.patch("/super-admin/condominiums/{condo_id}/billing")
 async def update_condominium_billing(
