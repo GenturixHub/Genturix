@@ -17049,6 +17049,21 @@ async def startup_event():
         logger.error(f"[STARTUP] Global pricing config failed: {e}")
         logger.warning("[STARTUP] Pricing will use fallback defaults")
     
+    # Initialize billing module dependencies (PHASE 3)
+    try:
+        init_billing_service(
+            database=db,
+            resend_key=RESEND_API_KEY,
+            sender_email=SENDER_EMAIL,
+            yearly_discount=YEARLY_DISCOUNT_PERCENT,
+            log=logger
+        )
+        init_billing_scheduler(database=db, log=logger)
+        logger.info("[STARTUP] Billing module initialized successfully")
+    except Exception as e:
+        logger.error(f"[STARTUP] Billing module initialization failed: {e}")
+        logger.warning("[STARTUP] Billing features may not work correctly")
+    
     # Start billing scheduler (non-fatal if fails)
     try:
         start_billing_scheduler()
