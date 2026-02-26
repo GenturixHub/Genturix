@@ -44,8 +44,13 @@ import {
   AlertCircle,
   ArrowUpRight,
   LogOut,
-  Calendar
+  Calendar,
+  Send,
+  Info,
+  Lock,
+  MessageSquare
 } from 'lucide-react';
+import { Textarea } from '../components/ui/textarea';
 
 const StatCard = ({ title, value, icon: Icon, trend, color = 'primary', onClick }) => {
   const colorClasses = {
