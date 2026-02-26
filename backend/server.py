@@ -10349,6 +10349,672 @@ async def update_condominium_billing_status(
 
 # ==================== END BILLING ENGINE ====================
 
+# ==================== AUTOMATIC BILLING SCHEDULER ====================
+"""
+SISTEMA AUTOMÁTICO DE VENCIMIENTOS Y BLOQUEO PARCIAL
+
+Características:
+1. Scheduler diario a las 2AM (configurable)
+2. Evaluación de condominios activos
+3. Transición automática: active -> past_due -> suspended
+4. Emails automáticos en puntos clave
+5. Bloqueo parcial (solo POST/PUT/DELETE bloqueados)
+6. No duplicación de estados ni emails
+"""
+
+# Global scheduler instance
+billing_scheduler: Optional[AsyncIOScheduler] = None
+
+# Default grace period in days
+DEFAULT_GRACE_PERIOD_DAYS = 5
+
+# Email templates for billing notifications
+BILLING_EMAIL_TEMPLATES = {
+    "reminder_3_days": {
+        "subject": "Recordatorio: Tu suscripción vence en 3 días - {condo_name}",
+        "template": """
+        <h2>Recordatorio de Pago - {condo_name}</h2>
+        <p>Hola,</p>
+        <p>Este es un recordatorio de que tu suscripción de Genturix vence en <strong>3 días</strong>.</p>
+        <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p><strong>Detalles de facturación:</strong></p>
+            <ul>
+                <li>Condominio: {condo_name}</li>
+                <li>Monto: ${amount}</li>
+                <li>Fecha de vencimiento: {due_date}</li>
+                <li>Asientos contratados: {seats}</li>
+            </ul>
+        </div>
+        <p>Por favor realiza el pago antes de la fecha de vencimiento para evitar interrupciones en el servicio.</p>
+        <p>Saludos,<br>Equipo Genturix</p>
+        """
+    },
+    "reminder_due_today": {
+        "subject": "URGENTE: Tu suscripción vence HOY - {condo_name}",
+        "template": """
+        <h2>Tu Pago Vence Hoy - {condo_name}</h2>
+        <p>Hola,</p>
+        <p><strong>Tu suscripción de Genturix vence HOY.</strong></p>
+        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+            <p><strong>Acción requerida:</strong></p>
+            <ul>
+                <li>Condominio: {condo_name}</li>
+                <li>Monto pendiente: ${amount}</li>
+                <li>Fecha de vencimiento: {due_date}</li>
+            </ul>
+        </div>
+        <p>Si ya realizaste el pago, puedes ignorar este mensaje. De lo contrario, por favor realiza el pago hoy para evitar restricciones.</p>
+        <p>Saludos,<br>Equipo Genturix</p>
+        """
+    },
+    "status_past_due": {
+        "subject": "AVISO: Tu cuenta está en mora - {condo_name}",
+        "template": """
+        <h2>Cuenta en Mora - {condo_name}</h2>
+        <p>Hola,</p>
+        <p>Tu suscripción de Genturix ha vencido y tu cuenta está ahora <strong>en estado de mora</strong>.</p>
+        <div style="background: #f8d7da; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc3545;">
+            <p><strong>Estado de la cuenta:</strong></p>
+            <ul>
+                <li>Condominio: {condo_name}</li>
+                <li>Monto pendiente: ${amount}</li>
+                <li>Días vencido: {days_overdue}</li>
+                <li>Período de gracia: {grace_days} días</li>
+            </ul>
+        </div>
+        <p><strong>Importante:</strong> Si el pago no se realiza dentro del período de gracia, tu cuenta será suspendida y se restringirá el acceso a ciertas funciones.</p>
+        <p>Por favor contacta a soporte si necesitas ayuda.</p>
+        <p>Saludos,<br>Equipo Genturix</p>
+        """
+    },
+    "status_suspended": {
+        "subject": "ALERTA: Tu cuenta ha sido suspendida - {condo_name}",
+        "template": """
+        <h2>Cuenta Suspendida - {condo_name}</h2>
+        <p>Hola,</p>
+        <p>Lamentamos informarte que tu cuenta de Genturix ha sido <strong>suspendida</strong> por falta de pago.</p>
+        <div style="background: #f5c6cb; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #721c24;">
+            <p><strong>Restricciones activas:</strong></p>
+            <ul>
+                <li>No se pueden crear nuevos registros</li>
+                <li>No se pueden editar datos existentes</li>
+                <li>Acceso limitado a consultas y dashboard</li>
+            </ul>
+            <p><strong>Deuda pendiente:</strong> ${amount}</p>
+        </div>
+        <p>Para reactivar tu cuenta, por favor realiza el pago pendiente lo antes posible.</p>
+        <p>Contacta a soporte: soporte@genturix.com</p>
+        <p>Saludos,<br>Equipo Genturix</p>
+        """
+    },
+    "payment_confirmed": {
+        "subject": "Pago Confirmado - Tu cuenta está activa - {condo_name}",
+        "template": """
+        <h2>Pago Confirmado - {condo_name}</h2>
+        <p>Hola,</p>
+        <p>Hemos recibido tu pago exitosamente. Tu cuenta de Genturix está ahora <strong>activa</strong>.</p>
+        <div style="background: #d4edda; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+            <p><strong>Detalles del pago:</strong></p>
+            <ul>
+                <li>Condominio: {condo_name}</li>
+                <li>Monto pagado: ${amount}</li>
+                <li>Próxima fecha de cobro: {next_due_date}</li>
+            </ul>
+        </div>
+        <p>Gracias por confiar en Genturix.</p>
+        <p>Saludos,<br>Equipo Genturix</p>
+        """
+    }
+}
+
+
+async def send_billing_notification_email(
+    email_type: str,
+    recipient_email: str,
+    condo_name: str,
+    amount: float,
+    due_date: str,
+    seats: int = 0,
+    days_overdue: int = 0,
+    grace_days: int = DEFAULT_GRACE_PERIOD_DAYS,
+    next_due_date: str = ""
+) -> bool:
+    """
+    Send billing notification email using Resend.
+    Returns True if successful, False otherwise.
+    """
+    if not RESEND_API_KEY or RESEND_API_KEY == "your_resend_api_key_here":
+        logger.warning(f"[BILLING-EMAIL] Skipping email - Resend not configured")
+        return False
+    
+    template_config = BILLING_EMAIL_TEMPLATES.get(email_type)
+    if not template_config:
+        logger.error(f"[BILLING-EMAIL] Unknown email type: {email_type}")
+        return False
+    
+    try:
+        subject = template_config["subject"].format(condo_name=condo_name)
+        html_content = template_config["template"].format(
+            condo_name=condo_name,
+            amount=f"{amount:,.2f}",
+            due_date=due_date,
+            seats=seats,
+            days_overdue=days_overdue,
+            grace_days=grace_days,
+            next_due_date=next_due_date
+        )
+        
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [recipient_email],
+            "subject": subject,
+            "html": html_content
+        }
+        
+        await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[BILLING-EMAIL] Sent {email_type} to {recipient_email} for {condo_name}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"[BILLING-EMAIL] Failed to send {email_type}: {e}")
+        return False
+
+
+async def check_and_log_email_sent(
+    condominium_id: str,
+    email_type: str,
+    today_str: str
+) -> bool:
+    """
+    Check if an email of this type was already sent today.
+    Returns True if already sent, False if not.
+    """
+    existing = await db.billing_email_log.find_one({
+        "condominium_id": condominium_id,
+        "email_type": email_type,
+        "sent_date": today_str
+    })
+    return existing is not None
+
+
+async def log_email_sent(
+    condominium_id: str,
+    email_type: str,
+    recipient_email: str,
+    today_str: str
+):
+    """Log that an email was sent to prevent duplicates."""
+    await db.billing_email_log.insert_one({
+        "condominium_id": condominium_id,
+        "email_type": email_type,
+        "recipient_email": recipient_email,
+        "sent_date": today_str,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+
+
+async def process_billing_for_condominium(condo: dict, now: datetime, today_str: str) -> dict:
+    """
+    Process billing status for a single condominium.
+    Returns a dict with processing results.
+    """
+    condo_id = condo.get("id")
+    condo_name = condo.get("name", "Unknown")
+    current_status = condo.get("billing_status", "active")
+    next_billing_date_str = condo.get("next_billing_date")
+    grace_period = condo.get("grace_period_days", DEFAULT_GRACE_PERIOD_DAYS)
+    billing_email = condo.get("billing_email") or condo.get("admin_email") or condo.get("contact_email")
+    next_invoice_amount = condo.get("next_invoice_amount", 0)
+    paid_seats = condo.get("paid_seats", 10)
+    
+    result = {
+        "condominium_id": condo_id,
+        "name": condo_name,
+        "previous_status": current_status,
+        "new_status": current_status,
+        "action_taken": None,
+        "email_sent": None,
+        "error": None
+    }
+    
+    # Skip if no billing date set
+    if not next_billing_date_str:
+        result["action_taken"] = "skipped_no_billing_date"
+        return result
+    
+    # Parse billing date
+    try:
+        next_billing_date = datetime.fromisoformat(next_billing_date_str.replace("Z", "+00:00"))
+        if next_billing_date.tzinfo is None:
+            next_billing_date = next_billing_date.replace(tzinfo=timezone.utc)
+    except Exception as e:
+        result["error"] = f"Invalid billing date: {e}"
+        return result
+    
+    # Calculate days until/since due
+    days_diff = (now - next_billing_date).days
+    days_until_due = -days_diff  # Positive if in future, negative if past
+    
+    due_date_formatted = next_billing_date.strftime("%d/%m/%Y")
+    
+    # ===== EMAIL REMINDERS (before due date) =====
+    if current_status == "active":
+        # 3 days before reminder
+        if days_until_due == 3:
+            if not await check_and_log_email_sent(condo_id, "reminder_3_days", today_str):
+                if await send_billing_notification_email(
+                    "reminder_3_days", billing_email, condo_name, 
+                    next_invoice_amount, due_date_formatted, paid_seats
+                ):
+                    await log_email_sent(condo_id, "reminder_3_days", billing_email, today_str)
+                    result["email_sent"] = "reminder_3_days"
+        
+        # Due today reminder
+        elif days_until_due == 0:
+            if not await check_and_log_email_sent(condo_id, "reminder_due_today", today_str):
+                if await send_billing_notification_email(
+                    "reminder_due_today", billing_email, condo_name,
+                    next_invoice_amount, due_date_formatted, paid_seats
+                ):
+                    await log_email_sent(condo_id, "reminder_due_today", billing_email, today_str)
+                    result["email_sent"] = "reminder_due_today"
+    
+    # ===== STATUS TRANSITIONS (after due date) =====
+    if days_diff > 0:  # Past due date
+        days_overdue = days_diff
+        
+        if days_overdue <= grace_period:
+            # Within grace period -> past_due
+            if current_status not in ["past_due", "suspended"]:
+                # Transition to past_due
+                await db.condominiums.update_one(
+                    {"id": condo_id},
+                    {"$set": {
+                        "billing_status": "past_due",
+                        "updated_at": now.isoformat()
+                    }}
+                )
+                result["new_status"] = "past_due"
+                result["action_taken"] = "transitioned_to_past_due"
+                
+                # Log event
+                await log_billing_engine_event(
+                    event_type="auto_status_change",
+                    condominium_id=condo_id,
+                    data={
+                        "from": current_status,
+                        "to": "past_due",
+                        "days_overdue": days_overdue,
+                        "grace_period": grace_period,
+                        "reason": "automatic_scheduler"
+                    },
+                    triggered_by="billing_scheduler",
+                    previous_state={"billing_status": current_status},
+                    new_state={"billing_status": "past_due"}
+                )
+                
+                # Send past_due email
+                if not await check_and_log_email_sent(condo_id, "status_past_due", today_str):
+                    if await send_billing_notification_email(
+                        "status_past_due", billing_email, condo_name,
+                        next_invoice_amount, due_date_formatted, paid_seats,
+                        days_overdue, grace_period
+                    ):
+                        await log_email_sent(condo_id, "status_past_due", billing_email, today_str)
+                        result["email_sent"] = "status_past_due"
+        
+        else:
+            # Beyond grace period -> suspended
+            if current_status != "suspended":
+                # Transition to suspended
+                await db.condominiums.update_one(
+                    {"id": condo_id},
+                    {"$set": {
+                        "billing_status": "suspended",
+                        "updated_at": now.isoformat()
+                    }}
+                )
+                result["new_status"] = "suspended"
+                result["action_taken"] = "transitioned_to_suspended"
+                
+                # Log event
+                await log_billing_engine_event(
+                    event_type="auto_status_change",
+                    condominium_id=condo_id,
+                    data={
+                        "from": current_status,
+                        "to": "suspended",
+                        "days_overdue": days_overdue,
+                        "grace_period": grace_period,
+                        "reason": "automatic_scheduler_grace_exceeded"
+                    },
+                    triggered_by="billing_scheduler",
+                    previous_state={"billing_status": current_status},
+                    new_state={"billing_status": "suspended"}
+                )
+                
+                # Send suspended email
+                if not await check_and_log_email_sent(condo_id, "status_suspended", today_str):
+                    if await send_billing_notification_email(
+                        "status_suspended", billing_email, condo_name,
+                        next_invoice_amount, due_date_formatted, paid_seats,
+                        days_overdue, grace_period
+                    ):
+                        await log_email_sent(condo_id, "status_suspended", billing_email, today_str)
+                        result["email_sent"] = "status_suspended"
+    
+    return result
+
+
+async def run_daily_billing_check():
+    """
+    Daily billing check job - runs at 2AM.
+    Evaluates all active condominiums and transitions status as needed.
+    """
+    logger.info("[BILLING-SCHEDULER] Starting daily billing check...")
+    
+    now = datetime.now(timezone.utc)
+    today_str = now.strftime("%Y-%m-%d")
+    
+    # Find condominiums to evaluate
+    # Exclude: demo, already cancelled, and those without billing dates
+    query = {
+        "is_demo": {"$ne": True},
+        "environment": {"$ne": "demo"},
+        "billing_status": {"$in": ["active", "past_due", "upgrade_pending", "pending_payment"]},
+        "next_billing_date": {"$ne": None}
+    }
+    
+    condos = await db.condominiums.find(query, {"_id": 0}).to_list(5000)
+    
+    results = {
+        "run_date": today_str,
+        "run_time": now.isoformat(),
+        "total_evaluated": len(condos),
+        "transitioned_to_past_due": 0,
+        "transitioned_to_suspended": 0,
+        "emails_sent": 0,
+        "errors": 0,
+        "details": []
+    }
+    
+    for condo in condos:
+        try:
+            result = await process_billing_for_condominium(condo, now, today_str)
+            
+            if result.get("action_taken") == "transitioned_to_past_due":
+                results["transitioned_to_past_due"] += 1
+            elif result.get("action_taken") == "transitioned_to_suspended":
+                results["transitioned_to_suspended"] += 1
+            
+            if result.get("email_sent"):
+                results["emails_sent"] += 1
+            
+            if result.get("error"):
+                results["errors"] += 1
+            
+            results["details"].append(result)
+            
+        except Exception as e:
+            logger.error(f"[BILLING-SCHEDULER] Error processing {condo.get('id')}: {e}")
+            results["errors"] += 1
+    
+    # Log the run
+    await db.billing_scheduler_runs.insert_one({
+        "run_date": today_str,
+        "run_time": now.isoformat(),
+        "total_evaluated": results["total_evaluated"],
+        "transitioned_to_past_due": results["transitioned_to_past_due"],
+        "transitioned_to_suspended": results["transitioned_to_suspended"],
+        "emails_sent": results["emails_sent"],
+        "errors": results["errors"],
+        "created_at": now.isoformat()
+    })
+    
+    logger.info(
+        f"[BILLING-SCHEDULER] Completed: {results['total_evaluated']} evaluated, "
+        f"{results['transitioned_to_past_due']} -> past_due, "
+        f"{results['transitioned_to_suspended']} -> suspended, "
+        f"{results['emails_sent']} emails sent, {results['errors']} errors"
+    )
+    
+    return results
+
+
+def start_billing_scheduler():
+    """Initialize and start the billing scheduler."""
+    global billing_scheduler
+    
+    if billing_scheduler is not None:
+        logger.warning("[BILLING-SCHEDULER] Scheduler already running")
+        return
+    
+    billing_scheduler = AsyncIOScheduler(timezone="America/Costa_Rica")
+    
+    # Schedule daily job at 2AM Costa Rica time
+    billing_scheduler.add_job(
+        run_daily_billing_check,
+        CronTrigger(hour=2, minute=0),
+        id="daily_billing_check",
+        name="Daily Billing Status Check",
+        replace_existing=True
+    )
+    
+    billing_scheduler.start()
+    logger.info("[BILLING-SCHEDULER] Started - daily check scheduled for 2:00 AM Costa Rica time")
+
+
+def stop_billing_scheduler():
+    """Stop the billing scheduler."""
+    global billing_scheduler
+    
+    if billing_scheduler:
+        billing_scheduler.shutdown()
+        billing_scheduler = None
+        logger.info("[BILLING-SCHEDULER] Stopped")
+
+
+# ==================== PARTIAL BLOCKING MIDDLEWARE ====================
+"""
+BLOQUEO PARCIAL INTELIGENTE
+
+- Condominios suspendidos solo pueden hacer GET requests
+- POST, PUT, DELETE están bloqueados
+- Dashboard y consultas siguen funcionando
+"""
+
+# Routes that are ALWAYS allowed (even when suspended)
+ALWAYS_ALLOWED_ROUTES = [
+    "/api/auth/",           # Authentication
+    "/api/health",          # Health checks
+    "/api/billing/",        # Billing endpoints (need to pay!)
+    "/api/super-admin/",    # SuperAdmin routes
+]
+
+# Routes that are blocked when suspended (checked by method)
+BLOCKED_WHEN_SUSPENDED_METHODS = ["POST", "PUT", "DELETE", "PATCH"]
+
+
+async def check_module_access(
+    condominium_id: str,
+    method: str,
+    path: str
+) -> Tuple[bool, Optional[str]]:
+    """
+    Central function to check if a request should be allowed based on billing status.
+    
+    Returns:
+        Tuple[bool, Optional[str]]: (is_allowed, error_message)
+    
+    Logic:
+    - Suspended condos: Block POST/PUT/DELETE/PATCH, allow GET
+    - Past due condos: Allow all (warning only)
+    - Active condos: Allow all
+    """
+    # Check if route is always allowed
+    for allowed_route in ALWAYS_ALLOWED_ROUTES:
+        if path.startswith(allowed_route):
+            return True, None
+    
+    # Get condominium
+    condo = await db.condominiums.find_one(
+        {"id": condominium_id},
+        {"_id": 0, "billing_status": 1, "environment": 1, "is_demo": 1, "name": 1}
+    )
+    
+    if not condo:
+        return True, None  # Unknown condo - let other middleware handle
+    
+    # Demo condos are never blocked
+    if condo.get("is_demo") or condo.get("environment") == "demo":
+        return True, None
+    
+    billing_status = condo.get("billing_status", "active")
+    
+    # Suspended: Block modifications
+    if billing_status == "suspended":
+        if method.upper() in BLOCKED_WHEN_SUSPENDED_METHODS:
+            return False, f"Cuenta suspendida por falta de pago. Solo consultas permitidas. Contacte soporte para regularizar."
+    
+    return True, None
+
+
+async def check_module_access_dependency(
+    request: Request,
+    current_user: dict = Depends(get_current_user)
+) -> dict:
+    """
+    FastAPI dependency for partial blocking.
+    Raises HTTPException if access is denied.
+    """
+    condominium_id = current_user.get("condominium_id")
+    
+    # SuperAdmins are never blocked
+    user_roles = current_user.get("roles", [])
+    if "SuperAdmin" in user_roles:
+        return current_user
+    
+    if not condominium_id:
+        return current_user
+    
+    is_allowed, error_message = await check_module_access(
+        condominium_id,
+        request.method,
+        request.url.path
+    )
+    
+    if not is_allowed:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail=error_message
+        )
+    
+    return current_user
+
+
+# ==================== BILLING SCHEDULER ADMIN ENDPOINTS ====================
+
+@api_router.post("/billing/scheduler/run-now")
+async def run_billing_scheduler_now(
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
+):
+    """
+    SuperAdmin: Manually trigger the daily billing check.
+    Useful for testing or immediate processing.
+    """
+    results = await run_daily_billing_check()
+    
+    return {
+        "success": True,
+        "message": "Billing check completed",
+        "results": {
+            "total_evaluated": results["total_evaluated"],
+            "transitioned_to_past_due": results["transitioned_to_past_due"],
+            "transitioned_to_suspended": results["transitioned_to_suspended"],
+            "emails_sent": results["emails_sent"],
+            "errors": results["errors"]
+        }
+    }
+
+
+@api_router.get("/billing/scheduler/history")
+async def get_scheduler_run_history(
+    limit: int = Query(30, ge=1, le=100),
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
+):
+    """
+    SuperAdmin: Get history of billing scheduler runs.
+    """
+    runs = await db.billing_scheduler_runs.find(
+        {},
+        {"_id": 0}
+    ).sort("run_time", -1).limit(limit).to_list(limit)
+    
+    return {
+        "runs": runs,
+        "count": len(runs)
+    }
+
+
+@api_router.get("/billing/scheduler/status")
+async def get_scheduler_status(
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
+):
+    """
+    SuperAdmin: Check billing scheduler status.
+    """
+    global billing_scheduler
+    
+    is_running = billing_scheduler is not None and billing_scheduler.running
+    
+    next_run = None
+    if is_running:
+        job = billing_scheduler.get_job("daily_billing_check")
+        if job and job.next_run_time:
+            next_run = job.next_run_time.isoformat()
+    
+    # Get last run
+    last_run = await db.billing_scheduler_runs.find_one(
+        {},
+        {"_id": 0},
+        sort=[("run_time", -1)]
+    )
+    
+    return {
+        "is_running": is_running,
+        "next_run_scheduled": next_run,
+        "last_run": last_run
+    }
+
+
+@api_router.put("/condominiums/{condominium_id}/grace-period")
+async def update_grace_period(
+    condominium_id: str,
+    grace_days: int = Query(..., ge=0, le=30, description="Grace period in days (0-30)"),
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
+):
+    """
+    SuperAdmin: Update grace period for a specific condominium.
+    """
+    result = await db.condominiums.update_one(
+        {"id": condominium_id},
+        {"$set": {
+            "grace_period_days": grace_days,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Condominio no encontrado")
+    
+    return {
+        "success": True,
+        "condominium_id": condominium_id,
+        "grace_period_days": grace_days
+    }
+
+# ==================== END AUTOMATIC BILLING SCHEDULER ====================
+
 @api_router.post("/billing/preview", response_model=BillingPreviewResponse)
 async def get_billing_preview(
     preview_request: BillingPreviewRequest,
