@@ -11142,7 +11142,7 @@ async def update_condominium_seats(
 # Complete financial control for SINPE/manual payments
 # Includes: Payment confirmation, history, upgrade requests, seat protection
 
-@api_router.post("/billing/confirm-payment/{condominium_id}", response_model=ConfirmPaymentResponse)
+@billing_router.post("/confirm-payment/{condominium_id}", response_model=ConfirmPaymentResponse)
 async def confirm_sinpe_payment(
     condominium_id: str,
     request: Request,
@@ -11349,7 +11349,7 @@ async def confirm_sinpe_payment(
         message=message
     )
 
-@api_router.get("/billing/payments/{condominium_id}")
+@billing_router.get("/payments/{condominium_id}")
 async def get_payment_history(
     condominium_id: str,
     limit: int = 50,
@@ -11380,7 +11380,7 @@ async def get_payment_history(
         "total": len(payments)
     }
 
-@api_router.get("/billing/payments")
+@billing_router.get("/payments")
 async def get_all_pending_payments(
     status: Optional[str] = None,
     current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
@@ -11408,7 +11408,7 @@ async def get_all_pending_payments(
     }
 
 
-@api_router.get("/billing/balance/{condominium_id}")
+@billing_router.get("/balance/{condominium_id}")
 async def get_billing_balance(
     condominium_id: str,
     current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
@@ -11479,7 +11479,7 @@ async def get_billing_balance(
 
 # ==================== SEAT UPGRADE REQUESTS ====================
 
-@api_router.post("/billing/request-seat-upgrade")
+@billing_router.post("/request-seat-upgrade")
 async def request_seat_upgrade(
     request_data: SeatUpgradeRequestModel,
     current_user = Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN))
@@ -11581,7 +11581,7 @@ async def request_seat_upgrade(
         "message": f"Solicitud creada. Esperando aprobación de SuperAdmin para {requested_seats - current_seats} asientos adicionales (${upgrade_request['difference_amount']}/{'año' if condo.get('billing_cycle') == 'yearly' else 'mes'})"
     }
 
-@api_router.get("/billing/my-pending-request")
+@billing_router.get("/my-pending-request")
 async def get_my_pending_request(
     current_user = Depends(require_role(RoleEnum.ADMINISTRADOR))
 ):
