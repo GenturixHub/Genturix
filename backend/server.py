@@ -1151,6 +1151,8 @@ class BillingPreviewRequest(BaseModel):
     initial_units: int = Field(..., ge=1, le=10000)
     billing_cycle: str = Field(default="monthly", pattern="^(monthly|yearly)$")
     condominium_id: Optional[str] = None  # For existing condo price override
+    seat_price_override: Optional[float] = Field(default=None, gt=0, le=1000, description="Custom price per seat (optional)")
+    yearly_discount_percent: Optional[float] = Field(default=None, ge=0, le=50, description="Custom yearly discount 0-50% (optional)")
 
 class BillingPreviewResponse(BaseModel):
     """Response with calculated billing preview"""
