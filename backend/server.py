@@ -10981,7 +10981,7 @@ async def get_scheduler_status(
     }
 
 
-@api_router.put("/condominiums/{condominium_id}/grace-period")
+@billing_router.put("/grace-period/{condominium_id}")
 async def update_grace_period(
     condominium_id: str,
     grace_days: int = Query(..., ge=0, le=30, description="Grace period in days (0-30)"),
