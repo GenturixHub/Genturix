@@ -156,6 +156,23 @@ SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'noreply@genturix.com')
 if RESEND_API_KEY:
     resend.api_key = RESEND_API_KEY
 
+# ==================== INITIALIZE BILLING MODULE ====================
+# Initialize billing service and scheduler with database and config
+YEARLY_DISCOUNT_PERCENT = 10  # Default yearly discount
+
+if db is not None:
+    billing_service.init_service(
+        database=db,
+        resend_key=RESEND_API_KEY,
+        sender_email=SENDER_EMAIL,
+        yearly_discount=YEARLY_DISCOUNT_PERCENT,
+        log=logging.getLogger("billing.service")
+    )
+    billing_scheduler_module.init_scheduler(
+        database=db,
+        log=logging.getLogger("billing.scheduler")
+    )
+
 # VAPID Configuration for Push Notifications
 VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
 VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', '')
