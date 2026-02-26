@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="22" skipped="0" tests="27" time="7.689" timestamp="2026-02-26T21:50:32.038708+00:00" hostname="agent-env-43638c86-f26d-4f34-a4cd-34daaf611925"><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_scheduler_status" time="0.602" /><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_scheduler_run_now" time="0.485"><failure message="AssertionError: Missing run_date field&#10;assert 'run_date' in {'message': 'Billing check completed', 'results': {'emails_sent': 0, 'errors': 0, 'total_evaluated': 12, 'transitioned_to_past_due': 0, ...}, 'success': True}">backend/tests/test_billing_phase3_decoupling.py:96: in test_scheduler_run_now
+    assert "run_date" in data, "Missing run_date field"
+E   AssertionError: Missing run_date field
+E   assert 'run_date' in {'message': 'Billing check completed', 'results': {'emails_sent': 0, 'errors': 0, 'total_evaluated': 12, 'transitioned_to_past_due': 0, ...}, 'success': True}</failure></testcase><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_scheduler_history" time="0.459"><failure message="AssertionError: Expected array of run history&#10;assert False&#10; +  where False = isinstance({'count': 27, 'runs': [{'created_at': '2026-02-26T21:50:33.176469+00:00', 'emails_sent': 0, 'errors': 0, 'run_date': '2026-02-26', ...}, {'created_at': '2026-02-26T21:32:48.743481+00:00', 'emails_sent': 0, 'errors': 0, 'run_date': '2026-02-26', ...}, {'created_at': '2026-02-26T21:32:26.022490+00:00', 'emails_sent': 0, 'errors': 0, 'run_date': '2026-02-26', ...}, {'created_at': '2026-02-26T21:31:16.017528+00:00', 'emails_sent': 0, 'errors': 0, 'run_date': '2026-02-26', ...}, {'created_at': '2026-02-26T21:30:37.929242+00:00', 'emails_sent': 0, 'errors': 0, 'run_date': '2026-02-26', ...}, {'created_at': '2026-02-26T21:06:12.419138+00:00', 'emails_sent': 0, 'errors': 0, 'run_date': '2026-02-26', ...}, ...]}, list)">backend/tests/test_billing_phase3_decoupling.py:112: in test_scheduler_history
+    assert isinstance(data, list), "Expected array of run history"
+E   AssertionError: Expected array of run history
+E   assert False
+E    +  where False = isinstance({'count': 27, 'runs': [{'created_at': '2026-02-26T21:50:33.176469+00:00', 'emails_sent': 0, 'errors': 0, 'run_date': '2026-02-26', ...}, {'created_at': '2026-02-26T21:32:48.743481+00:00', 'emails_sent': 0, 'errors': 0, 'run_date': '2026-02-26', ...}, {'created_at': '2026-02-26T21:32:26.022490+00:00', 'emails_sent': 0, 'errors': 0, 'run_date': '2026-02-26', ...}, {'created_at': '2026-02-26T21:31:16.017528+00:00', 'emails_sent': 0, 'errors': 0, 'run_date': '2026-02-26', ...}, {'created_at': '2026-02-26T21:30:37.929242+00:00', 'emails_sent': 0, 'errors': 0, 'run_date': '2026-02-26', ...}, {'created_at': '2026-02-26T21:06:12.419138+00:00', 'emails_sent': 0, 'errors': 0, 'run_date': '2026-02-26', ...}, ...]}, list)</failure></testcase><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_billing_preview_monthly" time="0.464" /><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_billing_preview_yearly" time="0.480" /><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_confirm_payment_invalid_condo" time="0.432" /><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_confirm_payment_validation" time="0.508"><failure message="KeyError: 'id'">backend/tests/test_billing_phase3_decoupling.py:186: in test_confirm_payment_validation
+    condo_id = self.get_test_condo_id(token)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_billing_phase3_decoupling.py:61: in get_test_condo_id
+    return data["condominiums"][0]["id"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'id'</failure></testcase><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_billing_balance" time="0.525"><failure message="KeyError: 'id'">backend/tests/test_billing_phase3_decoupling.py:209: in test_billing_balance
+    condo_id = self.get_test_condo_id(token)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_billing_phase3_decoupling.py:61: in get_test_condo_id
+    return data["condominiums"][0]["id"]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'id'</failure></testcase><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_billing_balance_not_found" time="0.448" /><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_payment_history_list" time="0.439"><failure message="AssertionError: Expected array of payments&#10;assert False&#10; +  where False = isinstance({'condominiums': [{'balance_due': 50.0, 'billing_provider': 'sinpe', 'billing_status': 'past_due', 'created_at': '2026-02-26T21:05:41.307163', ...}, {'balance_due': 25.0, 'billing_provider': 'sinpe', 'billing_status': 'past_due', 'created_at': '2026-02-26T20:57:56.404191', ...}, {'billing_cycle': 'monthly', 'billing_provider': 'sinpe', 'billing_status': 'pending_payment', 'contact_email': 'billing_date_b4810e65@test.com', ...}, {'billing_cycle': 'monthly', 'billing_provider': 'sinpe', 'billing_status': 'pending_payment', 'contact_email': 'payment_test_fcf4fc2a@test.com', ...}, {'balance_due': 0, 'billing_cycle': 'monthly', 'billing_provider': 'manual', 'billing_status': 'past_due', ...}, {'billing_cycle': 'monthly', 'billing_provider': 'manual', 'billing_status': 'pending_payment', 'contact_email': 'admin_billing_24169533@test.com', ...}, ...], 'pending_count': 18}, list)">backend/tests/test_billing_phase3_decoupling.py:254: in test_payment_history_list
+    assert isinstance(data, list), "Expected array of payments"
+E   AssertionError: Expected array of payments
+E   assert False
+E    +  where False = isinstance({'condominiums': [{'balance_due': 50.0, 'billing_provider': 'sinpe', 'billing_status': 'past_due', 'created_at': '2026-02-26T21:05:41.307163', ...}, {'balance_due': 25.0, 'billing_provider': 'sinpe', 'billing_status': 'past_due', 'created_at': '2026-02-26T20:57:56.404191', ...}, {'billing_cycle': 'monthly', 'billing_provider': 'sinpe', 'billing_status': 'pending_payment', 'contact_email': 'billing_date_b4810e65@test.com', ...}, {'billing_cycle': 'monthly', 'billing_provider': 'sinpe', 'billing_status': 'pending_payment', 'contact_email': 'payment_test_fcf4fc2a@test.com', ...}, {'balance_due': 0, 'billing_cycle': 'monthly', 'billing_provider': 'manual', 'billing_status': 'past_due', ...}, {'billing_cycle': 'monthly', 'billing_provider': 'manual', 'billing_status': 'pending_payment', 'contact_email': 'admin_billing_24169533@test.com', ...}, ...], 'pending_count': 18}, list)</failure></testcase><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_payment_history_by_condo" time="0.160"><failure message="AssertionError: SuperAdmin login failed: {&quot;error&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;detail&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;request_id&quot;:&quot;ee2f7a0e-5a72-4569-872e-94f6f5007176&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code">backend/tests/test_billing_phase3_decoupling.py:259: in test_payment_history_by_condo
+    token = self.get_superadmin_token()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_billing_phase3_decoupling.py:39: in get_superadmin_token
+    assert response.status_code == 200, f"SuperAdmin login failed: {response.text}"
+E   AssertionError: SuperAdmin login failed: {"error":"Too many login attempts. Please try again later.","detail":"Too many login attempts. Please try again later.","request_id":"ee2f7a0e-5a72-4569-872e-94f6f5007176"}
+E   assert 429 == 200
+E    +  where 429 = &lt;Response [429]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_seat_status" time="0.242"><failure message="AssertionError: SuperAdmin login failed: {&quot;error&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;detail&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;request_id&quot;:&quot;e03c34bb-fcd3-4ef1-9b1b-7c3ed236bbc6&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code">backend/tests/test_billing_phase3_decoupling.py:280: in test_seat_status
+    token = self.get_superadmin_token()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_billing_phase3_decoupling.py:39: in get_superadmin_token
+    assert response.status_code == 200, f"SuperAdmin login failed: {response.text}"
+E   AssertionError: SuperAdmin login failed: {"error":"Too many login attempts. Please try again later.","detail":"Too many login attempts. Please try again later.","request_id":"e03c34bb-fcd3-4ef1-9b1b-7c3ed236bbc6"}
+E   assert 429 == 200
+E    +  where 429 = &lt;Response [429]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_update_seats" time="0.140"><failure message="AssertionError: SuperAdmin login failed: {&quot;error&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;detail&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;request_id&quot;:&quot;7b1b152c-33e1-4641-bee3-79e412914447&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code">backend/tests/test_billing_phase3_decoupling.py:307: in test_update_seats
+    token = self.get_superadmin_token()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_billing_phase3_decoupling.py:39: in get_superadmin_token
+    assert response.status_code == 200, f"SuperAdmin login failed: {response.text}"
+E   AssertionError: SuperAdmin login failed: {"error":"Too many login attempts. Please try again later.","detail":"Too many login attempts. Please try again later.","request_id":"7b1b152c-33e1-4641-bee3-79e412914447"}
+E   assert 429 == 200
+E    +  where 429 = &lt;Response [429]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_upgrade_requests_list" time="0.125"><failure message="AssertionError: SuperAdmin login failed: {&quot;error&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;detail&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;request_id&quot;:&quot;a3c9b766-f8b0-4cb4-a435-15fce2407d60&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code">backend/tests/test_billing_phase3_decoupling.py:348: in test_upgrade_requests_list
+    token = self.get_superadmin_token()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_billing_phase3_decoupling.py:39: in get_superadmin_token
+    assert response.status_code == 200, f"SuperAdmin login failed: {response.text}"
+E   AssertionError: SuperAdmin login failed: {"error":"Too many login attempts. Please try again later.","detail":"Too many login attempts. Please try again later.","request_id":"a3c9b766-f8b0-4cb4-a435-15fce2407d60"}
+E   assert 429 == 200
+E    +  where 429 = &lt;Response [429]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_request_seat_upgrade_requires_admin" time="0.113"><failure message="AssertionError: SuperAdmin login failed: {&quot;error&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;detail&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;request_id&quot;:&quot;a1805cb2-ca0e-4211-92ad-54d89a51cc46&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code">backend/tests/test_billing_phase3_decoupling.py:365: in test_request_seat_upgrade_requires_admin
+    token = self.get_superadmin_token()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_billing_phase3_decoupling.py:39: in get_superadmin_token
+    assert response.status_code == 200, f"SuperAdmin login failed: {response.text}"
+E   AssertionError: SuperAdmin login failed: {"error":"Too many login attempts. Please try again later.","detail":"Too many login attempts. Please try again later.","request_id":"a1805cb2-ca0e-4211-92ad-54d89a51cc46"}
+E   assert 429 == 200
+E    +  where 429 = &lt;Response [429]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_approve_upgrade_invalid_id" time="0.119"><failure message="AssertionError: SuperAdmin login failed: {&quot;error&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;detail&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;request_id&quot;:&quot;666c95d0-a8d8-4b73-8d0b-eaa58a0bbe55&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code">backend/tests/test_billing_phase3_decoupling.py:383: in test_approve_upgrade_invalid_id
+    token = self.get_superadmin_token()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_billing_phase3_decoupling.py:39: in get_superadmin_token
+    assert response.status_code == 200, f"SuperAdmin login failed: {response.text}"
+E   AssertionError: SuperAdmin login failed: {"error":"Too many login attempts. Please try again later.","detail":"Too many login attempts. Please try again later.","request_id":"666c95d0-a8d8-4b73-8d0b-eaa58a0bbe55"}
+E   assert 429 == 200
+E    +  where 429 = &lt;Response [429]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_billing_overview" time="0.114"><failure message="AssertionError: SuperAdmin login failed: {&quot;error&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;detail&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;request_id&quot;:&quot;399a3ddb-b40d-4b5d-b3fd-a51850909790&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code">backend/tests/test_billing_phase3_decoupling.py:397: in test_billing_overview
+    token = self.get_superadmin_token()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_billing_phase3_decoupling.py:39: in get_superadmin_token
+    assert response.status_code == 200, f"SuperAdmin login failed: {response.text}"
+E   AssertionError: SuperAdmin login failed: {"error":"Too many login attempts. Please try again later.","detail":"Too many login attempts. Please try again later.","request_id":"399a3ddb-b40d-4b5d-b3fd-a51850909790"}
+E   assert 429 == 200
+E    +  where 429 = &lt;Response [429]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_billing_overview_pagination" time="0.135"><failure message="AssertionError: SuperAdmin login failed: {&quot;error&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;detail&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;request_id&quot;:&quot;4e911172-7666-4966-b78e-cbaf6a349661&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code">backend/tests/test_billing_phase3_decoupling.py:418: in test_billing_overview_pagination
+    token = self.get_superadmin_token()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_billing_phase3_decoupling.py:39: in get_superadmin_token
+    assert response.status_code == 200, f"SuperAdmin login failed: {response.text}"
+E   AssertionError: SuperAdmin login failed: {"error":"Too many login attempts. Please try again later.","detail":"Too many login attempts. Please try again later.","request_id":"4e911172-7666-4966-b78e-cbaf6a349661"}
+E   assert 429 == 200
+E    +  where 429 = &lt;Response [429]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_billing_overview_filter" time="0.136"><failure message="AssertionError: SuperAdmin login failed: {&quot;error&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;detail&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;request_id&quot;:&quot;f6ef2a5f-06b8-481f-b9f8-cb102e67b2ec&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code">backend/tests/test_billing_phase3_decoupling.py:432: in test_billing_overview_filter
+    token = self.get_superadmin_token()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_billing_phase3_decoupling.py:39: in get_superadmin_token
+    assert response.status_code == 200, f"SuperAdmin login failed: {response.text}"
+E   AssertionError: SuperAdmin login failed: {"error":"Too many login attempts. Please try again later.","detail":"Too many login attempts. Please try again later.","request_id":"f6ef2a5f-06b8-481f-b9f8-cb102e67b2ec"}
+E   assert 429 == 200
+E    +  where 429 = &lt;Response [429]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_update_grace_period" time="0.113"><failure message="AssertionError: SuperAdmin login failed: {&quot;error&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;detail&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;request_id&quot;:&quot;257b89ec-003b-42ef-a104-80237eb4a139&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code">backend/tests/test_billing_phase3_decoupling.py:451: in test_update_grace_period
+    token = self.get_superadmin_token()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_billing_phase3_decoupling.py:39: in get_superadmin_token
+    assert response.status_code == 200, f"SuperAdmin login failed: {response.text}"
+E   AssertionError: SuperAdmin login failed: {"error":"Too many login attempts. Please try again later.","detail":"Too many login attempts. Please try again later.","request_id":"257b89ec-003b-42ef-a104-80237eb4a139"}
+E   assert 429 == 200
+E    +  where 429 = &lt;Response [429]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_update_grace_period_validation" time="0.110"><failure message="AssertionError: SuperAdmin login failed: {&quot;error&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;detail&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;request_id&quot;:&quot;555894fb-4d3f-4771-83ce-4b69448723ca&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code">backend/tests/test_billing_phase3_decoupling.py:472: in test_update_grace_period_validation
+    token = self.get_superadmin_token()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_billing_phase3_decoupling.py:39: in get_superadmin_token
+    assert response.status_code == 200, f"SuperAdmin login failed: {response.text}"
+E   AssertionError: SuperAdmin login failed: {"error":"Too many login attempts. Please try again later.","detail":"Too many login attempts. Please try again later.","request_id":"555894fb-4d3f-4771-83ce-4b69448723ca"}
+E   assert 429 == 200
+E    +  where 429 = &lt;Response [429]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_scheduler_requires_auth" time="0.117"><failure message="AssertionError: Expected 401, got 403&#10;assert 403 == 401&#10; +  where 403 = &lt;Response [403]&gt;.status_code">backend/tests/test_billing_phase3_decoupling.py:492: in test_scheduler_requires_auth
+    assert response.status_code == 401, f"Expected 401, got {response.status_code}"
+E   AssertionError: Expected 401, got 403
+E   assert 403 == 401
+E    +  where 403 = &lt;Response [403]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_billing_overview_requires_superadmin" time="0.170"><failure message="AssertionError: Expected 401, got 403&#10;assert 403 == 401&#10; +  where 403 = &lt;Response [403]&gt;.status_code">backend/tests/test_billing_phase3_decoupling.py:498: in test_billing_overview_requires_superadmin
+    assert response.status_code == 401, f"Expected 401, got {response.status_code}"
+E   AssertionError: Expected 401, got 403
+E   assert 403 == 401
+E    +  where 403 = &lt;Response [403]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_billing_phase3_decoupling.TestPhase3BillingDecoupling" name="test_payments_requires_auth" time="0.156"><failure message="AssertionError: Expected 401, got 403&#10;assert 403 == 401&#10; +  where 403 = &lt;Response [403]&gt;.status_code">backend/tests/test_billing_phase3_decoupling.py:504: in test_payments_requires_auth
+    assert response.status_code == 401, f"Expected 401, got {response.status_code}"
+E   AssertionError: Expected 401, got 403
+E   assert 403 == 401
+E    +  where 403 = &lt;Response [403]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_billing_phase3_decoupling.TestBillingModuleImports" name="test_billing_info_endpoint" time="0.123"><failure message="AssertionError: Login failed: {&quot;error&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;detail&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;request_id&quot;:&quot;2ac33c78-6ab6-4539-a1e7-7e1ba54845bf&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code">backend/tests/test_billing_phase3_decoupling.py:526: in test_billing_info_endpoint
+    token = self.get_superadmin_token()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_billing_phase3_decoupling.py:521: in get_superadmin_token
+    assert response.status_code == 200, f"Login failed: {response.text}"
+E   AssertionError: Login failed: {"error":"Too many login attempts. Please try again later.","detail":"Too many login attempts. Please try again later.","request_id":"2ac33c78-6ab6-4539-a1e7-7e1ba54845bf"}
+E   assert 429 == 200
+E    +  where 429 = &lt;Response [429]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_billing_phase3_decoupling.TestBillingModuleImports" name="test_can_create_user_endpoint" time="0.314"><failure message="AssertionError: Login failed: {&quot;error&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;detail&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;request_id&quot;:&quot;a48e56fb-4f62-4dda-beb0-d310a0098a8b&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code">backend/tests/test_billing_phase3_decoupling.py:539: in test_can_create_user_endpoint
+    token = self.get_superadmin_token()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_billing_phase3_decoupling.py:521: in get_superadmin_token
+    assert response.status_code == 200, f"Login failed: {response.text}"
+E   AssertionError: Login failed: {"error":"Too many login attempts. Please try again later.","detail":"Too many login attempts. Please try again later.","request_id":"a48e56fb-4f62-4dda-beb0-d310a0098a8b"}
+E   assert 429 == 200
+E    +  where 429 = &lt;Response [429]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_billing_phase3_decoupling.TestBillingModuleImports" name="test_billing_events" time="0.178"><failure message="AssertionError: Login failed: {&quot;error&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;detail&quot;:&quot;Too many login attempts. Please try again later.&quot;,&quot;request_id&quot;:&quot;12ce2d17-4e82-4368-9b7e-4407254861f1&quot;}&#10;assert 429 == 200&#10; +  where 429 = &lt;Response [429]&gt;.status_code">backend/tests/test_billing_phase3_decoupling.py:551: in test_billing_events
+    token = self.get_superadmin_token()
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_billing_phase3_decoupling.py:521: in get_superadmin_token
+    assert response.status_code == 200, f"Login failed: {response.text}"
+E   AssertionError: Login failed: {"error":"Too many login attempts. Please try again later.","detail":"Too many login attempts. Please try again later.","request_id":"12ce2d17-4e82-4368-9b7e-4407254861f1"}
+E   assert 429 == 200
+E    +  where 429 = &lt;Response [429]&gt;.status_code</failure></testcase></testsuite></testsuites>
