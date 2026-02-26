@@ -1,0 +1,94 @@
+{
+  "summary": "Onboarding Wizard Billing Engine Integration VERIFIED. All 13 backend tests PASSED. All frontend UI tests PASSED. Wizard now has 6 steps with Step 4 (Plan y Facturación) collecting billing data correctly. paid_seats verified saved in database.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Step 4 - Billing Cycle",
+        "issues": [
+          "Minor inconsistency: Yearly button badge shows '-15%' but actual API discount is 10%. Should sync with backend value."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_onboarding_wizard.py",
+    "/app/test_reports/pytest/onboarding_wizard_results.xml"
+  ],
+  "action_items": [
+    "Consider syncing frontend discount badge with backend YEARLY_DISCOUNT_PERCENT (10%) - currently hardcoded as 15% in UI"
+  ],
+  "critical_code_review_comments": [
+    "OnboardingWizard.js: Step 4 (Plan y Facturación) correctly integrates with billing engine",
+    "OnboardingWizardRequest model at line 14704 correctly includes billing field",
+    "Billing preview API at /api/billing/preview returns correct pricing data",
+    "Condominium creation saves paid_seats correctly (verified via billing overview)",
+    "Areas step (Step 5) correctly skipped when reservations module is disabled"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_onboarding_wizard.py"
+  ],
+  "success_rate": {
+    "backend": "100% (13/13 tests passed)",
+    "frontend": "100% (all features tested and working)"
+  },
+  "test_credentials": {
+    "superadmin": {
+      "email": "superadmin@genturix.com",
+      "password": "Admin123!"
+    }
+  },
+  "seed_data_creation": "Multiple test condominiums created during E2E testing",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Onboarding wizard billing integration complete. All 6 steps working correctly. Step 4 collects initial_units, billing_cycle, billing_provider. paid_seats saved correctly in database.",
+  "features_tested": {
+    "step_navigation": {
+      "status": "PASS",
+      "details": "Wizard displays 6 steps: Información, Administrador, Módulos, Plan y Facturación, Áreas, Confirmar"
+    },
+    "step_4_billing_units": {
+      "status": "PASS",
+      "details": "Slider and input for initial_units work and sync correctly"
+    },
+    "step_4_billing_cycle": {
+      "status": "PASS",
+      "details": "Monthly/Yearly toggle works, yearly shows discount badge"
+    },
+    "step_4_billing_providers": {
+      "status": "PASS",
+      "details": "SINPE Móvil, Tarjeta de Crédito (Stripe), Facturación Manual options all available"
+    },
+    "step_4_billing_preview": {
+      "status": "PASS",
+      "details": "Dynamic pricing from API shown in Resumen de Facturación card"
+    },
+    "step_6_billing_summary": {
+      "status": "PASS",
+      "details": "Billing info section shows selected seats, cycle, provider, total amount"
+    },
+    "e2e_paid_seats": {
+      "status": "PASS",
+      "details": "paid_seats correctly saved in database (verified via billing overview API)"
+    },
+    "skip_areas_step": {
+      "status": "PASS",
+      "details": "Areas step (Step 5) skipped when reservations module disabled - goes directly to Step 6"
+    }
+  },
+  "api_tests": {
+    "POST /api/auth/login": "PASS",
+    "GET /api/health": "PASS",
+    "POST /api/billing/preview (monthly)": "PASS",
+    "POST /api/billing/preview (yearly)": "PASS",
+    "POST /api/super-admin/onboarding/validate": "PASS",
+    "GET /api/super-admin/onboarding/timezones": "PASS",
+    "POST /api/super-admin/onboarding/create-condominium": "PASS",
+    "GET /api/super-admin/billing/overview": "PASS"
+  }
+}
