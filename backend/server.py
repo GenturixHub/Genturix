@@ -11603,7 +11603,7 @@ async def get_my_pending_request(
     
     return pending_request
 
-@api_router.get("/billing/upgrade-requests")
+@billing_router.get("/upgrade-requests")
 async def get_upgrade_requests(
     status: Optional[str] = "pending",
     current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
@@ -11625,7 +11625,7 @@ async def get_upgrade_requests(
         "requests": requests
     }
 
-@api_router.patch("/billing/approve-seat-upgrade/{request_id}")
+@billing_router.patch("/approve-seat-upgrade/{request_id}")
 async def approve_seat_upgrade(
     request_id: str,
     approve: bool = True,
@@ -11840,7 +11840,7 @@ async def check_module_access(condominium_id: str, module_id: str = None) -> dic
         "reason": None
     }
 
-@api_router.get("/billing/seat-status/{condominium_id}")
+@billing_router.get("/seat-status/{condominium_id}")
 async def get_seat_status(
     condominium_id: str,
     current_user = Depends(get_current_user)
@@ -12058,7 +12058,7 @@ async def stripe_webhook(request: Request):
 
 # ==================== SAAS BILLING ENDPOINTS ====================
 
-@api_router.get("/billing/info")
+@billing_router.get("/info")
 async def get_condominium_billing_info(current_user = Depends(get_current_user)):
     """Get billing information for the current user's condominium"""
     condo_id = current_user.get("condominium_id")
@@ -12071,7 +12071,7 @@ async def get_condominium_billing_info(current_user = Depends(get_current_user))
     
     return billing_info
 
-@api_router.get("/billing/can-create-user")
+@billing_router.get("/can-create-user")
 async def check_can_create_user(
     role: str = "Residente",
     current_user = Depends(require_role("Administrador", "SuperAdmin"))
@@ -12096,7 +12096,7 @@ async def check_can_create_user(
         "role_checked": role
     }
 
-@api_router.post("/billing/upgrade-seats")
+@billing_router.post("/upgrade-seats")
 async def upgrade_seats(
     request: Request,
     upgrade: SeatUpgradeRequest,
