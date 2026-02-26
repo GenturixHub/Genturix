@@ -7,9 +7,9 @@
  * - upgrade_pending: Upgrade pendiente de pago
  * - suspended: Cuenta suspendida por falta de pago
  * 
- * Incluye: Paginación, filtros, ordenamiento, acciones rápidas
+ * v2.0: Uses backend pagination and filtering (no N+1 queries)
  */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
@@ -104,7 +104,8 @@ const BILLING_STATUS_CONFIG = {
   }
 };
 
-const ITEMS_PER_PAGE = 15;
+const DEBT_STATUSES = 'pending_payment,upgrade_pending,past_due,suspended';
+const PAGE_SIZE = 15;
 
 const FinancialPortfolioPage = () => {
   const navigate = useNavigate();
@@ -115,6 +116,24 @@ const FinancialPortfolioPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   
+  // Pagination state (now from backend)
+  const [pagination, setPagination] = useState({
+    page: 1,
+    page_size: PAGE_SIZE,
+    total_count: 0,
+    total_pages: 0,
+    has_next: false,
+    has_prev: false
+  });
+  
+  // Totals from backend
+  const [totals, setTotals] = useState({
+    total_condominiums: 0,
+    total_paid_seats: 0,
+    total_active_users: 0,
+    total_monthly_revenue: 0
+  });
+  
   // Filter and sort state
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -122,8 +141,8 @@ const FinancialPortfolioPage = () => {
   const [sortField, setSortField] = useState('next_invoice_amount');
   const [sortDirection, setSortDirection] = useState('desc');
   
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
+  // Debounce search
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   
   // Dialog states
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -133,18 +152,49 @@ const FinancialPortfolioPage = () => {
   const [paymentHistory, setPaymentHistory] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Fetch condos with pending payments
-  const fetchCondos = async () => {
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Fetch condos with BACKEND pagination
+  const fetchCondos = useCallback(async (page = 1) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await api.getSuperAdminBillingOverview();
-      // Filter only condos with debt/pending status
-      const debtCondos = (response.condominiums || []).filter(c => 
-        ['pending_payment', 'upgrade_pending', 'past_due', 'suspended'].includes(c.billing_status) &&
-        c.environment !== 'demo' && !c.is_demo
-      );
-      setCondos(debtCondos);
+      // Build billing_status filter
+      let billingStatusParam = DEBT_STATUSES; // Default: all debt statuses
+      if (statusFilter !== 'all') {
+        billingStatusParam = statusFilter;
+      }
+      
+      const response = await api.getSuperAdminBillingOverview({
+        page,
+        page_size: PAGE_SIZE,
+        billing_status: billingStatusParam,
+        search: debouncedSearch || undefined,
+        sort_by: sortField,
+        sort_order: sortDirection
+      });
+      
+      setCondos(response.condominiums || []);
+      setPagination(response.pagination || {
+        page: 1,
+        page_size: PAGE_SIZE,
+        total_count: 0,
+        total_pages: 0,
+        has_next: false,
+        has_prev: false
+      });
+      setTotals(response.totals || {
+        total_condominiums: 0,
+        total_paid_seats: 0,
+        total_active_users: 0,
+        total_monthly_revenue: 0
+      });
     } catch (err) {
       console.error('Error fetching condos:', err);
       setError('Error al cargar los condominios');
@@ -152,94 +202,19 @@ const FinancialPortfolioPage = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [statusFilter, debouncedSearch, sortField, sortDirection]);
 
+  // Fetch on mount and when filters change
   useEffect(() => {
-    fetchCondos();
-  }, []);
+    fetchCondos(1); // Reset to page 1 when filters change
+  }, [fetchCondos]);
 
-  // Filtered and sorted condos
-  const processedCondos = useMemo(() => {
-    let result = [...condos];
-    
-    // Apply search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      result = result.filter(c => 
-        c.condominium_name?.toLowerCase().includes(query) ||
-        c.admin_email?.toLowerCase().includes(query)
-      );
-    }
-    
-    // Apply status filter
-    if (statusFilter !== 'all') {
-      result = result.filter(c => c.billing_status === statusFilter);
-    }
-    
-    // Apply provider filter
-    if (providerFilter !== 'all') {
-      result = result.filter(c => c.billing_provider === providerFilter);
-    }
-    
-    // Apply sorting
-    result.sort((a, b) => {
-      let aVal, bVal;
-      
-      switch (sortField) {
-        case 'next_invoice_amount':
-          aVal = a.next_invoice_amount || 0;
-          bVal = b.next_invoice_amount || 0;
-          break;
-        case 'next_billing_date':
-          aVal = new Date(a.next_billing_date || '2099-12-31').getTime();
-          bVal = new Date(b.next_billing_date || '2099-12-31').getTime();
-          break;
-        case 'paid_seats':
-          aVal = a.paid_seats || 0;
-          bVal = b.paid_seats || 0;
-          break;
-        case 'condominium_name':
-          aVal = a.condominium_name?.toLowerCase() || '';
-          bVal = b.condominium_name?.toLowerCase() || '';
-          break;
-        case 'priority':
-          aVal = BILLING_STATUS_CONFIG[a.billing_status]?.priority || 99;
-          bVal = BILLING_STATUS_CONFIG[b.billing_status]?.priority || 99;
-          break;
-        default:
-          aVal = a[sortField] || 0;
-          bVal = b[sortField] || 0;
-      }
-      
-      if (sortDirection === 'asc') {
-        return aVal > bVal ? 1 : -1;
-      }
-      return aVal < bVal ? 1 : -1;
-    });
-    
-    return result;
-  }, [condos, searchQuery, statusFilter, providerFilter, sortField, sortDirection]);
-
-  // Pagination
-  const totalPages = Math.ceil(processedCondos.length / ITEMS_PER_PAGE);
-  const paginatedCondos = processedCondos.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
-  );
-
-  // Summary stats
-  const summaryStats = useMemo(() => {
-    const total = condos.reduce((sum, c) => sum + (c.next_invoice_amount || 0), 0);
-    const byStatus = {};
-    condos.forEach(c => {
-      if (!byStatus[c.billing_status]) {
-        byStatus[c.billing_status] = { count: 0, amount: 0 };
-      }
-      byStatus[c.billing_status].count++;
-      byStatus[c.billing_status].amount += (c.next_invoice_amount || 0);
-    });
-    return { total, byStatus, totalCount: condos.length };
-  }, [condos]);
+  // Count by status (from fetched data for summary cards)
+  const statusCounts = condos.reduce((acc, c) => {
+    const status = c.billing_status || 'pending_payment';
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {});
 
   // Handlers
   const handleSort = (field) => {
@@ -249,6 +224,10 @@ const FinancialPortfolioPage = () => {
       setSortField(field);
       setSortDirection('desc');
     }
+  };
+
+  const handlePageChange = (newPage) => {
+    fetchCondos(newPage);
   };
 
   const handleConfirmPayment = (condo) => {
@@ -284,7 +263,7 @@ const FinancialPortfolioPage = () => {
       });
       toast.success(`Pago confirmado para ${selectedCondo.condominium_name}`);
       setShowPaymentDialog(false);
-      fetchCondos(); // Refresh list
+      fetchCondos(pagination.page); // Refresh current page
     } catch (err) {
       console.error('Error confirming payment:', err);
       toast.error('Error al confirmar el pago');
@@ -300,7 +279,7 @@ const FinancialPortfolioPage = () => {
       await api.updateCondoStatus(selectedCondo.condominium_id, 'suspended');
       toast.success(`Condominio ${selectedCondo.condominium_name} suspendido`);
       setShowSuspendDialog(false);
-      fetchCondos();
+      fetchCondos(pagination.page);
     } catch (err) {
       console.error('Error suspending condo:', err);
       toast.error('Error al suspender el condominio');
@@ -334,7 +313,7 @@ const FinancialPortfolioPage = () => {
       : <ArrowDown className="w-3 h-3" />;
   };
 
-  if (isLoading) {
+  if (isLoading && condos.length === 0) {
     return (
       <div className="min-h-screen bg-[#05050A] flex items-center justify-center">
         <div className="text-center">
@@ -368,15 +347,19 @@ const FinancialPortfolioPage = () => {
             </h1>
             <p className="text-muted-foreground text-sm mt-1">
               Condominios con pagos pendientes, vencidos o suspendidos
+              <span className="ml-2 text-xs text-primary">
+                (Paginación backend v2.0)
+              </span>
             </p>
           </div>
           <Button
             variant="outline"
-            onClick={fetchCondos}
+            onClick={() => fetchCondos(pagination.page)}
+            disabled={isLoading}
             className="border-[#1E293B] gap-2"
             data-testid="refresh-btn"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             Actualizar
           </Button>
         </div>
@@ -391,7 +374,7 @@ const FinancialPortfolioPage = () => {
                 <DollarSign className="w-5 h-5 text-yellow-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold">${summaryStats.total.toLocaleString()}</p>
+                <p className="text-2xl font-bold">${totals.total_monthly_revenue.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground">Total Pendiente</p>
               </div>
             </div>
@@ -405,7 +388,7 @@ const FinancialPortfolioPage = () => {
                 <Building2 className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{summaryStats.totalCount}</p>
+                <p className="text-2xl font-bold">{totals.total_condominiums}</p>
                 <p className="text-xs text-muted-foreground">Condominios</p>
               </div>
             </div>
@@ -413,8 +396,8 @@ const FinancialPortfolioPage = () => {
         </Card>
 
         {Object.entries(BILLING_STATUS_CONFIG).map(([status, config]) => {
-          const stats = summaryStats.byStatus[status];
-          if (!stats) return null;
+          const count = statusCounts[status] || 0;
+          if (count === 0 && statusFilter !== 'all' && statusFilter !== status) return null;
           const StatusIcon = config.icon;
           return (
             <Card key={status} className={`bg-[#0F111A] border-[#1E293B] ${config.borderColor}`}>
@@ -424,7 +407,7 @@ const FinancialPortfolioPage = () => {
                     <StatusIcon className={`w-5 h-5 ${config.color}`} />
                   </div>
                   <div>
-                    <p className="text-xl font-bold">{stats.count}</p>
+                    <p className="text-xl font-bold">{count}</p>
                     <p className="text-xs text-muted-foreground">{config.label}</p>
                   </div>
                 </div>
@@ -443,13 +426,13 @@ const FinancialPortfolioPage = () => {
               <Input
                 placeholder="Buscar por nombre o email..."
                 value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 bg-[#0A0A0F] border-[#1E293B]"
                 data-testid="search-input"
               />
             </div>
             
-            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full lg:w-48 bg-[#0A0A0F] border-[#1E293B]" data-testid="status-filter">
                 <Filter className="w-4 h-4 mr-2" />
                 <SelectValue placeholder="Estado" />
@@ -463,7 +446,7 @@ const FinancialPortfolioPage = () => {
               </SelectContent>
             </Select>
 
-            <Select value={providerFilter} onValueChange={(v) => { setProviderFilter(v); setCurrentPage(1); }}>
+            <Select value={providerFilter} onValueChange={setProviderFilter}>
               <SelectTrigger className="w-full lg:w-48 bg-[#0A0A0F] border-[#1E293B]" data-testid="provider-filter">
                 <CreditCard className="w-4 h-4 mr-2" />
                 <SelectValue placeholder="Proveedor" />
@@ -495,10 +478,10 @@ const FinancialPortfolioPage = () => {
                 </TableHead>
                 <TableHead 
                   className="text-muted-foreground cursor-pointer hover:text-white"
-                  onClick={() => handleSort('priority')}
+                  onClick={() => handleSort('billing_status')}
                 >
                   <span className="flex items-center gap-2">
-                    Estado <SortIndicator field="priority" />
+                    Estado <SortIndicator field="billing_status" />
                   </span>
                 </TableHead>
                 <TableHead 
@@ -530,13 +513,13 @@ const FinancialPortfolioPage = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedCondos.length === 0 ? (
+              {condos.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2">
                       <CheckCircle className="w-8 h-8 text-green-400" />
                       <p className="text-muted-foreground">
-                        {condos.length === 0 
+                        {pagination.total_count === 0 
                           ? 'No hay condominios con pagos pendientes' 
                           : 'No se encontraron resultados con los filtros aplicados'}
                       </p>
@@ -544,7 +527,7 @@ const FinancialPortfolioPage = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedCondos.map((condo) => {
+                condos.map((condo) => {
                   const statusConfig = BILLING_STATUS_CONFIG[condo.billing_status] || BILLING_STATUS_CONFIG.pending_payment;
                   const StatusIcon = statusConfig.icon;
                   const daysOverdue = getDaysOverdue(condo.next_billing_date);
@@ -657,30 +640,30 @@ const FinancialPortfolioPage = () => {
           </Table>
         </ScrollArea>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
+        {/* Backend Pagination */}
+        {pagination.total_pages > 1 && (
           <div className="flex items-center justify-between p-4 border-t border-[#1E293B]">
             <p className="text-sm text-muted-foreground">
-              Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, processedCondos.length)} de {processedCondos.length}
+              Mostrando {((pagination.page - 1) * pagination.page_size) + 1} - {Math.min(pagination.page * pagination.page_size, pagination.total_count)} de {pagination.total_count}
             </p>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
+                onClick={() => handlePageChange(pagination.page - 1)}
+                disabled={!pagination.has_prev || isLoading}
                 className="border-[#1E293B]"
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
               <span className="text-sm px-3">
-                Página {currentPage} de {totalPages}
+                Página {pagination.page} de {pagination.total_pages}
               </span>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
+                onClick={() => handlePageChange(pagination.page + 1)}
+                disabled={!pagination.has_next || isLoading}
                 className="border-[#1E293B]"
               >
                 <ChevronRight className="w-4 h-4" />
