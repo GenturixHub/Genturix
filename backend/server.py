@@ -10266,38 +10266,19 @@ async def calculate_billing_preview(
         yearly_discount_override=yearly_discount_override
     )
 
-async def log_billing_engine_event(
-    event_type: str,
-    condominium_id: str,
-    data: dict,
-    triggered_by: str = None,
-    previous_state: dict = None,
-    new_state: dict = None
-):
-    """
-    BILLING ENGINE: Log billing event to billing_events collection.
-    Creates audit trail for all billing-related changes.
-    """
-    event = {
-        "id": str(uuid.uuid4()),
-        "condominium_id": condominium_id,
-        "event_type": event_type,
-        "data": data,
-        "previous_state": previous_state,
-        "new_state": new_state,
-        "triggered_by": triggered_by,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    
-    await db.billing_events.insert_one(event)
-    logger.info(f"[BILLING-EVENT] {event_type} | condo={condominium_id[:8]}... | data={data}")
-    
-    return event
+# ==================== END BILLING ENGINE ====================
+# NOTE: The following functions are now imported from modules.billing (PHASE 3):
+# - log_billing_engine_event (from modules.billing.service)
+# - update_condominium_billing_status (from modules.billing.service)
+# - send_billing_notification_email (from modules.billing.service)
+# - process_billing_for_condominium (from modules.billing.scheduler)
+# - run_daily_billing_check (from modules.billing.scheduler)
+# - start_billing_scheduler (from modules.billing.scheduler)
+# - stop_billing_scheduler (from modules.billing.scheduler)
+# - DEFAULT_GRACE_PERIOD_DAYS (from modules.billing.service)
+# - BILLING_EMAIL_TEMPLATES (from modules.billing.service)
 
-async def update_condominium_billing_status(
-    condominium_id: str,
-    new_status: str,
-    triggered_by: str = None,
+# ==================== PARTIAL BLOCKING MIDDLEWARE ====================
     additional_data: dict = None
 ):
     """
