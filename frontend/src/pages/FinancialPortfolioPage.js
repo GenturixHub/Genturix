@@ -275,14 +275,27 @@ const FinancialPortfolioPage = () => {
 
   const confirmPayment = async () => {
     if (!selectedCondo) return;
+    
+    const amount = parseFloat(paymentAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error('Ingrese un monto válido mayor a 0');
+      return;
+    }
+    
     setIsProcessing(true);
     try {
-      await api.confirmCondominiumPayment(selectedCondo.condominium_id, {
-        amount_paid: selectedCondo.next_invoice_amount,
-        payment_method: selectedCondo.billing_provider || 'manual',
-        notes: 'Pago confirmado desde gestión de cartera'
+      const result = await api.confirmCondominiumPayment(selectedCondo.condominium_id, {
+        amount_paid: amount,
+        payment_reference: paymentReference || null,
+        notes: `Pago ${result?.is_fully_paid ? 'completo' : 'parcial'} desde gestión de cartera`
       });
-      toast.success(`Pago confirmado para ${selectedCondo.condominium_name}`);
+      
+      if (result.is_fully_paid) {
+        toast.success(`Pago completo confirmado para ${selectedCondo.condominium_name}. Cuenta activada.`);
+      } else {
+        toast.info(`Pago parcial de $${amount.toFixed(2)} registrado. Saldo pendiente: $${result.balance_due.toFixed(2)}`);
+      }
+      
       setShowPaymentDialog(false);
       fetchCondos(pagination.page); // Refresh current page
     } catch (err) {
