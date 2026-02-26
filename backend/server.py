@@ -1044,15 +1044,59 @@ class CondominiumResponse(BaseModel):
     stripe_subscription_id: Optional[str] = None
     billing_period_end: Optional[str] = None
 
-# SaaS Billing Models
+# SaaS Billing Models - ENHANCED
 class BillingStatus(str, Enum):
+    PENDING_PAYMENT = "pending_payment"  # NEW: Initial state before first payment
     ACTIVE = "active"
     PAST_DUE = "past_due"
     CANCELLED = "cancelled"
     TRIALING = "trialing"
 
+class BillingCycle(str, Enum):
+    MONTHLY = "monthly"
+    YEARLY = "yearly"
+
+class BillingProvider(str, Enum):
+    STRIPE = "stripe"
+    SINPE = "sinpe"
+    TICOPAY = "ticopay"
+    MANUAL = "manual"
+
+class BillingEventType(str, Enum):
+    CONDOMINIUM_CREATED = "condominium_created"
+    SEATS_UPGRADED = "seats_upgraded"
+    SEATS_DOWNGRADED = "seats_downgraded"
+    CYCLE_CHANGED = "cycle_changed"
+    PAYMENT_RECEIVED = "payment_received"
+    PAYMENT_FAILED = "payment_failed"
+    STATUS_CHANGED = "status_changed"
+    PRICE_UPDATED = "price_updated"
+
 class SeatUpgradeRequest(BaseModel):
     additional_seats: int = Field(..., ge=1, le=1000)
+
+class SeatUpdateRequest(BaseModel):
+    """Request to update seat count (up or down)"""
+    new_seat_count: int = Field(..., ge=1, le=10000)
+    reason: Optional[str] = None
+
+class BillingPreviewRequest(BaseModel):
+    """Request for billing preview before creation"""
+    initial_units: int = Field(..., ge=1, le=10000)
+    billing_cycle: str = Field(default="monthly", pattern="^(monthly|yearly)$")
+    condominium_id: Optional[str] = None  # For existing condo price override
+
+class BillingPreviewResponse(BaseModel):
+    """Response with calculated billing preview"""
+    seats: int
+    price_per_seat: float
+    billing_cycle: str
+    monthly_amount: float
+    yearly_amount: float
+    yearly_discount_percent: float
+    effective_amount: float  # Based on selected cycle
+    next_billing_date: str
+    currency: str = "USD"
 
 class BillingInfoResponse(BaseModel):
     condominium_id: str
