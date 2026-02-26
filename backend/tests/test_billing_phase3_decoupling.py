@@ -299,14 +299,16 @@ class TestSeatManagement:
         assert response.status_code == 200, f"Seat status failed: {response.text}"
         data = response.json()
         
-        # Verify seat status response structure (may vary slightly in field names)
+        # Verify seat status response structure
         assert "paid_seats" in data, "Missing paid_seats"
         assert "current_users" in data or "active_users" in data, "Missing user count field"
-        assert "remaining_seats" in data, "Missing remaining_seats"
+        assert "remaining" in data or "remaining_seats" in data, "Missing remaining seats field"
         assert "billing_status" in data, "Missing billing_status"
+        assert "can_create" in data or "can_create_users" in data, "Missing can_create field"
         
         user_count = data.get("current_users") or data.get("active_users", 0)
-        print(f"✓ Seat status: {user_count}/{data['paid_seats']} seats used")
+        remaining = data.get("remaining") or data.get("remaining_seats", 0)
+        print(f"✓ Seat status: {user_count}/{data['paid_seats']} seats used, {remaining} remaining")
     
     def test_update_seats_validation(self, session, superadmin_token, test_condo_id):
         """PATCH /api/billing/seats/{id} - Update seat count validation"""
