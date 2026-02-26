@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 class GenturixAPITester:
-    def __init__(self, base_url: str = "https://genturix-guard-query.preview.emergentagent.com"):
+    def __init__(self, base_url: str = "https://saas-wizard-fix.preview.emergentagent.com"):
         self.base_url = base_url.rstrip('/')
         self.token = None
         self.refresh_token = None
