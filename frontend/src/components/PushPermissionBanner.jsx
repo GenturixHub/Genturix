@@ -1,18 +1,23 @@
 /**
- * GENTURIX Push Permission Request Component v3.0
+ * GENTURIX Push Permission Request Component v3.1
  * Shows a friendly banner to request push notification permission
  * 
  * Works for ALL roles - Guards, Residents, Admins, etc.
  * Uses usePushNotifications hook for proper subscription handling.
  * 
  * v3.0: NON-BLOCKING - Banner shows immediately based on local state.
- * No longer waits for backend sync to complete.
+ * v3.1: FIX - Added localStorage persistence to prevent banner from showing
+ *       when user is already subscribed but SW is still initializing.
  */
 import React, { useState, useEffect } from 'react';
 import { Bell, X, Check, AlertTriangle } from 'lucide-react';
 import { Button } from './ui/button';
 import { useAuth } from '../contexts/AuthContext';
 import usePushNotifications from '../hooks/usePushNotifications';
+
+// LocalStorage key to track successful push subscription
+const PUSH_SUBSCRIBED_KEY = 'push_subscription_active';
+const PUSH_DISMISSED_KEY = 'push_banner_dismissed_v2';
 
 const PushPermissionBanner = ({ onSubscribed }) => {
   const { user } = useAuth();
@@ -30,10 +35,25 @@ const PushPermissionBanner = ({ onSubscribed }) => {
   const [dismissed, setDismissed] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // v3.1: Sync localStorage with hook state when subscription state changes
+  useEffect(() => {
+    if (isInitialized && isSubscribed) {
+      // User is subscribed, mark in localStorage
+      localStorage.setItem(PUSH_SUBSCRIBED_KEY, 'true');
+    }
+  }, [isInitialized, isSubscribed]);
+
   useEffect(() => {
     const checkPermission = () => {
-      // v3.0: Only wait for fast local SW check, not backend sync
-      // isInitialized becomes true instantly after pushManager.getSubscription()
+      // v3.1: FAST CHECK - Check localStorage first before waiting for SW
+      // This prevents banner flash when user is subscribed but SW is still loading
+      const storedSubscriptionState = localStorage.getItem(PUSH_SUBSCRIBED_KEY);
+      if (storedSubscriptionState === 'true') {
+        console.log('[Push] Already subscribed (localStorage cache hit)');
+        return; // Don't show banner - user was previously subscribed
+      }
+
+      // v3.0: Wait for fast local SW check
       if (!isInitialized) {
         console.log('[Push] Waiting for local SW check...');
         return;
@@ -48,28 +68,44 @@ const PushPermissionBanner = ({ onSubscribed }) => {
       // Don't show if already subscribed (based on local SW state)
       if (isSubscribed) {
         console.log('[Push] Already subscribed (local SW check)');
+        // Also update localStorage for future fast checks
+        localStorage.setItem(PUSH_SUBSCRIBED_KEY, 'true');
         return;
       }
 
-      // Don't show if permission denied
+      // Don't show if permission is denied
       if (permission === 'denied') {
         console.log('[Push] Permission denied by user');
         return;
       }
 
+      // Don't show if permission is granted but not subscribed
+      // This means user previously subscribed and then unsubscribed
+      // They should use settings to re-enable, not the banner
+      if (permission === 'granted') {
+        console.log('[Push] Permission granted but not subscribed - user likely unsubscribed');
+        // Clear the localStorage cache since user is not actually subscribed
+        localStorage.removeItem(PUSH_SUBSCRIBED_KEY);
+        // Don't show banner for users who explicitly unsubscribed
+        // They can re-enable from settings
+        return;
+      }
+
       // Don't show if user dismissed recently (1 hour cooldown)
-      const dismissedAt = localStorage.getItem('push_banner_dismissed_v2');
+      const dismissedAt = localStorage.getItem(PUSH_DISMISSED_KEY);
       if (dismissedAt) {
         const dismissedTime = new Date(dismissedAt).getTime();
         const hourAgo = Date.now() - (60 * 60 * 1000);
         if (dismissedTime > hourAgo) {
+          console.log('[Push] Banner dismissed recently, cooldown active');
           return;
         }
       }
 
       // Show banner after a short delay for ALL authenticated users
-      console.log(`[Push] Showing banner for role: ${user?.roles?.join(', ')}`);
-      setTimeout(() => setShow(true), 2000); // Reduced from 3000ms
+      // Only show if permission is 'default' (never asked before)
+      console.log(`[Push] Showing banner for role: ${user?.roles?.join(', ')}, permission: ${permission}`);
+      setTimeout(() => setShow(true), 2000);
     };
 
     if (user) {
@@ -83,6 +119,8 @@ const PushPermissionBanner = ({ onSubscribed }) => {
       
       if (success) {
         console.log(`[Push] Subscription created for role: ${user?.roles?.join(', ')}`);
+        // v3.1: Mark as subscribed in localStorage for future fast checks
+        localStorage.setItem(PUSH_SUBSCRIBED_KEY, 'true');
         setShowSuccess(true);
         onSubscribed?.();
         setTimeout(() => setShow(false), 2000);
@@ -93,7 +131,7 @@ const PushPermissionBanner = ({ onSubscribed }) => {
   };
 
   const handleDismiss = () => {
-    localStorage.setItem('push_banner_dismissed_v2', new Date().toISOString());
+    localStorage.setItem(PUSH_DISMISSED_KEY, new Date().toISOString());
     setDismissed(true);
     setTimeout(() => setShow(false), 300);
   };
