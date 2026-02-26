@@ -10152,9 +10152,14 @@ def calculate_subscription_price(user_count: int) -> float:
 # Central billing calculation and event logging system
 # Independent of payment providers (Stripe, Sinpe, TicoPay, Manual)
 
-YEARLY_DISCOUNT_PERCENT = 10.0  # 10% discount for yearly billing
+YEARLY_DISCOUNT_PERCENT = 10.0  # 10% discount for yearly billing (default)
 
-async def calculate_invoice(condominium: dict, billing_cycle: str = None) -> dict:
+async def calculate_invoice(
+    condominium: dict, 
+    billing_cycle: str = None,
+    seat_price_override: float = None,
+    yearly_discount_override: float = None
+) -> dict:
     """
     BILLING ENGINE: Central invoice calculation function.
     
@@ -10164,6 +10169,8 @@ async def calculate_invoice(condominium: dict, billing_cycle: str = None) -> dic
     Args:
         condominium: Dict with condominium data (must have 'id', 'paid_seats')
         billing_cycle: Override billing cycle (defaults to condominium's cycle)
+        seat_price_override: Custom price per seat (for preview/onboarding)
+        yearly_discount_override: Custom yearly discount 0-50% (for preview/onboarding)
     
     Returns:
         {
@@ -10182,14 +10189,32 @@ async def calculate_invoice(condominium: dict, billing_cycle: str = None) -> dic
     seats = condominium.get("paid_seats", 10)
     cycle = billing_cycle or condominium.get("billing_cycle", "monthly")
     
-    # Get effective price (respects override > global > fallback)
-    price_per_seat = await get_effective_seat_price(condo_id)
+    # Get effective price (override > condo override > global > fallback)
+    if seat_price_override is not None and seat_price_override > 0:
+        price_per_seat = seat_price_override
+    else:
+        price_per_seat = await get_effective_seat_price(condo_id)
+    
     global_config = await get_global_pricing()
+    
+    # Get effective discount (override > condo override > global)
+    if yearly_discount_override is not None and 0 <= yearly_discount_override <= 50:
+        discount_percent = yearly_discount_override
+    else:
+        # Check if condo has custom discount
+        if condo_id:
+            condo = await db.condominiums.find_one({"id": condo_id}, {"_id": 0, "yearly_discount_percent": 1})
+            if condo and condo.get("yearly_discount_percent") is not None:
+                discount_percent = condo.get("yearly_discount_percent")
+            else:
+                discount_percent = YEARLY_DISCOUNT_PERCENT
+        else:
+            discount_percent = YEARLY_DISCOUNT_PERCENT
     
     # Calculate amounts
     monthly_amount = round(seats * price_per_seat, 2)
     yearly_amount_before_discount = monthly_amount * 12
-    yearly_discount = round(yearly_amount_before_discount * (YEARLY_DISCOUNT_PERCENT / 100), 2)
+    yearly_discount = round(yearly_amount_before_discount * (discount_percent / 100), 2)
     yearly_amount = round(yearly_amount_before_discount - yearly_discount, 2)
     
     # Effective amount based on cycle
@@ -10213,7 +10238,7 @@ async def calculate_invoice(condominium: dict, billing_cycle: str = None) -> dic
         "monthly_amount": monthly_amount,
         "yearly_amount": yearly_amount,
         "yearly_amount_before_discount": yearly_amount_before_discount,
-        "yearly_discount_percent": YEARLY_DISCOUNT_PERCENT,
+        "yearly_discount_percent": discount_percent,
         "yearly_discount_amount": yearly_discount,
         "effective_amount": effective_amount,
         "next_billing_date": next_billing.isoformat(),
