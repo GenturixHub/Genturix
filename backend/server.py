@@ -15034,7 +15034,7 @@ async def get_condominium_users(
     ).to_list(500)
     return users
 
-@api_router.get("/condominiums/{condo_id}/billing")
+@billing_router.get("/condominium/{condo_id}")
 async def get_condominium_billing(
     condo_id: str,
     current_user = Depends(require_role(RoleEnum.ADMINISTRADOR))
