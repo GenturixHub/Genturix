@@ -23,6 +23,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../services/api';
 
+// LocalStorage key for fast subscription state caching
+const PUSH_SUBSCRIBED_KEY = 'push_subscription_active';
+
 // Convert base64 to Uint8Array for applicationServerKey
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
