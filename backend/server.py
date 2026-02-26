@@ -10355,11 +10355,15 @@ async def get_billing_preview(
     
     Use this endpoint to show users the cost breakdown before they commit.
     Does NOT create any records - purely informational.
+    
+    Supports custom seat_price_override and yearly_discount_percent for flexible pricing.
     """
     preview = await calculate_billing_preview(
         initial_units=preview_request.initial_units,
         billing_cycle=preview_request.billing_cycle,
-        condominium_id=preview_request.condominium_id
+        condominium_id=preview_request.condominium_id,
+        seat_price_override=preview_request.seat_price_override,
+        yearly_discount_override=preview_request.yearly_discount_percent
     )
     
     return BillingPreviewResponse(
