@@ -416,6 +416,13 @@ function AppRoutes() {
         </ProtectedRoute>
       } />
 
+      {/* Super Admin Financial Portfolio - Cartera */}
+      <Route path="/super-admin/finanzas/cartera" element={
+        <ProtectedRoute allowedRoles={['SuperAdmin']}>
+          <FinancialPortfolioPage />
+        </ProtectedRoute>
+      } />
+
       {/* Redirect old settings to new admin settings */}
       <Route path="/settings" element={<Navigate to="/admin/settings" replace />} />
 
