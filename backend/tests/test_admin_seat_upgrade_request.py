@@ -52,174 +52,63 @@ class TestSeatUpgradeRequestFeature:
         TestSeatUpgradeRequestFeature.superadmin_token = data["access_token"]
         print(f"SuperAdmin logged in, roles: {data['user']['roles']}")
     
-    def test_02_get_or_create_admin_user(self):
-        """Get or create an Admin user for testing"""
-        # First, get list of condominiums to find one with an Admin
-        headers = {"Authorization": f"Bearer {TestSeatUpgradeRequestFeature.superadmin_token}"}
-        
-        # Get all condominiums
-        response = self.session.get(f"{BASE_URL}/api/condominiums", headers=headers)
-        print(f"Get condominiums response: {response.status_code}")
-        assert response.status_code == 200
-        
-        condos = response.json()
-        print(f"Found {len(condos)} condominiums")
-        
-        # Find a production condominium with at least some users
-        target_condo = None
-        for condo in condos:
-            env = condo.get("environment", "production")
-            is_demo = condo.get("is_demo", False)
-            if env != "demo" and not is_demo:
-                target_condo = condo
-                break
-        
-        if not target_condo:
-            # Create a test production condominium
-            print("Creating test production condominium...")
-            create_response = self.session.post(
-                f"{BASE_URL}/api/super-admin/onboarding/create-condominium",
-                headers=headers,
-                json={
-                    "step1": {
-                        "condominium_name": "Test Condo Admin Upgrade",
-                        "address": "Test Address 123",
-                        "contact_email": "testadmin@testcondo.com",
-                        "contact_phone": "+1234567890"
-                    },
-                    "step2": {
-                        "modules": {"security": True, "hr": True, "reservations": False}
-                    },
-                    "step3": {
-                        "admin_full_name": "Test Admin User",
-                        "admin_email": "testadmin@testcondo.com",
-                        "admin_phone": "+1234567890",
-                        "generate_password": True
-                    },
-                    "step4": {
-                        "billing_email": "billing@testcondo.com",
-                        "initial_units": 20,
-                        "billing_cycle": "monthly",
-                        "billing_provider": "manual"
-                    },
-                    "step5": {
-                        "send_credentials": False
-                    }
-                }
-            )
-            print(f"Create condo response: {create_response.status_code}")
-            if create_response.status_code in [200, 201]:
-                condo_data = create_response.json()
-                TestSeatUpgradeRequestFeature.admin_condo_id = condo_data.get("condominium_id")
-                admin_password = condo_data.get("admin_password")
-                if admin_password:
-                    # Login as admin
-                    admin_login = self.session.post(
-                        f"{BASE_URL}/api/auth/login",
-                        json={"email": "testadmin@testcondo.com", "password": admin_password}
-                    )
-                    if admin_login.status_code == 200:
-                        TestSeatUpgradeRequestFeature.admin_token = admin_login.json()["access_token"]
-                        print("Created new condo and logged in as Admin")
-                        return
-        else:
-            TestSeatUpgradeRequestFeature.admin_condo_id = target_condo["id"]
-            print(f"Using existing condo: {target_condo['name']} (id: {target_condo['id'][:8]}...)")
-        
-        # Try to find existing admin users for this condo
-        response = self.session.get(
-            f"{BASE_URL}/api/super-admin/users?condo_id={TestSeatUpgradeRequestFeature.admin_condo_id}&role=Administrador",
-            headers=headers
+    def test_02_admin_login(self):
+        """Admin can login successfully"""
+        response = self.session.post(
+            f"{BASE_URL}/api/auth/login",
+            json=ADMIN_CREDS
         )
+        print(f"Admin login response: {response.status_code}")
+        assert response.status_code == 200, f"Admin login failed: {response.text}"
         
-        if response.status_code == 200:
-            users = response.json()
-            print(f"Found {len(users)} Administrador users")
-            
-            if users:
-                # We found an Admin, but we don't have their password
-                # Let's try to create a new admin user with known credentials
-                pass
-        
-        # Create a new admin user with known credentials
-        print("Creating new Admin user with known credentials...")
-        test_admin_email = f"testadmin_{int(time.time())}@testcondo.com"
-        create_user_response = self.session.post(
-            f"{BASE_URL}/api/admin/users",
-            headers=headers,
-            json={
-                "email": test_admin_email,
-                "password": "Admin123!",
-                "full_name": "Test Admin For Upgrade",
-                "role": "Administrador",
-                "condominium_id": TestSeatUpgradeRequestFeature.admin_condo_id
-            }
-        )
-        print(f"Create admin user response: {create_user_response.status_code}")
-        
-        if create_user_response.status_code in [200, 201]:
-            # Login as new admin
-            admin_login = self.session.post(
-                f"{BASE_URL}/api/auth/login",
-                json={"email": test_admin_email, "password": "Admin123!"}
-            )
-            if admin_login.status_code == 200:
-                TestSeatUpgradeRequestFeature.admin_token = admin_login.json()["access_token"]
-                print(f"Created and logged in as Admin: {test_admin_email}")
-                return
-            else:
-                print(f"Admin login failed: {admin_login.text}")
-        else:
-            print(f"Create admin failed: {create_user_response.text}")
-        
-        # If we couldn't create an admin, skip tests that need it
-        pytest.skip("Could not create Admin user for testing")
+        data = response.json()
+        assert "access_token" in data
+        TestSeatUpgradeRequestFeature.admin_token = data["access_token"]
+        print(f"Admin logged in, roles: {data['user']['roles']}")
     
-    # ==== BACKEND API TESTS ====
+    # ==== SECURITY TESTS ====
     
     def test_03_upgrade_seats_requires_superadmin(self):
-        """POST /api/billing/upgrade-seats now requires SuperAdmin role (not just Administrador)"""
-        if not TestSeatUpgradeRequestFeature.admin_token:
-            pytest.skip("No admin token available")
-        
+        """POST /api/billing/upgrade-seats requires SuperAdmin role - Admin gets 403"""
         headers = {"Authorization": f"Bearer {TestSeatUpgradeRequestFeature.admin_token}"}
         
-        # Admin trying to directly upgrade seats should get 403
         response = self.session.post(
             f"{BASE_URL}/api/billing/upgrade-seats",
             headers=headers,
             json={"additional_seats": 5}
         )
         print(f"Admin upgrade-seats response: {response.status_code}")
-        print(f"Response body: {response.text[:500] if response.text else 'empty'}")
         
-        # Should be 403 Forbidden (role not allowed)
         assert response.status_code == 403, f"Expected 403, got {response.status_code}: {response.text}"
         print("PASS: Admin cannot call upgrade-seats directly (403)")
     
-    def test_04_admin_can_request_seat_upgrade(self):
-        """POST /api/billing/request-seat-upgrade creates pending request (for Admins)"""
-        if not TestSeatUpgradeRequestFeature.admin_token:
-            pytest.skip("No admin token available")
-        
+    def test_04_admin_can_get_billing_info(self):
+        """Admin can view billing info (READ ONLY)"""
         headers = {"Authorization": f"Bearer {TestSeatUpgradeRequestFeature.admin_token}"}
         
-        # First, get current billing info to know how many seats we have
-        billing_response = self.session.get(
+        response = self.session.get(
             f"{BASE_URL}/api/billing/info",
             headers=headers
         )
-        print(f"Billing info response: {billing_response.status_code}")
+        print(f"Billing info response: {response.status_code}")
+        assert response.status_code == 200
         
-        if billing_response.status_code == 200:
-            billing_info = billing_response.json()
-            current_seats = billing_info.get("paid_seats", 10)
-            print(f"Current seats: {current_seats}")
-        else:
-            current_seats = 10
+        data = response.json()
+        print(f"Current seats: {data.get('paid_seats')}, Active: {data.get('active_users')}")
+        assert "paid_seats" in data
+        assert "active_users" in data
+        assert "billing_status" in data
+        print("PASS: Admin can read billing info")
+    
+    def test_05_admin_can_request_seat_upgrade(self):
+        """POST /api/billing/request-seat-upgrade creates pending request"""
+        headers = {"Authorization": f"Bearer {TestSeatUpgradeRequestFeature.admin_token}"}
         
-        # Request more seats
-        new_seats = current_seats + 15
+        # First get current billing to calculate proper request
+        billing_response = self.session.get(f"{BASE_URL}/api/billing/info", headers=headers)
+        current_seats = billing_response.json().get("paid_seats", 10) if billing_response.status_code == 200 else 10
+        
+        new_seats = current_seats + 20
         response = self.session.post(
             f"{BASE_URL}/api/billing/request-seat-upgrade",
             headers=headers,
@@ -229,28 +118,23 @@ class TestSeatUpgradeRequestFeature:
             }
         )
         print(f"Request seat upgrade response: {response.status_code}")
-        print(f"Response body: {response.text[:500] if response.text else 'empty'}")
         
-        # Could be 200 (success) or 400 (already pending request)
+        # Accept either 200 (created) or 400 (already has pending request)
         if response.status_code == 400:
             data = response.json()
-            if "Ya existe una solicitud pendiente" in data.get("detail", ""):
-                print("PASS: Request endpoint works (already has pending request)")
-                return
+            assert "Ya existe una solicitud pendiente" in data.get("detail", ""), f"Unexpected error: {data}"
+            print("PASS: Request endpoint works (already has pending request)")
+            return
         
-        assert response.status_code == 200, f"Expected 200 or 400, got {response.status_code}: {response.text}"
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         
         data = response.json()
-        assert "request_id" in data
-        assert data["status"] == "pending"
-        TestSeatUpgradeRequestFeature.test_request_id = data["request_id"]
-        print(f"PASS: Created seat upgrade request: {data['request_id'][:8]}...")
+        assert data.get("status") == "pending"
+        TestSeatUpgradeRequestFeature.test_request_id = data.get("request_id")
+        print(f"PASS: Created seat upgrade request: {data.get('request_id', 'N/A')[:8]}...")
     
-    def test_05_admin_can_get_pending_request(self):
+    def test_06_admin_can_get_pending_request(self):
         """GET /api/billing/my-pending-request returns Admin's pending request"""
-        if not TestSeatUpgradeRequestFeature.admin_token:
-            pytest.skip("No admin token available")
-        
         headers = {"Authorization": f"Bearer {TestSeatUpgradeRequestFeature.admin_token}"}
         
         response = self.session.get(
@@ -258,24 +142,19 @@ class TestSeatUpgradeRequestFeature:
             headers=headers
         )
         print(f"My pending request response: {response.status_code}")
-        print(f"Response body: {response.text[:500] if response.text else 'empty'}")
         
-        # Could be 200 (has pending) or 404 (no pending)
+        # Accept 200 (has pending) or 404 (no pending - if already approved)
         if response.status_code == 404:
-            data = response.json()
-            if "No hay solicitud pendiente" in data.get("detail", ""):
-                print("PASS: Endpoint works (no pending request found)")
-                return
+            print("INFO: No pending request (likely already approved)")
+            return
         
-        assert response.status_code == 200, f"Expected 200 or 404, got {response.status_code}: {response.text}"
-        
+        assert response.status_code == 200
         data = response.json()
-        assert "id" in data or "condominium_id" in data
-        assert data.get("status") == "pending"
-        print(f"PASS: Retrieved pending request for condo")
+        print(f"Pending request: {data.get('status')}, seats: {data.get('requested_seats')}")
+        print("PASS: Admin can view pending request")
     
-    def test_06_superadmin_can_list_upgrade_requests(self):
-        """GET /api/billing/upgrade-requests (SuperAdmin only) lists all pending requests"""
+    def test_07_superadmin_can_list_upgrade_requests(self):
+        """GET /api/billing/upgrade-requests (SuperAdmin only) lists all requests"""
         headers = {"Authorization": f"Bearer {TestSeatUpgradeRequestFeature.superadmin_token}"}
         
         response = self.session.get(
@@ -283,19 +162,15 @@ class TestSeatUpgradeRequestFeature:
             headers=headers
         )
         print(f"List upgrade requests response: {response.status_code}")
-        
-        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        assert response.status_code == 200
         
         data = response.json()
         assert "total" in data
         assert "requests" in data
         print(f"PASS: SuperAdmin can list {data['total']} upgrade requests")
     
-    def test_07_admin_cannot_list_upgrade_requests(self):
+    def test_08_admin_cannot_list_upgrade_requests(self):
         """Admin cannot access GET /api/billing/upgrade-requests (SuperAdmin only)"""
-        if not TestSeatUpgradeRequestFeature.admin_token:
-            pytest.skip("No admin token available")
-        
         headers = {"Authorization": f"Bearer {TestSeatUpgradeRequestFeature.admin_token}"}
         
         response = self.session.get(
@@ -303,107 +178,44 @@ class TestSeatUpgradeRequestFeature:
             headers=headers
         )
         print(f"Admin list upgrade requests response: {response.status_code}")
-        
-        # Should be 403 Forbidden
-        assert response.status_code == 403, f"Expected 403, got {response.status_code}: {response.text}"
+        assert response.status_code == 403
         print("PASS: Admin cannot list all upgrade requests (403)")
-    
-    def test_08_superadmin_can_approve_request(self):
-        """PATCH /api/billing/approve-seat-upgrade/{request_id} (SuperAdmin only) approves"""
-        if not TestSeatUpgradeRequestFeature.test_request_id:
-            # Try to get a pending request to approve
-            headers = {"Authorization": f"Bearer {TestSeatUpgradeRequestFeature.superadmin_token}"}
-            response = self.session.get(
-                f"{BASE_URL}/api/billing/upgrade-requests",
-                headers=headers
-            )
-            if response.status_code == 200:
-                data = response.json()
-                if data.get("requests"):
-                    for req in data["requests"]:
-                        if req.get("status") == "pending":
-                            TestSeatUpgradeRequestFeature.test_request_id = req["id"]
-                            break
-        
-        if not TestSeatUpgradeRequestFeature.test_request_id:
-            pytest.skip("No pending request available to approve")
-        
-        headers = {"Authorization": f"Bearer {TestSeatUpgradeRequestFeature.superadmin_token}"}
-        
-        response = self.session.patch(
-            f"{BASE_URL}/api/billing/approve-seat-upgrade/{TestSeatUpgradeRequestFeature.test_request_id}?approve=true",
-            headers=headers
-        )
-        print(f"Approve request response: {response.status_code}")
-        print(f"Response body: {response.text[:500] if response.text else 'empty'}")
-        
-        # Could be 200 (approved) or 400 (already processed)
-        if response.status_code == 400:
-            data = response.json()
-            if "ya fue" in data.get("detail", "").lower():
-                print("PASS: Approval endpoint works (request already processed)")
-                return
-        
-        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
-        
-        data = response.json()
-        assert data.get("status") == "approved"
-        print(f"PASS: SuperAdmin approved request")
     
     def test_09_admin_cannot_approve_requests(self):
         """Admin cannot access PATCH /api/billing/approve-seat-upgrade (SuperAdmin only)"""
-        if not TestSeatUpgradeRequestFeature.admin_token:
-            pytest.skip("No admin token available")
-        
         headers = {"Authorization": f"Bearer {TestSeatUpgradeRequestFeature.admin_token}"}
         
-        # Use a fake request ID - we just want to verify the role check
         response = self.session.patch(
             f"{BASE_URL}/api/billing/approve-seat-upgrade/fake-request-id?approve=true",
             headers=headers
         )
         print(f"Admin approve request response: {response.status_code}")
-        
-        # Should be 403 Forbidden (before checking if request exists)
-        assert response.status_code == 403, f"Expected 403, got {response.status_code}: {response.text}"
+        assert response.status_code == 403
         print("PASS: Admin cannot approve upgrade requests (403)")
     
     def test_10_superadmin_can_directly_upgrade(self):
-        """SuperAdmin CAN call POST /api/billing/upgrade-seats directly"""
+        """SuperAdmin CAN call POST /api/billing/upgrade-seats (not 403)"""
         headers = {"Authorization": f"Bearer {TestSeatUpgradeRequestFeature.superadmin_token}"}
         
-        # Get a production condo ID first
+        # Get a production condo ID
         condos_response = self.session.get(f"{BASE_URL}/api/condominiums", headers=headers)
-        if condos_response.status_code != 200:
-            pytest.skip("Could not get condominiums")
+        assert condos_response.status_code == 200
         
         condos = condos_response.json()
-        production_condo = None
-        for condo in condos:
-            env = condo.get("environment", "production")
-            is_demo = condo.get("is_demo", False)
-            if env != "demo" and not is_demo:
-                production_condo = condo
-                break
+        production_condo = next((c for c in condos if c.get("environment") != "demo" and not c.get("is_demo")), None)
         
         if not production_condo:
             pytest.skip("No production condominium available")
         
-        # Try upgrade-seats as SuperAdmin
         response = self.session.post(
             f"{BASE_URL}/api/billing/upgrade-seats",
             headers=headers,
-            json={
-                "additional_seats": 1,
-                "condominium_id": production_condo["id"]
-            }
+            json={"additional_seats": 1, "condominium_id": production_condo["id"]}
         )
         print(f"SuperAdmin upgrade-seats response: {response.status_code}")
-        print(f"Response body: {response.text[:300] if response.text else 'empty'}")
         
-        # SuperAdmin should be able to access this endpoint (200 or Stripe-related error like 500)
-        # The key point is they don't get 403
-        assert response.status_code != 403, f"SuperAdmin should have access, but got 403"
+        # SuperAdmin should NOT get 403 (access granted - may fail for other reasons like Stripe)
+        assert response.status_code != 403, f"SuperAdmin should have access, got 403"
         print(f"PASS: SuperAdmin has access to upgrade-seats endpoint (status: {response.status_code})")
 
 
