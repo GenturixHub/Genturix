@@ -14779,12 +14779,27 @@ async def onboarding_create_condominium(
             "country": wizard_data.condominium.country,
             "timezone": wizard_data.condominium.timezone,
             "contact_email": normalized_admin_email,
-            "max_users": 100,
-            "current_users": 1,  # Admin user
+            "billing_email": wizard_data.billing.billing_email or normalized_admin_email,
             "modules": modules_config,
             "status": "active",
             "is_demo": False,
+            "environment": "production",
             "is_active": True,
+            # BILLING ENGINE: Core billing fields
+            "billing_model": "per_seat",
+            "paid_seats": wizard_data.billing.initial_units,
+            "max_users": wizard_data.billing.initial_units,  # Sync with paid_seats
+            "current_users": 1,  # Admin user
+            "price_per_seat": await get_effective_seat_price(None),
+            "billing_cycle": wizard_data.billing.billing_cycle,
+            "billing_provider": wizard_data.billing.billing_provider,
+            "billing_enabled": True,
+            "billing_status": "pending_payment",
+            "next_invoice_amount": 0,  # Will be calculated below
+            "next_billing_date": None,  # Will be set after first payment
+            "billing_started_at": datetime.now(timezone.utc).isoformat(),
+            "yearly_discount_percent": YEARLY_DISCOUNT_PERCENT,
+            # Legacy fields for backward compatibility
             "price_per_user": 1.0,
             "discount_percent": 0,
             "free_modules": [],
@@ -14798,7 +14813,39 @@ async def onboarding_create_condominium(
             "onboarding_completed_at": datetime.now(timezone.utc).isoformat()
         }
         
+        # BILLING ENGINE: Calculate invoice amount
+        billing_preview = await calculate_billing_preview(
+            initial_units=wizard_data.billing.initial_units,
+            billing_cycle=wizard_data.billing.billing_cycle,
+            condominium_id=None
+        )
+        condo_doc["next_invoice_amount"] = billing_preview["effective_amount"]
+        condo_doc["price_per_seat"] = billing_preview["price_per_seat"]
+        
         await db.condominiums.insert_one(condo_doc)
+        
+        # BILLING ENGINE: Log creation event
+        await log_billing_engine_event(
+            event_type="condominium_created",
+            condominium_id=condo_id,
+            data={
+                "name": wizard_data.condominium.name,
+                "paid_seats": wizard_data.billing.initial_units,
+                "price_per_seat": billing_preview["price_per_seat"],
+                "billing_cycle": wizard_data.billing.billing_cycle,
+                "billing_provider": wizard_data.billing.billing_provider,
+                "monthly_amount": billing_preview["monthly_amount"],
+                "effective_amount": billing_preview["effective_amount"],
+                "source": "onboarding_wizard"
+            },
+            triggered_by=current_user["id"],
+            previous_state=None,
+            new_state={
+                "paid_seats": wizard_data.billing.initial_units,
+                "billing_status": "pending_payment",
+                "billing_cycle": wizard_data.billing.billing_cycle
+            }
+        )
         
         # Create default condominium settings
         settings_doc = {
