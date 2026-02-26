@@ -1122,14 +1122,17 @@ const OnboardingWizard = () => {
       case 3:
         return true; // Modules always valid (security is mandatory and always on)
       case 4:
+        // BILLING ENGINE: Validate billing data
+        return billingData.initial_units >= 1 && billingData.initial_units <= 10000;
+      case 5:
         // Areas are optional, but if added, must have valid name and capacity
         return areasData.every(area => area.name.trim().length >= 2 && area.capacity > 0);
-      case 5:
-        return true;
+      case 6:
+        return true; // Summary step - always valid
       default:
         return false;
     }
-  }, [currentStep, condoData, adminData, areasData]);
+  }, [currentStep, condoData, adminData, billingData, areasData]);
 
   const handleNext = () => {
     if (!isStepValid()) {
@@ -1137,11 +1140,20 @@ const OnboardingWizard = () => {
       return;
     }
     
-    // Skip areas step if reservations not enabled
-    if (currentStep === 3 && !modulesData.reservations) {
-      setCurrentStep(5);
+    // Skip areas step (5) if reservations not enabled, go directly to summary (6)
+    if (currentStep === 4 && !modulesData.reservations) {
+      setCurrentStep(6);
     } else {
-      setCurrentStep(prev => Math.min(prev + 1, 5));
+      setCurrentStep(prev => Math.min(prev + 1, 6));
+    }
+  };
+
+  const handleBack = () => {
+    // Skip areas step (5) if reservations not enabled
+    if (currentStep === 6 && !modulesData.reservations) {
+      setCurrentStep(4);
+    } else {
+      setCurrentStep(prev => Math.max(prev - 1, 1));
     }
   };
 
