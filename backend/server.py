@@ -1,4 +1,4 @@
-# Trigger redeploy - 2026-02-25
+# Trigger redeploy - 2026-02-26
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Request, Body, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse, Response
@@ -16,7 +16,7 @@ import re
 import io
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr, field_validator
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 import uuid
 from datetime import datetime, timezone, timedelta
 from time import time as get_time
@@ -34,6 +34,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.cron import CronTrigger
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
