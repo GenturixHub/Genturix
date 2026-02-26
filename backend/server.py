@@ -1140,6 +1140,7 @@ class SeatUpgradeRequestResponse(BaseModel):
 
 class SeatUpgradeRequest(BaseModel):
     additional_seats: int = Field(..., ge=1, le=1000)
+    condominium_id: Optional[str] = None  # Required for SuperAdmin to specify which condo
 
 class SeatUpdateRequest(BaseModel):
     """Request to update seat count (up or down)"""
