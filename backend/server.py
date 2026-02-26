@@ -11229,7 +11229,12 @@ async def confirm_sinpe_payment(
     """
     SINPE BILLING: Confirm a manual/SINPE payment for a condominium.
     
-    This activates the billing status and calculates the next billing date.
+    SUPPORTS PARTIAL PAYMENTS:
+    - Calculates total_paid for current billing cycle
+    - Only activates condominium when balance_due <= 0
+    - Keeps past_due status if partial payment leaves balance
+    - Recalculates next_billing_date ONLY when fully paid
+    
     Only SuperAdmin can confirm payments.
     """
     # Get condominium
@@ -11244,19 +11249,39 @@ async def confirm_sinpe_payment(
     billing_cycle = condo.get("billing_cycle", "monthly")
     paid_seats = condo.get("paid_seats", 10)
     previous_status = condo.get("billing_status", "pending_payment")
+    invoice_amount = condo.get("next_invoice_amount", 0)
+    current_billing_date = condo.get("next_billing_date")
     
-    # Calculate next billing date
-    if billing_cycle == "yearly":
-        next_billing = now + timedelta(days=365)
+    # Parse current billing date to identify the billing cycle
+    billing_cycle_start = None
+    if current_billing_date:
+        try:
+            billing_cycle_start = datetime.fromisoformat(current_billing_date.replace("Z", "+00:00"))
+            if billing_cycle_start.tzinfo is None:
+                billing_cycle_start = billing_cycle_start.replace(tzinfo=timezone.utc)
+            # Go back one cycle to get the start of current billing period
+            if billing_cycle == "yearly":
+                billing_cycle_start = billing_cycle_start - timedelta(days=365)
+            else:
+                billing_cycle_start = billing_cycle_start - timedelta(days=30)
+        except:
+            billing_cycle_start = now - timedelta(days=30)
     else:
-        if now.month == 12:
-            next_billing = now.replace(year=now.year + 1, month=1, day=now.day)
-        else:
-            try:
-                next_billing = now.replace(month=now.month + 1)
-            except ValueError:
-                # Handle months with fewer days
-                next_billing = (now.replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+        billing_cycle_start = now - timedelta(days=30)
+    
+    # Calculate total paid in current billing cycle
+    # Get all payments made since the start of current billing cycle
+    payments_in_cycle = await db.billing_payments.find({
+        "condominium_id": condominium_id,
+        "payment_date": {"$gte": billing_cycle_start.isoformat()}
+    }, {"_id": 0, "amount_paid": 1}).to_list(1000)
+    
+    total_paid_before = sum(p.get("amount_paid", 0) for p in payments_in_cycle)
+    total_paid_after = total_paid_before + payment_data.amount_paid
+    
+    # Calculate balance due
+    balance_due = max(0, round(invoice_amount - total_paid_after, 2))
+    is_fully_paid = balance_due <= 0
     
     # Create payment record
     payment_id = str(uuid.uuid4())
@@ -11266,13 +11291,16 @@ async def confirm_sinpe_payment(
         "condominium_name": condo.get("name", "Unknown"),
         "seats_at_payment": paid_seats,
         "amount_paid": payment_data.amount_paid,
-        "expected_amount": condo.get("next_invoice_amount", 0),
+        "invoice_amount": invoice_amount,
+        "total_paid_cycle": total_paid_after,
+        "balance_due": balance_due,
+        "is_partial_payment": not is_fully_paid,
         "billing_cycle": billing_cycle,
+        "billing_cycle_start": billing_cycle_start.isoformat(),
         "payment_method": condo.get("billing_provider", "sinpe"),
         "payment_reference": payment_data.payment_reference,
         "notes": payment_data.notes,
         "payment_date": now.isoformat(),
-        "next_billing_date": next_billing.isoformat(),
         "confirmed_by": current_user["id"],
         "confirmed_by_name": current_user.get("full_name", current_user.get("email")),
         "created_at": now.isoformat()
@@ -11280,61 +11308,122 @@ async def confirm_sinpe_payment(
     
     await db.billing_payments.insert_one(payment_record)
     
-    # Update condominium billing status
-    new_status = "active"
-    update_data = {
-        "billing_status": new_status,
-        "next_billing_date": next_billing.isoformat(),
-        "last_payment_date": now.isoformat(),
-        "last_payment_amount": payment_data.amount_paid,
-        "updated_at": now.isoformat()
-    }
+    # Determine new status and whether to update next_billing_date
+    next_billing = None
+    new_status = previous_status
+    
+    if is_fully_paid:
+        # FULLY PAID: Activate and calculate next billing date
+        new_status = "active"
+        
+        if billing_cycle == "yearly":
+            next_billing = now + timedelta(days=365)
+        else:
+            if now.month == 12:
+                next_billing = now.replace(year=now.year + 1, month=1, day=now.day)
+            else:
+                try:
+                    next_billing = now.replace(month=now.month + 1)
+                except ValueError:
+                    next_billing = (now.replace(day=1) + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+        
+        payment_record["next_billing_date"] = next_billing.isoformat()
+        
+        # Update condominium with active status and new billing date
+        update_data = {
+            "billing_status": new_status,
+            "next_billing_date": next_billing.isoformat(),
+            "last_payment_date": now.isoformat(),
+            "last_payment_amount": payment_data.amount_paid,
+            "total_paid_current_cycle": total_paid_after,
+            "balance_due": 0,
+            "updated_at": now.isoformat()
+        }
+    else:
+        # PARTIAL PAYMENT: Keep past_due or pending_payment, don't change next_billing_date
+        if previous_status in ["suspended", "cancelled"]:
+            new_status = "past_due"  # Reactivate to past_due with partial payment
+        elif previous_status == "active":
+            new_status = "past_due"  # Shouldn't happen but handle it
+        else:
+            new_status = previous_status  # Keep as past_due or pending_payment
+        
+        update_data = {
+            "billing_status": new_status,
+            "last_payment_date": now.isoformat(),
+            "last_payment_amount": payment_data.amount_paid,
+            "total_paid_current_cycle": total_paid_after,
+            "balance_due": balance_due,
+            "updated_at": now.isoformat()
+        }
     
     await db.condominiums.update_one(
         {"id": condominium_id},
         {"$set": update_data}
     )
     
-    # Log billing event
+    # Log billing event with partial payment details
+    event_data = {
+        "payment_id": payment_id,
+        "amount_paid": payment_data.amount_paid,
+        "invoice_amount": invoice_amount,
+        "total_paid_cycle": total_paid_after,
+        "balance_due": balance_due,
+        "is_partial_payment": not is_fully_paid,
+        "payment_method": condo.get("billing_provider", "sinpe"),
+        "payment_reference": payment_data.payment_reference,
+        "seats": paid_seats,
+        "billing_cycle": billing_cycle
+    }
+    
     await log_billing_engine_event(
-        event_type="payment_received",
+        event_type="payment_received" if is_fully_paid else "partial_payment_received",
         condominium_id=condominium_id,
-        data={
-            "payment_id": payment_id,
-            "amount_paid": payment_data.amount_paid,
-            "payment_method": condo.get("billing_provider", "sinpe"),
-            "payment_reference": payment_data.payment_reference,
-            "seats": paid_seats,
-            "billing_cycle": billing_cycle
-        },
+        data=event_data,
         triggered_by=current_user["id"],
-        previous_state={"billing_status": previous_status},
-        new_state={"billing_status": new_status, "next_billing_date": next_billing.isoformat()}
+        previous_state={"billing_status": previous_status, "balance_due": invoice_amount - total_paid_before},
+        new_state={"billing_status": new_status, "balance_due": balance_due}
     )
     
-    logger.info(f"[SINPE-PAYMENT] Confirmed ${payment_data.amount_paid} for condo={condominium_id[:8]}... by {current_user['email']}")
+    logger.info(
+        f"[SINPE-PAYMENT] {'FULL' if is_fully_paid else 'PARTIAL'} payment ${payment_data.amount_paid} "
+        f"for condo={condominium_id[:8]}... (total: ${total_paid_after}/{invoice_amount}, "
+        f"balance: ${balance_due}) by {current_user['email']}"
+    )
     
-    # Send payment confirmed email
+    # Send appropriate email
     billing_email = condo.get("billing_email") or condo.get("admin_email") or condo.get("contact_email")
     if billing_email:
-        await send_billing_notification_email(
-            "payment_confirmed",
-            billing_email,
-            condo.get("name", "Unknown"),
-            payment_data.amount_paid,
-            now.strftime("%d/%m/%Y"),
-            paid_seats,
-            next_due_date=next_billing.strftime("%d/%m/%Y")
-        )
+        if is_fully_paid:
+            await send_billing_notification_email(
+                "payment_confirmed",
+                billing_email,
+                condo.get("name", "Unknown"),
+                payment_data.amount_paid,
+                now.strftime("%d/%m/%Y"),
+                paid_seats,
+                next_due_date=next_billing.strftime("%d/%m/%Y") if next_billing else ""
+            )
+        # For partial payments, we could add a specific email template later
+    
+    # Build response message
+    if is_fully_paid:
+        message = f"Pago completo de ${payment_data.amount_paid} confirmado. Próximo cobro: {next_billing.strftime('%d/%m/%Y') if next_billing else 'N/A'}"
+    else:
+        message = f"Pago parcial de ${payment_data.amount_paid} registrado. Saldo pendiente: ${balance_due:.2f}. Total pagado este ciclo: ${total_paid_after:.2f}"
     
     return ConfirmPaymentResponse(
         payment_id=payment_id,
         condominium_id=condominium_id,
         amount_paid=payment_data.amount_paid,
+        invoice_amount=invoice_amount,
+        total_paid_cycle=total_paid_after,
+        balance_due=balance_due,
         previous_status=previous_status,
         new_status=new_status,
-        next_billing_date=next_billing.isoformat(),
-        message=f"Pago de ${payment_data.amount_paid} confirmado. Próximo cobro: {next_billing.strftime('%d/%m/%Y')}"
+        next_billing_date=next_billing.isoformat() if next_billing else None,
+        is_fully_paid=is_fully_paid,
+        message=message
     )
 
 @api_router.get("/billing/payments/{condominium_id}")
