@@ -1135,25 +1135,33 @@ const OnboardingWizard = () => {
       
       setIsLoadingPreview(true);
       try {
-        const response = await api.getBillingPreview(billingData.initial_units, billingData.billing_cycle);
+        const response = await api.getBillingPreview(
+          billingData.initial_units, 
+          billingData.billing_cycle,
+          billingData.seat_price_override,
+          billingData.billing_cycle === 'yearly' ? billingData.yearly_discount_percent : null
+        );
         setBillingPreview(response);
       } catch (error) {
         console.error('Error loading billing preview:', error);
         // Calculate fallback locally
-        const basePrice = 1.0;
-        const discount = billingData.billing_cycle === 'yearly' ? 0.15 : 0;
+        const basePrice = billingData.seat_price_override || 2.99;
+        const discountPercent = billingData.billing_cycle === 'yearly' ? (billingData.yearly_discount_percent || 10) : 0;
         const monthlyAmount = billingData.initial_units * basePrice;
+        const yearlyBeforeDiscount = monthlyAmount * 12;
+        const yearlyDiscount = yearlyBeforeDiscount * (discountPercent / 100);
         const effectiveAmount = billingData.billing_cycle === 'yearly'
-          ? monthlyAmount * 12 * (1 - discount)
+          ? yearlyBeforeDiscount - yearlyDiscount
           : monthlyAmount;
         setBillingPreview({
           seats: billingData.initial_units,
           price_per_seat: basePrice,
           billing_cycle: billingData.billing_cycle,
           monthly_amount: monthlyAmount,
+          yearly_amount: yearlyBeforeDiscount - yearlyDiscount,
           effective_amount: effectiveAmount,
-          discount_percent: discount * 100,
-          savings: billingData.billing_cycle === 'yearly' ? monthlyAmount * 12 * discount : 0
+          yearly_discount_percent: discountPercent,
+          yearly_discount_amount: yearlyDiscount
         });
       } finally {
         setIsLoadingPreview(false);
@@ -1162,7 +1170,7 @@ const OnboardingWizard = () => {
     
     const debounceTimer = setTimeout(loadBillingPreview, 300);
     return () => clearTimeout(debounceTimer);
-  }, [billingData.initial_units, billingData.billing_cycle, currentStep]);
+  }, [billingData.initial_units, billingData.billing_cycle, billingData.seat_price_override, billingData.yearly_discount_percent, currentStep]);
 
   // Block navigation
   useEffect(() => {
