@@ -1602,22 +1602,13 @@ const OnboardingWizard = () => {
             </Button>
           ) : (
             <Button
-              onClick={handleSubmit}
+              onClick={handleShowEmailPreview}
               disabled={isSubmitting}
               className="bg-green-600 hover:bg-green-700"
               data-testid="wizard-submit-btn"
             >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creando...
-                </>
-              ) : (
-                <>
-                  <Check className="w-4 h-4 mr-2" />
-                  Crear Condominio
-                </>
-              )}
+              <Mail className="w-4 h-4 mr-2" />
+              Ver Preview y Crear
             </Button>
           )}
         </div>
