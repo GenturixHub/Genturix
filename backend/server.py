@@ -12556,45 +12556,72 @@ async def create_production_condominium(
     """
     Create a new PRODUCTION condominium/tenant (Super Admin only).
     
-    This endpoint is for PRODUCTION tenants only:
-    - Billing enabled (Stripe integration)
-    - Configurable seat limit via paid_seats
-    - Full module access
+    BILLING ENGINE INTEGRATION:
+    - Calculates initial invoice based on seats and billing cycle
+    - Creates billing event audit trail
+    - Sets billing_status to "pending_payment" (awaiting first payment)
+    - Does NOT integrate with payment providers yet (Stripe, Sinpe, etc.)
     
     For DEMO tenants, use POST /api/superadmin/condominiums/demo instead.
     """
     condo_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
     
     # Initialize module config with defaults
     modules = condo_data.modules if condo_data.modules else CondominiumModules()
     
-    # PRODUCTION configuration
-    paid_seats = condo_data.paid_seats if condo_data.paid_seats else condo_data.max_users
+    # BILLING ENGINE: Determine seat count (prefer initial_units over legacy paid_seats)
+    paid_seats = condo_data.initial_units if condo_data.initial_units else (
+        condo_data.paid_seats if condo_data.paid_seats else 10
+    )
     
+    # BILLING ENGINE: Get effective price for this condominium
+    # (Uses global pricing since condo doesn't exist yet)
+    price_per_seat = await get_effective_seat_price(None)
+    
+    # BILLING ENGINE: Calculate invoice preview
+    billing_preview = await calculate_billing_preview(
+        initial_units=paid_seats,
+        billing_cycle=condo_data.billing_cycle,
+        condominium_id=None  # New condo, no override yet
+    )
+    
+    # Build condominium document with enhanced billing fields
     condo_doc = {
         "id": condo_id,
         "name": condo_data.name,
         "address": condo_data.address,
         "contact_email": condo_data.contact_email,
         "contact_phone": condo_data.contact_phone,
-        "max_users": condo_data.max_users,
+        "billing_email": condo_data.billing_email or condo_data.contact_email,
+        "max_users": paid_seats,  # Sync with paid_seats
         "current_users": 0,
         "modules": modules.model_dump(),
         "status": "active",
         "is_demo": False,
         "environment": "production",
         "is_active": True,
-        # Billing configuration (Production)
+        # BILLING ENGINE: Enhanced billing configuration
+        "billing_model": "per_seat",
         "paid_seats": paid_seats,
+        "price_per_seat": price_per_seat,
+        "billing_cycle": condo_data.billing_cycle,
+        "billing_provider": condo_data.billing_provider,
         "billing_enabled": True,
-        "billing_status": "active",
-        "stripe_customer_id": None,  # Will be set when subscription is created
-        "price_per_user": 1.0,
+        "billing_status": "pending_payment",  # Awaiting first payment
+        "next_invoice_amount": billing_preview["effective_amount"],
+        "next_billing_date": billing_preview["next_billing_date"],
+        "billing_started_at": now.isoformat(),
+        "yearly_discount_percent": billing_preview["yearly_discount_percent"],
+        # Legacy fields (kept for backward compatibility)
+        "stripe_customer_id": None,
+        "stripe_subscription_id": None,
+        "price_per_user": price_per_seat,  # Legacy field
         "discount_percent": 0,
         "free_modules": [],
         "plan": "basic",
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat()
+        "created_at": now.isoformat(),
+        "updated_at": now.isoformat()
     }
     
     await db.condominiums.insert_one(condo_doc)
@@ -12604,16 +12631,47 @@ async def create_production_condominium(
         "condominium_id": condo_id,
         "condominium_name": condo_data.name,
         **get_default_condominium_settings(),
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat()
+        "created_at": now.isoformat(),
+        "updated_at": now.isoformat()
     }
     await db.condominium_settings.insert_one(settings_doc)
     
+    # BILLING ENGINE: Log creation event
+    await log_billing_event(
+        event_type="condominium_created",
+        condominium_id=condo_id,
+        data={
+            "name": condo_data.name,
+            "paid_seats": paid_seats,
+            "price_per_seat": price_per_seat,
+            "billing_cycle": condo_data.billing_cycle,
+            "billing_provider": condo_data.billing_provider,
+            "monthly_amount": billing_preview["monthly_amount"],
+            "effective_amount": billing_preview["effective_amount"],
+            "next_billing_date": billing_preview["next_billing_date"]
+        },
+        triggered_by=current_user["id"],
+        previous_state=None,
+        new_state={
+            "paid_seats": paid_seats,
+            "billing_status": "pending_payment",
+            "billing_cycle": condo_data.billing_cycle
+        }
+    )
+    
+    # Log audit event
     await log_audit_event(
         AuditEventType.CONDO_CREATED,
         current_user["id"],
         "super_admin",
-        {"condo_id": condo_id, "name": condo_data.name, "action": "created", "environment": "production"},
+        {
+            "condo_id": condo_id, 
+            "name": condo_data.name, 
+            "action": "created", 
+            "environment": "production",
+            "billing_provider": condo_data.billing_provider,
+            "initial_seats": paid_seats
+        },
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown")
     )
@@ -12624,15 +12682,25 @@ async def create_production_condominium(
         address=condo_data.address,
         contact_email=condo_data.contact_email,
         contact_phone=condo_data.contact_phone,
-        max_users=condo_data.max_users,
+        billing_email=condo_data.billing_email or condo_data.contact_email,
+        max_users=paid_seats,
         current_users=0,
         modules=modules.model_dump(),
         is_active=True,
         created_at=condo_doc["created_at"],
         environment="production",
         is_demo=False,
+        # BILLING ENGINE: Enhanced response
+        billing_model="per_seat",
         paid_seats=paid_seats,
-        billing_status="active",
+        price_per_seat=price_per_seat,
+        billing_cycle=condo_data.billing_cycle,
+        billing_provider=condo_data.billing_provider,
+        billing_status="pending_payment",
+        next_invoice_amount=billing_preview["effective_amount"],
+        next_billing_date=billing_preview["next_billing_date"],
+        billing_started_at=condo_doc["billing_started_at"],
+        yearly_discount_percent=billing_preview["yearly_discount_percent"],
         status="active",
         plan="basic"
     )
