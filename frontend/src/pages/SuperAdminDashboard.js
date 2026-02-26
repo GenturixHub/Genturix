@@ -1034,6 +1034,14 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin, na
                 { label: 'MRR', value: `$${mrr.toFixed(2)}${condo.discount_percent > 0 ? ` (-${condo.discount_percent}%)` : ''}` },
               ]}
               actions={[
+                // SINPE Payment button for pending condos
+                ...(['pending_payment', 'upgrade_pending', 'past_due'].includes(condo.billing_status) && 
+                    condo.environment !== 'demo' && !condo.is_demo ? [{
+                  label: 'Confirmar Pago',
+                  icon: DollarSign,
+                  onClick: () => handleConfirmPayment(condo),
+                  variant: 'success'
+                }] : []),
                 {
                   label: 'Crear Admin',
                   icon: UserPlus,
