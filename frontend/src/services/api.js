@@ -388,8 +388,16 @@ class ApiService {
   getBillingInfo = () => this.get('/billing/info');
   
   // BILLING ENGINE: Get billing preview for onboarding wizard
-  getBillingPreview = (initial_units, billing_cycle) => {
-    return this.post('/billing/preview', { initial_units, billing_cycle });
+  // Supports custom seat_price_override and yearly_discount_percent
+  getBillingPreview = (initial_units, billing_cycle, seat_price_override = null, yearly_discount_percent = null) => {
+    const payload = { initial_units, billing_cycle };
+    if (seat_price_override !== null && seat_price_override > 0) {
+      payload.seat_price_override = seat_price_override;
+    }
+    if (yearly_discount_percent !== null && yearly_discount_percent >= 0) {
+      payload.yearly_discount_percent = yearly_discount_percent;
+    }
+    return this.post('/billing/preview', payload);
   };
   
   // Check if can create a new user
