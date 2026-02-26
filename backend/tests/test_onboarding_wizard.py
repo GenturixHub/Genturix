@@ -403,7 +403,7 @@ class TestVerifyPaidSeats:
         return response.json()["access_token"]
     
     def test_verify_paid_seats_saved(self, auth_token):
-        """Create condo and verify paid_seats via GET endpoint"""
+        """Create condo and verify paid_seats via billing overview endpoint"""
         headers = {"Authorization": f"Bearer {auth_token}"}
         unique_id = uuid.uuid4().hex[:8]
         expected_seats = 42
@@ -446,21 +446,26 @@ class TestVerifyPaidSeats:
         assert response.status_code == 200, f"Failed to create condo: {response.text}"
         data = response.json()
         condo_id = data["condominium"]["id"]
+        condo_name = data["condominium"]["name"]
         
-        # Get condominium to verify paid_seats
-        get_response = requests.get(
-            f"{BASE_URL}/api/condominiums/{condo_id}",
+        # Verify paid_seats from billing overview (SuperAdmin endpoint)
+        billing_response = requests.get(
+            f"{BASE_URL}/api/super-admin/billing/overview",
             headers=headers
         )
         
-        assert get_response.status_code == 200, f"Failed to get condo: {get_response.text}"
-        condo_data = get_response.json()
+        assert billing_response.status_code == 200, f"Failed to get billing overview: {billing_response.text}"
+        billing_data = billing_response.json()
         
-        # Verify paid_seats
-        assert "paid_seats" in condo_data, f"Missing paid_seats in response: {condo_data}"
-        assert condo_data["paid_seats"] == expected_seats, f"Expected {expected_seats} seats, got {condo_data['paid_seats']}"
+        # Find our condo in the overview
+        condos = billing_data.get("condominiums", [])
+        our_condo = next((c for c in condos if c.get("id") == condo_id), None)
         
-        print(f"PASS: Verified paid_seats={expected_seats} saved correctly for condo {condo_id}")
+        assert our_condo is not None, f"Created condo not found in billing overview. Condo ID: {condo_id}"
+        assert "paid_seats" in our_condo, f"Missing paid_seats in condo: {our_condo}"
+        assert our_condo["paid_seats"] == expected_seats, f"Expected {expected_seats} seats, got {our_condo['paid_seats']}"
+        
+        print(f"PASS: Verified paid_seats={expected_seats} saved correctly for condo '{condo_name}' (ID: {condo_id})")
 
 
 if __name__ == "__main__":
