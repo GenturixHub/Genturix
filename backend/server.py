@@ -11244,12 +11244,18 @@ async def upgrade_seats(
     request: Request,
     upgrade: SeatUpgradeRequest,
     origin_url: str = "",
-    current_user = Depends(require_role("Administrador"))
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))  # CHANGED: Only SuperAdmin can directly upgrade
 ):
-    """Create a Stripe checkout session to upgrade seats"""
-    condo_id = current_user.get("condominium_id")
+    """
+    BILLING ENGINE: Create a Stripe checkout session to upgrade seats.
+    
+    SECURITY: Only SuperAdmin can directly upgrade seats.
+    Regular Admins must use POST /billing/request-seat-upgrade to create a request.
+    """
+    # For SuperAdmin, they need to specify condominium_id in the request
+    condo_id = upgrade.condominium_id if hasattr(upgrade, 'condominium_id') and upgrade.condominium_id else current_user.get("condominium_id")
     if not condo_id:
-        raise HTTPException(status_code=400, detail="Usuario no asociado a un condominio")
+        raise HTTPException(status_code=400, detail="condominium_id requerido para SuperAdmin")
     
     condo = await db.condominiums.find_one({"id": condo_id}, {"_id": 0})
     if not condo:
