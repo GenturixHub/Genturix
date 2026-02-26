@@ -979,8 +979,13 @@ class CondominiumCreate(BaseModel):
     contact_phone: str
     max_users: int = Field(default=100, ge=1)
     modules: Optional[CondominiumModules] = None
-    # Billing fields for production
-    paid_seats: int = Field(default=10, ge=1)  # Default 10 seats for new condos
+    # Billing fields for production - ENHANCED
+    initial_units: int = Field(default=10, ge=1, le=10000, description="Number of billable seats")
+    billing_cycle: str = Field(default="monthly", pattern="^(monthly|yearly)$")
+    billing_provider: str = Field(default="stripe", pattern="^(stripe|sinpe|ticopay|manual)$")
+    billing_email: Optional[EmailStr] = None  # Separate email for invoices
+    # Legacy field - kept for backward compatibility
+    paid_seats: Optional[int] = None  # Will default to initial_units if not provided
 
 class DemoCondominiumCreate(BaseModel):
     """Model for creating DEMO condominiums - simplified, no billing"""
