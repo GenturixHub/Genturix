@@ -387,6 +387,11 @@ class ApiService {
   // Get billing info for current condominium
   getBillingInfo = () => this.get('/billing/info');
   
+  // BILLING ENGINE: Get billing preview for onboarding wizard
+  getBillingPreview = (initial_units, billing_cycle) => {
+    return this.post('/billing/preview-creation', { initial_units, billing_cycle });
+  };
+  
   // Check if can create a new user
   canCreateUser = () => this.get('/billing/can-create-user');
   
