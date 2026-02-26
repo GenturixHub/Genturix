@@ -389,7 +389,7 @@ class ApiService {
   
   // BILLING ENGINE: Get billing preview for onboarding wizard
   getBillingPreview = (initial_units, billing_cycle) => {
-    return this.post('/billing/preview-creation', { initial_units, billing_cycle });
+    return this.post('/billing/preview', { initial_units, billing_cycle });
   };
   
   // Check if can create a new user
