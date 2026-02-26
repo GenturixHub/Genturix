@@ -12765,7 +12765,7 @@ async def create_production_condominium(
     await db.condominium_settings.insert_one(settings_doc)
     
     # BILLING ENGINE: Log creation event
-    await log_billing_event(
+    await log_billing_engine_event(
         event_type="condominium_created",
         condominium_id=condo_id,
         data={
