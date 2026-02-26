@@ -1369,7 +1369,7 @@ const DemoWizardDialog = ({ open, onClose, onSuccess }) => {
 };
 
 // ============================================
-// CREATE CONDO DIALOG
+// CREATE CONDO DIALOG - BILLING ENGINE INTEGRATED
 // ============================================
 const CreateCondoDialog = ({ open, onClose, onSuccess }) => {
   const [form, setForm] = useState({
@@ -1377,20 +1377,50 @@ const CreateCondoDialog = ({ open, onClose, onSuccess }) => {
     address: '',
     contact_email: '',
     contact_phone: '',
-    max_users: 100,
-    paid_seats: 10,
-    environment: 'production'  // "demo" or "production"
+    billing_email: '',
+    initial_units: 10,
+    billing_cycle: 'monthly',
+    billing_provider: 'stripe',
+    environment: 'production'
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [billingPreview, setBillingPreview] = useState(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+
+  // Fetch billing preview when units or cycle changes
+  useEffect(() => {
+    if (form.environment !== 'production' || form.initial_units < 1) {
+      setBillingPreview(null);
+      return;
+    }
+    
+    const fetchPreview = async () => {
+      setIsLoadingPreview(true);
+      try {
+        const preview = await api.post('/billing/preview', {
+          initial_units: form.initial_units,
+          billing_cycle: form.billing_cycle
+        });
+        setBillingPreview(preview);
+      } catch (error) {
+        console.error('Error fetching billing preview:', error);
+        setBillingPreview(null);
+      } finally {
+        setIsLoadingPreview(false);
+      }
+    };
+    
+    // Debounce the API call
+    const timer = setTimeout(fetchPreview, 300);
+    return () => clearTimeout(timer);
+  }, [form.initial_units, form.billing_cycle, form.environment]);
 
   const handleSubmit = async () => {
     if (!form.name || !form.contact_email) return;
     
     setIsSubmitting(true);
     try {
-      // Use different endpoint based on environment selection
       if (form.environment === 'demo') {
-        // Demo endpoint - simplified payload (no billing fields)
         await api.createDemoCondominium({
           name: form.name,
           address: form.address || 'Demo Address',
@@ -1398,19 +1428,24 @@ const CreateCondoDialog = ({ open, onClose, onSuccess }) => {
           contact_phone: form.contact_phone || ''
         });
       } else {
-        // Production endpoint - full payload with billing
+        // Production with billing engine
         await api.createCondominium({
           name: form.name,
           address: form.address,
           contact_email: form.contact_email,
           contact_phone: form.contact_phone,
-          max_users: form.max_users,
-          paid_seats: form.paid_seats
+          billing_email: form.billing_email || form.contact_email,
+          initial_units: form.initial_units,
+          billing_cycle: form.billing_cycle,
+          billing_provider: form.billing_provider
         });
       }
       toast.success(`Condominio ${form.environment === 'demo' ? 'DEMO' : 'de PRODUCCIÓN'} creado exitosamente`);
       onSuccess();
-      setForm({ name: '', address: '', contact_email: '', contact_phone: '', max_users: 100, paid_seats: 10, environment: 'production' });
+      setForm({
+        name: '', address: '', contact_email: '', contact_phone: '', billing_email: '',
+        initial_units: 10, billing_cycle: 'monthly', billing_provider: 'stripe', environment: 'production'
+      });
     } catch (error) {
       toast.error(error.message || 'Error al crear condominio');
     } finally {
@@ -1420,7 +1455,7 @@ const CreateCondoDialog = ({ open, onClose, onSuccess }) => {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-md">
+      <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Building2 className="w-5 h-5 text-primary" />
@@ -1432,6 +1467,7 @@ const CreateCondoDialog = ({ open, onClose, onSuccess }) => {
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Basic Info */}
           <div>
             <Label>Nombre *</Label>
             <Input
@@ -1472,27 +1508,12 @@ const CreateCondoDialog = ({ open, onClose, onSuccess }) => {
             </div>
           </div>
           
-          {/* Seat Limit - only shown for production */}
-          {form.environment === 'production' && (
-            <div>
-              <Label>Asientos Iniciales (Paid Seats)</Label>
-              <Input
-                type="number"
-                value={form.paid_seats}
-                onChange={(e) => setForm({...form, paid_seats: parseInt(e.target.value) || 10, max_users: parseInt(e.target.value) || 100})}
-                className="bg-[#0A0A0F] border-[#1E293B] mt-1"
-                min={1}
-              />
-              <p className="text-xs text-muted-foreground mt-1">Número de usuarios facturables</p>
-            </div>
-          )}
-          
           {/* Environment Selector */}
           <div className="space-y-2">
             <Label>Tipo de Tenant</Label>
             <Select 
               value={form.environment} 
-              onValueChange={(v) => setForm({...form, environment: v, paid_seats: v === 'demo' ? 10 : form.paid_seats})}
+              onValueChange={(v) => setForm({...form, environment: v})}
             >
               <SelectTrigger className="bg-[#0A0A0F] border-[#1E293B]">
                 <SelectValue placeholder="Seleccionar tipo" />
@@ -1501,7 +1522,7 @@ const CreateCondoDialog = ({ open, onClose, onSuccess }) => {
                 <SelectItem value="production">
                   <div className="flex items-center gap-2">
                     <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">PRODUCCIÓN</Badge>
-                    <span>Stripe activo, facturación real</span>
+                    <span>Facturación activa</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="demo">
@@ -1512,46 +1533,153 @@ const CreateCondoDialog = ({ open, onClose, onSuccess }) => {
                 </SelectItem>
               </SelectContent>
             </Select>
-            
-            {/* Demo Environment Info */}
-            {form.environment === 'demo' && (
-              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">DEMO</Badge>
-                  <span className="text-yellow-400 text-sm font-medium">Modo Demostración</span>
-                </div>
-                <ul className="text-xs text-yellow-200/70 space-y-1">
-                  <li>• Límite fijo de <strong>10 residentes</strong></li>
-                  <li>• Sin integración con Stripe</li>
-                  <li>• No genera cargos</li>
-                  <li>• Credenciales visibles en pantalla (no email)</li>
-                </ul>
-              </div>
-            )}
-            
-            {/* Production Environment Info */}
-            {form.environment === 'production' && (
-              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 space-y-2">
-                <div className="flex items-center gap-2">
-                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30">PRODUCCIÓN</Badge>
-                  <span className="text-green-400 text-sm font-medium">Modo Producción</span>
-                </div>
-                <ul className="text-xs text-green-200/70 space-y-1">
-                  <li>• Facturación activa vía Stripe</li>
-                  <li>• Compra de asientos disponible</li>
-                  <li>• Emails de credenciales vía Resend</li>
-                  <li>• Cambio de contraseña obligatorio</li>
-                </ul>
-              </div>
-            )}
           </div>
+          
+          {/* BILLING ENGINE: Production Fields */}
+          {form.environment === 'production' && (
+            <div className="space-y-4 p-4 bg-[#0A0A0F] rounded-lg border border-[#1E293B]">
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium text-white">Configuración de Facturación</span>
+              </div>
+              
+              {/* Initial Units */}
+              <div>
+                <Label>Unidades Iniciales (Asientos)</Label>
+                <div className="flex items-center gap-3 mt-1">
+                  <Input
+                    type="number"
+                    value={form.initial_units}
+                    onChange={(e) => setForm({...form, initial_units: Math.max(1, parseInt(e.target.value) || 1)})}
+                    className="bg-[#0F111A] border-[#1E293B] w-24"
+                    min={1}
+                    max={10000}
+                  />
+                  <input
+                    type="range"
+                    value={form.initial_units}
+                    onChange={(e) => setForm({...form, initial_units: parseInt(e.target.value)})}
+                    className="flex-1 h-2 bg-[#1E293B] rounded-lg appearance-none cursor-pointer accent-primary"
+                    min={1}
+                    max={500}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Número de usuarios facturables</p>
+              </div>
+              
+              {/* Billing Cycle */}
+              <div>
+                <Label>Ciclo de Facturación</Label>
+                <Select 
+                  value={form.billing_cycle} 
+                  onValueChange={(v) => setForm({...form, billing_cycle: v})}
+                >
+                  <SelectTrigger className="bg-[#0F111A] border-[#1E293B] mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="monthly">Mensual</SelectItem>
+                    <SelectItem value="yearly">
+                      <div className="flex items-center gap-2">
+                        <span>Anual</span>
+                        <Badge className="bg-green-500/20 text-green-400 text-[10px]">-10%</Badge>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Billing Provider */}
+              <div>
+                <Label>Proveedor de Pago</Label>
+                <Select 
+                  value={form.billing_provider} 
+                  onValueChange={(v) => setForm({...form, billing_provider: v})}
+                >
+                  <SelectTrigger className="bg-[#0F111A] border-[#1E293B] mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="stripe">Stripe (Internacional)</SelectItem>
+                    <SelectItem value="sinpe">SINPE Móvil (Costa Rica)</SelectItem>
+                    <SelectItem value="ticopay">TicoPay (Costa Rica)</SelectItem>
+                    <SelectItem value="manual">Manual (Transferencia)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Billing Email */}
+              <div>
+                <Label>Email de Facturación (opcional)</Label>
+                <Input
+                  type="email"
+                  value={form.billing_email}
+                  onChange={(e) => setForm({...form, billing_email: e.target.value})}
+                  placeholder={form.contact_email || 'facturacion@condo.com'}
+                  className="bg-[#0F111A] border-[#1E293B] mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Si se deja vacío, se usa el email de contacto</p>
+              </div>
+              
+              {/* BILLING PREVIEW */}
+              {billingPreview && (
+                <div className="mt-4 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-muted-foreground">Preview de Facturación</span>
+                    {isLoadingPreview && <Loader2 className="w-3 h-3 animate-spin text-primary" />}
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">{billingPreview.seats} asientos × ${billingPreview.price_per_seat}</span>
+                      <span className="text-white">${billingPreview.monthly_amount}/mes</span>
+                    </div>
+                    {form.billing_cycle === 'yearly' && (
+                      <>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Anual (sin descuento)</span>
+                          <span className="text-muted-foreground line-through">${billingPreview.monthly_amount * 12}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-green-400">Descuento {billingPreview.yearly_discount_percent}%</span>
+                          <span className="text-green-400">-${(billingPreview.monthly_amount * 12 - billingPreview.yearly_amount).toFixed(2)}</span>
+                        </div>
+                      </>
+                    )}
+                    <div className="flex justify-between text-base font-semibold pt-2 border-t border-[#1E293B]">
+                      <span className="text-white">Total {form.billing_cycle === 'yearly' ? 'Anual' : 'Mensual'}</span>
+                      <span className="text-primary">${billingPreview.effective_amount} {billingPreview.currency}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Demo Environment Info */}
+          {form.environment === 'demo' && (
+            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">DEMO</Badge>
+                <span className="text-yellow-400 text-sm font-medium">Modo Demostración</span>
+              </div>
+              <ul className="text-xs text-yellow-200/70 space-y-1">
+                <li>• Límite fijo de <strong>10 residentes</strong></li>
+                <li>• Sin facturación activa</li>
+                <li>• No genera cargos</li>
+                <li>• Credenciales visibles en pantalla</li>
+              </ul>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button onClick={handleSubmit} disabled={!form.name || !form.contact_email || isSubmitting}>
             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-            Crear
+            {form.environment === 'production' && billingPreview ? 
+              `Crear ($${billingPreview.effective_amount}/${form.billing_cycle === 'yearly' ? 'año' : 'mes'})` : 
+              'Crear'
+            }
           </Button>
         </DialogFooter>
       </DialogContent>
