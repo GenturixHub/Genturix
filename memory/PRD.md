@@ -1,8 +1,80 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 26, 2026 (Financial Portfolio Module)
+## Last Updated: February 26, 2026 (Financial Portfolio Performance Optimization)
 
 ## Changelog
+
+### 2026-02-26 (Session 89) - Financial Portfolio Performance Optimization ✅
+
+**CRITICAL FIX: Server-Side Pagination & N+1 Query Elimination**
+
+Refactored the Financial Portfolio backend endpoint to eliminate critical performance issues that would cause failures in production.
+
+**Problem Fixed:**
+- Original implementation loaded up to 1000 condos into memory
+- N+1 query: Additional DB query for each condo to count users
+- Frontend-side filtering and pagination was not scalable
+- Missing billing_provider filter in API
+
+**Solution:**
+
+1. **Backend Endpoint Optimized (`/api/super-admin/billing/overview`):**
+   - Uses MongoDB aggregation pipeline for efficient data retrieval
+   - `$lookup` stage counts users in a single query (eliminates N+1)
+   - Server-side filtering by: `billing_status`, `billing_provider`, `search`
+   - Server-side sorting by: `next_invoice_amount`, `paid_seats`, `condominium_name`, `billing_status`, `next_billing_date`, `current_users`
+   - Real pagination with `$skip` and `$limit`
+
+2. **New Query Parameters:**
+   - `page` (int): Page number (1-indexed)
+   - `page_size` (int): Items per page (max 100)
+   - `billing_status` (str): Comma-separated status filter
+   - `billing_provider` (str): sinpe, stripe, or manual
+   - `search` (str): Search by name or email
+   - `sort_by` (str): Sort field
+   - `sort_order` (str): asc or desc
+
+3. **Response Structure:**
+   ```json
+   {
+     "condominiums": [...],
+     "pagination": {
+       "page": 1,
+       "page_size": 15,
+       "total_count": 15,
+       "total_pages": 1,
+       "has_next": false,
+       "has_prev": false
+     },
+     "totals": {
+       "total_condominiums": 15,
+       "total_paid_seats": 803,
+       "total_active_users": 15,
+       "total_monthly_revenue": 8863.87
+     }
+   }
+   ```
+
+4. **Frontend Updated:**
+   - `FinancialPortfolioPage.js` now uses server-side pagination
+   - `api.js` updated to pass `billing_provider` parameter
+   - `providerFilter` state now included in API calls
+
+5. **Added Missing Import:**
+   - Added `Query` import from FastAPI
+
+**Performance Impact:**
+- Before: O(N) DB queries for N condominiums, all data loaded to memory
+- After: O(1) aggregation query, only requested page loaded
+
+**Testing:** 100% pass rate (backend and frontend verified)
+
+**Files Modified:**
+- `/app/backend/server.py`: Lines 11469-11666 - Optimized endpoint
+- `/app/frontend/src/pages/FinancialPortfolioPage.js`: Server-side pagination
+- `/app/frontend/src/services/api.js`: Added billing_provider parameter
+
+---
 
 ### 2026-02-26 (Session 88) - Financial Portfolio Module ✅
 
