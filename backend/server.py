@@ -207,6 +207,70 @@ async def request_id_middleware(request: Request, call_next):
     
     return response
 
+# ==================== PARTIAL BILLING BLOCK MIDDLEWARE ====================
+@app.middleware("http")
+async def billing_block_middleware(request: Request, call_next):
+    """
+    Middleware for partial blocking of suspended condominiums.
+    
+    - Blocks POST/PUT/DELETE/PATCH for suspended condos
+    - Allows GET requests (dashboard, queries)
+    - Always allows: auth, health, billing, super-admin routes
+    """
+    # Always allow certain routes
+    always_allowed = ["/api/auth/", "/api/health", "/api/billing/", "/api/super-admin/", "/api/push/"]
+    path = request.url.path
+    
+    for allowed in always_allowed:
+        if path.startswith(allowed):
+            return await call_next(request)
+    
+    # Only block POST/PUT/DELETE/PATCH
+    if request.method.upper() not in ["POST", "PUT", "DELETE", "PATCH"]:
+        return await call_next(request)
+    
+    # Try to get user from token
+    try:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+            payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+            
+            # SuperAdmins are never blocked
+            roles = payload.get("roles", [])
+            if "SuperAdmin" in roles:
+                return await call_next(request)
+            
+            condominium_id = payload.get("condominium_id")
+            if condominium_id:
+                # Check billing status
+                condo = await db.condominiums.find_one(
+                    {"id": condominium_id},
+                    {"_id": 0, "billing_status": 1, "is_demo": 1, "environment": 1}
+                )
+                
+                if condo:
+                    # Demo condos are never blocked
+                    if condo.get("is_demo") or condo.get("environment") == "demo":
+                        return await call_next(request)
+                    
+                    billing_status = condo.get("billing_status", "active")
+                    if billing_status == "suspended":
+                        return JSONResponse(
+                            status_code=402,
+                            content={
+                                "detail": "Cuenta suspendida por falta de pago. Solo consultas permitidas.",
+                                "billing_status": "suspended",
+                                "action_required": "payment"
+                            }
+                        )
+    except jwt.PyJWTError:
+        pass  # Let the request continue, auth middleware will handle invalid tokens
+    except Exception as e:
+        logger.debug(f"[BILLING-BLOCK] Non-blocking error: {e}")
+    
+    return await call_next(request)
+
 # ==================== PHASE 1: GLOBAL EXCEPTION HANDLERS ====================
 from starlette.exceptions import HTTPException as StarletteHTTPException
 import traceback
