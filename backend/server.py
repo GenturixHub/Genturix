@@ -10149,7 +10149,7 @@ async def calculate_billing_preview(
     
     return await calculate_invoice(temp_condo, billing_cycle)
 
-async def log_billing_event(
+async def log_billing_engine_event(
     event_type: str,
     condominium_id: str,
     data: dict,
@@ -10158,7 +10158,7 @@ async def log_billing_event(
     new_state: dict = None
 ):
     """
-    Log billing event to billing_events collection.
+    BILLING ENGINE: Log billing event to billing_events collection.
     Creates audit trail for all billing-related changes.
     """
     event = {
