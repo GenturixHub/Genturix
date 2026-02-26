@@ -151,6 +151,11 @@ const FinancialPortfolioPage = () => {
   const [selectedCondo, setSelectedCondo] = useState(null);
   const [paymentHistory, setPaymentHistory] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Partial payment state
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentReference, setPaymentReference] = useState('');
+  const [billingBalance, setBillingBalance] = useState(null);
 
   // Debounce search input
   useEffect(() => {
