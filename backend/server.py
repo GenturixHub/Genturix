@@ -218,6 +218,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 logger.info(f"[STARTUP] Logging configured: level={LOG_LEVEL}, environment={ENVIRONMENT}")
 
+# Log security warnings for missing configurations
+if not STRIPE_WEBHOOK_SECRET:
+    logger.warning("[SECURITY] STRIPE_WEBHOOK_SECRET not configured - webhook signature verification DISABLED")
+
 # Create the main app
 app = FastAPI(
     title="GENTURIX Enterprise Platform", 
