@@ -1038,8 +1038,10 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin, na
       <div className="block lg:hidden space-y-3">
         {filteredCondos.map((condo) => {
           const statusConfig = STATUS_CONFIG[condo.status] || STATUS_CONFIG.active;
-          const userCount = condo.current_users || 0;
-          const mrr = userCount * (condo.price_per_user || 1) * (1 - (condo.discount_percent || 0) / 100);
+          const isDemo = condo.environment === 'demo' || condo.is_demo;
+          // USE BILLING ENGINE DATA - not manual calculation
+          const mrr = isDemo ? 0 : (condo.next_invoice_amount || 0);
+          const billingCycle = condo.billing_cycle === 'yearly' ? '/año' : '/mes';
 
           return (
             <MobileCard
@@ -1048,10 +1050,10 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin, na
               title={
                 <div className="flex items-center gap-2">
                   <span>{condo.name}</span>
-                  {(condo.environment === 'demo' || condo.is_demo) && (
+                  {isDemo && (
                     <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-[10px] px-1.5">DEMO</Badge>
                   )}
-                  {condo.environment === 'production' && !condo.is_demo && (
+                  {!isDemo && (
                     <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px] px-1.5">PROD</Badge>
                   )}
                 </div>
@@ -1061,8 +1063,19 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin, na
               status={statusConfig.label}
               statusColor={condo.status === 'active' ? 'green' : condo.status === 'demo' ? 'yellow' : 'red'}
               details={[
-                { label: 'Usuarios', value: `${userCount} / ${condo.max_users || 100}` },
-                { label: 'MRR', value: `$${mrr.toFixed(2)}${condo.discount_percent > 0 ? ` (-${condo.discount_percent}%)` : ''}` },
+                // USE paid_seats from billing engine
+                { label: 'Asientos', value: `${condo.current_users || condo.active_users || 0} / ${condo.paid_seats || 10}` },
+                // USE next_invoice_amount from billing engine
+                { label: 'Factura', value: isDemo ? 'DEMO' : `$${mrr.toFixed(2)}${billingCycle}` },
+                // Show billing status
+                ...((!isDemo && condo.billing_status) ? [{ 
+                  label: 'Estado', 
+                  value: condo.billing_status === 'active' ? '✓ Activo' :
+                         condo.billing_status === 'pending_payment' ? '⏳ Pend. Pago' :
+                         condo.billing_status === 'upgrade_pending' ? '⬆️ Upgrade' :
+                         condo.billing_status === 'past_due' ? '⚠️ Vencido' :
+                         condo.billing_status
+                }] : []),
               ]}
               actions={[
                 // SINPE Payment button for pending condos
