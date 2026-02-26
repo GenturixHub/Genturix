@@ -22,6 +22,7 @@ import GuardUI from './pages/GuardUI';
 import StudentUI from './pages/StudentUI';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import OnboardingWizard from './pages/OnboardingWizard';
+import FinancialPortfolioPage from './pages/FinancialPortfolioPage';
 import UserManagementPage from './pages/UserManagementPage';
 import ProfilePage from './pages/ProfilePage';
 import JoinPage from './pages/JoinPage';
