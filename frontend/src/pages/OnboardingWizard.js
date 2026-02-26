@@ -1033,6 +1033,179 @@ const CredentialsDialog = ({ credentials, condoName, onClose }) => {
 };
 
 // ============================================
+// EMAIL PREVIEW MODAL
+// ============================================
+const EmailPreviewModal = ({ 
+  condoData, 
+  adminData, 
+  billingData, 
+  billingPreview, 
+  onClose, 
+  onConfirm, 
+  isSubmitting 
+}) => {
+  const getBillingProviderLabel = (provider) => {
+    const labels = {
+      sinpe: 'SINPE Móvil',
+      stripe: 'Tarjeta de Crédito',
+      manual: 'Facturación Manual'
+    };
+    return labels[provider] || provider;
+  };
+
+  const formatDate = (isoDate) => {
+    if (!isoDate) return 'Pendiente de pago';
+    return new Date(isoDate).toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <Card className="bg-[#0F111A] border-[#1E293B] w-full max-w-2xl max-h-[90vh] overflow-auto">
+        <CardHeader className="text-center pb-2">
+          <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Mail className="w-8 h-8 text-blue-400" />
+          </div>
+          <CardTitle className="text-xl">Vista Previa del Email</CardTitle>
+          <CardDescription>
+            Este es el resumen que recibirá el administrador
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Email Preview */}
+          <div className="bg-white text-gray-900 rounded-lg p-6 space-y-4">
+            {/* Email Header */}
+            <div className="border-b border-gray-200 pb-4">
+              <h2 className="text-xl font-bold text-gray-900">
+                ¡Bienvenido a Genturix!
+              </h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Tu condominio {condoData.name} está listo
+              </p>
+            </div>
+
+            {/* Greeting */}
+            <div>
+              <p className="text-gray-700">
+                Hola <strong>{adminData.full_name}</strong>,
+              </p>
+              <p className="text-gray-600 text-sm mt-2">
+                Tu cuenta de administrador ha sido creada exitosamente. A continuación encontrarás los detalles de tu plan y acceso.
+              </p>
+            </div>
+
+            {/* Plan Summary */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <CreditCard className="w-4 h-4" />
+                Resumen del Plan
+              </h3>
+              <table className="w-full text-sm">
+                <tbody>
+                  <tr className="border-b border-gray-200">
+                    <td className="py-2 text-gray-600">Asientos contratados:</td>
+                    <td className="py-2 text-right font-medium">{billingData.initial_units} unidades</td>
+                  </tr>
+                  <tr className="border-b border-gray-200">
+                    <td className="py-2 text-gray-600">Precio por asiento:</td>
+                    <td className="py-2 text-right font-medium">
+                      ${billingPreview?.price_per_seat || '2.99'}/mes
+                      {billingData.seat_price_override && (
+                        <span className="text-xs text-green-600 ml-1">(Precio especial)</span>
+                      )}
+                    </td>
+                  </tr>
+                  <tr className="border-b border-gray-200">
+                    <td className="py-2 text-gray-600">Ciclo de facturación:</td>
+                    <td className="py-2 text-right font-medium">
+                      {billingData.billing_cycle === 'yearly' ? 'Anual' : 'Mensual'}
+                    </td>
+                  </tr>
+                  {billingData.billing_cycle === 'yearly' && billingData.yearly_discount_percent > 0 && (
+                    <tr className="border-b border-gray-200">
+                      <td className="py-2 text-gray-600">Descuento anual:</td>
+                      <td className="py-2 text-right font-medium text-green-600">
+                        -{billingData.yearly_discount_percent}%
+                      </td>
+                    </tr>
+                  )}
+                  <tr className="border-b border-gray-200">
+                    <td className="py-2 text-gray-600">Método de pago:</td>
+                    <td className="py-2 text-right font-medium">
+                      {getBillingProviderLabel(billingData.billing_provider)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 text-gray-900 font-semibold">Total a pagar:</td>
+                    <td className="py-2 text-right text-xl font-bold text-blue-600">
+                      ${billingPreview?.effective_amount?.toLocaleString() || '0'}
+                      <span className="text-sm font-normal text-gray-600">
+                        /{billingData.billing_cycle === 'yearly' ? 'año' : 'mes'}
+                      </span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Next Steps */}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <h3 className="font-semibold text-amber-800 mb-2">Próximos pasos</h3>
+              <ol className="text-sm text-amber-700 list-decimal ml-4 space-y-1">
+                <li>Recibirás tus credenciales de acceso</li>
+                <li>Inicia sesión en la plataforma</li>
+                <li>Cambia tu contraseña temporal</li>
+                <li>Comienza a configurar tu condominio</li>
+              </ol>
+            </div>
+
+            {/* Footer */}
+            <div className="text-center text-xs text-gray-500 pt-4 border-t border-gray-200">
+              <p>Próxima fecha de facturación: <strong>{formatDate(billingPreview?.next_billing_date)}</strong></p>
+              <p className="mt-2">Este email es solo una vista previa - aún no ha sido enviado.</p>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={onClose}
+              disabled={isSubmitting}
+              data-testid="email-preview-cancel"
+            >
+              Volver a Editar
+            </Button>
+            <Button
+              className="flex-1 bg-green-600 hover:bg-green-700"
+              onClick={onConfirm}
+              disabled={isSubmitting}
+              data-testid="email-preview-confirm"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Creando...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  Confirmar y Crear
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+// ============================================
 // MAIN WIZARD COMPONENT
 // ============================================
 const OnboardingWizard = () => {
