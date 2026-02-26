@@ -14706,6 +14706,8 @@ class OnboardingWizardRequest(BaseModel):
     admin: OnboardingAdminInfo
     modules: OnboardingModules
     areas: List[OnboardingArea] = []
+    # BILLING ENGINE: Required billing configuration
+    billing: OnboardingBillingInfo
 
 @api_router.post("/super-admin/onboarding/create-condominium")
 async def onboarding_create_condominium(
