@@ -10624,6 +10624,12 @@ async def log_email_sent(
 async def process_billing_for_condominium(condo: dict, now: datetime, today_str: str) -> dict:
     """
     Process billing status for a single condominium.
+    
+    SUPPORTS PARTIAL PAYMENTS:
+    - Checks balance_due field to determine if fully paid
+    - Only transitions to active if balance_due <= 0
+    - Maintains past_due if partial payments exist but balance > 0
+    
     Returns a dict with processing results.
     """
     condo_id = condo.get("id")
@@ -10634,12 +10640,17 @@ async def process_billing_for_condominium(condo: dict, now: datetime, today_str:
     billing_email = condo.get("billing_email") or condo.get("admin_email") or condo.get("contact_email")
     next_invoice_amount = condo.get("next_invoice_amount", 0)
     paid_seats = condo.get("paid_seats", 10)
+    balance_due = condo.get("balance_due", next_invoice_amount)  # Default to full invoice if not set
+    total_paid_cycle = condo.get("total_paid_current_cycle", 0)
     
     result = {
         "condominium_id": condo_id,
         "name": condo_name,
         "previous_status": current_status,
         "new_status": current_status,
+        "invoice_amount": next_invoice_amount,
+        "total_paid_cycle": total_paid_cycle,
+        "balance_due": balance_due,
         "action_taken": None,
         "email_sent": None,
         "error": None
@@ -10691,9 +10702,12 @@ async def process_billing_for_condominium(condo: dict, now: datetime, today_str:
     if days_diff > 0:  # Past due date
         days_overdue = days_diff
         
+        # Check if there's still balance due (partial payment scenario)
+        has_balance_due = balance_due > 0
+        
         if days_overdue <= grace_period:
-            # Within grace period -> past_due
-            if current_status not in ["past_due", "suspended"]:
+            # Within grace period -> past_due (only if has balance)
+            if has_balance_due and current_status not in ["past_due", "suspended"]:
                 # Transition to past_due
                 await db.condominiums.update_one(
                     {"id": condo_id},
@@ -10714,10 +10728,12 @@ async def process_billing_for_condominium(condo: dict, now: datetime, today_str:
                         "to": "past_due",
                         "days_overdue": days_overdue,
                         "grace_period": grace_period,
+                        "balance_due": balance_due,
+                        "total_paid_cycle": total_paid_cycle,
                         "reason": "automatic_scheduler"
                     },
                     triggered_by="billing_scheduler",
-                    previous_state={"billing_status": current_status},
+                    previous_state={"billing_status": current_status, "balance_due": balance_due},
                     new_state={"billing_status": "past_due"}
                 )
                 
@@ -10725,15 +10741,18 @@ async def process_billing_for_condominium(condo: dict, now: datetime, today_str:
                 if not await check_and_log_email_sent(condo_id, "status_past_due", today_str):
                     if await send_billing_notification_email(
                         "status_past_due", billing_email, condo_name,
-                        next_invoice_amount, due_date_formatted, paid_seats,
+                        balance_due,  # Show remaining balance, not full invoice
+                        due_date_formatted, paid_seats,
                         days_overdue, grace_period
                     ):
                         await log_email_sent(condo_id, "status_past_due", billing_email, today_str)
                         result["email_sent"] = "status_past_due"
+            elif not has_balance_due:
+                result["action_taken"] = "skipped_fully_paid"
         
         else:
-            # Beyond grace period -> suspended
-            if current_status != "suspended":
+            # Beyond grace period -> suspended (only if has balance)
+            if has_balance_due and current_status != "suspended":
                 # Transition to suspended
                 await db.condominiums.update_one(
                     {"id": condo_id},
@@ -10754,10 +10773,12 @@ async def process_billing_for_condominium(condo: dict, now: datetime, today_str:
                         "to": "suspended",
                         "days_overdue": days_overdue,
                         "grace_period": grace_period,
+                        "balance_due": balance_due,
+                        "total_paid_cycle": total_paid_cycle,
                         "reason": "automatic_scheduler_grace_exceeded"
                     },
                     triggered_by="billing_scheduler",
-                    previous_state={"billing_status": current_status},
+                    previous_state={"billing_status": current_status, "balance_due": balance_due},
                     new_state={"billing_status": "suspended"}
                 )
                 
@@ -10765,11 +10786,14 @@ async def process_billing_for_condominium(condo: dict, now: datetime, today_str:
                 if not await check_and_log_email_sent(condo_id, "status_suspended", today_str):
                     if await send_billing_notification_email(
                         "status_suspended", billing_email, condo_name,
-                        next_invoice_amount, due_date_formatted, paid_seats,
+                        balance_due,  # Show remaining balance
+                        due_date_formatted, paid_seats,
                         days_overdue, grace_period
                     ):
                         await log_email_sent(condo_id, "status_suspended", billing_email, today_str)
                         result["email_sent"] = "status_suspended"
+            elif not has_balance_due:
+                result["action_taken"] = "skipped_fully_paid"
     
     return result
 
