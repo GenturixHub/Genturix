@@ -1,64 +1,123 @@
 """
-BILLING ROUTER MODULE - PHASE 2 MIGRATION
-==========================================
-API endpoints for billing operations.
-Migrated from server.py as part of backend modularization.
+BILLING ROUTER MODULE - PHASE 2 MODULARIZATION
+===============================================
+This module documents the billing API endpoints that have been 
+reorganized as part of the backend modularization effort.
 
-NOTE: This module defines the endpoints but the actual execution
-logic remains in server.py to avoid circular imports and maintain
-compatibility. This is a structural migration step.
-"""
+PHASE 2 STATUS: COMPLETE
+========================
+All billing endpoints have been moved to dedicated APIRouter instances
+within server.py. The routing structure is:
 
-from fastapi import APIRouter
+- billing_router: /api/billing/* endpoints
+- billing_super_admin_router: /api/super-admin/billing/* endpoints
 
-# Create main billing router
-router = APIRouter(tags=["billing"])
+ENDPOINTS MIGRATED TO billing_router (19 endpoints):
+===================================================
 
-# These routers will be populated by server.py during app initialization
-# The actual endpoint definitions remain in server.py for this phase
-# to avoid circular import issues with dependencies like get_current_user, require_role, db, etc.
+SCHEDULER MANAGEMENT:
+- POST /api/billing/scheduler/run-now
+  Manually trigger the daily billing check (SuperAdmin only)
 
-# In PHASE 3, the business logic will be moved to service.py and these
-# endpoints will be fully self-contained here.
+- GET /api/billing/scheduler/history
+  Get history of billing scheduler runs (SuperAdmin only)
 
-"""
-BILLING ENDPOINTS (defined in server.py, routed via /api prefix):
-
-SCHEDULER ADMIN:
-- POST /billing/scheduler/run-now
-- GET /billing/scheduler/history
-- GET /billing/scheduler/status
+- GET /api/billing/scheduler/status
+  Check billing scheduler status (SuperAdmin only)
 
 BILLING OPERATIONS:
-- POST /billing/preview
-- GET /billing/events/{condominium_id}
-- PATCH /billing/seats/{condominium_id}
-- POST /billing/confirm-payment/{condominium_id}
-- GET /billing/payments/{condominium_id}
-- GET /billing/payments
-- GET /billing/balance/{condominium_id}
+- POST /api/billing/preview
+  Calculate billing preview for a condominium
 
-SEAT UPGRADE:
-- POST /billing/request-seat-upgrade
-- GET /billing/my-pending-request
-- GET /billing/upgrade-requests
-- PATCH /billing/approve-seat-upgrade/{request_id}
-- GET /billing/seat-status/{condominium_id}
+- GET /api/billing/events/{condominium_id}
+  Get billing event history for audit trail (SuperAdmin only)
+
+- PATCH /api/billing/seats/{condominium_id}
+  Update seat count for a condominium (SuperAdmin only)
+
+- POST /api/billing/confirm-payment/{condominium_id}
+  Confirm manual/SINPE payment with partial payment support (SuperAdmin only)
+
+- GET /api/billing/payments/{condominium_id}
+  Get payment history for a specific condominium
+
+- GET /api/billing/payments
+  Get all condominiums with pending payments (SuperAdmin only)
+
+- GET /api/billing/balance/{condominium_id}
+  Get detailed billing balance showing invoice, paid, and due amounts
+
+SEAT UPGRADE WORKFLOW:
+- POST /api/billing/request-seat-upgrade
+  Request additional seats (Admin only, requires SuperAdmin approval)
+
+- GET /api/billing/my-pending-request
+  Get current admin's pending upgrade request (Admin only)
+
+- GET /api/billing/upgrade-requests
+  Get all seat upgrade requests (SuperAdmin only)
+
+- PATCH /api/billing/approve-seat-upgrade/{request_id}
+  Approve or reject a seat upgrade request (SuperAdmin only)
+
+- GET /api/billing/seat-status/{condominium_id}
+  Get current seat usage status
 
 BILLING INFO:
-- GET /billing/info
-- GET /billing/can-create-user
-- GET /billing/history
+- GET /api/billing/info
+  Get billing info for current user's condominium
 
-SUPER ADMIN:
-- GET /super-admin/billing/overview
-- GET /super-admin/billing/overview-legacy
-- PATCH /super-admin/condominiums/{condo_id}/billing
+- GET /api/billing/can-create-user
+  Check if condominium can create new users within seat limit
 
-CONDOMINIUM:
-- GET /condominiums/{condo_id}/billing
-- PUT /condominiums/{condominium_id}/grace-period
+- GET /api/billing/history
+  Get billing transaction history (Admin only)
 
-STRIPE:
-- POST /billing/upgrade-seats
+- POST /api/billing/upgrade-seats
+  Upgrade seats (Stripe integration)
+
+ENDPOINTS MIGRATED TO billing_super_admin_router (2 endpoints):
+==============================================================
+- GET /api/super-admin/billing/overview
+  Paginated billing overview with aggregation pipeline (SuperAdmin only)
+
+- GET /api/super-admin/billing/overview-legacy
+  Legacy non-paginated billing overview (deprecated)
+
+ENDPOINTS REMAINING IN api_router (billing-related):
+===================================================
+These endpoints are billing-related but follow different path patterns:
+
+- PATCH /api/super-admin/condominiums/{condo_id}/billing
+  Update condominium billing settings (SuperAdmin only)
+
+- GET /api/condominiums/{condo_id}/billing
+  Get billing info for a specific condominium (Admin only)
+
+- PUT /api/condominiums/{condominium_id}/grace-period
+  Update grace period for billing suspension (SuperAdmin only)
+
+NEXT PHASE (PHASE 3):
+====================
+Move the business logic from server.py into this module's service.py
+file, making the router fully self-contained. This will involve:
+
+1. Moving helper functions (calculate_billing_preview, etc.) to service.py
+2. Importing service functions into router.py
+3. Removing duplicated code from server.py
+4. Eventually extracting router.py endpoints to this file
+
+TESTING CHECKLIST:
+=================
+- [x] Scheduler endpoints: run-now, history, status
+- [x] Payment operations: preview, confirm-payment, balance
+- [x] Payment queries: payments (all), payments/{condo_id}
+- [x] Seat management: seats, seat-status, upgrade requests
+- [x] Billing info: info, can-create-user, history
+- [x] Super-admin: overview, overview-legacy
+- [x] Condominium-level: billing settings, grace-period
 """
+
+# This file serves as documentation for Phase 2.
+# The actual router code is in server.py (billing_router and billing_super_admin_router)
+# until Phase 3 when we complete the extraction.
