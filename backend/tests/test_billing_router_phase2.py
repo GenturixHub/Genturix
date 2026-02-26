@@ -74,10 +74,11 @@ class TestBillingRouterPhase2:
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         
         data = response.json()
-        assert "status" in data, "Response should have 'status'"
-        assert "last_run" in data or "scheduler" in data or "is_running" in data, "Should have scheduler info"
+        # Response has is_running, last_run, next_run_scheduled
+        assert "is_running" in data or "status" in data, "Response should have scheduler status"
+        assert "last_run" in data or "scheduler" in data, "Should have scheduler info"
         
-        print(f"✓ Scheduler status endpoint working: {data.get('status', 'N/A')}")
+        print(f"✓ Scheduler status endpoint working: is_running={data.get('is_running', 'N/A')}")
     
     def test_scheduler_history_endpoint(self):
         """Test: GET /api/billing/scheduler/history"""
