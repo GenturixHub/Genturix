@@ -1336,7 +1336,7 @@ const OnboardingWizard = () => {
             Anterior
           </Button>
 
-          {currentStep < 5 ? (
+          {currentStep < 6 ? (
             <Button
               onClick={handleNext}
               disabled={!isStepValid()}
