@@ -37,9 +37,8 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-# Import billing module (modularized - for future migration)
-# NOTE: Models and service functions are still defined locally in server.py
-# The module serves as the target structure for future complete migration
+# ==================== BILLING MODULE IMPORTS (PHASE 3 - FULLY MODULARIZED) ====================
+# All billing models, service functions, and scheduler are now imported from the module
 from modules.billing.models import (
     BillingStatus,
     BillingCycle,
@@ -59,7 +58,26 @@ from modules.billing.models import (
     SeatUsageResponse,
     SeatReductionValidation,
 )
-# Service and scheduler functions remain in server.py for now to avoid breaking changes
+
+# Import service functions from billing module
+from modules.billing.service import (
+    DEFAULT_GRACE_PERIOD_DAYS,
+    BILLING_EMAIL_TEMPLATES,
+    init_service as init_billing_service,
+    log_billing_engine_event,
+    send_billing_notification_email,
+    update_condominium_billing_status,
+)
+
+# Import scheduler functions from billing module
+from modules.billing.scheduler import (
+    init_scheduler as init_billing_scheduler,
+    process_billing_for_condominium,
+    run_daily_billing_check,
+    start_billing_scheduler,
+    stop_billing_scheduler,
+    get_scheduler_instance,
+)
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
