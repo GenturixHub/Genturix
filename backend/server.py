@@ -167,8 +167,7 @@ if RESEND_API_KEY:
 
 # Stripe Webhook Secret for signature verification (SECURITY CRITICAL)
 STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
-if not STRIPE_WEBHOOK_SECRET:
-    logger.warning("[SECURITY] STRIPE_WEBHOOK_SECRET not configured - webhook signature verification DISABLED")
+# Warning logged after logger is initialized (see startup section)
 
 # VAPID Configuration for Push Notifications
 VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
