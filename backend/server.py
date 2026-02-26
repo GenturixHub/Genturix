@@ -11246,6 +11246,19 @@ async def confirm_sinpe_payment(
     
     logger.info(f"[SINPE-PAYMENT] Confirmed ${payment_data.amount_paid} for condo={condominium_id[:8]}... by {current_user['email']}")
     
+    # Send payment confirmed email
+    billing_email = condo.get("billing_email") or condo.get("admin_email") or condo.get("contact_email")
+    if billing_email:
+        await send_billing_notification_email(
+            "payment_confirmed",
+            billing_email,
+            condo.get("name", "Unknown"),
+            payment_data.amount_paid,
+            now.strftime("%d/%m/%Y"),
+            paid_seats,
+            next_due_date=next_billing.strftime("%d/%m/%Y")
+        )
+    
     return ConfirmPaymentResponse(
         payment_id=payment_id,
         condominium_id=condominium_id,
