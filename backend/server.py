@@ -10747,6 +10747,28 @@ async def request_seat_upgrade(
         "message": f"Solicitud creada. Esperando aprobación de SuperAdmin para {requested_seats - current_seats} asientos adicionales (${upgrade_request['difference_amount']}/{'año' if condo.get('billing_cycle') == 'yearly' else 'mes'})"
     }
 
+@api_router.get("/billing/my-pending-request")
+async def get_my_pending_request(
+    current_user = Depends(require_role(RoleEnum.ADMINISTRADOR))
+):
+    """
+    Get the current admin's pending seat upgrade request, if any.
+    Returns null/404 if no pending request exists.
+    """
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="Usuario sin condominio asignado")
+    
+    pending_request = await db.seat_upgrade_requests.find_one(
+        {"condominium_id": condo_id, "status": "pending"},
+        {"_id": 0}
+    )
+    
+    if not pending_request:
+        raise HTTPException(status_code=404, detail="No hay solicitud pendiente")
+    
+    return pending_request
+
 @api_router.get("/billing/upgrade-requests")
 async def get_upgrade_requests(
     status: Optional[str] = "pending",
