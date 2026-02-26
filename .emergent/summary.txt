@@ -1,77 +1,67 @@
 <analysis>**original_problem_statement:**
-The user's primary objective is to harden the Genturix application for production. This session focused on a series of critical audits and corrections to the recently implemented SaaS billing model.
+The user's primary objective is to refactor the monolithic backend () into a modular, domain-driven architecture. This session has seen the completion of several critical features and the beginning of this major refactoring effort.
 
-Initial Task: The primary onboarding wizard was disconnected from the new billing engine, a critical revenue-losing bug that needed to be fixed.
-
-Follow-up Tasks Driven by User:
-1.  **MEJORA COMERCIAL - FLEXIBILIDAD DE PLAN EN ONBOARDING:** After fixing the wizard, the user requested more commercial flexibility, including a higher seat limit (10,000), custom pricing per condominium (), and an editable annual discount. An email preview modal was also requested before final creation.
-2.  **REESTRUCTURACIÓN UI - ADMIN DEL CONDOMINIO (CONTROL FINANCIERO):** The user then requested to restrict the Condominium Admin's UI, making billing information read-only and replacing direct seat upgrades with a request/approval flow managed by the SuperAdmin.
-3.  **AUDITORÍA Y CORRECCIÓN - BANNER DE NOTIFICACIONES PUSH:** The user reported that the Activate notifications banner was showing incorrectly even for subscribed users.
-4.  **AUDITORÍA Y CORRECCIÓN - VISTA DE CONDOMINIOS CON DEUDA:** The user reported that the SuperAdmin dashboard only showed a maximum of two condos with pending payments and requested a full, paginated Gestión de Cartera (Financial Portfolio) view.
-5.  **CORRECCIÓN CRÍTICA - PAGINACIÓN REAL + ELIMINAR N+1 EN CARTERA:** After the agent built the Gestión de Cartera view, the user initiated a technical audit which revealed a critical performance bottleneck: the backend endpoint loaded all condominiums into memory, performed filtering on the frontend, and suffered from a classic N+1 query problem. The current task is to fix this by implementing server-side pagination and aggregation.
+1.  **Performance Refactor (COMPLETED):** Fixed a critical performance bottleneck in the Gestión de Cartera (Financial Portfolio) page by replacing client-side filtering/pagination with a performant, server-side aggregation pipeline.
+2.  **Automated Billing Cycles (COMPLETED):** Implemented a daily-running scheduler () to automate billing status transitions ( ->  -> ), including a middleware to enforce partial service restrictions for suspended accounts.
+3.  **Partial Payment Handling (COMPLETED):** Enhanced the billing engine to correctly process partial payments, ensuring a condominium's status only becomes  once the full invoice amount for the cycle is paid.
+4.  **Backend Modularization (IN PROGRESS):**
+    *   **FASE 1 (COMPLETED):** Created the foundational structure for a new  module under . This involved creating , , and  and scaffolding them with the corresponding logic copied from . A full regression audit was performed to ensure this structural change introduced no behavioral changes.
+    *   **FASE 2 (CURRENT TASK):** The current task is to continue the modularization by moving all billing-related API endpoints from  into the newly created .
 
 **User's preferred language**: Español
 
 **what currently exists?**
-The application has a robust internal billing engine. The main onboarding wizard is now fully integrated with this engine and supports flexible, custom pricing per condominium. The Condominium Admin UI has been restricted to a read-only view for billing, with a new flow for requesting seat upgrades. The push notification banner display logic has been fixed. A new Gestión de Cartera (Financial Portfolio) page exists for SuperAdmins, but its backend endpoint is unscalable and suffers from major performance issues (N+1 queries, no server-side pagination). The agent has created a new, optimized V2 endpoint and is in the process of refactoring the frontend to use it.
+The Genturix application has a production-hardened billing engine with automated expiry cycles and correct partial payment handling. A performant Gestión de Cartera page provides SuperAdmins with a scalable view of financials.
+
+The backend modularization process has begun. A new directory structure exists at , containing files (, , ) that hold copies of the billing logic. However, the application's core logic, including all API endpoints, still runs from the monolithic . The current task is to migrate the API endpoints into this new structure.
 
 **Last working item**:
--   Last item agent was working: Refactoring the Gestión de Cartera (Financial Portfolio) page to address a critical performance issue. The agent created a new optimized backend endpoint () that uses a MongoDB aggregation pipeline to handle filtering and pagination on the server-side, eliminating the N+1 query problem. The agent then started modifying the frontend component  to consume this new V2 endpoint.
--   Status: IN PROGRESS
+-   Last item agent was working: The agent was tasked with FASE 2 - MIGRACIÓN DE ENDPOINTS A BILLING ROUTER. This involves moving all 22 API endpoints related to the billing domain from  to . The agent has identified the endpoints to be moved but has not yet started modifying the files.
+-   Status: NOT STARTED
 -   Agent Testing Done: N
--   Which testing method agent to use? both. The backend agent should verify the new endpoint () correctly paginates and filters results. The frontend agent should confirm the UI correctly interacts with the new paginated API, including making requests for different pages and applying filters.
+-   Which testing method agent to use? both. A backend testing agent is crucial to run a full regression test on all 22 moved endpoints. A frontend testing agent should perform smoke tests on pages that rely heavily on these endpoints, such as the Financial Portfolio and the Admin's billing dashboard.
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: (P0) Unscalable Financial Portfolio Endpoint**
-    -   **Description:** The original endpoint () for the Gestión de Cartera page is highly inefficient. It loads up to 1000 condominiums from the database into memory, performs an additional database query for each condo to count users (N+1 problem), and sends the entire list to the frontend, which then handles filtering and pagination. This is not scalable for a production environment.
-    -   **Attempted fixes:** A new, optimized endpoint  has been created in . This new endpoint uses a MongoDB aggregation pipeline to efficiently perform filtering and pagination directly in the database, and it leverages the persisted  field to avoid the N+1 query problem. The frontend file  is currently being modified to use this new endpoint.
-    -   **Next debug checklist:**
-        1.  Complete the modifications to .
-        2.  Ensure the component's state correctly manages , , , and .
-        3.  Verify that the  hook correctly calls the new  endpoint with the appropriate query parameters (, , , , ).
-        4.  Update the UI to correctly render the pagination controls and interact with the server-side pagination data (, ).
-        5.  Test the end-to-end flow: filtering, searching, and navigating between pages must trigger API calls to the new endpoint.
-    -   **Why fix this issue and what will be achieved with the fix?** Fixing this is critical for application performance and scalability. It will prevent backend timeouts and high memory usage as the number of condominiums grows, ensuring the SuperAdmin's financial dashboard remains fast and reliable.
-    -   **Status:** IN PROGRESS
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** None.
+There are no pending bugs or issues. The current focus is on the refactoring task listed below.
 
 **In progress Task List**:
--   **Task 1: (P0) Complete the Performance Refactor of the Financial Portfolio**
-    -   **Where to resume:** Continue editing . The agent has started refactoring the component to use the new  endpoint but needs to complete the state management and data fetching logic for server-side pagination and filtering.
-    -   **What will be achieved with this?** The Gestión de Cartera page will become scalable and performant, capable of handling thousands of condominiums without crashing the server or the browser.
-    -   **Status:** IN PROGRESS
+-   **Task 1: (P0) FASE 2 - Mover los endpoints de Billing al nuevo Router**
+    -   **Where to resume:**
+        1.  Extract all 22 billing-related API endpoint definitions from .
+        2.  Populate  with the extracted endpoints.
+        3.  Methodically adjust all imports within  to correctly reference dependencies from , , and .
+        4.  Delete the original endpoint definitions from .
+        5.  In , import the new router () and register it with the main FastAPI app ().
+    -   **What will be achieved with this?** This will decouple the billing API layer from the main server file, making the codebase cleaner and advancing the goal of a fully modular backend.
+    -   **Status:** NOT STARTED
     -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on something:** None.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
+    -   **(P1) FASE 3 - Refactor  to use :** After moving endpoints, the next logical step is to remove the duplicated business logic from  and have the new  call functions from .
     -   **(P1) Implement Full Stripe Integration (Phase 2):** Connect the internal billing engine to Stripe's Subscriptions API for automated recurring payments.
-    -   **(P1) Implement Full Stripe Webhook Handling:** Expand the webhook handler to manage subscription lifecycle events (, , ).
+    -   **(P1) Implement Full Stripe Webhook Handling:** Expand the webhook handler to manage subscription lifecycle events.
     -   **(P1) Implement UI for Deleting 'Used' Pre-registrations.**
-    -   **(P1) Complete i18n Migration for Guard Flow:** (, ).
 -   **Future Tasks:**
+    -   **(P1) Modularize Other Backend Domains:** Apply the same modularization pattern to other domains currently in  (e.g., users, auth, guards, preregistrations).
     -   **(P1) Modularize Monolithic Frontend Components:** (, , ).
-    -   **(P2) Implement Production Hardening from Audits:** Configure Resend domain and Stripe webhook secrets.
+    -   **(P2) Implement Production Hardening:** Configure Resend domain and Stripe webhook secrets.
     -   **(P2) CCTV Module Implementation.**
     -   **(P2) Implement HR performance reports for guards.**
-    -   **(P3) Refactor the monolithic  file.**
 
 **Completed work in this session**
--   **FIX: Onboarding Wizard Billing Integration:** Corrected the critical bug where the onboarding wizard was disconnected from the billing engine. The wizard now has a dedicated Plan y Facturación step, ensuring all new condominiums are created with  and proper billing setup.
--   **FEATURE: Flexible Onboarding Pricing:** Enhanced the onboarding wizard to allow SuperAdmins to set a custom price per seat () and a custom annual discount percentage for each new condominium, providing significant commercial flexibility. The seat limit was increased to 10,000.
--   **FEATURE: Onboarding Email Preview:** Added a modal dialog in the final step of the onboarding wizard that shows a preview of the welcome email the new administrator will receive, summarizing their plan details before final creation.
--   **REFACTOR: Condo Admin Billing UI:** Reworked the Condominium Admin's dashboard to be a read-only view for billing details. Direct seat upgrades were removed and replaced with a Request More Seats flow, which creates a  for SuperAdmin approval, enforcing financial controls.
--   **FIX: Push Notification Banner Logic:** Corrected a race condition that caused the Activate Notifications banner to appear even when push notifications were already enabled. The fix involves using  to cache the subscription status for an instant UI check.
--   **FEATURE: Financial Portfolio Page:** Created a new page at  for SuperAdmins to view a comprehensive, filterable, and sortable list of all condominiums with pending, overdue, or suspended payments.
--   **REFACTOR (In-Progress): Financial Portfolio Performance:** Identified and began fixing a critical N+1 query and lack of server-side pagination in the financial portfolio's backend endpoint by creating a new, optimized V2 endpoint with a MongoDB aggregation pipeline.
+-   **Performance Refactor of Financial Portfolio:** The Gestión de Cartera page was successfully migrated to a scalable backend endpoint with server-side pagination, resolving a critical performance bottleneck.
+-   **Automated Expiry & Suspension System:** A daily scheduler () was implemented to automatically manage  and  billing statuses. A custom middleware now blocks write-access for suspended accounts.
+-   **Partial Payment Handling:** The payment confirmation logic was enhanced to correctly track a  for each billing cycle, only setting an account to  when the balance is fully paid.
+-   **Backend Modularization (Phase 1):** The file structure for a  module was created at . The associated models, business logic, and scheduler code were copied from  into this new structure as a preliminary step.
+-   **Regression Audit:** A full audit was conducted to confirm that the Phase 1 modularization work did not introduce any regressions. All billing features were verified to be stable.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1: Resend uses Sandbox Domain:** The  is . Requires user input for a verified custom domain.
--   **Issue 2: Stripe Webhook Lacks Signature Verification:** The endpoint is vulnerable. Requires a secret from the user to be set in the production environment.
--   **Issue 3: No UI to Delete 'Used' Pre-registrations:** The frontend UI is missing a delete button for pre-registrations with .
+-   **Issue 1:** Resend integration uses a sandbox domain () and does not send real emails. Requires a verified domain from the user.
+-   **Issue 2:** The Stripe webhook endpoint lacks signature verification, making it vulnerable. Requires a production webhook secret from the user.
+-   **Issue 3:** The UI is missing a feature for SuperAdmins to delete pre-registrations that have a .
 
 **Known issue recurrence from previous fork**
 -   None.
@@ -80,62 +70,74 @@ The application has a robust internal billing engine. The main onboarding wizard
 
 
 **Key Technical Concepts**
--   **Internal Billing Engine:** Provider-agnostic system for SaaS billing logic.
--   **Seat-Based Billing Model:** Core business logic where pricing and access control are central.
--   **Revenue Protection Middleware:** Backend logic preventing resource creation if billing limits are exceeded.
--   **MongoDB Aggregation Pipeline:** Used in the new  endpoint to efficiently perform server-side filtering, lookups, and pagination, solving a critical N+1 query problem.
--   **Frontend State Caching ():** Used to fix a race condition in the UI by providing an instant source of truth for the push notification subscription status.
+-   **Backend Modularization:** The primary architectural effort, moving from a monolithic  to a domain-driven structure starting with the  module. The goal is separation of concerns.
+-   **APScheduler:** Used to implement a reliable, time-zoned daily cron job for processing billing statuses.
+-   **FastAPI Middleware:** Implemented to create a global, rule-based check that enforces partial service suspension for accounts with  status.
+-   **Idempotency:** The billing scheduler was designed to be idempotent, ensuring that running it multiple times does not produce duplicate state changes or log events.
+-   **Partial Payment State Management:** Logic to track  within a billing cycle, decoupling payment status from account activation status.
 
 **key DB schema**
--   No new collections or schema changes were made in this session. The focus was on fixing logic and optimizing queries on existing collections (, ).
+-   : The billing logic now relies on a  field (defaulting to 5) to determine when to transition an account from  to .
+-   : This collection is now richer, logging new event types such as , , and .
 
 **All files of reference**
--   : The core backend file, modified for all new features and fixes.
--   : The multi-step wizard that was fixed and enhanced.
--   : The condo admin's dashboard, which was restricted.
--   : The new page for financial management, currently being refactored.
--   : The hook that was fixed to prevent incorrect banner displays.
+-   : The monolithic file from which all billing logic and endpoints are currently being extracted.
+-   : The target file for all billing-related API endpoints.
+-   : The target file for all billing-related business logic.
+-   : Contains the automated billing job.
+-   : Contains the Pydantic models for billing.
 
 **Areas that need refactoring**:
--   ** & :** The immediate refactoring of the financial portfolio feature (from frontend filtering to backend pagination) is in progress and is the highest priority.
--   **:** Remains critically oversized. The creation of the  endpoint is a good pattern, but the entire file needs a major structural overhaul into routers/modules.
+-   **:** This remains the top priority. The current task (Phase 2) is a direct step in this refactor. The ultimate goal is to strip  of all domain logic, leaving it as a lean application factory that primarily registers routers and middleware.
+-   **Circular Dependencies:** As the modularization progresses, the agent must be vigilant about preventing or cleanly resolving circular dependencies between  and the new modules.
 
 **key api endpoints**
--   **New/Optimized Endpoints:**
-    -   : **(New & Optimized)** The paginated and performant endpoint for the financial portfolio.
-    -   : **(New)** Endpoint for the condo admin to see their pending upgrade request.
--   **Modified Endpoints:**
-    -   : Updated to accept flexible pricing (, ).
-    -   : Endpoint now used by condo admins to request more seats.
-    -   : Now protected to be used only by SuperAdmins.
--   **Inefficient Endpoints (To be deprecated):**
-    -   : The original unscalable endpoint that is being replaced.
+The following 22 endpoints are the subject of the current refactoring task and must be moved from  to :
+-   
+-   
+-   
+-   
+-   
+-   
+-   
+-   
+-   
+-   
+-   
+-   
+-   *...and 10 other related endpoints.*
 
 **Critical Info for New Agent**
-1.  **FINISH THE PORTFOLIO REFACTOR (P0):** Your absolute first priority is to complete the performance refactoring of the Gestión de Cartera page. The new, performant backend endpoint () is already built. You must resume work on , finish implementing the frontend logic to support server-side pagination and filtering, and then test the entire flow thoroughly.
-2.  **USE THE V2 ENDPOINT:** All development on the financial portfolio page must use the new  endpoint. The old endpoint should be considered deprecated.
-3.  **MAINTAIN SPANISH:** All user-facing communication, including plans and summaries, must remain in Spanish.
+1.  **COMPLETE BILLING MODULARIZATION (P0):** Your immediate and only priority is to complete FASE 2 of the backend refactor. Move all 22 billing-related API endpoints from  to .
+2.  **LIFT AND SHIFT ONLY:** The user's instructions are explicit: this is a structural change, not a logical one. Do **not** modify any business logic, function names, or endpoint behavior. The application must function identically after the move.
+3.  **DEBUG IMPORTS FIRST:** If any tests fail after migrating the endpoints, the root cause will almost certainly be an incorrect or missing import in . Fix the imports; do not touch the endpoint logic.
+4.  **VALIDATE THOROUGHLY:** After the migration, run a comprehensive regression test using the . Verify all billing functionality, including the financial portfolio, partial payments, and seat upgrades.
+5.  **MAINTAIN SPANISH:** All communication and summaries for the user must be in Spanish.
 
 **documents and test reports created in this job**
--    (Updated multiple times)
--   Test reports from multiple  runs are available, confirming the functionality of the onboarding wizard, flexible pricing, and admin UI restrictions.
+-    (Updated after each major feature)
+-    (Financial Portfolio Refactor)
+-    (Automated Expiry System - Found and fixed  bug)
+-    (Partial Payment Handling)
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **Final User Approval:** User approved the plan to fix the performance issue.
-9.  **User Request:** .
-8.  **Agent Response:** The agent provided a detailed technical audit confirming the performance issues.
-7.  **User Request:** .
-6.  **Agent :** The agent finished implementing the new Gestión de Cartera page.
-5.  **User Request:** .
-4.  **Agent :** The agent finished fixing the push notification banner.
-3.  **User Request:** .
-2.  **Agent :** The agent finished restricting the Condo Admin UI.
-1.  **User Request:** .
+10. **FASE 2 - MIGRACIÓN DE ENDPOINTS A BILLING ROUTER:** The user gave instructions for the current task: move all billing endpoints to the new router file. (NOT STARTED)
+9.  **Agent :** Agent confirmed the regression audit passed successfully. (COMPLETED)
+8.  **AUDITORÍA DE REGRESIÓN - MÓDULO BILLING POST-MODULARIZACIÓN:** The user requested a full regression test to ensure Phase 1 of the modularization did not break anything. (COMPLETED)
+7.  **Agent :** Agent reported completion of Phase 1 of the modularization. (COMPLETED)
+6.  **FASE 1 - MODULARIZACIÓN BACKEND (BILLING ONLY):** The user initiated the backend refactoring, requesting the creation of the billing module structure and the copying of code. (COMPLETED)
+5.  **Agent :** Agent reported successful implementation and testing of the partial payment feature. (COMPLETED)
+4.  **CORRECCIÓN CRÍTICA - MANEJO DE PAGOS PARCIALES:** The user requested the feature to handle partial payments correctly. (COMPLETED)
+3.  **Agent :** Agent reported successful implementation and testing of the automated expiry system. (COMPLETED)
+2.  **IMPLEMENTACIÓN - SISTEMA AUTOMÁTICO DE VENCIMIENTOS CON BLOQUEO PARCIAL:** The user requested the automated billing and suspension system. (COMPLETED)
+1.  **Agent :** Agent reported successful completion of the Financial Portfolio performance refactor. (COMPLETED)
 
 **Project Health Check:**
--   **Broken:** The Gestión de Cartera () page is functionally complete but relies on a critically unscalable backend endpoint () that will fail in production. This is the highest priority issue to resolve.
+-   **Broken:** None. The application is stable. The current task is a non-breaking refactor.
+-   **Mocked:** The Resend integration is in sandbox mode and does not send actual emails.
 
 **3rd Party Integrations**
+-   : For backend cron jobs (newly added).
 -    (v5)
 -   
 -    (v5)
@@ -146,10 +148,10 @@ The application has a robust internal billing engine. The main onboarding wizard
 -    / 
 
 **Testing status**
--   Testing agent used after significant changes: YES
+-   Testing agent used after significant changes: YES. The testing agent was used successfully after every major feature implementation in this session.
 -   Troubleshoot agent used after agent stuck in loop: NO
--   Test files created: []
--   Known regressions: None.
+-   Test files created: None.
+-   Known regressions: None. A full regression audit was passed at the end of the last task.
 
 **Credentials to test flow:**
 -   **Super Admin:**  / 
@@ -157,4 +159,4 @@ The application has a robust internal billing engine. The main onboarding wizard
 -   **Guard:**  / 
 
 **What agent forgot to execute**
-The agent initially implemented the Gestión de Cartera feature with a significant performance oversight (client-side pagination and an N+1 query problem). The user had to perform a technical audit and explicitly request a correction. The current task is to rectify this oversight by completing the migration to a scalable, server-side paginated architecture.</analysis>
+During Phase 1 of the modularization, the agent took a very conservative approach by only copying the billing code into the new module files without actually removing it from  or having  utilize the new modules. This meant Phase 1 was purely structural scaffolding and didn't achieve any actual code decoupling. The current task, Phase 2, is the first real step in the migration process. The next agent should understand that the end goal is the complete removal of all billing logic from .</analysis>
