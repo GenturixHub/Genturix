@@ -1,8 +1,68 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 26, 2026 (Automatic Billing Scheduler)
+## Last Updated: February 26, 2026 (Partial Payments Support)
 
 ## Changelog
+
+### 2026-02-26 (Session 91) - Corrección Crítica: Manejo de Pagos Parciales ✅
+
+**CRITICAL FIX: Partial Payment Support**
+
+Fixed critical bug where any payment would mark the account as "active" and clear the debt. Now properly handles partial payments.
+
+**Problem Fixed:**
+- Any payment amount (even $1) would set `billing_status = "active"`
+- `next_billing_date` was recalculated on every payment
+- No tracking of partial payments in current billing cycle
+- Debt would "disappear" after partial payment
+
+**Solution:**
+
+1. **Backend - confirm_sinpe_payment Endpoint:**
+   - Calculates `total_paid_cycle` from all payments in current billing period
+   - Calculates `balance_due = invoice_amount - total_paid_cycle`
+   - **IF balance_due > 0**: Status stays `past_due`, NO `next_billing_date` recalculation
+   - **IF balance_due <= 0**: Status → `active`, recalculate `next_billing_date`
+
+2. **New Response Fields:**
+   ```json
+   {
+     "invoice_amount": 101.66,
+     "total_paid_cycle": 50.00,
+     "balance_due": 51.66,
+     "is_fully_paid": false,
+     "next_billing_date": null  // Only set when is_fully_paid=true
+   }
+   ```
+
+3. **New Endpoint - GET /api/billing/balance/{condo_id}:**
+   - Returns detailed billing balance
+   - Lists all payments in current cycle
+   - Available to SuperAdmin and Condo Admin
+
+4. **Scheduler Updated:**
+   - Checks `balance_due` before transitioning to `past_due`/`suspended`
+   - Condos with `balance_due = 0` skip status transitions
+
+5. **Frontend Updated:**
+   - Admin Dashboard shows `balance_due` and `total_paid_cycle`
+   - FinancialPortfolioPage has payment dialog with amount input
+   - Quick buttons: "Pago Completo" and "50% del saldo"
+   - Visual feedback for partial vs full payment
+
+6. **New Billing Events:**
+   - `partial_payment_received` - For payments that don't complete balance
+   - `payment_received` - For payments that complete balance (existing)
+
+**Testing:** 100% pass rate (8/8 backend tests, full flow verified)
+
+**Files Modified:**
+- `/app/backend/server.py`: confirm_sinpe_payment, get_billing_balance, process_billing_for_condominium
+- `/app/frontend/src/pages/FinancialPortfolioPage.js`: Payment dialog with amount input
+- `/app/frontend/src/pages/DashboardPage.js`: Balance display in billing section
+- `/app/frontend/src/services/api.js`: Added getBillingBalance method
+
+---
 
 ### 2026-02-26 (Session 90) - Sistema Automático de Vencimientos ✅
 
