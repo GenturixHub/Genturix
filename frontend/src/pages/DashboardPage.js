@@ -883,19 +883,23 @@ const DashboardPage = () => {
         }}
       />
       
-      {/* Billing & Upgrade Dialog */}
-      <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+      {/* Billing Info Dialog - READ ONLY for Admin */}
+      <Dialog open={showBillingDialog} onOpenChange={setShowBillingDialog}>
         <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Wallet className="w-5 h-5 text-emerald-400" />
               Plan y Facturación
             </DialogTitle>
+            <DialogDescription className="flex items-center gap-1 text-xs">
+              <Lock className="w-3 h-3" />
+              Información de solo lectura
+            </DialogDescription>
           </DialogHeader>
           
           {billingInfo ? (
             <div className="space-y-4">
-              {/* Current Plan Info */}
+              {/* Current Plan Info - READ ONLY */}
               <div className="p-4 rounded-lg bg-[#1E293B]/30 border border-[#1E293B]">
                 <div className="flex justify-between items-center mb-3">
                   <span className="text-sm text-muted-foreground">Estado</span>
@@ -908,6 +912,7 @@ const DashboardPage = () => {
                     {billingInfo.billing_status === 'active' ? 'Activo' :
                      billingInfo.billing_status === 'trialing' ? 'Periodo de Prueba' :
                      billingInfo.billing_status === 'past_due' ? 'Pago Pendiente' :
+                     billingInfo.billing_status === 'pending_payment' ? 'Pago Pendiente' :
                      'Cancelado'}
                   </span>
                 </div>
@@ -929,14 +934,25 @@ const DashboardPage = () => {
                   </div>
                 </div>
                 
-                <div className="mt-3 pt-3 border-t border-[#1E293B]">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Costo Mensual</span>
-                    <span className="text-lg font-bold">${billingInfo.monthly_cost?.toFixed(2)} USD</span>
+                <div className="mt-3 pt-3 border-t border-[#1E293B] space-y-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Precio por asiento</span>
+                    <span className="font-medium">${billingInfo.price_per_seat?.toFixed(2)} USD/mes</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    ${billingInfo.price_per_seat?.toFixed(2)} USD por usuario/mes
-                  </p>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Ciclo de facturación</span>
+                    <span className="font-medium">{billingInfo.billing_cycle === 'yearly' ? 'Anual' : 'Mensual'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Próximo cobro</span>
+                    <span className="text-lg font-bold">${billingInfo.next_invoice_amount?.toFixed(2) || billingInfo.monthly_cost?.toFixed(2)} USD</span>
+                  </div>
+                  {billingInfo.next_billing_date && (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">Fecha próximo cobro</span>
+                      <span className="font-medium">{new Date(billingInfo.next_billing_date).toLocaleDateString('es-ES')}</span>
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -960,72 +976,149 @@ const DashboardPage = () => {
                 </div>
               </div>
               
-              {/* Upgrade Section */}
-              <div className="p-4 rounded-lg bg-primary/10 border border-primary/30">
-                <h4 className="font-medium mb-3 flex items-center gap-2">
-                  <ArrowUpRight className="w-4 h-4 text-primary" />
-                  Agregar más asientos
-                </h4>
-                
-                <div className="flex items-center gap-3 mb-3">
+              {/* Pending Request Section */}
+              {pendingRequest && (
+                <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
+                  <h4 className="font-medium mb-2 flex items-center gap-2 text-yellow-400">
+                    <Clock className="w-4 h-4" />
+                    Solicitud Pendiente
+                  </h4>
+                  <div className="text-sm space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Asientos solicitados:</span>
+                      <span className="font-medium">{pendingRequest.requested_seats}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Asientos adicionales:</span>
+                      <span className="font-medium">+{pendingRequest.additional_seats}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Diferencia:</span>
+                      <span className="font-medium text-primary">+${pendingRequest.difference_amount?.toFixed(2)} USD/{pendingRequest.billing_cycle === 'yearly' ? 'año' : 'mes'}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Enviada el {new Date(pendingRequest.created_at).toLocaleDateString('es-ES')}
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Request More Seats Section - Only if no pending request */}
+              {!pendingRequest && !showRequestForm && (
+                <div className="p-4 rounded-lg bg-primary/10 border border-primary/30">
+                  <h4 className="font-medium mb-2 flex items-center gap-2">
+                    <ArrowUpRight className="w-4 h-4 text-primary" />
+                    ¿Necesitas más asientos?
+                  </h4>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    Envía una solicitud al SuperAdmin para aumentar tu capacidad.
+                  </p>
                   <Button
+                    className="w-full"
                     variant="outline"
-                    size="sm"
-                    className="border-[#1E293B]"
-                    onClick={() => setAdditionalSeats(Math.max(1, additionalSeats - 10))}
-                    disabled={additionalSeats <= 1}
+                    onClick={() => setShowRequestForm(true)}
+                    data-testid="request-seats-btn"
                   >
-                    -10
+                    <Send className="w-4 h-4 mr-2" />
+                    Solicitar más asientos
                   </Button>
-                  <div className="flex-1">
-                    <Input
-                      type="number"
-                      value={additionalSeats}
-                      onChange={(e) => setAdditionalSeats(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="bg-[#0A0A0F] border-[#1E293B] text-center"
-                      min={1}
-                      max={1000}
+                </div>
+              )}
+              
+              {/* Request Form */}
+              {!pendingRequest && showRequestForm && (
+                <div className="p-4 rounded-lg bg-primary/10 border border-primary/30 space-y-4">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <Send className="w-4 h-4 text-primary" />
+                    Solicitar asientos adicionales
+                  </h4>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm">Nuevo total de asientos</Label>
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-[#1E293B]"
+                        onClick={() => setRequestedSeats(Math.max(billingInfo.paid_seats + 1, requestedSeats - 10))}
+                        disabled={requestedSeats <= billingInfo.paid_seats + 1}
+                      >
+                        -10
+                      </Button>
+                      <Input
+                        type="number"
+                        value={requestedSeats}
+                        onChange={(e) => setRequestedSeats(Math.max(billingInfo.paid_seats + 1, parseInt(e.target.value) || billingInfo.paid_seats + 1))}
+                        className="bg-[#0A0A0F] border-[#1E293B] text-center flex-1"
+                        min={billingInfo.paid_seats + 1}
+                        max={10000}
+                        data-testid="requested-seats-input"
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-[#1E293B]"
+                        onClick={() => setRequestedSeats(requestedSeats + 10)}
+                      >
+                        +10
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Actual: {billingInfo.paid_seats} → Nuevo: {requestedSeats} (+{requestedSeats - billingInfo.paid_seats} asientos)
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-sm flex items-center gap-2">
+                      <MessageSquare className="w-3 h-3" />
+                      Motivo (opcional)
+                    </Label>
+                    <Textarea
+                      value={requestReason}
+                      onChange={(e) => setRequestReason(e.target.value)}
+                      placeholder="Ej: Aumento de residentes, nuevo edificio..."
+                      className="bg-[#0A0A0F] border-[#1E293B] min-h-[60px]"
+                      data-testid="request-reason-textarea"
                     />
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-[#1E293B]"
-                    onClick={() => setAdditionalSeats(additionalSeats + 10)}
-                  >
-                    +10
-                  </Button>
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setShowRequestForm(false)}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      className="flex-1 bg-primary hover:bg-primary/90"
+                      onClick={handleRequestSeats}
+                      disabled={isSubmittingRequest || requestedSeats <= billingInfo.paid_seats}
+                      data-testid="submit-request-btn"
+                    >
+                      {isSubmittingRequest ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Enviando...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4 mr-2" />
+                          Enviar Solicitud
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
-                
-                <div className="flex justify-between items-center mb-3 text-sm">
-                  <span className="text-muted-foreground">Nuevo total de asientos:</span>
-                  <span className="font-bold">{billingInfo.paid_seats + additionalSeats}</span>
-                </div>
-                
-                <div className="flex justify-between items-center mb-4 text-sm">
-                  <span className="text-muted-foreground">Costo adicional:</span>
-                  <span className="font-bold text-primary">
-                    +${(additionalSeats * (billingInfo.price_per_seat || 1)).toFixed(2)} USD/mes
-                  </span>
-                </div>
-                
-                <Button
-                  className="w-full bg-primary hover:bg-primary/90"
-                  onClick={handleUpgradeSeats}
-                  disabled={isUpgrading || additionalSeats < 1}
-                >
-                  {isUpgrading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Procesando...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="w-4 h-4 mr-2" />
-                      Actualizar Plan
-                    </>
-                  )}
-                </Button>
+              )}
+              
+              {/* Info Notice */}
+              <div className="flex items-start gap-2 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <Info className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-blue-200">
+                  Los cambios de plan requieren aprobación del SuperAdmin. 
+                  Una vez aprobada la solicitud, recibirás instrucciones de pago.
+                </p>
               </div>
             </div>
           ) : (
