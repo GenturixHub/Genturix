@@ -11499,12 +11499,83 @@ async def get_all_pending_payments(
         query,
         {"_id": 0, "id": 1, "name": 1, "contact_email": 1, "paid_seats": 1, 
          "billing_status": 1, "next_invoice_amount": 1, "next_billing_date": 1,
-         "billing_cycle": 1, "billing_provider": 1, "created_at": 1}
+         "billing_cycle": 1, "billing_provider": 1, "created_at": 1,
+         "balance_due": 1, "total_paid_current_cycle": 1}
     ).sort("created_at", -1).to_list(100)
     
     return {
         "pending_count": len(condos),
         "condominiums": condos
+    }
+
+
+@api_router.get("/billing/balance/{condominium_id}")
+async def get_billing_balance(
+    condominium_id: str,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN, RoleEnum.ADMINISTRADOR))
+):
+    """
+    Get detailed billing balance for a condominium.
+    Shows invoice amount, total paid in current cycle, and balance due.
+    
+    Returns:
+    - invoice_amount: Total due for current billing cycle
+    - total_paid_cycle: Total paid in current billing cycle
+    - balance_due: Remaining amount to pay
+    - billing_status: Current status
+    - is_fully_paid: True if balance_due <= 0
+    - payments_this_cycle: List of payments in current cycle
+    """
+    # Verify access
+    user_roles = current_user.get("roles", [])
+    is_super = "SuperAdmin" in user_roles or "super_admin" in user_roles
+    if not is_super and current_user.get("condominium_id") != condominium_id:
+        raise HTTPException(status_code=403, detail="No autorizado")
+    
+    condo = await db.condominiums.find_one({"id": condominium_id}, {"_id": 0})
+    if not condo:
+        raise HTTPException(status_code=404, detail="Condominio no encontrado")
+    
+    invoice_amount = condo.get("next_invoice_amount", 0)
+    total_paid_cycle = condo.get("total_paid_current_cycle", 0)
+    balance_due = condo.get("balance_due", invoice_amount)
+    billing_status = condo.get("billing_status", "pending_payment")
+    next_billing_date = condo.get("next_billing_date")
+    
+    # Get payments for current billing cycle
+    billing_cycle_start = None
+    if next_billing_date:
+        try:
+            billing_date = datetime.fromisoformat(next_billing_date.replace("Z", "+00:00"))
+            billing_cycle = condo.get("billing_cycle", "monthly")
+            if billing_cycle == "yearly":
+                billing_cycle_start = billing_date - timedelta(days=365)
+            else:
+                billing_cycle_start = billing_date - timedelta(days=30)
+        except:
+            billing_cycle_start = datetime.now(timezone.utc) - timedelta(days=30)
+    else:
+        billing_cycle_start = datetime.now(timezone.utc) - timedelta(days=30)
+    
+    payments_this_cycle = await db.billing_payments.find({
+        "condominium_id": condominium_id,
+        "payment_date": {"$gte": billing_cycle_start.isoformat()}
+    }, {"_id": 0, "id": 1, "amount_paid": 1, "payment_date": 1, "payment_reference": 1, "is_partial_payment": 1}).sort("payment_date", -1).to_list(100)
+    
+    return {
+        "condominium_id": condominium_id,
+        "condominium_name": condo.get("name", "Unknown"),
+        "invoice_amount": invoice_amount,
+        "total_paid_cycle": total_paid_cycle,
+        "balance_due": balance_due,
+        "billing_status": billing_status,
+        "is_fully_paid": balance_due <= 0,
+        "next_billing_date": next_billing_date,
+        "billing_cycle": condo.get("billing_cycle", "monthly"),
+        "paid_seats": condo.get("paid_seats", 10),
+        "price_per_seat": condo.get("price_per_seat", 2.99),
+        "payments_this_cycle": payments_this_cycle,
+        "payments_count": len(payments_this_cycle)
     }
 
 # ==================== SEAT UPGRADE REQUESTS ====================
