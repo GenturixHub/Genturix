@@ -11510,12 +11510,33 @@ async def get_payment_history(current_user = Depends(get_current_user)):
 
 @api_router.post("/webhook/stripe")
 async def stripe_webhook(request: Request):
+    """Handle Stripe webhook events with signature verification"""
     stripe_api_key = os.environ.get('STRIPE_API_KEY')
     if not stripe_api_key:
         raise HTTPException(status_code=500, detail="Stripe not configured")
     
     body = await request.body()
     signature = request.headers.get("Stripe-Signature")
+    
+    # ==================== SECURITY: SIGNATURE VERIFICATION ====================
+    if STRIPE_WEBHOOK_SECRET:
+        try:
+            # Verify webhook signature using Stripe's library
+            stripe.Webhook.construct_event(
+                payload=body,
+                sig_header=signature,
+                secret=STRIPE_WEBHOOK_SECRET
+            )
+            logger.debug("[STRIPE-WEBHOOK] Signature verified successfully")
+        except stripe.error.SignatureVerificationError as e:
+            logger.error(f"[STRIPE-WEBHOOK] Invalid signature: {e}")
+            raise HTTPException(status_code=400, detail="Invalid webhook signature")
+        except Exception as e:
+            logger.error(f"[STRIPE-WEBHOOK] Signature verification error: {e}")
+            raise HTTPException(status_code=400, detail="Webhook signature verification failed")
+    else:
+        logger.warning("[STRIPE-WEBHOOK] Processing without signature verification - STRIPE_WEBHOOK_SECRET not set")
+    # ==========================================================================
     
     host_url = str(request.base_url).rstrip('/')
     webhook_url = f"{host_url}/api/webhook/stripe"
