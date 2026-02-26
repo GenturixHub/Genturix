@@ -10059,6 +10059,167 @@ def calculate_subscription_price(user_count: int) -> float:
     """DEPRECATED: Use calculate_subscription_price_dynamic() instead"""
     return round(user_count * GENTURIX_PRICE_PER_USER, 2)
 
+# ==================== BILLING ENGINE ====================
+# Central billing calculation and event logging system
+# Independent of payment providers (Stripe, Sinpe, TicoPay, Manual)
+
+YEARLY_DISCOUNT_PERCENT = 10.0  # 10% discount for yearly billing
+
+async def calculate_invoice(condominium: dict, billing_cycle: str = None) -> dict:
+    """
+    BILLING ENGINE: Central invoice calculation function.
+    
+    This is the single source of truth for all billing calculations.
+    Used by: Stripe integration, manual billing, reports, upgrade/downgrade
+    
+    Args:
+        condominium: Dict with condominium data (must have 'id', 'paid_seats')
+        billing_cycle: Override billing cycle (defaults to condominium's cycle)
+    
+    Returns:
+        {
+            "seats": int,
+            "price_per_seat": float,
+            "billing_cycle": str,
+            "monthly_amount": float,
+            "yearly_amount": float,
+            "yearly_discount_percent": float,
+            "effective_amount": float,
+            "next_billing_date": str,
+            "currency": str
+        }
+    """
+    condo_id = condominium.get("id")
+    seats = condominium.get("paid_seats", 10)
+    cycle = billing_cycle or condominium.get("billing_cycle", "monthly")
+    
+    # Get effective price (respects override > global > fallback)
+    price_per_seat = await get_effective_seat_price(condo_id)
+    global_config = await get_global_pricing()
+    
+    # Calculate amounts
+    monthly_amount = round(seats * price_per_seat, 2)
+    yearly_amount_before_discount = monthly_amount * 12
+    yearly_discount = round(yearly_amount_before_discount * (YEARLY_DISCOUNT_PERCENT / 100), 2)
+    yearly_amount = round(yearly_amount_before_discount - yearly_discount, 2)
+    
+    # Effective amount based on cycle
+    effective_amount = yearly_amount if cycle == "yearly" else monthly_amount
+    
+    # Calculate next billing date
+    now = datetime.now(timezone.utc)
+    if cycle == "yearly":
+        next_billing = now + timedelta(days=365)
+    else:
+        # Next month, same day
+        if now.month == 12:
+            next_billing = now.replace(year=now.year + 1, month=1)
+        else:
+            next_billing = now.replace(month=now.month + 1)
+    
+    return {
+        "seats": seats,
+        "price_per_seat": price_per_seat,
+        "billing_cycle": cycle,
+        "monthly_amount": monthly_amount,
+        "yearly_amount": yearly_amount,
+        "yearly_amount_before_discount": yearly_amount_before_discount,
+        "yearly_discount_percent": YEARLY_DISCOUNT_PERCENT,
+        "yearly_discount_amount": yearly_discount,
+        "effective_amount": effective_amount,
+        "next_billing_date": next_billing.isoformat(),
+        "currency": global_config.get("currency", "USD")
+    }
+
+async def calculate_billing_preview(
+    initial_units: int, 
+    billing_cycle: str = "monthly", 
+    condominium_id: str = None
+) -> dict:
+    """
+    Calculate billing preview for new condominium or seat change.
+    Does NOT create any records - purely informational.
+    """
+    # Create temporary condo dict for calculation
+    temp_condo = {
+        "id": condominium_id,
+        "paid_seats": initial_units,
+        "billing_cycle": billing_cycle
+    }
+    
+    return await calculate_invoice(temp_condo, billing_cycle)
+
+async def log_billing_event(
+    event_type: str,
+    condominium_id: str,
+    data: dict,
+    triggered_by: str = None,
+    previous_state: dict = None,
+    new_state: dict = None
+):
+    """
+    Log billing event to billing_events collection.
+    Creates audit trail for all billing-related changes.
+    """
+    event = {
+        "id": str(uuid.uuid4()),
+        "condominium_id": condominium_id,
+        "event_type": event_type,
+        "data": data,
+        "previous_state": previous_state,
+        "new_state": new_state,
+        "triggered_by": triggered_by,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.billing_events.insert_one(event)
+    logger.info(f"[BILLING-EVENT] {event_type} | condo={condominium_id[:8]}... | data={data}")
+    
+    return event
+
+async def update_condominium_billing_status(
+    condominium_id: str,
+    new_status: str,
+    triggered_by: str = None,
+    additional_data: dict = None
+):
+    """
+    Update condominium billing status with audit logging.
+    """
+    # Get current state
+    condo = await db.condominiums.find_one({"id": condominium_id}, {"_id": 0})
+    if not condo:
+        return None
+    
+    previous_status = condo.get("billing_status", "unknown")
+    
+    # Update condominium
+    update_data = {
+        "billing_status": new_status,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    if additional_data:
+        update_data.update(additional_data)
+    
+    await db.condominiums.update_one(
+        {"id": condominium_id},
+        {"$set": update_data}
+    )
+    
+    # Log event
+    await log_billing_event(
+        event_type="status_changed",
+        condominium_id=condominium_id,
+        data={"from": previous_status, "to": new_status, **(additional_data or {})},
+        triggered_by=triggered_by,
+        previous_state={"billing_status": previous_status},
+        new_state={"billing_status": new_status}
+    )
+    
+    return {"previous_status": previous_status, "new_status": new_status}
+
+# ==================== END BILLING ENGINE ====================
+
 @api_router.get("/payments/pricing")
 async def get_pricing_info(current_user = Depends(get_current_user)):
     """
