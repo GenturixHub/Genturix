@@ -3533,7 +3533,7 @@ const SuperAdminDashboard = () => {
   }
 
   return (
-    <div className={`min-h-screen bg-[#05050A] ${isMobile ? 'pb-20' : ''}`}>
+    <div className={`min-h-screen bg-[#05050A] overflow-y-auto ${isMobile ? 'pb-20' : ''}`}>
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-[#1E293B] bg-[#0A0A0F]/95 backdrop-blur">
         <div className="container mx-auto px-4">
