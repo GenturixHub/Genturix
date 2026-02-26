@@ -802,6 +802,9 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin, na
   const [adminTargetCondo, setAdminTargetCondo] = useState(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteTargetCondo, setDeleteTargetCondo] = useState(null);
+  // SINPE Billing
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [paymentTargetCondo, setPaymentTargetCondo] = useState(null);
 
   const filteredCondos = condos.filter(c => {
     const matchesSearch = c.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -809,6 +812,12 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin, na
     const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  // Count pending payments
+  const pendingPaymentCondos = condos.filter(c => 
+    ['pending_payment', 'upgrade_pending', 'past_due'].includes(c.billing_status) && 
+    c.environment !== 'demo' && !c.is_demo
+  );
 
   const handleStatusChange = async (condoId, newStatus) => {
     setIsLoading(true);
@@ -820,6 +829,11 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin, na
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleConfirmPayment = (condo) => {
+    setPaymentTargetCondo(condo);
+    setShowPaymentDialog(true);
   };
 
   const handleCreateAdmin = (condo) => {
