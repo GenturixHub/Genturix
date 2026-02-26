@@ -420,6 +420,13 @@ class ApiService {
   
   // SuperAdmin: Get all condominiums billing overview
   getAllCondominiumsBilling = () => this.get('/super-admin/billing/overview');
+  getSuperAdminBillingOverview = () => this.get('/super-admin/billing/overview');
+  
+  // SuperAdmin: Get payment history for a specific condominium
+  getCondominiumPaymentHistory = (condoId) => this.get(`/billing/payments/${condoId}`);
+  
+  // SuperAdmin: Confirm payment for a condominium
+  confirmCondominiumPayment = (condoId, data) => this.post(`/billing/confirm-payment/${condoId}`, data);
   
   // SuperAdmin: Update condominium billing settings
   updateCondominiumBilling = (condoId, data) => {
