@@ -16868,9 +16868,18 @@ async def startup_event():
     except Exception as e:
         logger.error(f"[STARTUP] Global pricing config failed: {e}")
         logger.warning("[STARTUP] Pricing will use fallback defaults")
+    
+    # Start billing scheduler (non-fatal if fails)
+    try:
+        start_billing_scheduler()
+        logger.info("[STARTUP] Billing scheduler started successfully")
+    except Exception as e:
+        logger.error(f"[STARTUP] Billing scheduler failed to start: {e}")
+        logger.warning("[STARTUP] Automatic billing checks will not run")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    stop_billing_scheduler()
     client.close()
 
 
