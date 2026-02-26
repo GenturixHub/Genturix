@@ -1,4 +1,4 @@
-# Trigger redeploy - 2026-02-26
+# Trigger redeploy - 2026-02-26 MODULAR
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Request, Body, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse, Response
@@ -34,8 +34,42 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.cron import CronTrigger
+
+# Import billing module (modularized)
+from modules.billing import (
+    # Models
+    BillingStatus,
+    BillingCycle,
+    BillingProvider,
+    BillingEventType,
+    SeatUpgradeRequestStatus,
+    ConfirmPaymentRequest,
+    ConfirmPaymentResponse,
+    PaymentHistoryResponse,
+    SeatUpgradeRequestModel,
+    SeatUpgradeRequestResponse,
+    SeatUpgradeRequest as BillingSeatUpgradeRequest,
+    SeatUpdateRequest,
+    BillingPreviewRequest,
+    BillingPreviewResponse,
+    BillingInfoResponse,
+    SeatUsageResponse,
+    SeatReductionValidation,
+    # Service functions
+    DEFAULT_GRACE_PERIOD_DAYS,
+    BILLING_EMAIL_TEMPLATES,
+    send_billing_notification_email,
+    check_and_log_email_sent,
+    log_email_sent,
+    # Scheduler
+    start_billing_scheduler,
+    stop_billing_scheduler,
+    get_scheduler_instance,
+    run_daily_billing_check,
+    process_billing_for_condominium
+)
+from modules.billing import service as billing_service
+from modules.billing import scheduler as billing_scheduler_module
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
