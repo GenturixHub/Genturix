@@ -1,8 +1,49 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 26, 2026 (Admin Financial Control Restructure)
+## Last Updated: February 26, 2026 (Push Banner Fix v3.1)
 
 ## Changelog
+
+### 2026-02-26 (Session 87) - Push Notification Banner Fix v3.1 ✅
+
+**FIX: Banner no longer appears when push notifications are already active**
+
+The push notification banner was appearing even when notifications were already activated due to a race condition between component render and Service Worker state check.
+
+**Root Cause:**
+- `isInitialized` became true BEFORE `isSubscribed` was properly updated
+- This caused a brief window where the banner would show incorrectly
+
+**Solution (v3.1):**
+
+1. **Added localStorage cache (`push_subscription_active`):**
+   - Checked IMMEDIATELY before waiting for SW (instant)
+   - Set to 'true' on successful subscription
+   - Removed on unsubscription
+
+2. **Improved banner render conditions:**
+   - Check localStorage FIRST (sync, no wait)
+   - Only wait for `isInitialized` if no cache
+   - Don't show banner if `permission === 'granted'` but not subscribed
+     (user explicitly unsubscribed - they must use Settings)
+
+3. **Bidirectional sync:**
+   - `usePushNotifications` hook updates localStorage on subscribe/unsubscribe
+   - Banner components also update localStorage on successful subscription
+
+**Files Modified:**
+- `/app/frontend/src/hooks/usePushNotifications.js` - Added localStorage sync
+- `/app/frontend/src/components/PushPermissionBanner.jsx` - v3.1 with cache check
+- `/app/frontend/src/components/PushNotificationBanner.js` - v3.1 with cache check
+
+**Expected Behavior:**
+- ✅ Push active → Banner hidden (instant, no flash)
+- ✅ New user → Banner shows after 2s delay
+- ✅ Permission denied → Banner hidden
+- ✅ User unsubscribed → Banner hidden (must use Settings to re-enable)
+- ✅ Page reload (subscribed) → Banner hidden (localStorage cache hit)
+
+---
 
 ### 2026-02-26 (Session 86) - Admin Financial Control Restructure ✅
 
