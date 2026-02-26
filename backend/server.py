@@ -10553,8 +10553,10 @@ async def get_payment_history(
     """
     SINPE BILLING: Get payment history for a condominium.
     """
-    # Verify access
-    if current_user["role"] != "super_admin" and current_user.get("condominium_id") != condominium_id:
+    # Verify access - SuperAdmin can view any, Admin only their own
+    user_roles = current_user.get("roles", [])
+    is_super = "SuperAdmin" in user_roles or "super_admin" in user_roles
+    if not is_super and current_user.get("condominium_id") != condominium_id:
         raise HTTPException(status_code=403, detail="No autorizado para ver este historial")
     
     payments = await db.billing_payments.find(
