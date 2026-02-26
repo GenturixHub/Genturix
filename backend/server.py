@@ -164,6 +164,11 @@ SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'noreply@genturix.com')
 if RESEND_API_KEY:
     resend.api_key = RESEND_API_KEY
 
+# Stripe Webhook Secret for signature verification (SECURITY CRITICAL)
+STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
+if not STRIPE_WEBHOOK_SECRET:
+    logger.warning("[SECURITY] STRIPE_WEBHOOK_SECRET not configured - webhook signature verification DISABLED")
+
 # VAPID Configuration for Push Notifications
 VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
 VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', '')
