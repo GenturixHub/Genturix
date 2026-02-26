@@ -1078,10 +1078,13 @@ const OnboardingWizard = () => {
   const [billingData, setBillingData] = useState({
     initial_units: 10,
     billing_cycle: 'monthly',
-    billing_provider: 'sinpe'
+    billing_provider: 'sinpe',
+    seat_price_override: null,  // Custom price per seat (optional)
+    yearly_discount_percent: 10  // Default 10%, editable 0-50%
   });
   const [billingPreview, setBillingPreview] = useState(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+  const [showEmailPreview, setShowEmailPreview] = useState(false);  // Email preview modal
 
   // Load timezones
   useEffect(() => {
