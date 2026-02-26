@@ -405,7 +405,7 @@ class TestConfirmPaymentEndpoint:
     def test_confirm_payment_demo_condo_rejected(self):
         """Confirm payment should reject demo condos"""
         # Find a demo condo
-        condos_resp = self.session.get(f"{BASE_URL}/api/super-admin/condominiums")
+        condos_resp = self.session.get(f"{BASE_URL}/api/condominiums")
         assert condos_resp.status_code == 200
         
         demo_condo = None
@@ -452,7 +452,7 @@ class TestBillingEventsLogging:
     def test_billing_events_endpoint_exists(self):
         """GET /api/billing/events/{condo_id} should return events"""
         # Get a production condo
-        condos_resp = self.session.get(f"{BASE_URL}/api/super-admin/condominiums")
+        condos_resp = self.session.get(f"{BASE_URL}/api/condominiums")
         assert condos_resp.status_code == 200
         
         prod_condo = None
