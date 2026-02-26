@@ -232,6 +232,11 @@ export function usePushNotifications() {
         if (mountedRef.current) {
           setIsSubscribed(hasLocalSubscription);
           setIsInitialized(true); // UI CAN NOW RENDER
+          
+          // v3.1: Sync localStorage for instant banner hiding on next page load
+          if (hasLocalSubscription) {
+            localStorage.setItem(PUSH_SUBSCRIBED_KEY, 'true');
+          }
         }
         
         // v3.0: BACKGROUND SYNC - Fire and forget, doesn't block UI
