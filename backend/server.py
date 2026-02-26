@@ -1046,11 +1046,13 @@ class CondominiumResponse(BaseModel):
 
 # SaaS Billing Models - ENHANCED
 class BillingStatus(str, Enum):
-    PENDING_PAYMENT = "pending_payment"  # NEW: Initial state before first payment
+    PENDING_PAYMENT = "pending_payment"  # Initial state before first payment
     ACTIVE = "active"
     PAST_DUE = "past_due"
     CANCELLED = "cancelled"
     TRIALING = "trialing"
+    SUSPENDED = "suspended"  # NEW: Blocked due to non-payment
+    UPGRADE_PENDING = "upgrade_pending"  # NEW: Waiting for upgrade payment
 
 class BillingCycle(str, Enum):
     MONTHLY = "monthly"
@@ -1071,6 +1073,70 @@ class BillingEventType(str, Enum):
     PAYMENT_FAILED = "payment_failed"
     STATUS_CHANGED = "status_changed"
     PRICE_UPDATED = "price_updated"
+    UPGRADE_REQUESTED = "upgrade_requested"  # NEW
+    UPGRADE_APPROVED = "upgrade_approved"    # NEW
+    UPGRADE_REJECTED = "upgrade_rejected"    # NEW
+
+class SeatUpgradeRequestStatus(str, Enum):
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+# ============== SINPE BILLING MODELS ==============
+
+class ConfirmPaymentRequest(BaseModel):
+    """Request to confirm a SINPE/manual payment"""
+    amount_paid: float = Field(..., gt=0)
+    payment_reference: Optional[str] = None  # SINPE reference number
+    notes: Optional[str] = None
+
+class ConfirmPaymentResponse(BaseModel):
+    """Response after payment confirmation"""
+    payment_id: str
+    condominium_id: str
+    amount_paid: float
+    previous_status: str
+    new_status: str
+    next_billing_date: str
+    message: str
+
+class PaymentHistoryResponse(BaseModel):
+    """Payment record in history"""
+    id: str
+    condominium_id: str
+    seats_at_payment: int
+    amount_paid: float
+    billing_cycle: str
+    payment_method: str
+    payment_reference: Optional[str] = None
+    payment_date: str
+    next_billing_date: str
+    confirmed_by: str
+    created_at: str
+
+class SeatUpgradeRequestModel(BaseModel):
+    """Request for more seats"""
+    requested_seats: int = Field(..., ge=1, le=10000)
+    reason: Optional[str] = None
+
+class SeatUpgradeRequestResponse(BaseModel):
+    """Seat upgrade request record"""
+    id: str
+    condominium_id: str
+    condominium_name: str
+    current_seats: int
+    requested_seats: int
+    additional_seats: int
+    current_amount: float
+    new_amount: float
+    difference_amount: float
+    status: str
+    requested_by: Optional[str] = None
+    approved_by: Optional[str] = None
+    created_at: str
+    updated_at: Optional[str] = None
+
+# ============== END SINPE BILLING MODELS ==============
 
 class SeatUpgradeRequest(BaseModel):
     additional_seats: int = Field(..., ge=1, le=1000)
