@@ -1157,15 +1157,6 @@ const OnboardingWizard = () => {
     }
   };
 
-  const handleBack = () => {
-    // Skip areas step if reservations not enabled
-    if (currentStep === 5 && !modulesData.reservations) {
-      setCurrentStep(3);
-    } else {
-      setCurrentStep(prev => Math.max(prev - 1, 1));
-    }
-  };
-
   const handleCancel = () => {
     setShowCancelDialog(true);
   };
@@ -1201,12 +1192,13 @@ const OnboardingWizard = () => {
         return;
       }
       
-      // All validations passed, proceed with creation
+      // BILLING ENGINE: All validations passed, proceed with creation including billing
       const response = await api.createCondominiumOnboarding({
         condominium: condoData,
         admin: adminData,
         modules: modulesData,
-        areas: areasData
+        areas: areasData,
+        billing: billingData  // Include billing data
       });
 
       if (response.success) {
