@@ -1043,6 +1043,7 @@ const OnboardingWizard = () => {
         setAdminData(parsed.adminData || adminData);
         setModulesData(parsed.modulesData || modulesData);
         setAreasData(parsed.areasData || areasData);
+        setBillingData(parsed.billingData || billingData);
         setCurrentStep(parsed.currentStep || 1);
       } catch (e) {
         console.error('Error loading wizard state:', e);
@@ -1056,9 +1057,46 @@ const OnboardingWizard = () => {
       adminData,
       modulesData,
       areasData,
+      billingData,
       currentStep
     }));
-  }, [condoData, adminData, modulesData, areasData, currentStep]);
+  }, [condoData, adminData, modulesData, areasData, billingData, currentStep]);
+
+  // BILLING ENGINE: Load billing preview when billing data changes
+  useEffect(() => {
+    const loadBillingPreview = async () => {
+      if (currentStep < 4) return; // Only load when on or past billing step
+      
+      setIsLoadingPreview(true);
+      try {
+        const response = await api.getBillingPreview(billingData.initial_units, billingData.billing_cycle);
+        setBillingPreview(response);
+      } catch (error) {
+        console.error('Error loading billing preview:', error);
+        // Calculate fallback locally
+        const basePrice = 1.0;
+        const discount = billingData.billing_cycle === 'yearly' ? 0.15 : 0;
+        const monthlyAmount = billingData.initial_units * basePrice;
+        const effectiveAmount = billingData.billing_cycle === 'yearly'
+          ? monthlyAmount * 12 * (1 - discount)
+          : monthlyAmount;
+        setBillingPreview({
+          seats: billingData.initial_units,
+          price_per_seat: basePrice,
+          billing_cycle: billingData.billing_cycle,
+          monthly_amount: monthlyAmount,
+          effective_amount: effectiveAmount,
+          discount_percent: discount * 100,
+          savings: billingData.billing_cycle === 'yearly' ? monthlyAmount * 12 * discount : 0
+        });
+      } finally {
+        setIsLoadingPreview(false);
+      }
+    };
+    
+    const debounceTimer = setTimeout(loadBillingPreview, 300);
+    return () => clearTimeout(debounceTimer);
+  }, [billingData.initial_units, billingData.billing_cycle, currentStep]);
 
   // Block navigation
   useEffect(() => {
