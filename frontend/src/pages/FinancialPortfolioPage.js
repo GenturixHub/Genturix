@@ -287,7 +287,7 @@ const FinancialPortfolioPage = () => {
       const result = await api.confirmCondominiumPayment(selectedCondo.condominium_id, {
         amount_paid: amount,
         payment_reference: paymentReference || null,
-        notes: `Pago ${result?.is_fully_paid ? 'completo' : 'parcial'} desde gestión de cartera`
+        notes: 'Pago registrado desde gestión de cartera'
       });
       
       if (result.is_fully_paid) {
