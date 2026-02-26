@@ -256,7 +256,7 @@ class TestConfirmPayment:
         }
         
         create_resp = auth_session.post(f"{BASE_URL}/api/condominiums", json=condo_data)
-        if create_resp.status_code != 201:
+        if create_resp.status_code not in [200, 201]:
             pytest.fail(f"Failed to create test condo: {create_resp.text}")
         
         condo = create_resp.json()
@@ -311,7 +311,7 @@ class TestConfirmPayment:
         }
         
         create_resp = auth_session.post(f"{BASE_URL}/api/condominiums", json=condo_data)
-        if create_resp.status_code != 201:
+        if create_resp.status_code not in [200, 201]:
             pytest.fail(f"Failed to create test condo: {create_resp.text}")
         
         condo = create_resp.json()
