@@ -10835,7 +10835,7 @@ ALWAYS_ALLOWED_ROUTES = [
 BLOCKED_WHEN_SUSPENDED_METHODS = ["POST", "PUT", "DELETE", "PATCH"]
 
 
-async def check_module_access(
+async def check_billing_access(
     condominium_id: str,
     method: str,
     path: str
@@ -10879,7 +10879,7 @@ async def check_module_access(
     return True, None
 
 
-async def check_module_access_dependency(
+async def check_billing_access_dependency(
     request: Request,
     current_user: dict = Depends(get_current_user)
 ) -> dict:
@@ -10897,7 +10897,7 @@ async def check_module_access_dependency(
     if not condominium_id:
         return current_user
     
-    is_allowed, error_message = await check_module_access(
+    is_allowed, error_message = await check_billing_access(
         condominium_id,
         request.method,
         request.url.path
