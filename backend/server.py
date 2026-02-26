@@ -26,6 +26,7 @@ import jwt
 from enum import Enum
 from bson import ObjectId
 from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
+import stripe  # For webhook signature verification
 import resend
 from pywebpush import webpush, WebPushException
 from reportlab.lib import colors
