@@ -941,8 +941,10 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin, na
               {filteredCondos.map((condo) => {
                 const statusConfig = STATUS_CONFIG[condo.status] || STATUS_CONFIG.active;
                 const StatusIcon = statusConfig.icon;
-                const userCount = condo.current_users || 0;
-                const mrr = userCount * (condo.price_per_user || 1) * (1 - (condo.discount_percent || 0) / 100);
+                const isDemo = condo.environment === 'demo' || condo.is_demo;
+                // USE BILLING ENGINE DATA
+                const mrr = isDemo ? 0 : (condo.next_invoice_amount || 0);
+                const billingCycle = condo.billing_cycle === 'yearly' ? '/año' : '/mes';
 
                 return (
                   <TableRow key={condo.id} className="border-[#1E293B]">
@@ -955,10 +957,10 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin, na
                           <div className="flex items-center gap-2">
                             <p className="font-medium text-white">{condo.name}</p>
                             {/* Environment Badge */}
-                            {(condo.environment === 'demo' || condo.is_demo) && (
+                            {isDemo && (
                               <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-[10px] px-1.5">DEMO</Badge>
                             )}
-                            {condo.environment === 'production' && !condo.is_demo && (
+                            {!isDemo && (
                               <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px] px-1.5">PROD</Badge>
                             )}
                           </div>
@@ -967,24 +969,61 @@ const CondominiumsTab = ({ condos, onRefresh, onEdit, onCreate, isSuperAdmin, na
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className={statusConfig.color}>
-                        <StatusIcon className="w-3 h-3 mr-1" />
-                        {statusConfig.label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-mono">{userCount} / {condo.max_users || 100}</span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-mono text-green-400">${mrr.toFixed(2)}</span>
-                      {condo.discount_percent > 0 && (
-                        <Badge className="ml-2 bg-yellow-500/20 text-yellow-400 text-[10px]">
-                          -{condo.discount_percent}%
+                      <div className="space-y-1">
+                        <Badge className={statusConfig.color}>
+                          <StatusIcon className="w-3 h-3 mr-1" />
+                          {statusConfig.label}
                         </Badge>
+                        {/* Billing Status for Production */}
+                        {!isDemo && condo.billing_status && condo.billing_status !== 'active' && (
+                          <Badge variant="outline" className={`block w-fit text-[10px] ${
+                            condo.billing_status === 'pending_payment' ? 'text-yellow-400 border-yellow-400/30' :
+                            condo.billing_status === 'upgrade_pending' ? 'text-blue-400 border-blue-400/30' :
+                            condo.billing_status === 'past_due' ? 'text-red-400 border-red-400/30' :
+                            'text-muted-foreground'
+                          }`}>
+                            {condo.billing_status === 'pending_payment' ? 'Pago Pendiente' :
+                             condo.billing_status === 'upgrade_pending' ? 'Upgrade Pendiente' :
+                             condo.billing_status === 'past_due' ? 'Vencido' :
+                             condo.billing_status}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {/* USE paid_seats from billing engine */}
+                      <span className="font-mono">{condo.current_users || condo.active_users || 0} / {condo.paid_seats || 10}</span>
+                      {condo.remaining_seats !== undefined && condo.remaining_seats <= 2 && !isDemo && (
+                        <Badge className="ml-2 bg-red-500/20 text-red-400 text-[10px]">
+                          {condo.remaining_seats === 0 ? '¡Lleno!' : `${condo.remaining_seats} disp.`}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {/* USE next_invoice_amount from billing engine */}
+                      {isDemo ? (
+                        <span className="text-yellow-400 text-sm">DEMO</span>
+                      ) : (
+                        <>
+                          <span className="font-mono text-green-400">${mrr.toFixed(2)}</span>
+                          <span className="text-xs text-muted-foreground ml-1">{billingCycle}</span>
+                        </>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
+                        {/* SINPE Payment button for pending condos */}
+                        {['pending_payment', 'upgrade_pending', 'past_due'].includes(condo.billing_status) && !isDemo && (
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="h-8 w-8 hover:bg-green-500/20" 
+                            onClick={() => handleConfirmPayment(condo)}
+                            title="Confirmar Pago SINPE"
+                          >
+                            <DollarSign className="w-4 h-4 text-green-400" />
+                          </Button>
+                        )}
                         <Button 
                           size="icon" 
                           variant="ghost" 
