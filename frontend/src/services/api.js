@@ -437,6 +437,9 @@ class ApiService {
   // SuperAdmin: Get payment history for a specific condominium
   getCondominiumPaymentHistory = (condoId) => this.get(`/billing/payments/${condoId}`);
   
+  // Get detailed billing balance for a condominium (supports partial payments)
+  getBillingBalance = (condoId) => this.get(`/billing/balance/${condoId}`);
+  
   // SuperAdmin: Confirm payment for a condominium
   confirmCondominiumPayment = (condoId, data) => this.post(`/billing/confirm-payment/${condoId}`, data);
   
