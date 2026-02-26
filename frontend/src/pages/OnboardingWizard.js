@@ -490,10 +490,10 @@ const Step4Billing = ({ data, onChange, billingPreview, isLoadingPreview }) => {
           >
             <Badge className="absolute -top-2 -right-2 bg-green-500 text-white text-[10px]">
               <Percent className="w-3 h-3 mr-1" />
-              -15%
+              -10%
             </Badge>
             <div className="text-sm font-medium">Anual</div>
-            <div className="text-xs text-muted-foreground mt-1">Ahorra 15%</div>
+            <div className="text-xs text-muted-foreground mt-1">Ahorra 10%</div>
           </button>
         </div>
       </div>
