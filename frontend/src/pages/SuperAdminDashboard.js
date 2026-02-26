@@ -104,7 +104,10 @@ import {
   ShieldAlert,
   LayoutDashboard,
   User,
-  TrendingUp
+  TrendingUp,
+  Check,
+  X,
+  ArrowUpCircle
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Mail, MailX } from 'lucide-react';
