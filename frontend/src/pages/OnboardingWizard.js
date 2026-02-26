@@ -1641,6 +1641,19 @@ const OnboardingWizard = () => {
           onClose={handleCredentialsClose}
         />
       )}
+
+      {/* Email Preview Modal */}
+      {showEmailPreview && (
+        <EmailPreviewModal
+          condoData={condoData}
+          adminData={adminData}
+          billingData={billingData}
+          billingPreview={billingPreview}
+          onClose={() => setShowEmailPreview(false)}
+          onConfirm={handleSubmit}
+          isSubmitting={isSubmitting}
+        />
+      )}
     </div>
   );
 };
