@@ -10223,11 +10223,17 @@ async def calculate_invoice(condominium: dict, billing_cycle: str = None) -> dic
 async def calculate_billing_preview(
     initial_units: int, 
     billing_cycle: str = "monthly", 
-    condominium_id: str = None
+    condominium_id: str = None,
+    seat_price_override: float = None,
+    yearly_discount_override: float = None
 ) -> dict:
     """
     Calculate billing preview for new condominium or seat change.
     Does NOT create any records - purely informational.
+    
+    Args:
+        seat_price_override: Custom price per seat (overrides global/condo price)
+        yearly_discount_override: Custom yearly discount 0-50% (overrides global)
     """
     # Create temporary condo dict for calculation
     temp_condo = {
@@ -10236,7 +10242,12 @@ async def calculate_billing_preview(
         "billing_cycle": billing_cycle
     }
     
-    return await calculate_invoice(temp_condo, billing_cycle)
+    return await calculate_invoice(
+        temp_condo, 
+        billing_cycle, 
+        seat_price_override=seat_price_override,
+        yearly_discount_override=yearly_discount_override
+    )
 
 async def log_billing_engine_event(
     event_type: str,
