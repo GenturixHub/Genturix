@@ -77,9 +77,15 @@ const STEPS = [
   { id: 1, title: 'Información', icon: Building2 },
   { id: 2, title: 'Administrador', icon: User },
   { id: 3, title: 'Módulos', icon: Shield },
-  { id: 4, title: 'Facturación', icon: CreditCard },  // NEW: Billing step
+  { id: 4, title: 'Plan y Facturación', icon: CreditCard },  // BILLING ENGINE INTEGRATION
   { id: 5, title: 'Áreas', icon: Calendar },
   { id: 6, title: 'Confirmar', icon: Check }
+];
+
+const BILLING_PROVIDERS = [
+  { value: 'sinpe', label: 'SINPE Móvil', description: 'Pago manual via SINPE (Costa Rica)' },
+  { value: 'stripe', label: 'Tarjeta de Crédito', description: 'Pago automático con Stripe' },
+  { value: 'manual', label: 'Facturación Manual', description: 'El SuperAdmin gestiona los pagos' }
 ];
 
 const MODULES_CONFIG = {
