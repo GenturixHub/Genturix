@@ -1688,6 +1688,226 @@ const CreateCondoDialog = ({ open, onClose, onSuccess }) => {
 };
 
 // ============================================
+// CONFIRM PAYMENT DIALOG (SINPE/Manual)
+// ============================================
+const ConfirmPaymentDialog = ({ condo, open, onClose, onSuccess }) => {
+  const [form, setForm] = useState({
+    amount_paid: condo?.next_invoice_amount || 0,
+    payment_reference: '',
+    notes: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (condo) {
+      setForm(prev => ({
+        ...prev,
+        amount_paid: condo.next_invoice_amount || 0
+      }));
+    }
+  }, [condo]);
+
+  const handleSubmit = async () => {
+    if (form.amount_paid <= 0) return;
+    
+    setIsSubmitting(true);
+    try {
+      await api.post(`/billing/confirm-payment/${condo.id}`, {
+        amount_paid: parseFloat(form.amount_paid),
+        payment_reference: form.payment_reference || null,
+        notes: form.notes || null
+      });
+      toast.success(`Pago de $${form.amount_paid} confirmado para ${condo.name}`);
+      onSuccess();
+      onClose();
+    } catch (error) {
+      toast.error(error.message || 'Error al confirmar pago');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!condo) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <DollarSign className="w-5 h-5 text-green-400" />
+            Confirmar Pago SINPE
+          </DialogTitle>
+          <DialogDescription>
+            Registrar pago manual para {condo.name}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          {/* Condo Info */}
+          <div className="p-3 bg-[#0A0A0F] rounded-lg border border-[#1E293B]">
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-muted-foreground">Condominio</span>
+              <span className="text-white font-medium">{condo.name}</span>
+            </div>
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-muted-foreground">Estado actual</span>
+              <Badge variant="outline" className={
+                condo.billing_status === 'active' ? 'text-green-400 border-green-400/30' :
+                condo.billing_status === 'pending_payment' ? 'text-yellow-400 border-yellow-400/30' :
+                'text-red-400 border-red-400/30'
+              }>
+                {condo.billing_status === 'active' ? 'Activo' :
+                 condo.billing_status === 'pending_payment' ? 'Pendiente' :
+                 condo.billing_status === 'upgrade_pending' ? 'Upgrade Pendiente' :
+                 condo.billing_status}
+              </Badge>
+            </div>
+            <div className="flex justify-between text-sm mb-2">
+              <span className="text-muted-foreground">Asientos</span>
+              <span className="text-white">{condo.paid_seats}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Monto esperado</span>
+              <span className="text-primary font-medium">${condo.next_invoice_amount?.toFixed(2) || '0.00'}</span>
+            </div>
+          </div>
+
+          {/* Amount */}
+          <div>
+            <Label>Monto Recibido (USD) *</Label>
+            <Input
+              type="number"
+              step="0.01"
+              value={form.amount_paid}
+              onChange={(e) => setForm({...form, amount_paid: e.target.value})}
+              className="bg-[#0A0A0F] border-[#1E293B] mt-1"
+              min={0}
+            />
+          </div>
+
+          {/* Reference */}
+          <div>
+            <Label>Referencia SINPE (opcional)</Label>
+            <Input
+              value={form.payment_reference}
+              onChange={(e) => setForm({...form, payment_reference: e.target.value})}
+              placeholder="Ej: SINPE-123456"
+              className="bg-[#0A0A0F] border-[#1E293B] mt-1"
+            />
+          </div>
+
+          {/* Notes */}
+          <div>
+            <Label>Notas (opcional)</Label>
+            <Input
+              value={form.notes}
+              onChange={(e) => setForm({...form, notes: e.target.value})}
+              placeholder="Notas adicionales"
+              className="bg-[#0A0A0F] border-[#1E293B] mt-1"
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button 
+            onClick={handleSubmit} 
+            disabled={form.amount_paid <= 0 || isSubmitting}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
+            Confirmar Pago
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// ============================================
+// UPGRADE REQUESTS SECTION
+// ============================================
+const UpgradeRequestsSection = ({ onRefresh }) => {
+  const [requests, setRequests] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadRequests = async () => {
+    try {
+      const data = await api.get('/billing/upgrade-requests?status=pending');
+      setRequests(data.requests || []);
+    } catch (error) {
+      console.error('Error loading upgrade requests:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadRequests();
+  }, []);
+
+  const handleApprove = async (requestId, approve = true) => {
+    try {
+      await api.patch(`/billing/approve-seat-upgrade/${requestId}?approve=${approve}`);
+      toast.success(approve ? 'Solicitud aprobada' : 'Solicitud rechazada');
+      loadRequests();
+      if (onRefresh) onRefresh();
+    } catch (error) {
+      toast.error(error.message || 'Error al procesar solicitud');
+    }
+  };
+
+  if (isLoading) return null;
+  if (requests.length === 0) return null;
+
+  return (
+    <Card className="bg-[#0F111A] border-[#1E293B] border-l-4 border-l-yellow-500">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center gap-2">
+          <ArrowUpCircle className="w-5 h-5 text-yellow-400" />
+          Solicitudes de Upgrade Pendientes
+          <Badge className="bg-yellow-500/20 text-yellow-400">{requests.length}</Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-3">
+          {requests.map(req => (
+            <div key={req.id} className="p-3 bg-[#0A0A0F] rounded-lg border border-[#1E293B] flex items-center justify-between">
+              <div className="flex-1">
+                <p className="font-medium text-white">{req.condominium_name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {req.current_seats} → {req.requested_seats} asientos
+                  <span className="text-yellow-400 ml-2">(+${req.difference_amount?.toFixed(2)}/{req.billing_cycle === 'yearly' ? 'año' : 'mes'})</span>
+                </p>
+                {req.reason && <p className="text-xs text-muted-foreground mt-1">"{req.reason}"</p>}
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="text-red-400 border-red-400/30 hover:bg-red-400/10"
+                  onClick={() => handleApprove(req.id, false)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+                <Button 
+                  size="sm" 
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={() => handleApprove(req.id, true)}
+                >
+                  <Check className="w-4 h-4 mr-1" />
+                  Aprobar
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// ============================================
 // EDIT CONDO DIALOG (Modules & Pricing)
 // ============================================
 const EditCondoDialog = ({ condo, open, onClose, onSuccess }) => {
