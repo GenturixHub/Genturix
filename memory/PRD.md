@@ -1,8 +1,47 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 26, 2026 (Onboarding Wizard Billing Integration)
+## Last Updated: February 26, 2026 (Commercial Flexibility Enhancement)
 
 ## Changelog
+
+### 2026-02-26 (Session 85) - Commercial Flexibility Enhancement ✅
+
+**FEATURE COMPLETE: Flexible Pricing Model for Onboarding Wizard**
+
+Implemented commercial flexibility allowing SuperAdmin to customize pricing per condominium during onboarding.
+
+**Changes Made:**
+
+1. **Backend - Billing Engine:**
+   - Extended `BillingPreviewRequest` to accept `seat_price_override` (0-$1000) and `yearly_discount_percent` (0-50%)
+   - Extended `OnboardingBillingInfo` model with same fields
+   - Modified `calculate_invoice()` to use custom pricing when provided
+   - `billing_events` now logs custom pricing information
+
+2. **Frontend - OnboardingWizard.js:**
+   - Increased slider limit from 500 to 10,000 seats
+   - Added "Precio por Asiento (Opcional)" input field
+   - Added "Descuento Anual Personalizado" slider (0-50%) when yearly selected
+   - Dynamic badge shows current discount percentage
+   - Billing preview updates dynamically with custom values
+
+3. **Email Preview Modal:**
+   - New `EmailPreviewModal` component before final submission
+   - Shows complete plan summary with custom pricing label "(Precio especial)"
+   - Displays: seats, price/seat, cycle, discount, payment method, total
+   - "Próximos pasos" section with next actions
+   - Next billing date shown
+
+4. **Database:**
+   - `condominiums` collection stores `seat_price_override` and `yearly_discount_percent`
+   - `billing_events` logs custom pricing on creation
+
+**Test Results:**
+- ✅ Backend: 100% (14/14 tests passed)
+- ✅ Frontend: 100% (all features tested)
+- ✅ E2E: Custom pricing correctly saved and used
+
+---
 
 ### 2026-02-26 (Session 84) - Onboarding Wizard Billing Integration ✅
 
