@@ -265,35 +265,6 @@ async def log_email_sent(
     })
 
 
-async def log_billing_engine_event(
-    event_type: str,
-    condominium_id: str,
-    data: dict,
-    triggered_by: str = None,
-    previous_state: dict = None,
-    new_state: dict = None
-):
-    """
-    BILLING ENGINE: Log billing event to billing_events collection.
-    Creates audit trail for all billing-related changes.
-    """
-    event = {
-        "id": str(uuid.uuid4()),
-        "condominium_id": condominium_id,
-        "event_type": event_type,
-        "data": data,
-        "previous_state": previous_state,
-        "new_state": new_state,
-        "triggered_by": triggered_by,
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    
-    await db.billing_events.insert_one(event)
-    logger.info(f"[BILLING-EVENT] {event_type} | condo={condominium_id[:8]}... | data={data}")
-    
-    return event
-
-
 async def update_condominium_billing_status(
     condominium_id: str,
     new_status: str,
