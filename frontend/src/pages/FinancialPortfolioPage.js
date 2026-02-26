@@ -175,6 +175,7 @@ const FinancialPortfolioPage = () => {
         page,
         page_size: PAGE_SIZE,
         billing_status: billingStatusParam,
+        billing_provider: providerFilter !== 'all' ? providerFilter : undefined,
         search: debouncedSearch || undefined,
         sort_by: sortField,
         sort_order: sortDirection
@@ -202,7 +203,7 @@ const FinancialPortfolioPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [statusFilter, debouncedSearch, sortField, sortDirection]);
+  }, [statusFilter, providerFilter, debouncedSearch, sortField, sortDirection]);
 
   // Fetch on mount and when filters change
   useEffect(() => {
