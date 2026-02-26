@@ -1,10 +1,72 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 25, 2026 (Reservations Module Performance Fix)
+## Last Updated: February 26, 2026 (Billing Engine Phase 1)
 
 ## Changelog
 
-### 2026-02-25 (Session 82e) - Reservations Module Performance Fix ✅
+### 2026-02-26 (Session 83) - Billing Engine Phase 1 Implementation ✅
+
+**FEATURE COMPLETE: Internal Billing Engine (No Stripe Integration Yet)**
+
+1. **📊 New Data Model Fields (CondominiumResponse):**
+   - `billing_model`: "per_seat" (default)
+   - `price_per_seat`: Dynamic price from global/override
+   - `billing_cycle`: "monthly" | "yearly"
+   - `billing_provider`: "stripe" | "sinpe" | "ticopay" | "manual"
+   - `billing_email`: Separate invoice email
+   - `billing_status`: "pending_payment" | "active" | "past_due" | "cancelled"
+   - `next_invoice_amount`: Calculated total
+   - `next_billing_date`: ISO datetime
+   - `billing_started_at`: ISO datetime
+   - `yearly_discount_percent`: 10% default
+
+2. **⚙️ Billing Engine Functions:**
+   ```python
+   calculate_invoice(condo) → {seats, price, monthly, yearly, effective_amount}
+   calculate_billing_preview(units, cycle) → Preview without creating records
+   log_billing_engine_event(type, condo_id, data) → Audit trail
+   update_condominium_billing_status(condo_id, status) → Status change with logging
+   ```
+
+3. **🔗 New API Endpoints:**
+   - `POST /api/billing/preview` - Calculate billing before creation
+   - `GET /api/billing/events/{condo_id}` - Billing event history
+   - `PATCH /api/billing/seats/{condo_id}` - Update seat count (up/down)
+
+4. **📝 New MongoDB Collection:**
+   - `billing_events` - Audit trail for all billing changes
+   - Event types: condominium_created, seats_upgraded, seats_downgraded, status_changed
+
+5. **🖥️ Frontend Updates:**
+   - CreateCondoDialog enhanced with:
+     - `initial_units` slider/input (1-500)
+     - `billing_cycle` selector (monthly/yearly with 10% discount badge)
+     - `billing_provider` selector (Stripe/SINPE/TicoPay/Manual)
+     - Real-time billing preview from `/api/billing/preview`
+     - Price calculation shown before creation
+
+6. **✅ Test Results:**
+   ```
+   POST /billing/preview (25 seats, monthly) → $74.75/month
+   POST /billing/preview (25 seats, yearly) → $807.30/year (10% off)
+   POST /condominiums (15 seats) → Created with billing_status="pending_payment"
+   PATCH /billing/seats (15→25) → Upgraded, event logged
+   GET /billing/events → 2 events (created, upgraded)
+   ```
+
+7. **🔒 Backward Compatibility:**
+   - Legacy `paid_seats` field still works (maps to `initial_units`)
+   - Legacy `price_per_user` preserved
+   - Existing condominiums continue to function
+   - Demo condominiums unchanged (no billing)
+
+**NOT IMPLEMENTED YET:**
+- Stripe subscription creation
+- Payment webhook handling
+- Automatic billing status updates
+- Invoice generation
+
+---
 
 **OPTIMIZATION COMPLETE: Instant Cache Rendering for Reservations**
 
