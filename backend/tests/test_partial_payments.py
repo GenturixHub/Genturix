@@ -290,7 +290,10 @@ class TestBillingEventsLogging:
         # Get billing events
         events_response = api_session.get(f"{BASE_URL}/api/billing/events/{TEST_CONDO_ID}")
         assert events_response.status_code == 200, f"Failed to get events: {events_response.text}"
-        events = events_response.json()
+        events_data = events_response.json()
+        
+        # The response contains an "events" array
+        events = events_data.get("events", [])
         
         # Find payment events
         payment_events = [e for e in events if "payment" in e.get("event_type", "").lower()]
