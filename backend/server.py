@@ -10981,7 +10981,7 @@ async def get_scheduler_status(
     }
 
 
-@billing_router.put("/grace-period/{condominium_id}")
+@api_router.put("/condominiums/{condominium_id}/grace-period")
 async def update_grace_period(
     condominium_id: str,
     grace_days: int = Query(..., ge=0, le=30, description="Grace period in days (0-30)"),
@@ -12563,7 +12563,7 @@ async def get_all_condominiums_billing_legacy(current_user = Depends(require_rol
     }
 
 
-@billing_super_admin_router.patch("/condominiums/{condo_id}")
+@api_router.patch("/super-admin/condominiums/{condo_id}/billing")
 async def update_condominium_billing(
     condo_id: str,
     paid_seats: Optional[int] = None,
@@ -15034,7 +15034,7 @@ async def get_condominium_users(
     ).to_list(500)
     return users
 
-@billing_router.get("/condominium/{condo_id}")
+@api_router.get("/condominiums/{condo_id}/billing")
 async def get_condominium_billing(
     condo_id: str,
     current_user = Depends(require_role(RoleEnum.ADMINISTRADOR))
