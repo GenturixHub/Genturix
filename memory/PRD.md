@@ -1,8 +1,53 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 26, 2026 (Push Banner Fix v3.1)
+## Last Updated: February 26, 2026 (Financial Portfolio Module)
 
 ## Changelog
+
+### 2026-02-26 (Session 88) - Financial Portfolio Module ✅
+
+**FEATURE: New Complete Financial Portfolio Management Page**
+
+Created a dedicated page for SuperAdmin to manage all condominiums with pending/overdue payments.
+
+**Problem Fixed:**
+- Previous implementation showed only 2 condominiums via `.slice(0, 2)` in the alert
+- No dedicated view for complete debt management
+
+**Solution:**
+
+1. **New Route `/super-admin/finanzas/cartera`:**
+   - `/app/frontend/src/pages/FinancialPortfolioPage.js` - Complete new page
+
+2. **Features:**
+   - Summary cards: Total pending, count by status (pending_payment, past_due, upgrade_pending, suspended)
+   - Full table with all condominiums (no limits)
+   - Columns: Name, Status (with colored badges), Seats, Amount, Due Date, Provider, Actions
+   - Pagination (15 per page)
+   - Filters: Search by name/email, status filter, provider filter
+   - Sorting: By amount, due date, seats, name, priority
+   - Scroll support for many records
+
+3. **Actions:**
+   - "Confirmar" button - Confirm payment dialog
+   - "Ver historial" - Payment history dialog
+   - "Suspender" - Suspend condo (only for past_due > 30 days)
+
+4. **API Methods Added:**
+   - `getSuperAdminBillingOverview()` - alias for getAllCondominiumsBilling
+   - `getCondominiumPaymentHistory(condoId)` 
+   - `confirmCondominiumPayment(condoId, data)`
+
+5. **SuperAdmin Dashboard Updated:**
+   - Alert now shows "Ver Cartera Completa" button linking to new page
+   - Removed `.slice(0, 2)` limitation
+
+**Security:**
+- Route protected by `ProtectedRoute allowedRoles={['SuperAdmin']}`
+- Filters exclude demo condos (`environment !== 'demo' && !is_demo`)
+- No billing logic changes, only visualization
+
+---
 
 ### 2026-02-26 (Session 87) - Push Notification Banner Fix v3.1 ✅
 
