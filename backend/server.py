@@ -396,6 +396,11 @@ async def global_exception_handler(request: Request, exc: Exception):
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# ==================== BILLING ROUTER (PHASE 2 MODULARIZATION) ====================
+# This router groups all billing-related endpoints for future extraction
+# It uses /api/billing prefix via api_router include
+billing_router = APIRouter(prefix="/billing", tags=["billing"])
+
 # ==================== HEALTH & READINESS ENDPOINTS ====================
 
 # Application version
