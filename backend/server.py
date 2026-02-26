@@ -3114,10 +3114,16 @@ async def update_active_user_count(condominium_id: str):
     return active_count
 
 async def can_create_user(condominium_id: str, role: str = "Residente") -> tuple[bool, str]:
-    """Check if a new user can be created in the condominium.
-    For residents, checks against paid_seats (seat limit).
-    For other roles, no seat limit applies.
-    Returns (can_create, error_message)"""
+    """
+    SEAT PROTECTION: Check if a new user can be created in the condominium.
+    
+    Validates:
+    1. Condominium exists and is active
+    2. Billing status allows user creation
+    3. Seat limit for residents
+    
+    Returns (can_create, error_message)
+    """
     if not condominium_id:
         return False, "Se requiere condominium_id"
     
@@ -3128,17 +3134,32 @@ async def can_create_user(condominium_id: str, role: str = "Residente") -> tuple
     if not condo.get("is_active", True):
         return False, "El condominio está inactivo"
     
-    billing_status = condo.get("billing_status", "active")
-    if billing_status not in ["active", "trialing"]:
-        return False, f"Suscripción inactiva ({billing_status}). Por favor actualice su plan de pago."
+    # Check if demo condominium
+    is_demo = condo.get("environment") == "demo" or condo.get("is_demo")
     
-    # Seat limit only applies to residents
+    # BILLING STATUS CHECK (only for production condos)
+    if not is_demo:
+        billing_status = condo.get("billing_status", "active")
+        # Blocked statuses - cannot create any users
+        blocked_statuses = ["suspended", "cancelled"]
+        if billing_status in blocked_statuses:
+            return False, f"Condominio suspendido ({billing_status}). Contacte soporte para regularizar su pago."
+        
+        # Warning statuses - can create but with warning
+        warning_statuses = ["past_due"]
+        if billing_status in warning_statuses:
+            logger.warning(f"[SEAT-PROTECTION] Creating user in past_due condo {condominium_id[:8]}...")
+    
+    # SEAT LIMIT CHECK (applies to residents in both demo and production)
     if role == "Residente":
-        paid_seats = condo.get("paid_seats", 10)
+        paid_seats = 10 if is_demo else condo.get("paid_seats", 10)
         active_residents = await count_active_residents(condominium_id)
         
         if active_residents >= paid_seats:
-            return False, f"Límite de asientos para residentes alcanzado ({active_residents}/{paid_seats}). Por favor actualice su plan para agregar más residentes."
+            if is_demo:
+                return False, f"Límite de asientos DEMO alcanzado ({active_residents}/{paid_seats}). Cree un condominio de producción para más usuarios."
+            else:
+                return False, f"Límite de asientos alcanzado ({active_residents}/{paid_seats}). Solicite más asientos para continuar."
     
     return True, ""
 
