@@ -12302,7 +12302,7 @@ async def get_billing_history(current_user = Depends(require_role("Administrador
     
     return transactions
 
-@api_router.get("/super-admin/billing/overview")
+@billing_super_admin_router.get("/overview")
 async def get_all_condominiums_billing(
     current_user = Depends(require_role("SuperAdmin")),
     page: int = Query(1, ge=1, description="Page number"),
@@ -12509,7 +12509,7 @@ async def get_all_condominiums_billing(
 
 
 # Legacy endpoint for backwards compatibility (deprecated)
-@api_router.get("/super-admin/billing/overview-legacy")
+@billing_super_admin_router.get("/overview-legacy")
 async def get_all_condominiums_billing_legacy(current_user = Depends(require_role("SuperAdmin"))):
     """
     DEPRECATED: Use /super-admin/billing/overview with pagination params instead.
