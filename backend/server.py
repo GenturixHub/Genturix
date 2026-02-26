@@ -14674,6 +14674,13 @@ class OnboardingCondominiumInfo(BaseModel):
     country: str = Field(default="Mexico")
     timezone: str = Field(default="America/Mexico_City")
 
+# BILLING ENGINE: Billing configuration for onboarding
+class OnboardingBillingInfo(BaseModel):
+    initial_units: int = Field(..., ge=1, le=10000, description="Number of billable seats")
+    billing_cycle: str = Field(default="monthly", pattern="^(monthly|yearly)$")
+    billing_provider: str = Field(default="sinpe", pattern="^(stripe|sinpe|ticopay|manual)$")
+    billing_email: Optional[EmailStr] = None  # If different from admin email
+
 class OnboardingAdminInfo(BaseModel):
     full_name: str = Field(..., min_length=2, max_length=100)
     email: EmailStr
