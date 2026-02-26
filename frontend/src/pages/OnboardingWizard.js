@@ -427,10 +427,10 @@ const Step4Billing = ({ data, onChange, billingPreview, isLoadingPreview }) => {
         </div>
         
         <Slider
-          value={[data.initial_units]}
+          value={[Math.min(data.initial_units, 10000)]}
           onValueChange={(value) => onChange({ ...data, initial_units: value[0] })}
           min={5}
-          max={500}
+          max={10000}
           step={5}
           className="py-4"
           data-testid="billing-units-slider"
@@ -438,7 +438,7 @@ const Step4Billing = ({ data, onChange, billingPreview, isLoadingPreview }) => {
         
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>5 asientos</span>
-          <span>500 asientos</span>
+          <span>10,000 asientos</span>
         </div>
         
         <Input
@@ -455,6 +455,35 @@ const Step4Billing = ({ data, onChange, billingPreview, isLoadingPreview }) => {
         />
         <p className="text-xs text-muted-foreground text-center">
           Ingresa un número personalizado (1-10,000) o usa el slider
+        </p>
+      </div>
+
+      {/* Custom Price Override (SuperAdmin only) */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium flex items-center gap-2">
+          <DollarSign className="w-4 h-4" />
+          Precio por Asiento (Opcional)
+        </Label>
+        <div className="flex items-center gap-3">
+          <span className="text-muted-foreground">$</span>
+          <Input
+            type="number"
+            step="0.01"
+            min="0.01"
+            max="1000"
+            value={data.seat_price_override || ''}
+            onChange={(e) => {
+              const val = e.target.value ? parseFloat(e.target.value) : null;
+              onChange({ ...data, seat_price_override: val });
+            }}
+            placeholder="Dejar vacío = precio global ($2.99)"
+            className="bg-[#0A0A0F] border-[#1E293B] h-10 flex-1"
+            data-testid="billing-price-override"
+          />
+          <span className="text-muted-foreground text-sm">/mes</span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Si está vacío, se usará el precio global. Útil para ofertas especiales.
         </p>
       </div>
 
@@ -488,15 +517,47 @@ const Step4Billing = ({ data, onChange, billingPreview, isLoadingPreview }) => {
             }`}
             data-testid="billing-cycle-yearly"
           >
-            <Badge className="absolute -top-2 -right-2 bg-green-500 text-white text-[10px]">
-              <Percent className="w-3 h-3 mr-1" />
-              -10%
-            </Badge>
+            {data.yearly_discount_percent > 0 && (
+              <Badge className="absolute -top-2 -right-2 bg-green-500 text-white text-[10px]">
+                <Percent className="w-3 h-3 mr-1" />
+                -{data.yearly_discount_percent}%
+              </Badge>
+            )}
             <div className="text-sm font-medium">Anual</div>
-            <div className="text-xs text-muted-foreground mt-1">Ahorra 10%</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {data.yearly_discount_percent > 0 ? `Ahorra ${data.yearly_discount_percent}%` : 'Pago anual'}
+            </div>
           </button>
         </div>
       </div>
+
+      {/* Custom Yearly Discount (only visible when yearly selected) */}
+      {data.billing_cycle === 'yearly' && (
+        <div className="space-y-2">
+          <Label className="text-sm font-medium flex items-center gap-2">
+            <Percent className="w-4 h-4" />
+            Descuento Anual Personalizado
+          </Label>
+          <div className="flex items-center gap-3">
+            <Slider
+              value={[data.yearly_discount_percent || 10]}
+              onValueChange={(value) => onChange({ ...data, yearly_discount_percent: value[0] })}
+              min={0}
+              max={50}
+              step={1}
+              className="flex-1"
+              data-testid="billing-discount-slider"
+            />
+            <span className="text-lg font-bold text-green-400 min-w-[60px] text-right">
+              {data.yearly_discount_percent || 10}%
+            </span>
+          </div>
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>0% (sin descuento)</span>
+            <span>50% (máximo)</span>
+          </div>
+        </div>
+      )}
 
       {/* Billing Provider */}
       <div className="space-y-2">
