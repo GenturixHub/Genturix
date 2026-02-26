@@ -1,8 +1,69 @@
 # GENTURIX Enterprise Platform - PRD
 
-## Last Updated: February 26, 2026 (Financial Portfolio Performance Optimization)
+## Last Updated: February 26, 2026 (Automatic Billing Scheduler)
 
 ## Changelog
+
+### 2026-02-26 (Session 90) - Sistema Automático de Vencimientos ✅
+
+**FEATURE: Automatic Billing Scheduler with Partial Blocking**
+
+Implemented a complete automatic billing system with scheduled status transitions, email notifications, and intelligent partial blocking for suspended condominiums.
+
+**New Features:**
+
+1. **grace_period_days Field:**
+   - Added to condominium model (default: 5 days)
+   - Configurable per-condominium via API
+   - Determines time between `past_due` and `suspended` status
+
+2. **Daily Billing Scheduler (2AM Costa Rica):**
+   - Uses APScheduler with AsyncIOScheduler
+   - Evaluates all condominiums with billing dates
+   - Transitions: `active` → `past_due` (within grace) → `suspended` (after grace)
+   - Idempotent: no duplicate transitions
+   - Logs all changes to `billing_events` collection
+
+3. **Partial Blocking Middleware:**
+   - Suspended condos: POST/PUT/DELETE/PATCH blocked (402)
+   - GET requests always allowed (dashboard, queries)
+   - Always allowed routes: /api/auth/, /api/health, /api/billing/, /api/super-admin/
+   - SuperAdmins bypass all restrictions
+
+4. **Email Notifications (via Resend):**
+   - 3 days before due: reminder
+   - Due day: urgent reminder  
+   - Status → past_due: mora warning
+   - Status → suspended: suspension alert
+   - Payment confirmed: activation confirmation
+   - No duplicate emails same day
+
+5. **Payment Confirmation Enhancement:**
+   - Restores status to `active`
+   - Recalculates `next_billing_date`
+   - Sends confirmation email
+   - Logs payment event
+
+**New Endpoints:**
+- `GET /api/billing/scheduler/status` - Check scheduler status
+- `POST /api/billing/scheduler/run-now` - Manual trigger (SuperAdmin)
+- `GET /api/billing/scheduler/history` - View scheduler runs
+- `PUT /api/condominiums/{id}/grace-period` - Update grace period
+
+**Collections Created:**
+- `billing_email_log` - Track sent emails (prevent duplicates)
+- `billing_scheduler_runs` - Audit trail of scheduler executions
+
+**Bug Fixed:**
+- Fixed JWT_SECRET → JWT_SECRET_KEY in partial blocking middleware
+
+**Testing:** 100% pass rate (17/17 backend tests)
+
+**Files Modified:**
+- `/app/backend/server.py`: Added scheduler, middleware, email system
+- `/app/backend/requirements.txt`: Added apscheduler==3.11.2
+
+---
 
 ### 2026-02-26 (Session 89) - Financial Portfolio Performance Optimization ✅
 
