@@ -214,31 +214,35 @@ class TestCommercialFlexibility:
         condo_id = data["condominium"]["id"]
         print(f"PASS: Created condominium '{condo_name}' with custom pricing (ID: {condo_id})")
         
-        # Verify via billing overview
-        overview_response = requests.get(
-            f"{BASE_URL}/api/super-admin/billing/overview",
+        # Verify via condominiums list endpoint (includes all billing fields)
+        list_response = requests.get(
+            f"{BASE_URL}/api/condominiums",
             headers=auth_headers
         )
-        assert overview_response.status_code == 200
+        assert list_response.status_code == 200
         
-        overview = overview_response.json()
+        condos = list_response.json()
         created_condo = None
-        for condo in overview.get("condominiums", []):
+        for condo in condos:
             if condo.get("id") == condo_id:
                 created_condo = condo
                 break
         
-        assert created_condo is not None, f"Created condo not found in billing overview"
+        assert created_condo is not None, f"Created condo not found in condominiums list"
         assert created_condo.get("paid_seats") == 50, f"Expected paid_seats=50, got {created_condo.get('paid_seats')}"
-        assert created_condo.get("billing_cycle") == "yearly", f"Expected yearly billing"
+        assert created_condo.get("billing_cycle") == "yearly", f"Expected yearly billing, got {created_condo.get('billing_cycle')}"
         
         # Verify seat_price_override is saved
-        if "seat_price_override" in created_condo:
-            assert created_condo["seat_price_override"] == 1.25, \
-                f"Expected seat_price_override=1.25, got {created_condo.get('seat_price_override')}"
-            print(f"PASS: seat_price_override=1.25 saved in DB")
+        assert created_condo.get("seat_price_override") == 1.25, \
+            f"Expected seat_price_override=1.25, got {created_condo.get('seat_price_override')}"
+        print(f"PASS: seat_price_override=1.25 saved in DB")
         
-        print(f"PASS: E2E creation verified - paid_seats={created_condo.get('paid_seats')}")
+        # Verify yearly_discount_percent is saved
+        assert created_condo.get("yearly_discount_percent") == 30, \
+            f"Expected yearly_discount_percent=30, got {created_condo.get('yearly_discount_percent')}"
+        print(f"PASS: yearly_discount_percent=30 saved in DB")
+        
+        print(f"PASS: E2E creation verified - paid_seats={created_condo.get('paid_seats')}, price={created_condo.get('seat_price_override')}")
         
         return condo_id
     
