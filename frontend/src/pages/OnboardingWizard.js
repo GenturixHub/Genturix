@@ -1413,6 +1413,11 @@ const OnboardingWizard = () => {
     navigate('/super-admin');
   };
 
+  // Show email preview modal before final submission
+  const handleShowEmailPreview = () => {
+    setShowEmailPreview(true);
+  };
+
   const handleSubmit = async () => {
     setIsSubmitting(true);
     
@@ -1428,6 +1433,7 @@ const OnboardingWizard = () => {
         toast.error(nameCheck.message, { duration: 6000 });
         setCurrentStep(1); // Go back to condo info step
         setIsSubmitting(false);
+        setShowEmailPreview(false);
         return;
       }
       
@@ -1436,6 +1442,7 @@ const OnboardingWizard = () => {
         toast.error(emailCheck.message, { duration: 6000 });
         setCurrentStep(2); // Go back to admin step
         setIsSubmitting(false);
+        setShowEmailPreview(false);
         return;
       }
       
@@ -1445,10 +1452,11 @@ const OnboardingWizard = () => {
         admin: adminData,
         modules: modulesData,
         areas: areasData,
-        billing: billingData  // Include billing data
+        billing: billingData  // Include billing data with custom pricing
       });
 
       if (response.success) {
+        setShowEmailPreview(false);
         setCreatedCredentials(response.admin_credentials);
         setCreatedCondoId(response.condominium.id);
         setCreatedCondoName(response.condominium.name);
