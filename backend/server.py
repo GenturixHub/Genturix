@@ -16899,6 +16899,10 @@ async def reset_all_data(
 # This maintains the /api/billing/* path structure
 api_router.include_router(billing_router)
 
+# Include the super-admin billing router
+# This maintains the /api/super-admin/billing/* path structure
+api_router.include_router(billing_super_admin_router)
+
 # Include the router in the main app
 app.include_router(api_router)
 
