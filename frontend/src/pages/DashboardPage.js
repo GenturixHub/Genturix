@@ -907,13 +907,15 @@ const DashboardPage = () => {
                     billingInfo.billing_status === 'active' ? 'bg-emerald-500/20 text-emerald-400' :
                     billingInfo.billing_status === 'trialing' ? 'bg-blue-500/20 text-blue-400' :
                     billingInfo.billing_status === 'past_due' ? 'bg-yellow-500/20 text-yellow-400' :
-                    'bg-red-500/20 text-red-400'
+                    billingInfo.billing_status === 'suspended' ? 'bg-red-500/20 text-red-400' :
+                    'bg-orange-500/20 text-orange-400'
                   }`}>
                     {billingInfo.billing_status === 'active' ? 'Activo' :
                      billingInfo.billing_status === 'trialing' ? 'Periodo de Prueba' :
                      billingInfo.billing_status === 'past_due' ? 'Pago Pendiente' :
                      billingInfo.billing_status === 'pending_payment' ? 'Pago Pendiente' :
-                     'Cancelado'}
+                     billingInfo.billing_status === 'suspended' ? 'Suspendido' :
+                     'Pendiente'}
                   </span>
                 </div>
                 
@@ -934,7 +936,37 @@ const DashboardPage = () => {
                   </div>
                 </div>
                 
+                {/* Balance Section - Shows payment status for current cycle */}
                 <div className="mt-3 pt-3 border-t border-[#1E293B] space-y-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Monto del ciclo</span>
+                    <span className="font-medium">${(billingInfo.next_invoice_amount || 0).toFixed(2)} USD</span>
+                  </div>
+                  
+                  {/* Show partial payment info if applicable */}
+                  {(billingInfo.total_paid_current_cycle > 0 || billingInfo.balance_due > 0) && (
+                    <>
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-muted-foreground">Total pagado este ciclo</span>
+                        <span className="font-medium text-emerald-400">${(billingInfo.total_paid_current_cycle || 0).toFixed(2)} USD</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Saldo pendiente</span>
+                        <span className={`text-lg font-bold ${billingInfo.balance_due > 0 ? 'text-yellow-400' : 'text-emerald-400'}`}>
+                          ${(billingInfo.balance_due || 0).toFixed(2)} USD
+                        </span>
+                      </div>
+                    </>
+                  )}
+                  
+                  {/* Show if no partial payments yet */}
+                  {!billingInfo.total_paid_current_cycle && !billingInfo.balance_due && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Próximo cobro</span>
+                      <span className="text-lg font-bold">${(billingInfo.next_invoice_amount || 0).toFixed(2)} USD</span>
+                    </div>
+                  )}
+                  
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Precio por asiento</span>
                     <span className="font-medium">${billingInfo.price_per_seat?.toFixed(2)} USD/mes</span>
@@ -943,10 +975,6 @@ const DashboardPage = () => {
                     <span className="text-muted-foreground">Ciclo de facturación</span>
                     <span className="font-medium">{billingInfo.billing_cycle === 'yearly' ? 'Anual' : 'Mensual'}</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Próximo cobro</span>
-                    <span className="text-lg font-bold">${billingInfo.next_invoice_amount?.toFixed(2) || billingInfo.monthly_cost?.toFixed(2)} USD</span>
-                  </div>
                   {billingInfo.next_billing_date && (
                     <div className="flex justify-between items-center text-sm">
                       <span className="text-muted-foreground">Fecha próximo cobro</span>
@@ -954,6 +982,18 @@ const DashboardPage = () => {
                     </div>
                   )}
                 </div>
+                
+                {/* Alert for past_due or suspended */}
+                {(billingInfo.billing_status === 'past_due' || billingInfo.billing_status === 'suspended') && billingInfo.balance_due > 0 && (
+                  <div className={`mt-3 p-3 rounded-lg ${billingInfo.billing_status === 'suspended' ? 'bg-red-500/10 border border-red-500/30' : 'bg-yellow-500/10 border border-yellow-500/30'}`}>
+                    <p className={`text-sm ${billingInfo.billing_status === 'suspended' ? 'text-red-400' : 'text-yellow-400'}`}>
+                      {billingInfo.billing_status === 'suspended' 
+                        ? '⚠️ Tu cuenta está suspendida por falta de pago. Contacta a soporte para regularizar.'
+                        : `⏰ Tienes un saldo pendiente de $${billingInfo.balance_due?.toFixed(2)} USD. Por favor realiza el pago para evitar suspensión.`
+                      }
+                    </p>
+                  </div>
+                )}
               </div>
               
               {/* Seat Usage Progress Bar */}
