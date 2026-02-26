@@ -1234,9 +1234,11 @@ const OnboardingWizard = () => {
       case 3:
         return <Step3Modules data={modulesData} onChange={setModulesData} />;
       case 4:
-        return <Step4Areas data={areasData} onChange={setAreasData} reservationsEnabled={modulesData.reservations} />;
+        return <Step4Billing data={billingData} onChange={setBillingData} billingPreview={billingPreview} isLoadingPreview={isLoadingPreview} />;
       case 5:
-        return <Step5Summary condoData={condoData} adminData={adminData} modulesData={modulesData} areasData={areasData} />;
+        return <Step5Areas data={areasData} onChange={setAreasData} reservationsEnabled={modulesData.reservations} />;
+      case 6:
+        return <Step6Summary condoData={condoData} adminData={adminData} modulesData={modulesData} billingData={billingData} billingPreview={billingPreview} areasData={areasData} />;
       default:
         return null;
     }
@@ -1249,7 +1251,7 @@ const OnboardingWizard = () => {
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold">Nuevo Condominio</h1>
-            <p className="text-xs text-muted-foreground">Paso {currentStep} de 5</p>
+            <p className="text-xs text-muted-foreground">Paso {currentStep} de 6</p>
           </div>
           <Button variant="ghost" size="sm" onClick={handleCancel} data-testid="cancel-wizard-btn">
             <X className="w-4 h-4 mr-1" />
@@ -1266,7 +1268,7 @@ const OnboardingWizard = () => {
               const StepIcon = step.icon;
               const isActive = step.id === currentStep;
               const isCompleted = step.id < currentStep;
-              const isSkipped = step.id === 4 && !modulesData.reservations;
+              const isSkipped = step.id === 5 && !modulesData.reservations;  // Skip Areas step if no reservations
 
               return (
                 <React.Fragment key={step.id}>
