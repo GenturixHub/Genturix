@@ -352,6 +352,8 @@ export function usePushNotifications() {
       console.log('[PUSH-SYNC] ========== SUBSCRIBE SUCCESS ==========');
 
       setIsSubscribed(true);
+      // v3.1: Update localStorage for instant banner hiding
+      localStorage.setItem(PUSH_SUBSCRIBED_KEY, 'true');
       return true;
 
     } catch (err) {
