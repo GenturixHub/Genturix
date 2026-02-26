@@ -10427,7 +10427,8 @@ async def get_scheduler_status(
     """
     SuperAdmin: Check billing scheduler status.
     """
-    global billing_scheduler
+    # Get scheduler instance from billing module
+    billing_scheduler = get_scheduler_instance()
     
     is_running = billing_scheduler is not None and billing_scheduler.running
     
