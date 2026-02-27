@@ -90,6 +90,13 @@ from modules.users.service import (
     can_create_user,
 )
 
+# Import user models from users module
+from modules.users.models import (
+    CreateUserByAdmin,
+    CreateEmployeeByHR,
+    UserStatusUpdateV2,
+)
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
