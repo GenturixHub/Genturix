@@ -3,6 +3,49 @@
 
 ---
 
+## PHASE 2A MIGRATION REPORT
+### Fecha: 2025-02-27
+
+### FUNCIONES MIGRADAS ✅
+
+| Función | Origen (línea) | Destino | Status |
+|---------|----------------|---------|--------|
+| `count_active_users()` | server.py:3052 | modules/users/service.py | ✅ Migrada |
+| `count_active_residents()` | server.py:3065 | modules/users/service.py | ✅ Migrada |
+| `update_active_user_count()` | server.py:3116 | modules/users/service.py | ✅ Migrada |
+| `can_create_user()` | server.py:3129 | modules/users/service.py | ✅ Migrada |
+
+### LÍNEAS ELIMINADAS
+- **server.py:** ~75 líneas de código eliminadas
+- **Antes:** ~16,667 líneas
+- **Después:** 16,592 líneas
+
+### INICIALIZACIÓN AGREGADA
+```python
+# En server.py startup event:
+set_users_db(db)
+set_users_logger(logger)
+```
+
+### TESTS EJECUTADOS ✅
+1. ✅ Servidor inicia correctamente
+2. ✅ `count_active_users()` funciona desde módulo
+3. ✅ `count_active_residents()` funciona desde módulo
+4. ✅ `can_create_user()` funciona desde módulo
+5. ✅ Billing overview endpoint funciona
+6. ✅ No hay imports circulares
+7. ✅ No hay duplicación de código
+
+### CONFIRMACIÓN DE NO DUPLICACIÓN
+```
+async def count_active_users en server.py: 0
+async def count_active_residents en server.py: 0
+async def update_active_user_count en server.py: 0
+async def can_create_user en server.py: 0
+```
+
+---
+
 ## 1️⃣ FUNCIONES IDENTIFICADAS EN server.py
 
 ### FUNCIONES CORE DE USUARIOS (A MIGRAR)
