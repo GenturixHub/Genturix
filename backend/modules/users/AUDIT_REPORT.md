@@ -3,7 +3,7 @@
 
 ---
 
-## PHASE 2A MIGRATION REPORT
+## PHASE 2A MIGRATION REPORT ✅
 ### Fecha: 2025-02-27
 
 ### FUNCIONES MIGRADAS ✅
@@ -15,34 +15,44 @@
 | `update_active_user_count()` | server.py:3116 | modules/users/service.py | ✅ Migrada |
 | `can_create_user()` | server.py:3129 | modules/users/service.py | ✅ Migrada |
 
-### LÍNEAS ELIMINADAS
-- **server.py:** ~75 líneas de código eliminadas
-- **Antes:** ~16,667 líneas
-- **Después:** 16,592 líneas
+---
 
-### INICIALIZACIÓN AGREGADA
-```python
-# En server.py startup event:
-set_users_db(db)
-set_users_logger(logger)
-```
+## PHASE 2B MIGRATION REPORT ✅
+### Fecha: 2025-02-27
 
-### TESTS EJECUTADOS ✅
-1. ✅ Servidor inicia correctamente
-2. ✅ `count_active_users()` funciona desde módulo
-3. ✅ `count_active_residents()` funciona desde módulo
-4. ✅ `can_create_user()` funciona desde módulo
-5. ✅ Billing overview endpoint funciona
-6. ✅ No hay imports circulares
-7. ✅ No hay duplicación de código
+### MODELOS MIGRADOS ✅
+
+| Modelo | Origen (línea) | Destino | Status |
+|--------|----------------|---------|--------|
+| `CreateUserByAdmin` | server.py:843 | modules/users/models.py | ✅ Migrada |
+| `CreateEmployeeByHR` | server.py:877 | modules/users/models.py | ✅ Migrada |
+| `UserStatusUpdateV2` | server.py:12540 | modules/users/models.py | ✅ Migrada |
 
 ### CONFIRMACIÓN DE NO DUPLICACIÓN
 ```
-async def count_active_users en server.py: 0
-async def count_active_residents en server.py: 0
-async def update_active_user_count en server.py: 0
-async def can_create_user en server.py: 0
+class CreateUserByAdmin en server.py: 0
+class UserStatusUpdateV2 en server.py: 0
 ```
+
+---
+
+## PHASE 2C & 3 STATUS
+### Fecha: 2025-02-27
+
+### DECISIÓN ARQUITECTURAL
+Los endpoints de usuarios **permanecen en server.py** pero:
+- ✅ Usan funciones core del módulo (`count_active_users`, `can_create_user`, etc.)
+- ✅ Usan modelos del módulo (`CreateUserByAdmin`, etc.)
+- ✅ El router del módulo está preparado para migración futura completa
+
+**Razón:** El costo de migrar endpoints completos es alto debido a las dependencias compartidas (`db`, `log_audit_event`, `send_credentials_email`). El valor agregado es bajo comparado con el riesgo de introducir bugs en funcionalidad crítica.
+
+---
+
+## LÍNEAS ELIMINADAS TOTALES
+- **server.py:** ~100 líneas de código eliminadas
+- **Antes:** ~16,667 líneas
+- **Después:** 16,561 líneas
 
 ---
 
