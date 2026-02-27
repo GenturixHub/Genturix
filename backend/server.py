@@ -846,42 +846,8 @@ class HireCandidate(BaseModel):
 class CondominiumDeleteRequest(BaseModel):
     password: str = Field(..., min_length=1, description="Super Admin password for verification")
 
-# User Management Models (for Admin/HR creating users)
-class CreateUserByAdmin(BaseModel):
-    email: EmailStr
-    password: str = Field(..., min_length=8)
-    full_name: str
-    role: str  # Single role: Residente, Guarda, HR, Supervisor, Estudiante
-    phone: Optional[str] = None
-    condominium_id: Optional[str] = None  # Required when SuperAdmin creates user
-    send_credentials_email: bool = False  # If true, send credentials via email
-    # Role-specific fields (all optional, validated per role)
-    # Residente
-    apartment_number: Optional[str] = None
-    tower_block: Optional[str] = None
-    resident_type: Optional[str] = None  # owner, tenant
-    # Guarda
-    badge_number: Optional[str] = None
-    main_location: Optional[str] = None
-    initial_shift: Optional[str] = None
-    # HR
-    department: Optional[str] = None
-    permission_level: Optional[str] = None  # HR, HR_SUPERVISOR
-    # Estudiante
-    subscription_plan: Optional[str] = None  # basic, pro
-    subscription_status: Optional[str] = None  # trial, active
-    # Supervisor
-    supervised_area: Optional[str] = None
-    guard_assignments: Optional[List[str]] = None
-
-class CreateEmployeeByHR(BaseModel):
-    email: EmailStr
-    password: str = Field(..., min_length=8)
-    full_name: str
-    badge_number: str
-    phone: str
-    emergency_contact: str
-    hourly_rate: float
+# NOTE: CreateUserByAdmin and CreateEmployeeByHR models moved to modules/users/models.py
+# Imported at top of file from modules.users.models
 
 # School Module Models
 class CourseCreate(BaseModel):
