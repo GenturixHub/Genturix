@@ -49,6 +49,9 @@ __all__ = [
     "UserStatusUpdate",
     "UserUpdate",
     "UserListResponse",
+    "CreateUserByAdmin",
+    "CreateEmployeeByHR",
+    "UserStatusUpdateV2",
     # Service setup
     "set_db",
     "set_logger",
