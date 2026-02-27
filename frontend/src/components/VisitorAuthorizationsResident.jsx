@@ -1095,7 +1095,7 @@ const VisitorAuthorizationsResident = ({ notifications: parentNotifications = []
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Create/Edit Dialog */}
       <AuthorizationFormDialog
