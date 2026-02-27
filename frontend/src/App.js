@@ -386,7 +386,7 @@ function AppRoutes() {
 
       <Route path="/payments" element={
         <ModuleProtectedRoute allowedRoles={['Administrador', 'Residente', 'Estudiante']} moduleId="payments">
-          <PaymentsModule />
+          <AdminBillingPage />
         </ModuleProtectedRoute>
       } />
 
