@@ -490,7 +490,7 @@ const AdminBillingPage = () => {
         api.getBillingInfo(),
         api.getSeatUsage(),
         api.getPaymentHistory(),
-        api.getPendingSeatRequest()
+        api.getMyPendingUpgradeRequest()
       ]);
 
       if (infoRes.status === 'fulfilled') {
