@@ -13,7 +13,7 @@ import DashboardPage from './pages/DashboardPage';
 import SecurityModule from './pages/SecurityModule';
 import RRHHModule from './pages/RRHHModule';
 import SchoolModule from './pages/SchoolModule';
-import PaymentsModule from './pages/PaymentsModule';
+import AdminBillingPage from './pages/AdminBillingPage';
 import AuditModule from './pages/AuditModule';
 import ReservationsModule from './pages/ReservationsModule';
 // Resident module - independent mobile-first layout
