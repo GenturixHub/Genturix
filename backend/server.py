@@ -80,6 +80,16 @@ from modules.billing.scheduler import (
     get_scheduler_instance,
 )
 
+# Import core seat engine functions from users module
+from modules.users.service import (
+    set_db as set_users_db,
+    set_logger as set_users_logger,
+    count_active_users,
+    count_active_residents,
+    update_active_user_count,
+    can_create_user,
+)
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
