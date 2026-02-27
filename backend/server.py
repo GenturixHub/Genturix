@@ -3093,69 +3093,6 @@ async def get_billing_info(condominium_id: str) -> dict:
         "billing_enabled": billing_enabled
     }
 
-async def update_active_user_count(condominium_id: str):
-    """Update the active_users count in the condominium document"""
-    if not condominium_id:
-        return
-    
-    active_count = await count_active_users(condominium_id)
-    await db.condominiums.update_one(
-        {"id": condominium_id},
-        {"$set": {"active_users": active_count, "updated_at": datetime.now(timezone.utc).isoformat()}}
-    )
-    logger.info(f"Updated active_users count for condo {condominium_id}: {active_count}")
-    return active_count
-
-async def can_create_user(condominium_id: str, role: str = "Residente") -> tuple[bool, str]:
-    """
-    SEAT PROTECTION: Check if a new user can be created in the condominium.
-    
-    Validates:
-    1. Condominium exists and is active
-    2. Billing status allows user creation
-    3. Seat limit for residents
-    
-    Returns (can_create, error_message)
-    """
-    if not condominium_id:
-        return False, "Se requiere condominium_id"
-    
-    condo = await db.condominiums.find_one({"id": condominium_id}, {"_id": 0})
-    if not condo:
-        return False, "Condominio no encontrado"
-    
-    if not condo.get("is_active", True):
-        return False, "El condominio está inactivo"
-    
-    # Check if demo condominium
-    is_demo = condo.get("environment") == "demo" or condo.get("is_demo")
-    
-    # BILLING STATUS CHECK (only for production condos)
-    if not is_demo:
-        billing_status = condo.get("billing_status", "active")
-        # Blocked statuses - cannot create any users
-        blocked_statuses = ["suspended", "cancelled"]
-        if billing_status in blocked_statuses:
-            return False, f"Condominio suspendido ({billing_status}). Contacte soporte para regularizar su pago."
-        
-        # Warning statuses - can create but with warning
-        warning_statuses = ["past_due"]
-        if billing_status in warning_statuses:
-            logger.warning(f"[SEAT-PROTECTION] Creating user in past_due condo {condominium_id[:8]}...")
-    
-    # SEAT LIMIT CHECK (applies to residents in both demo and production)
-    if role == "Residente":
-        paid_seats = 10 if is_demo else condo.get("paid_seats", 10)
-        active_residents = await count_active_residents(condominium_id)
-        
-        if active_residents >= paid_seats:
-            if is_demo:
-                return False, f"Límite de asientos DEMO alcanzado ({active_residents}/{paid_seats}). Cree un condominio de producción para más usuarios."
-            else:
-                return False, f"Límite de asientos alcanzado ({active_residents}/{paid_seats}). Solicite más asientos para continuar."
-    
-    return True, ""
-
 async def log_billing_event(
     event_type: str,
     condominium_id: str,
