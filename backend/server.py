@@ -16365,28 +16365,38 @@ def get_cors_origins() -> list:
     """
     Get allowed origins based on environment.
     
-    PRODUCTION: Only FRONTEND_URL is allowed (strict)
-    DEVELOPMENT: FRONTEND_URL + localhost fallbacks
+    PRODUCTION: Explicit list of allowed production domains
+    DEVELOPMENT: Production domains + localhost fallbacks
     
-    IMPORTANT: In production, FRONTEND_URL MUST be set to the Vercel domain
+    IMPORTANT: All production domains must be explicitly listed for security
     """
-    origins = []
+    # Production domains - explicitly listed for security
+    production_origins = [
+        "https://genturix.com",
+        "https://www.genturix.com",
+        "https://genturix.vercel.app",
+    ]
     
-    # Always include FRONTEND_URL if set (required for production)
+    # Add FRONTEND_URL if set and not already in list
     if FRONTEND_URL:
-        origins.append(FRONTEND_URL.rstrip('/'))
+        frontend = FRONTEND_URL.rstrip('/')
+        if frontend not in production_origins:
+            production_origins.append(frontend)
     
     if ENVIRONMENT == "production":
-        if not origins:
-            logger.error("[CORS] CRITICAL: ENVIRONMENT=production but FRONTEND_URL not set! API will reject all cross-origin requests.")
-        return origins
+        if not production_origins:
+            logger.error("[CORS] CRITICAL: No production origins configured!")
+        logger.info(f"[CORS] Production mode - allowing origins: {production_origins}")
+        return production_origins
     else:
         # Development mode - add localhost fallbacks
         dev_origins = [
             "http://localhost:3000",
-            "http://127.0.0.1:3000"
+            "http://127.0.0.1:3000",
         ]
-        return list(set(origins + dev_origins))  # Deduplicate
+        all_origins = list(set(production_origins + dev_origins))
+        logger.info(f"[CORS] Development mode - allowing origins: {all_origins}")
+        return all_origins
 
 cors_origins = get_cors_origins()
 logger.info(f"[CORS] Environment: {ENVIRONMENT}, Allowed origins: {cors_origins}")
