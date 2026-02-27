@@ -53,7 +53,8 @@ export function useUnreadNotificationCount(options = {}) {
   return useQuery({
     queryKey: residentKeys.unreadCount(),
     queryFn: async () => {
-      const data = await api.get('/notifications/unread-count');
+      // Use the correct resident-specific endpoint
+      const data = await api.get('/resident/visitor-notifications/unread-count');
       return data?.count || 0;
     },
     staleTime: 30_000,
