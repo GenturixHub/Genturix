@@ -16558,6 +16558,15 @@ async def startup_event():
         logger.error(f"[STARTUP] Billing module initialization failed: {e}")
         logger.warning("[STARTUP] Billing features may not work correctly")
     
+    # Initialize users module (PHASE 2A - Core Seat Engine)
+    try:
+        set_users_db(db)
+        set_users_logger(logger)
+        logger.info("[STARTUP] Users module initialized successfully")
+    except Exception as e:
+        logger.error(f"[STARTUP] Users module initialization failed: {e}")
+        logger.warning("[STARTUP] User seat management may not work correctly")
+    
     # Start billing scheduler (non-fatal if fails)
     try:
         start_billing_scheduler()
