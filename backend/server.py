@@ -8649,8 +8649,8 @@ async def create_user_by_admin(
     # Send credentials email if requested
     email_result = None
     if send_email:
-        # Get the login URL from the request origin
-        origin = request.headers.get("origin", "https://genturix.com")
+        # Get the login URL from the request origin or use app subdomain
+        origin = request.headers.get("origin", "https://app.genturix.com")
         login_url = f"{origin}/login"
         
         email_result = await send_credentials_email(
