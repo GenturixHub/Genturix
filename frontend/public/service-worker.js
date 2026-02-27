@@ -1,41 +1,80 @@
 // =========================================================================
-// GENTURIX Service Worker v7 - PUSH + CONTROLLED UPDATES
+// GENTURIX Service Worker v8 - PUSH + CACHE CLEANUP + FORCE UPDATE
 // =========================================================================
-// Este Service Worker maneja notificaciones push y actualizaciones controladas.
-// NO intercepta fetch, NO usa cache, NO tiene lógica offline.
+// Handles push notifications and ensures clean installation after domain migration.
+// Version 8 forces cleanup of all old caches and immediate activation.
 // =========================================================================
 
-// Version for cache busting (change on each deploy)
-const SW_VERSION = '7.0.0';
+// IMPORTANT: Increment this version on each deploy
+const SW_VERSION = '8.0.0';
+const CACHE_NAME = 'genturix-cache-v2';
+
+// List of valid caches (all others will be deleted)
+const CACHE_WHITELIST = [CACHE_NAME];
 
 // =========================================================================
-// INSTALL - Wait for SKIP_WAITING message (controlled update)
+// INSTALL - Force immediate activation (skipWaiting)
 // =========================================================================
 self.addEventListener('install', (event) => {
   console.log(`[SW v${SW_VERSION}] Installing...`);
-  // NO skipWaiting() here - we wait for user action
+  
+  // Force the waiting service worker to become the active service worker
+  // This ensures new SW takes over immediately after domain migration
+  self.skipWaiting();
 });
 
 // =========================================================================
-// ACTIVATE - Claim clients
+// ACTIVATE - Clean old caches and claim all clients
 // =========================================================================
 self.addEventListener('activate', (event) => {
-  console.log(`[SW v${SW_VERSION}] Activated`);
-  event.waitUntil(self.clients.claim());
+  console.log(`[SW v${SW_VERSION}] Activating...`);
+  
+  event.waitUntil(
+    Promise.all([
+      // Clean up old caches from previous domain/version
+      caches.keys().then(cacheNames => {
+        return Promise.all(
+          cacheNames.map(cacheName => {
+            if (!CACHE_WHITELIST.includes(cacheName)) {
+              console.log(`[SW v${SW_VERSION}] Deleting old cache:`, cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      }),
+      // Take control of all clients immediately
+      self.clients.claim()
+    ]).then(() => {
+      console.log(`[SW v${SW_VERSION}] Activated and controlling all clients`);
+    })
+  );
 });
 
 // =========================================================================
-// MESSAGE - Handle SKIP_WAITING from client
+// MESSAGE - Handle messages from client
 // =========================================================================
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    console.log(`[SW v${SW_VERSION}] Received SKIP_WAITING, activating new version...`);
-    self.skipWaiting();
+  if (event.data) {
+    switch (event.data.type) {
+      case 'SKIP_WAITING':
+        console.log(`[SW v${SW_VERSION}] Received SKIP_WAITING message`);
+        self.skipWaiting();
+        break;
+      case 'GET_VERSION':
+        event.ports[0]?.postMessage({ version: SW_VERSION });
+        break;
+      case 'CLEAR_CACHE':
+        caches.keys().then(keys => {
+          keys.forEach(key => caches.delete(key));
+          console.log(`[SW v${SW_VERSION}] All caches cleared`);
+        });
+        break;
+    }
   }
 });
 
 // =========================================================================
-// PUSH - Recibir y mostrar notificación
+// PUSH - Receive and display push notification
 // =========================================================================
 self.addEventListener('push', (event) => {
   let data = {
@@ -43,7 +82,7 @@ self.addEventListener('push', (event) => {
     body: 'Nueva notificación',
     icon: '/logo192.png',
     badge: '/logo192.png',
-    tag: 'genturix',
+    tag: 'genturix-notification',
     data: {}
   };
 
@@ -59,7 +98,7 @@ self.addEventListener('push', (event) => {
         data: payload.data || {}
       };
     } catch (e) {
-      // Parse error - use defaults
+      console.error(`[SW v${SW_VERSION}] Push data parse error:`, e);
     }
   }
 
@@ -90,7 +129,7 @@ self.addEventListener('push', (event) => {
 });
 
 // =========================================================================
-// NOTIFICATION CLICK - Abrir o enfocar ventana
+// NOTIFICATION CLICK - Open or focus window
 // =========================================================================
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
@@ -107,10 +146,10 @@ self.addEventListener('notificationclick', (event) => {
   }
 
   event.waitUntil(
-    self.clients.matchAll({ type: 'window' }).then((clients) => {
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
       // Try to focus existing window
       for (const client of clients) {
-        if ('focus' in client) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
           return client.navigate(url).then(() => client.focus());
         }
       }
@@ -137,3 +176,9 @@ self.addEventListener('notificationclose', (event) => {
     });
   });
 });
+
+// =========================================================================
+// FETCH - No caching, just pass through (avoid stale content issues)
+// =========================================================================
+// We intentionally do NOT intercept fetch requests
+// This prevents caching issues after domain migration
