@@ -124,6 +124,11 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
 - [x] Users module Phase 2A (core functions)
 - [x] Users module Phase 2B (models)
 - [x] Admin Billing Page redesign
+- [x] PWA manifest.json fix (2025-02-27)
+  - Added `"id": "/"` for PWA identity
+  - Removed broken `screenshots` section (files didn't exist)
+  - Removed broken `shortcuts` section (icons didn't exist)
+  - All 8 icons verified and accessible
 
 ### P1 - High Priority
 - [ ] Auth module modularization
