@@ -3048,32 +3048,12 @@ async def create_and_send_notification(
     }
 
 # ==================== SAAS BILLING HELPERS ====================
-
-async def count_active_users(condominium_id: str) -> int:
-    """Count all active users in a condominium, excluding SuperAdmin.
-    Uses both 'status' field and legacy 'is_active' for backward compatibility."""
-    count = await db.users.count_documents({
-        "condominium_id": condominium_id,
-        "roles": {"$not": {"$in": ["SuperAdmin"]}},
-        "$or": [
-            {"status": "active"},
-            {"status": {"$exists": False}, "is_active": True}  # Backward compatibility
-        ]
-    })
-    return count
-
-async def count_active_residents(condominium_id: str) -> int:
-    """Count only active RESIDENTS in a condominium (for seat management).
-    This is the number that should be compared against paid_seats."""
-    count = await db.users.count_documents({
-        "condominium_id": condominium_id,
-        "roles": {"$in": ["Residente"]},
-        "$or": [
-            {"status": "active"},
-            {"status": {"$exists": False}, "is_active": True}
-        ]
-    })
-    return count
+# NOTE: Core seat engine functions moved to modules/users/service.py:
+# - count_active_users()
+# - count_active_residents()
+# - update_active_user_count()
+# - can_create_user()
+# These are now imported at the top of this file.
 
 async def get_billing_info(condominium_id: str) -> dict:
     """Get billing information for a condominium"""
