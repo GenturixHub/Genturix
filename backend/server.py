@@ -16369,11 +16369,18 @@ def get_cors_origins() -> list:
     DEVELOPMENT: Production domains + localhost fallbacks
     
     IMPORTANT: All production domains must be explicitly listed for security
+    
+    Domain architecture:
+    - https://genturix.com - Landing page
+    - https://app.genturix.com - Application frontend (PWA)
+    - https://www.genturix.com - WWW redirect
+    - https://genturix.vercel.app - Vercel deployment
     """
     # Production domains - explicitly listed for security
     production_origins = [
         "https://genturix.com",
         "https://www.genturix.com",
+        "https://app.genturix.com",  # Main application subdomain
         "https://genturix.vercel.app",
     ]
     
@@ -16396,6 +16403,7 @@ def get_cors_origins() -> list:
         ]
         all_origins = list(set(production_origins + dev_origins))
         logger.info(f"[CORS] Development mode - allowing origins: {all_origins}")
+        return all_origins
         return all_origins
 
 cors_origins = get_cors_origins()
