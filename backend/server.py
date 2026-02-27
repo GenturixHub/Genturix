@@ -12537,11 +12537,7 @@ async def update_user_roles(user_id: str, roles: List[str], current_user = Depen
     return {"message": "Roles updated"}
 
 # ==================== SEAT MANAGEMENT MODELS ====================
-class UserStatusUpdateV2(BaseModel):
-    """Update user status with enhanced seat management"""
-    status: str = Field(..., pattern="^(active|blocked|suspended)$")
-    reason: Optional[str] = None  # Optional reason for blocking/suspending
-
+# NOTE: UserStatusUpdateV2 model moved to modules/users/models.py
 # NOTE: SeatUsageResponse and SeatReductionValidation are imported from modules.billing.models
 
 # ==================== SEAT MANAGEMENT ENDPOINTS ====================
