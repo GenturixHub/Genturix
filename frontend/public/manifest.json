@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "GENTURIX",
   "short_name": "GENTURIX",
   "description": "Plataforma inteligente de seguridad y gestión de emergencias para condominios.",
@@ -59,38 +60,6 @@
     }
   ],
   "categories": ["security", "business", "utilities"],
-  "screenshots": [
-    {
-      "src": "/screenshots/mobile-emergency.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Botones de Emergencia"
-    },
-    {
-      "src": "/screenshots/desktop-dashboard.png",
-      "sizes": "1920x1080",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Dashboard Administrativo"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "Emergencia Médica",
-      "short_name": "Médica",
-      "description": "Activar alerta de emergencia médica",
-      "url": "/resident?action=medical",
-      "icons": [{ "src": "/icons/medical-96x96.png", "sizes": "96x96" }]
-    },
-    {
-      "name": "Emergencia General",
-      "short_name": "Emergencia",
-      "description": "Activar alerta de emergencia general",
-      "url": "/resident?action=emergency",
-      "icons": [{ "src": "/icons/emergency-96x96.png", "sizes": "96x96" }]
-    }
-  ],
   "related_applications": [],
   "prefer_related_applications": false
 }
