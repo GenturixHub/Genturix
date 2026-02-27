@@ -6,9 +6,9 @@ This module handles all user-related operations including:
 - User CRUD operations
 - Role management
 - User status management
-- Permission checks
+- Seat management (billing integration)
 
-Phase 1: Structure only (models defined, no logic moved yet)
+Phase 2A: Core seat engine functions migrated
 """
 
 from .models import (
@@ -17,7 +17,23 @@ from .models import (
     UserCreate,
     UserResponse,
     UserStatusUpdate,
+    UserUpdate,
+    UserListResponse,
 )
+
+from .service import (
+    # Database setup
+    set_db,
+    set_logger,
+    get_db,
+    get_logger,
+    # Core seat engine functions
+    count_active_users,
+    count_active_residents,
+    update_active_user_count,
+    can_create_user,
+)
+
 from .router import users_router
 
 __all__ = [
@@ -28,6 +44,18 @@ __all__ = [
     "UserCreate",
     "UserResponse",
     "UserStatusUpdate",
+    "UserUpdate",
+    "UserListResponse",
+    # Service setup
+    "set_db",
+    "set_logger",
+    "get_db",
+    "get_logger",
+    # Core seat engine
+    "count_active_users",
+    "count_active_residents",
+    "update_active_user_count",
+    "can_create_user",
     # Router
     "users_router",
 ]
