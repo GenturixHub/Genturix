@@ -995,9 +995,9 @@ const VisitorAuthorizationsResident = ({ notifications: parentNotifications = []
         </Button>
       </div>
 
-      {/* Content */}
-      <ScrollArea className="flex-1 h-full">
-        <div className="p-4 pb-24 space-y-4">
+      {/* Content - Scrollable area with bottom padding for navbar */}
+      <div className="flex-1 overflow-y-auto pb-28">
+        <div className="p-4 space-y-4">
           {/* Notifications Panel (collapsible) */}
           {showNotifications && (
             <Card className="bg-[#0F111A] border-[#1E293B]">
