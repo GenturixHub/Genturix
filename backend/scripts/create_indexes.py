@@ -126,6 +126,46 @@ async def create_indexes():
             "options": {"background": True},
             "reason": "Optimizes user counts by condo"
         },
+        
+        # ==================== VISITS (PILOT CRITICAL) ====================
+        {
+            "collection": "visits",
+            "keys": [("condominium_id", 1), ("created_at", -1)],
+            "options": {"background": True},
+            "reason": "Optimizes visit history queries by condo"
+        },
+        {
+            "collection": "visits",
+            "keys": [("resident_id", 1), ("status", 1)],
+            "options": {"background": True},
+            "reason": "Optimizes resident visit lookups"
+        },
+        {
+            "collection": "visits",
+            "keys": [("condominium_id", 1), ("status", 1), ("entry_at", -1)],
+            "options": {"background": True},
+            "reason": "Optimizes active visit queries"
+        },
+        
+        # ==================== ALERTS (SECURITY CRITICAL) ====================
+        {
+            "collection": "alerts",
+            "keys": [("condominium_id", 1), ("created_at", -1)],
+            "options": {"background": True},
+            "reason": "Optimizes alert history queries by condo"
+        },
+        {
+            "collection": "alerts",
+            "keys": [("type", 1), ("status", 1)],
+            "options": {"background": True},
+            "reason": "Optimizes alert filtering by type/status"
+        },
+        {
+            "collection": "alerts",
+            "keys": [("condominium_id", 1), ("acknowledged", 1)],
+            "options": {"background": True},
+            "reason": "Optimizes unacknowledged alert queries"
+        },
     ]
     
     print(f"\nCreating {len(indexes)} indexes...\n")
