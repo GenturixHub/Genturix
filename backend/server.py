@@ -97,6 +97,21 @@ from modules.users.models import (
     UserStatusUpdateV2,
 )
 
+# Import centralized email service
+from services.email_service import (
+    send_email,
+    send_email_sync,
+    is_email_configured,
+    get_email_status,
+    get_welcome_email_html,
+    get_password_reset_email_html,
+    get_emergency_alert_email_html,
+    get_notification_email_html,
+    get_condominium_welcome_email_html,
+    get_visitor_preregistration_email_html,
+    get_user_credentials_email_html,
+)
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
