@@ -205,11 +205,63 @@ export function usePushNotifications() {
   }, []);
 
   /**
-   * v3.0: NON-BLOCKING INITIALIZATION
+   * v4.0: SUBSCRIPTION VALIDATION
+   * Validates if the user's push subscription is still valid by calling backend.
+   * If subscription expired (410/404), prompts user to re-enable.
+   */
+  const validateSubscription = useCallback(async () => {
+    if (validationInProgressRef.current) {
+      console.log('[PUSH-VALIDATE] Validation already in progress, skipping');
+      return;
+    }
+    
+    validationInProgressRef.current = true;
+    console.log('[PUSH-VALIDATE] ========== VALIDATION START ==========');
+    
+    try {
+      const validationResult = await withTimeout(
+        api.validateUserSubscription(),
+        10000,
+        'Timeout validating subscription'
+      );
+      
+      console.log('[PUSH-VALIDATE] Result:', validationResult);
+      
+      if (!mountedRef.current) return;
+      
+      // Check if action is required (subscription expired)
+      if (validationResult?.action_required === 'resubscribe') {
+        console.log('[PUSH-VALIDATE] Subscription expired! User needs to re-subscribe');
+        setNeedsResubscription(true);
+        setIsSubscribed(false);
+        localStorage.setItem(PUSH_NEEDS_RESUBSCRIBE_KEY, 'true');
+        localStorage.removeItem(PUSH_SUBSCRIBED_KEY);
+      } else if (validationResult?.is_valid === true) {
+        console.log('[PUSH-VALIDATE] Subscription is valid');
+        setNeedsResubscription(false);
+        localStorage.removeItem(PUSH_NEEDS_RESUBSCRIBE_KEY);
+      } else if (validationResult?.has_subscription === false) {
+        console.log('[PUSH-VALIDATE] No subscription in backend');
+        // Don't mark as needs resubscription - they haven't subscribed yet
+      }
+      
+      console.log('[PUSH-VALIDATE] ========== VALIDATION COMPLETE ==========');
+      
+    } catch (validationError) {
+      console.warn('[PUSH-VALIDATE] Error:', validationError.message);
+      // Don't change state on error - might be network issue
+    } finally {
+      validationInProgressRef.current = false;
+    }
+  }, []);
+
+  /**
+   * v4.0: NON-BLOCKING INITIALIZATION
    * 1. Register SW
    * 2. Immediately check local subscription (fast)
    * 3. Set isInitialized = true (UI can render)
    * 4. Fire background sync (doesn't block)
+   * 5. Validate subscription with backend (detects expired)
    */
   useEffect(() => {
     if (!isSupported) {
