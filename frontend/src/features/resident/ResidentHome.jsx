@@ -463,32 +463,33 @@ const ResidentHome = () => {
         </motion.div>
       </div>
       
-      {/* Carousel Page Indicators */}
+      {/* Carousel Page Indicators - Minimal dots above bottom nav */}
       <div 
-        className="flex justify-center items-center gap-1 py-1"
         style={{ 
           position: 'absolute',
-          bottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
-          left: 0,
-          right: 0,
+          bottom: 'calc(76px + env(safe-area-inset-bottom, 0px))',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
           zIndex: 10
         }}
         data-testid="carousel-indicators"
       >
         {TAB_ORDER.map((tab, index) => (
-          <button
+          <div
             key={tab}
             onClick={() => setActiveTab(tab)}
             style={{
               width: index === activeIndex ? '6px' : '4px',
               height: index === activeIndex ? '6px' : '4px',
               borderRadius: '50%',
-              backgroundColor: index === activeIndex ? '#22d3ee' : 'rgba(255,255,255,0.3)',
+              backgroundColor: index === activeIndex ? '#22d3ee' : 'rgba(255,255,255,0.25)',
               transition: 'all 0.2s ease',
-              border: 'none',
-              padding: 0,
               cursor: 'pointer'
             }}
+            role="button"
             aria-label={`Go to ${tab} module`}
             data-testid={`carousel-dot-${tab}`}
           />
