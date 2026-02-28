@@ -3544,6 +3544,225 @@ async def get_vapid_public_key():
         raise HTTPException(status_code=503, detail="Push notifications not configured")
     return {"publicKey": VAPID_PUBLIC_KEY}
 
+
+# ==================== FORGOT PASSWORD ENDPOINTS (CODE BASED) ====================
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+class ResetPasswordWithCodeRequest(BaseModel):
+    email: str
+    code: str
+    new_password: str
+
+
+@api_router.post("/auth/request-password-reset")
+async def request_password_reset_code(
+    request_data: ForgotPasswordRequest,
+    request: Request
+):
+    """
+    Request a password reset code via email.
+    
+    - Generates a 6-digit verification code
+    - Code expires in 10 minutes
+    - Sends code via email using Resend
+    """
+    email = request_data.email.lower().strip()
+    
+    # Validate email format
+    email_regex = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
+    if not re.match(email_regex, email):
+        raise HTTPException(status_code=400, detail="Formato de email inválido")
+    
+    # Find user
+    user = await db.users.find_one({"email": email}, {"_id": 0, "id": 1, "full_name": 1, "is_active": 1})
+    
+    # Security: Always return success even if user doesn't exist (prevents email enumeration)
+    if not user:
+        logger.info(f"[PASSWORD-RESET] Code requested for non-existent email: {email}")
+        return {"message": "Si el correo existe, recibirás un código de verificación"}
+    
+    if not user.get("is_active"):
+        logger.info(f"[PASSWORD-RESET] Code requested for inactive user: {email}")
+        return {"message": "Si el correo existe, recibirás un código de verificación"}
+    
+    # Generate 6-digit code
+    code = str(random.randint(100000, 999999))
+    
+    # Store code with expiration (10 minutes)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)
+    
+    # Hash the code for storage (security)
+    code_hash = hashlib.sha256(code.encode()).hexdigest()
+    
+    # Upsert the reset code (one per email)
+    await db.password_reset_codes.update_one(
+        {"email": email},
+        {
+            "$set": {
+                "email": email,
+                "code_hash": code_hash,
+                "expires_at": expires_at.isoformat(),
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "attempts": 0
+            }
+        },
+        upsert=True
+    )
+    
+    # Send email with code
+    print(f"[EMAIL TRIGGER] password_reset_code → sending code to {email}")
+    
+    try:
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+                <h1 style="color: #00d4ff; margin: 0;">GENTURIX</h1>
+                <p style="color: #888; margin-top: 5px;">Recuperación de Contraseña</p>
+            </div>
+            
+            <div style="background: #ffffff; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #eee;">
+                <p>Hola,</p>
+                <p>Recibimos una solicitud para restablecer tu contraseña.</p>
+                
+                <div style="background: #f8f9fa; padding: 25px; border-radius: 8px; margin: 25px 0; text-align: center;">
+                    <p style="margin: 0 0 10px 0; font-size: 14px; color: #666;">Tu código de verificación es:</p>
+                    <p style="margin: 0; font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #1a1a2e;">{code}</p>
+                </div>
+                
+                <p style="color: #e74c3c; font-size: 14px;">
+                    <strong>Este código expira en 10 minutos.</strong>
+                </p>
+                
+                <p style="color: #666; font-size: 14px;">
+                    Si no solicitaste este código, puedes ignorar este mensaje.
+                </p>
+            </div>
+            
+            <div style="text-align: center; padding: 20px; color: #888; font-size: 12px;">
+                <p>Este es un correo automático de Genturix Security.</p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        await send_email(
+            to=email,
+            subject="Código de Recuperación - Genturix",
+            html=html_content
+        )
+    except Exception as e:
+        logger.error(f"[PASSWORD-RESET] Failed to send code email to {email}: {e}")
+        # Still return success to prevent email enumeration
+    
+    logger.info(f"[PASSWORD-RESET] Code sent to {email}")
+    
+    return {"message": "Si el correo existe, recibirás un código de verificación"}
+
+
+@api_router.post("/auth/reset-password")
+async def reset_password_with_code(
+    request_data: ResetPasswordWithCodeRequest,
+    request: Request
+):
+    """
+    Reset password using the verification code.
+    
+    - Validates the 6-digit code
+    - Checks expiration (10 minutes)
+    - Updates password
+    - Deletes used code
+    """
+    email = request_data.email.lower().strip()
+    code = request_data.code.strip()
+    new_password = request_data.new_password
+    
+    # Validate code format
+    if not code or len(code) != 6 or not code.isdigit():
+        raise HTTPException(status_code=400, detail="Código de verificación inválido")
+    
+    # Validate password
+    if len(new_password) < 8:
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 8 caracteres")
+    if not any(c.isupper() for c in new_password):
+        raise HTTPException(status_code=400, detail="La contraseña debe contener al menos una mayúscula")
+    if not any(c.isdigit() for c in new_password):
+        raise HTTPException(status_code=400, detail="La contraseña debe contener al menos un número")
+    
+    # Find reset code
+    reset_record = await db.password_reset_codes.find_one({"email": email})
+    
+    if not reset_record:
+        raise HTTPException(status_code=400, detail="No hay código de verificación para este correo")
+    
+    # Check expiration
+    expires_at = datetime.fromisoformat(reset_record["expires_at"].replace("Z", "+00:00"))
+    if datetime.now(timezone.utc) > expires_at:
+        await db.password_reset_codes.delete_one({"email": email})
+        raise HTTPException(status_code=400, detail="El código ha expirado. Solicita uno nuevo.")
+    
+    # Verify code (compare hashes)
+    code_hash = hashlib.sha256(code.encode()).hexdigest()
+    stored_hash = reset_record.get("code_hash")
+    
+    if code_hash != stored_hash:
+        # Increment attempts
+        attempts = reset_record.get("attempts", 0) + 1
+        if attempts >= 5:
+            await db.password_reset_codes.delete_one({"email": email})
+            raise HTTPException(status_code=400, detail="Demasiados intentos fallidos. Solicita un nuevo código.")
+        
+        await db.password_reset_codes.update_one(
+            {"email": email},
+            {"$set": {"attempts": attempts}}
+        )
+        raise HTTPException(status_code=400, detail="Código de verificación incorrecto")
+    
+    # Find user and update password
+    user = await db.users.find_one({"email": email})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # Update password
+    password_changed_at = datetime.now(timezone.utc).isoformat()
+    
+    await db.users.update_one(
+        {"email": email},
+        {
+            "$set": {
+                "hashed_password": hash_password(new_password),
+                "password_changed_at": password_changed_at,
+                "password_reset_required": False,
+                "updated_at": password_changed_at
+            }
+        }
+    )
+    
+    # Delete used code (single use)
+    await db.password_reset_codes.delete_one({"email": email})
+    
+    # Log audit event
+    await log_audit_event(
+        AuditEventType.PASSWORD_RESET_COMPLETED,
+        user.get("id"),
+        "auth",
+        {"method": "verification_code", "email": email},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown")
+    )
+    
+    print(f"[AUTH EVENT] Password reset SUCCESS | email={email}")
+    logger.info(f"[PASSWORD-RESET] Password reset completed for {email}")
+    
+    return {"message": "Contraseña actualizada exitosamente"}
+
+
 # ==================== PUSH NOTIFICATION ENDPOINTS (REFACTORED) ====================
 # Backend is the ONLY authority for push notification routing.
 # All subscriptions MUST have: user_id, role, condominium_id
