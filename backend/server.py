@@ -12283,11 +12283,31 @@ async def get_audit_logs(
     user_id: Optional[str] = None,
     current_user = Depends(require_module("audit"))
 ):
+    """
+    Get audit logs - TENANT ISOLATED.
+    
+    - SuperAdmin: sees ALL logs from all condominiums
+    - Administrador: sees ONLY logs from their condominium
+    - Other roles: access denied
+    """
+    roles = current_user.get("roles", [])
+    
     # Verify role
-    if not any(role in current_user.get("roles", []) for role in ["Administrador", "SuperAdmin"]):
+    if not any(role in roles for role in ["Administrador", "SuperAdmin"]):
         raise HTTPException(status_code=403, detail="Acceso denegado")
     
     query = {}
+    
+    # CRITICAL: Multi-tenant isolation
+    # SuperAdmin sees all, others see ONLY their condominium
+    if "SuperAdmin" not in roles:
+        condo_id = current_user.get("condominium_id")
+        if condo_id:
+            query["condominium_id"] = condo_id
+        else:
+            # No condominium assigned - return empty
+            return []
+    
     if module:
         query["module"] = module
     if event_type:
