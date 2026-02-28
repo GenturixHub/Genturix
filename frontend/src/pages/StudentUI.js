@@ -262,8 +262,8 @@ const SubscriptionTab = ({ user }) => {
             <div className="space-y-1">
               <p className="text-sm font-medium text-blue-400">Modelo de Precios GENTURIX</p>
               <p className="text-xs text-muted-foreground">
-                GENTURIX School opera con un modelo simple: <strong className="text-white">$1 USD por usuario al mes</strong> para el plan básico. 
-                Los cursos premium tienen un costo adicional de $2 USD/mes.
+                GENTURIX School opera con un modelo flexible. 
+                Contacta a tu administrador para información sobre planes y precios.
               </p>
             </div>
           </div>
