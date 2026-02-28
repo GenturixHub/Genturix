@@ -421,6 +421,9 @@ export function usePushNotifications() {
       console.log('[PUSH-SYNC] ========== SUBSCRIBE SUCCESS ==========');
 
       setIsSubscribed(true);
+      // v4.0: Clear resubscription flag on successful subscribe
+      setNeedsResubscription(false);
+      localStorage.removeItem(PUSH_NEEDS_RESUBSCRIBE_KEY);
       // v3.1: Update localStorage for instant banner hiding
       localStorage.setItem(PUSH_SUBSCRIBED_KEY, 'true');
       return true;
