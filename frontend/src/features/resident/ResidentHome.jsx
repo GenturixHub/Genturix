@@ -384,12 +384,13 @@ const ResidentHome = () => {
     isDragging.current = false;
     
     const { offset } = info;
-    // 25% of viewport as threshold for natural swipe feel
-    const threshold = viewportWidth * 0.25;
+    // Fixed threshold of 80px for consistent swipe behavior
+    const threshold = 80;
     
     let newIndex = activeIndex;
     
     // Determine direction based on drag distance (NOT velocity)
+    // Only change ONE module per swipe (no skipping)
     if (offset.x < -threshold) {
       // Swiped left → go to next module (max +1)
       newIndex = Math.min(activeIndex + 1, TAB_ORDER.length - 1);
