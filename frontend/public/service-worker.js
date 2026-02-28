@@ -1,15 +1,20 @@
 // =========================================================================
-// GENTURIX Service Worker v15 - PUSH + SMART CACHE + API STALE-WHILE-REVALIDATE
+// GENTURIX Service Worker v16 - PUSH + SMART CACHE + API STALE-WHILE-REVALIDATE
 // =========================================================================
 // Handles push notifications with intelligent caching for static assets.
 // Uses Stale-While-Revalidate for JS, CSS, icons, fonts AND select API endpoints.
 // POST/PUT/DELETE requests are NEVER cached.
+// v16: Fixed Android notification icons with explicit icon/badge paths
 // =========================================================================
 
 // IMPORTANT: Increment this version on each deploy
-const SW_VERSION = '15.0.0';
-const CACHE_NAME = 'genturix-cache-v15';
-const API_CACHE_NAME = 'genturix-api-cache-v15';
+const SW_VERSION = '16.0.0';
+const CACHE_NAME = 'genturix-cache-v16';
+const API_CACHE_NAME = 'genturix-api-cache-v16';
+
+// Notification icons with version suffix to bypass Android cache
+const NOTIFICATION_ICON = '/icons/notification-icon-v2.png';
+const NOTIFICATION_BADGE = '/icons/badge-72-v2.png';
 
 // List of valid caches (all others will be deleted)
 const CACHE_WHITELIST = [CACHE_NAME, API_CACHE_NAME];
