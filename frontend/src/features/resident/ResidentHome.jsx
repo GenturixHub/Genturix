@@ -327,87 +327,31 @@ const ResidentHome = () => {
   // Get current module index
   const activeIndex = TAB_ORDER.indexOf(activeTab);
   
-  // Viewport width for drag calculations
-  const containerRef = useRef(null);
-  const [viewportWidth, setViewportWidth] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth;
+  // Simple swipe navigation handlers
+  const goNextTab = useCallback(() => {
+    const nextIndex = Math.min(activeIndex + 1, TAB_ORDER.length - 1);
+    if (nextIndex !== activeIndex) {
+      setActiveTab(TAB_ORDER[nextIndex]);
     }
-    return 375;
+  }, [activeIndex]);
+  
+  const goPrevTab = useCallback(() => {
+    const prevIndex = Math.max(activeIndex - 1, 0);
+    if (prevIndex !== activeIndex) {
+      setActiveTab(TAB_ORDER[prevIndex]);
+    }
+  }, [activeIndex]);
+  
+  // react-swipeable handlers - simple swipe only
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: goNextTab,
+    onSwipedRight: goPrevTab,
+    delta: 70,                    // Minimum swipe distance
+    preventScrollOnSwipe: false,  // Allow vertical scrolling
+    trackTouch: true,
+    trackMouse: false,
+    swipeDuration: 500,
   });
-  
-  // Motion value for interactive drag - follows finger exactly
-  const x = useMotionValue(0);
-  
-  // Track if currently dragging
-  const isDragging = useRef(false);
-  
-  // Animate to specific index with spring animation
-  const animateToIndex = useCallback((index) => {
-    const targetX = -index * viewportWidth;
-    animate(x, targetX, {
-      type: "spring",
-      stiffness: 320,
-      damping: 32,
-      mass: 0.8
-    });
-  }, [viewportWidth, x]);
-  
-  // Sync position when activeIndex changes (from tab clicks only)
-  useEffect(() => {
-    if (!isDragging.current) {
-      animateToIndex(activeIndex);
-    }
-  }, [activeIndex, animateToIndex]);
-  
-  // Handle resize - update width and reposition
-  useEffect(() => {
-    const handleResize = () => {
-      const newWidth = window.innerWidth;
-      setViewportWidth(newWidth);
-      // Immediate reposition on resize (no animation)
-      if (!isDragging.current) {
-        x.set(-activeIndex * newWidth);
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [activeIndex, x]);
-
-  // Handle drag start
-  const handleDragStart = useCallback(() => {
-    isDragging.current = true;
-  }, []);
-
-  // Handle drag end - snap to nearest module
-  const handleDragEnd = useCallback((event, info) => {
-    isDragging.current = false;
-    
-    const { offset } = info;
-    // Fixed threshold of 80px for consistent swipe behavior
-    const threshold = 80;
-    
-    let newIndex = activeIndex;
-    
-    // Determine direction based on drag distance (NOT velocity)
-    // Only change ONE module per swipe (no skipping)
-    if (offset.x < -threshold) {
-      // Swiped left → go to next module (max +1)
-      newIndex = Math.min(activeIndex + 1, TAB_ORDER.length - 1);
-    } else if (offset.x > threshold) {
-      // Swiped right → go to previous module (max -1)
-      newIndex = Math.max(activeIndex - 1, 0);
-    }
-    // If offset is within threshold, stay on current module
-    
-    // Always animate to target position (snap)
-    animateToIndex(newIndex);
-    
-    // Update tab if changed
-    if (newIndex !== activeIndex) {
-      setActiveTab(TAB_ORDER[newIndex]);
-    }
-  }, [activeIndex, viewportWidth, animateToIndex]);
 
   // Success Screen - early return AFTER all hooks
   if (sentAlert) {
