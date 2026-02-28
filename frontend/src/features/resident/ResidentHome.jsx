@@ -324,51 +324,31 @@ const ResidentHome = () => {
     }
   }, [sendingType, location, user, t]);
 
-  // Drag navigation functions - must be before any early return
-  const goNextTab = useCallback(() => {
-    const index = TAB_ORDER.indexOf(activeTab);
-    if (index < TAB_ORDER.length - 1) {
-      setActiveTab(TAB_ORDER[index + 1]);
-    }
-  }, [activeTab]);
-
-  const goPrevTab = useCallback(() => {
-    const index = TAB_ORDER.indexOf(activeTab);
-    if (index > 0) {
-      setActiveTab(TAB_ORDER[index - 1]);
-    }
-  }, [activeTab]);
-
   // Get current module index
   const activeIndex = TAB_ORDER.indexOf(activeTab);
-  
-  // Viewport width for calculations
-  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 375;
 
-  // Handle drag end - calculate nearest module based on final position
+  // Handle drag end - natural physics with single-module constraint
   const handleDragEnd = useCallback((event, info) => {
     const { offset, velocity } = info;
+    const swipeThreshold = 50;
+    const velocityThreshold = 300;
     
-    // Calculate direction based on offset and velocity
     let direction = 0;
     
-    // Use velocity for quick flicks
-    if (Math.abs(velocity.x) > 200) {
+    // Quick flick detection (velocity takes priority)
+    if (Math.abs(velocity.x) > velocityThreshold) {
       direction = velocity.x > 0 ? -1 : 1;
     }
-    // Use offset for slow drags
-    else if (Math.abs(offset.x) > 50) {
+    // Slow drag detection (offset-based)
+    else if (Math.abs(offset.x) > swipeThreshold) {
       direction = offset.x > 0 ? -1 : 1;
     }
     
-    // Calculate new index (max change = 1 module)
-    const newIndex = activeIndex + direction;
+    // Only allow moving ONE module at a time
+    const newIndex = Math.max(0, Math.min(activeIndex + direction, TAB_ORDER.length - 1));
     
-    // Clamp to valid range
-    const clampedIndex = Math.max(0, Math.min(newIndex, TAB_ORDER.length - 1));
-    
-    if (clampedIndex !== activeIndex) {
-      setActiveTab(TAB_ORDER[clampedIndex]);
+    if (newIndex !== activeIndex) {
+      setActiveTab(TAB_ORDER[newIndex]);
     }
   }, [activeIndex]);
 

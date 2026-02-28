@@ -7,16 +7,12 @@
  * Full i18n support.
  */
 
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSwipeable } from 'react-swipeable';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Shield, LogOut, Users, Calendar, User, AlertTriangle } from 'lucide-react';
 import MobileBottomNav from '../../components/layout/BottomNav.js';
-
-// Tab order for swipe navigation
-const TAB_ORDER = ['emergency', 'visits', 'reservations', 'directory', 'profile'];
 
 const ResidentLayout = ({ children, activeTab, onTabChange, title = 'GENTURIX' }) => {
   const { user, logout } = useAuth();
