@@ -3465,12 +3465,18 @@ async def change_password(
     Change user password - Secure password change for all authenticated users.
     
     Security features:
+    - Rate limited (5 attempts per minute)
     - Validates current password
     - Enforces password policy (8+ chars, 1 uppercase, 1 number)
     - Confirms new password matches
     - Updates passwordChangedAt to invalidate old tokens
     - Logs audit event
     """
+    # SECURITY: Rate limiting for password change attempts
+    client_ip = request.client.host if request.client else "unknown"
+    rate_limit_identifier = f"change_pwd:{current_user['id']}:{client_ip}"
+    check_rate_limit(rate_limit_identifier)
+    
     # Verify current password
     user = await db.users.find_one({"id": current_user["id"]})
     if not user:
