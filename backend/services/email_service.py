@@ -386,3 +386,187 @@ def get_email_status() -> Dict[str, Any]:
         "api_key_set": bool(RESEND_API_KEY),
         "api_key_preview": f"{RESEND_API_KEY[:8]}..." if RESEND_API_KEY else None
     }
+
+
+# =============================================================================
+# Additional Email Templates for Production Workflows
+# =============================================================================
+
+def get_condominium_welcome_email_html(
+    admin_name: str,
+    condominium_name: str,
+    email: str,
+    password: str,
+    login_url: str
+) -> str:
+    """Generate welcome email for new condominium administrator."""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+        <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+            <h1 style="color: #00d4ff; margin: 0;">GENTURIX</h1>
+            <p style="color: #888; margin-top: 5px;">Sistema de Seguridad Residencial</p>
+        </div>
+        
+        <div style="background: #ffffff; padding: 30px 20px; border-radius: 0 0 10px 10px;">
+            <h2 style="color: #1a1a2e; margin-top: 0;">¡Bienvenido a GENTURIX, {admin_name}!</h2>
+            
+            <p>El condominio <strong style="color: #00d4ff;">{condominium_name}</strong> ha sido creado exitosamente en nuestra plataforma.</p>
+            
+            <p>Como administrador, tienes acceso completo para gestionar:</p>
+            <ul style="color: #555;">
+                <li>Residentes y usuarios</li>
+                <li>Seguridad y alertas</li>
+                <li>Control de visitantes</li>
+                <li>Áreas comunes y reservaciones</li>
+            </ul>
+            
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #00d4ff;">
+                <p style="margin: 5px 0; font-weight: bold;">Tus credenciales de acceso:</p>
+                <p style="margin: 5px 0;"><strong>Email:</strong> {email}</p>
+                <p style="margin: 5px 0;"><strong>Contraseña temporal:</strong> <code style="background: #e0e0e0; padding: 2px 8px; border-radius: 4px;">{password}</code></p>
+            </div>
+            
+            <p style="color: #e74c3c;"><strong>Importante:</strong> Por seguridad, te recomendamos cambiar tu contraseña después del primer inicio de sesión.</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{login_url}" style="background: #00d4ff; color: #1a1a2e; padding: 14px 35px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block;">
+                    Acceder al Panel de Control
+                </a>
+            </div>
+        </div>
+        
+        <div style="text-align: center; padding: 20px; color: #888; font-size: 12px;">
+            <p>Este es un correo automático de Genturix Security.</p>
+            <p>© 2026 GENTURIX - Todos los derechos reservados.</p>
+        </div>
+    </body>
+    </html>
+    """
+
+
+def get_visitor_preregistration_email_html(
+    guard_name: str,
+    visitor_name: str,
+    resident_name: str,
+    apartment: str,
+    valid_from: str,
+    valid_to: str,
+    condominium_name: str
+) -> str:
+    """Generate email notification for guards when a visitor is preregistered."""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+        <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+            <h1 style="color: #00d4ff; margin: 0;">GENTURIX</h1>
+            <p style="color: #888; margin-top: 5px;">Notificación de Visitante</p>
+        </div>
+        
+        <div style="background: #ffffff; padding: 30px 20px; border-radius: 0 0 10px 10px;">
+            <h2 style="color: #1a1a2e; margin-top: 0;">📋 Nuevo Visitante Preregistrado</h2>
+            
+            <p>Hola {guard_name},</p>
+            <p>Un residente ha autorizado la visita de una persona al condominio.</p>
+            
+            <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                <tr>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold; width: 40%;">Visitante:</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;">{visitor_name}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold;">Autorizado por:</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;">{resident_name}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold;">Apartamento:</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;">{apartment}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold;">Válido desde:</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;">{valid_from}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: bold;">Válido hasta:</td>
+                    <td style="padding: 10px; border-bottom: 1px solid #eee;">{valid_to}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px; font-weight: bold;">Condominio:</td>
+                    <td style="padding: 10px;">{condominium_name}</td>
+                </tr>
+            </table>
+            
+            <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0; color: #1565c0;">
+                    <strong>Nota:</strong> Por favor verifique la identidad del visitante al momento de su llegada.
+                </p>
+            </div>
+        </div>
+        
+        <div style="text-align: center; padding: 20px; color: #888; font-size: 12px;">
+            <p>Este es un correo automático de Genturix Security.</p>
+        </div>
+    </body>
+    </html>
+    """
+
+
+def get_user_credentials_email_html(
+    user_name: str,
+    email: str,
+    password: str,
+    role: str,
+    condominium_name: str,
+    login_url: str
+) -> str:
+    """Generate credentials email for new user accounts."""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f5f5f5;">
+        <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+            <h1 style="color: #00d4ff; margin: 0;">GENTURIX</h1>
+            <p style="color: #888; margin-top: 5px;">Bienvenido al Sistema</p>
+        </div>
+        
+        <div style="background: #ffffff; padding: 30px 20px; border-radius: 0 0 10px 10px;">
+            <h2 style="color: #1a1a2e; margin-top: 0;">¡Hola, {user_name}!</h2>
+            
+            <p>Tu cuenta ha sido creada en <strong>{condominium_name}</strong>.</p>
+            <p>Tu rol asignado es: <strong style="color: #00d4ff;">{role}</strong></p>
+            
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #00d4ff;">
+                <p style="margin: 5px 0; font-weight: bold;">Tus credenciales de acceso:</p>
+                <p style="margin: 5px 0;"><strong>Email:</strong> {email}</p>
+                <p style="margin: 5px 0;"><strong>Contraseña temporal:</strong> <code style="background: #e0e0e0; padding: 2px 8px; border-radius: 4px;">{password}</code></p>
+            </div>
+            
+            <p style="color: #e74c3c;"><strong>Importante:</strong> Por seguridad, te recomendamos cambiar tu contraseña después del primer inicio de sesión.</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{login_url}" style="background: #00d4ff; color: #1a1a2e; padding: 14px 35px; text-decoration: none; border-radius: 25px; font-weight: bold; display: inline-block;">
+                    Iniciar Sesión
+                </a>
+            </div>
+        </div>
+        
+        <div style="text-align: center; padding: 20px; color: #888; font-size: 12px;">
+            <p>Este es un correo automático de Genturix Security.</p>
+        </div>
+    </body>
+    </html>
+    """
