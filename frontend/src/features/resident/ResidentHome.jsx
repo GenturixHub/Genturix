@@ -430,11 +430,8 @@ const ResidentHome = () => {
         <motion.div
           className="flex h-full"
           drag="x"
-          dragConstraints={{ 
-            left: -(TAB_ORDER.length - 1) * viewportWidth, 
-            right: 0 
-          }}
-          dragElastic={0.08}
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.1}
           dragMomentum={false}
           dragDirectionLock
           onDragStart={handleDragStart}
