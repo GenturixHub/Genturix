@@ -1687,12 +1687,16 @@ async def send_password_reset_link_email(
 ) -> dict:
     """Send password reset email with secure link (not temporary password)"""
     
+    print(f"[EMAIL TRIGGER] password_reset_link → sending reset link to {recipient_email}")
+    
     email_enabled = await is_email_enabled()
     if not email_enabled:
+        print(f"[EMAIL BLOCKED] Email toggle is OFF (recipient: {recipient_email})")
         logger.info(f"Password reset link email not sent - Email sending is DISABLED (recipient: {recipient_email})")
         return {"status": "skipped", "reason": "Email sending disabled", "toggle_disabled": True}
     
     if not RESEND_API_KEY:
+        print(f"[EMAIL BLOCKED] RESEND_API_KEY not configured")
         logger.warning("Password reset link email not sent - RESEND_API_KEY not configured")
         return {"status": "skipped", "reason": "Email service not configured"}
     
