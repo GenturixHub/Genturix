@@ -44,7 +44,7 @@ const ResidentVisitsModule = ({ notifications = [], onRefreshNotifications }) =>
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="authorizations" className="flex-1 mt-0 overflow-hidden">
+        <TabsContent value="authorizations" className="flex-1 mt-0">
           <VisitorAuthorizationsResident 
             notifications={notifications}
             onRefreshNotifications={onRefreshNotifications}
