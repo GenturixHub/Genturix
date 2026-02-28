@@ -3188,6 +3188,9 @@ async def login(credentials: UserLogin, request: Request):
     client_ip = request.client.host if request.client else "unknown"
     normalized_email = credentials.email.lower().strip()
     rate_limit_identifier = f"{normalized_email}:{client_ip}"
+    request_id = getattr(request.state, 'request_id', 'N/A')
+    
+    print(f"[AUTH EVENT] Login attempt | email={normalized_email} | ip={client_ip} | request_id={request_id}")
     
     check_rate_limit(rate_limit_identifier)
     
@@ -3195,6 +3198,7 @@ async def login(credentials: UserLogin, request: Request):
     user = await db.users.find_one({"email": normalized_email})
     
     if not user or not verify_password(credentials.password, user.get("hashed_password", "")):
+        print(f"[AUTH EVENT] Login FAILED | email={normalized_email} | ip={client_ip} | reason=invalid_credentials")
         await log_audit_event(
             AuditEventType.LOGIN_FAILURE,
             None,
@@ -3206,6 +3210,7 @@ async def login(credentials: UserLogin, request: Request):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
     if not user.get("is_active"):
+        print(f"[AUTH EVENT] Login BLOCKED | email={normalized_email} | reason=account_inactive")
         raise HTTPException(status_code=403, detail="User account is inactive")
     
     # Check if password reset is required
