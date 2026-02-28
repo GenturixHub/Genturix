@@ -1309,19 +1309,30 @@ const ResidentUI = () => {
           </TabsList>
         )}
 
-        {/* Content Area - NO swipe handlers here, modules handle their own scroll */}
-        <div className="flex-1 min-h-0 overflow-hidden">
+        {/* SWIPEABLE Content Wrapper - Swipe handlers HERE for full area detection */}
+        <div 
+          {...(isMobile ? swipeHandlers : {})}
+          className="flex-1 min-h-0"
+        >
           <TabsContent 
             value="emergency" 
-            className="h-full flex flex-col mt-0"
+            className="h-full mt-0"
           >
-            <EmergencyTab
-              location={location}
-              locationLoading={locationLoading}
-              locationError={locationError}
-              onEmergency={handleEmergency}
-              sendingType={sendingType}
-            />
+            <div 
+              className="h-full overflow-y-auto"
+              style={{ 
+                WebkitOverflowScrolling: 'touch',
+                paddingBottom: '112px' 
+              }}
+            >
+              <EmergencyTab
+                location={location}
+                locationLoading={locationLoading}
+                locationError={locationError}
+                onEmergency={handleEmergency}
+                sendingType={sendingType}
+              />
+            </div>
           </TabsContent>
 
           <TabsContent 
