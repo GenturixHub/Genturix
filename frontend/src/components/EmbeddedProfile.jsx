@@ -471,7 +471,7 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
         </Dialog>
 
       </div>
-    </ScrollArea>
+    </div>
   );
 };
 
