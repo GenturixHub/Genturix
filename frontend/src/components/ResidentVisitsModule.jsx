@@ -23,7 +23,7 @@ const ResidentVisitsModule = ({ notifications = [], onRefreshNotifications }) =>
   return (
     <div className="min-h-0 flex-1 flex flex-col">
       {/* Sub-tabs navigation */}
-      <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="flex-1 flex flex-col min-h-0">
         <TabsList className="grid grid-cols-2 mx-4 mt-3 bg-[#0A0A0F] flex-shrink-0">
           <TabsTrigger 
             value="authorizations" 
