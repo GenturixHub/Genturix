@@ -890,17 +890,25 @@ const ResidentUI = () => {
   // Tab order for swipe navigation
   const TAB_ORDER = useMemo(() => ['emergency', 'authorizations', 'reservations', 'directory', 'profile'], []);
   
-  // Swipe handlers for mobile navigation
+  // Swipe handlers for mobile navigation - ONLY horizontal swipes
   const swipeHandlers = useSwipeable({
-    onSwipedLeft: () => {
+    onSwipedLeft: (eventData) => {
       if (!isMobile) return;
+      // Only trigger if swipe is more horizontal than vertical
+      const { absX, absY } = eventData;
+      if (absX < absY * 1.5) return; // Require horizontal to be 1.5x vertical
+      
       const currentIndex = TAB_ORDER.indexOf(activeTab);
       if (currentIndex < TAB_ORDER.length - 1) {
         setActiveTab(TAB_ORDER[currentIndex + 1]);
       }
     },
-    onSwipedRight: () => {
+    onSwipedRight: (eventData) => {
       if (!isMobile) return;
+      // Only trigger if swipe is more horizontal than vertical
+      const { absX, absY } = eventData;
+      if (absX < absY * 1.5) return; // Require horizontal to be 1.5x vertical
+      
       const currentIndex = TAB_ORDER.indexOf(activeTab);
       if (currentIndex > 0) {
         setActiveTab(TAB_ORDER[currentIndex - 1]);
@@ -908,9 +916,9 @@ const ResidentUI = () => {
     },
     trackMouse: false,
     trackTouch: true,
-    delta: 60, // Minimum swipe distance
+    delta: 80, // Increased to avoid accidental triggers
     swipeDuration: 500,
-    preventScrollOnSwipe: false, // Allow vertical scroll
+    preventScrollOnSwipe: false, // CRITICAL: Allow vertical scroll
   });
   
   // Location state
