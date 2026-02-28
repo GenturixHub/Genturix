@@ -4332,6 +4332,7 @@ async def update_profile(profile_data: ProfileUpdate, current_user = Depends(get
         update_fields["phone"] = profile_data.phone
     if profile_data.profile_photo is not None:
         update_fields["profile_photo"] = profile_data.profile_photo
+        print(f"[FLOW] profile_image_updated | user_id={current_user['id']} photo_url={profile_data.profile_photo[:50]}...")
     if profile_data.public_description is not None:
         update_fields["public_description"] = profile_data.public_description
     
