@@ -395,12 +395,12 @@ const ResidentHome = () => {
     const newIndex = Math.max(0, Math.min(activeIndex + direction, TAB_ORDER.length - 1));
     
     // Snap to the target position
-    x.set(-newIndex * viewportWidth);
+    rawX.set(-newIndex * viewportWidth);
     
     if (newIndex !== activeIndex) {
       setActiveTab(TAB_ORDER[newIndex]);
     }
-  }, [activeIndex, viewportWidth, x]);
+  }, [activeIndex, viewportWidth, rawX]);
 
   // Success Screen - early return AFTER all hooks
   if (sentAlert) {
