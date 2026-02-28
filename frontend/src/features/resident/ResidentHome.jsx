@@ -463,6 +463,33 @@ const ResidentHome = () => {
         </motion.div>
       </div>
       
+      {/* Carousel Page Indicators */}
+      <div 
+        className="flex justify-center items-center gap-2 py-2 bg-[#05050A]/80 backdrop-blur-sm"
+        style={{ 
+          position: 'absolute',
+          bottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
+          left: 0,
+          right: 0,
+          zIndex: 10
+        }}
+        data-testid="carousel-indicators"
+      >
+        {TAB_ORDER.map((tab, index) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`rounded-full transition-all duration-200 ${
+              index === activeIndex 
+                ? 'bg-cyan-400 w-2.5 h-2.5 scale-110' 
+                : 'bg-gray-500/50 w-2 h-2 hover:bg-gray-400/60'
+            }`}
+            aria-label={`Go to ${tab} module`}
+            data-testid={`carousel-dot-${tab}`}
+          />
+        ))}
+      </div>
+      
       {/* Push Permission Banner */}
       <PushPermissionBanner onSubscribed={() => console.log('Push enabled!')} />
     </ResidentLayout>
