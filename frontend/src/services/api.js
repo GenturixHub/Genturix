@@ -462,7 +462,7 @@ class ApiService {
   getCertificates = () => this.get('/school/certificates');
   getStudentProgress = (studentId) => this.get(`/school/student-progress/${studentId}`);
 
-  // Payments - GENTURIX Model: $1 per user per month
+  // Payments - GENTURIX Flexible Model
   getPricing = () => this.get('/payments/pricing');
   calculatePrice = (userCount) => this.post('/payments/calculate', { user_count: userCount });
   createCheckout = (data) => {
