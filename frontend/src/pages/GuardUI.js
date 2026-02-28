@@ -2525,7 +2525,7 @@ const GuardUI = () => {
         )}
 
         {/* Tab Content */}
-        <div className="flex-1 min-h-0 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
           <TabsContent value="alerts" className="h-full m-0 data-[state=inactive]:hidden">
             <AlertsTab 
               alerts={alerts}
