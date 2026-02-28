@@ -455,8 +455,8 @@ function App() {
       client={queryClient} 
       persistOptions={{
         persister,
-        maxAge: 10 * 60 * 1000, // 10 minutes
-        buster: 'v1',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days - native app experience
+        buster: 'v2', // Increment to invalidate all cached data
       }}
     >
       <BrowserRouter>
