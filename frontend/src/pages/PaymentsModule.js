@@ -249,7 +249,7 @@ const PaymentsModule = () => {
 
                   <div className="border-t border-[#1E293B] pt-4 mt-4">
                     <div className="flex justify-between items-center text-sm text-muted-foreground mb-2">
-                      <span>{userCount} usuario{userCount > 1 ? 's' : ''} × $1.00</span>
+                      <span>{userCount} usuario{userCount > 1 ? 's' : ''}</span>
                       <span>{formatCurrency(calculateTotal())}/mes</span>
                     </div>
                     <div className="flex justify-between items-center text-xl font-bold">
