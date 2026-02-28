@@ -236,39 +236,86 @@ self.addEventListener('notificationclose', (event) => {
 });
 
 // =========================================================================
-// FETCH - Stale-While-Revalidate for static assets, network-only for API
+// FETCH - Stale-While-Revalidate for static assets AND cacheable API endpoints
 // =========================================================================
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   
-  // Skip non-GET requests
+  // Skip non-GET requests (POST, PUT, DELETE are never cached)
   if (event.request.method !== 'GET') return;
   
   // Skip non-http(s) requests
   if (!url.protocol.startsWith('http')) return;
   
-  // Check if this is a cacheable static asset
-  if (shouldCache(url)) {
-    // Stale-While-Revalidate strategy
+  // Skip requests we should never cache
+  if (NO_CACHE_PATTERNS.some(pattern => pattern.test(url.toString()))) return;
+  
+  // Strategy 1: Static assets - Stale-While-Revalidate
+  if (shouldCacheStatic(url)) {
     event.respondWith(
       caches.open(CACHE_NAME).then(cache => {
         return cache.match(event.request).then(cachedResponse => {
           const fetchPromise = fetch(event.request).then(networkResponse => {
-            // Only cache successful responses
             if (networkResponse && networkResponse.status === 200) {
               cache.put(event.request, networkResponse.clone());
             }
             return networkResponse;
-          }).catch(() => {
-            // Network failed, return cached if available
-            return cachedResponse;
-          });
+          }).catch(() => cachedResponse);
           
-          // Return cached immediately, update in background
           return cachedResponse || fetchPromise;
         });
       })
     );
+    return;
   }
-  // For API and dynamic content: let browser handle normally (no interception)
+  
+  // Strategy 2: Cacheable API endpoints - Stale-While-Revalidate with 24h expiry
+  if (shouldCacheAPI(url)) {
+    event.respondWith(
+      caches.open(API_CACHE_NAME).then(async cache => {
+        const cachedResponse = await cache.match(event.request);
+        
+        // Check if cached response is still valid (24h)
+        let cacheValid = false;
+        if (cachedResponse) {
+          const cachedDate = cachedResponse.headers.get('sw-cached-at');
+          if (cachedDate) {
+            const age = Date.now() - parseInt(cachedDate, 10);
+            cacheValid = age < API_CACHE_MAX_AGE;
+          }
+        }
+        
+        // Always try network in background
+        const networkPromise = fetch(event.request).then(networkResponse => {
+          if (networkResponse && networkResponse.status === 200) {
+            // Clone and add cache timestamp header
+            const headers = new Headers(networkResponse.headers);
+            headers.set('sw-cached-at', Date.now().toString());
+            
+            const responseToCache = new Response(networkResponse.clone().body, {
+              status: networkResponse.status,
+              statusText: networkResponse.statusText,
+              headers: headers
+            });
+            
+            cache.put(event.request, responseToCache);
+          }
+          return networkResponse;
+        }).catch(() => {
+          // Network failed, return cached if available
+          return cachedResponse;
+        });
+        
+        // Return cached immediately if valid, otherwise wait for network
+        if (cachedResponse && cacheValid) {
+          return cachedResponse;
+        }
+        
+        return networkPromise;
+      })
+    );
+    return;
+  }
+  
+  // For other requests: let browser handle normally (no interception)
 });
