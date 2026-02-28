@@ -471,6 +471,128 @@ const SeatUpgradeDialog = ({ isOpen, onClose, currentSeats, onSubmit, isSubmitti
   );
 };
 
+// ==================== BILLING EVENTS PANEL ====================
+const BillingEventsPanel = ({ condoId, isLoading: parentLoading }) => {
+  const [events, setEvents] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      if (!condoId) return;
+      setIsLoading(true);
+      try {
+        const data = await api.getBillingEvents(condoId);
+        setEvents(data || []);
+      } catch (error) {
+        console.error('Error fetching billing events:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchEvents();
+  }, [condoId]);
+
+  const EVENT_TYPE_CONFIG = {
+    condominium_created: { label: 'Condominio Creado', color: 'text-green-400', icon: CheckCircle },
+    upgrade_requested: { label: 'Upgrade Solicitado', color: 'text-blue-400', icon: ArrowUpCircle },
+    upgrade_approved: { label: 'Upgrade Aprobado', color: 'text-green-400', icon: CheckCircle },
+    upgrade_rejected: { label: 'Upgrade Rechazado', color: 'text-red-400', icon: XCircle },
+    seat_change: { label: 'Cambio de Asientos', color: 'text-purple-400', icon: Users },
+    payment_confirmed: { label: 'Pago Confirmado', color: 'text-green-400', icon: DollarSign },
+    billing_cycle_change: { label: 'Ciclo Cambiado', color: 'text-yellow-400', icon: Calendar },
+  };
+
+  const displayedEvents = showAll ? events : events.slice(0, 5);
+
+  if (parentLoading || isLoading) {
+    return (
+      <Card className="bg-[#0F111A] border-[#1E293B]">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <FileText className="w-4 h-4" />
+            Historial de Eventos
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex justify-center py-8">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="bg-[#0F111A] border-[#1E293B]">
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <FileText className="w-4 h-4" />
+          Historial de Eventos
+        </CardTitle>
+        <CardDescription>Actividad reciente de facturación</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {events.length === 0 ? (
+          <p className="text-muted-foreground text-sm text-center py-4">
+            No hay eventos de facturación aún
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {displayedEvents.map((event, idx) => {
+              const config = EVENT_TYPE_CONFIG[event.event_type] || {
+                label: event.event_type,
+                color: 'text-gray-400',
+                icon: FileText
+              };
+              const Icon = config.icon;
+              
+              return (
+                <div 
+                  key={event.id || idx} 
+                  className="flex items-start gap-3 p-3 rounded-lg bg-[#1E293B]/30"
+                  data-testid={`billing-event-${idx}`}
+                >
+                  <div className={`p-1.5 rounded-lg bg-[#1E293B] ${config.color}`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-medium text-sm ${config.color}`}>
+                      {config.label}
+                    </p>
+                    {event.data?.previous_seats && event.data?.new_seats && (
+                      <p className="text-xs text-muted-foreground">
+                        {event.data.previous_seats} → {event.data.new_seats} asientos
+                      </p>
+                    )}
+                    {event.data?.new_amount && (
+                      <p className="text-xs text-muted-foreground">
+                        Nuevo monto: ${event.data.new_amount}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {event.created_at ? new Date(event.created_at).toLocaleString('es-CR') : 'Fecha desconocida'}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+            
+            {events.length > 5 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAll(!showAll)}
+                className="w-full text-muted-foreground"
+              >
+                {showAll ? 'Ver menos' : `Ver todos (${events.length})`}
+              </Button>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 // ==================== MAIN COMPONENT ====================
 const AdminBillingPage = () => {
   const [isLoading, setIsLoading] = useState(true);
