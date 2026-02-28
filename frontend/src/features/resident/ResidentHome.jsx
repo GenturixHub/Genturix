@@ -398,6 +398,7 @@ const ResidentHome = () => {
     >
       {/* Carousel Container - fills all available height */}
       <div 
+        ref={containerRef}
         className="flex-1 relative"
         style={{ 
           overflow: 'hidden',
@@ -407,20 +408,16 @@ const ResidentHome = () => {
         <motion.div
           className="flex h-full"
           drag="x"
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={0.15}
+          dragConstraints={{ 
+            left: -(TAB_ORDER.length - 1) * viewportWidth, 
+            right: 0 
+          }}
+          dragElastic={0.1}
           dragMomentum={false}
           dragDirectionLock
           onDragEnd={handleDragEnd}
-          animate={{ 
-            x: `${-activeIndex * 100 / TAB_ORDER.length}%`
-          }}
-          transition={{
-            type: "spring",
-            stiffness: 300,
-            damping: 30
-          }}
           style={{ 
+            x,
             width: `${TAB_ORDER.length * 100}%`,
             touchAction: 'pan-y'
           }}
