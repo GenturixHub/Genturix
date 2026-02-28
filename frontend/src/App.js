@@ -47,7 +47,8 @@ const shouldDehydrateQuery = (query) => {
   return !excludePatterns.some(pattern => keyString.includes(pattern));
 };
 
-const queryClient = new QueryClient({
+// Export queryClient for use in AuthContext logout/login
+export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 10 * 60_000,        // Data considered fresh for 10 minutes
