@@ -265,7 +265,7 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
             })
           )}
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Photo Lightbox Modal */}
       <Dialog open={photoModalOpen} onOpenChange={setPhotoModalOpen}>
