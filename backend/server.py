@@ -1505,8 +1505,10 @@ async def send_credentials_email(
         # Detailed response logging for audit
         if isinstance(email_response, dict):
             email_id = email_response.get("id", "N/A")
+            print(f"[EMAIL SENT] {recipient_email}")
             logger.info(f"[RESEND-AUDIT] SUCCESS | email_id={email_id} | recipient={recipient_email} | response={email_response}")
         else:
+            print(f"[EMAIL SENT] {recipient_email}")
             logger.info(f"[RESEND-AUDIT] SUCCESS | response_type={type(email_response).__name__} | recipient={recipient_email} | response={email_response}")
         
         return {
