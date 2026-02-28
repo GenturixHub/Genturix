@@ -253,30 +253,31 @@ const JoinPage = () => {
   
   // Main form
   return (
-    <div className="min-h-screen bg-[#05050A] flex items-center justify-center p-4">
-      <div className="max-w-lg w-full space-y-6">
-        {/* Header */}
-        <div className="text-center">
-          <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-4">
-            <Shield className="w-8 h-8 text-primary" />
+    <div className="min-h-screen bg-[#05050A] overflow-y-auto">
+      <div className="flex flex-col items-center justify-start py-4 px-4 pb-32">
+        <div className="max-w-lg w-full space-y-6">
+          {/* Header */}
+          <div className="text-center">
+            <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-4">
+              <Shield className="w-8 h-8 text-primary" />
+            </div>
+            <h1 className="text-2xl font-bold text-white">GENTURIX</h1>
+            <p className="text-muted-foreground">Plataforma de Seguridad y Emergencias</p>
           </div>
-          <h1 className="text-2xl font-bold text-white">GENTURIX</h1>
-          <p className="text-muted-foreground">Plataforma de Seguridad y Emergencias</p>
-        </div>
-        
-        {/* Request Form Card */}
-        <Card className="bg-[#0F111A] border-[#1E293B]">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Home className="w-5 h-5 text-primary" />
-              Solicitar Acceso
-            </CardTitle>
-            <CardDescription>
-              Solicita acceso a <strong className="text-white">{inviteInfo?.condominium_name}</strong>
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+          
+          {/* Request Form Card */}
+          <Card className="bg-[#0F111A] border-[#1E293B]">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Home className="w-5 h-5 text-primary" />
+                Solicitar Acceso
+              </CardTitle>
+              <CardDescription>
+                Solicita acceso a <strong className="text-white">{inviteInfo?.condominium_name}</strong>
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
               {/* Full Name */}
               <div className="space-y-2">
                 <Label htmlFor="full_name" className="flex items-center gap-2">
