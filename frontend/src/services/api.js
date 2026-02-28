@@ -418,6 +418,9 @@ class ApiService {
   // Get billing transaction history
   getBillingHistory = () => this.get('/billing/history');
   
+  // Get billing events for a condominium
+  getBillingEvents = (condoId) => this.get(`/billing/events/${condoId}`);
+  
   // SuperAdmin: Get all condominiums billing overview with pagination
   getAllCondominiumsBilling = (params = {}) => {
     const queryParams = new URLSearchParams();
