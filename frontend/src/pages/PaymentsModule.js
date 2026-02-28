@@ -187,12 +187,11 @@ const PaymentsModule = () => {
               <div className="space-y-6">
                 <div className="text-center p-6 rounded-xl bg-gradient-to-br from-primary/5 to-cyan-500/5 border border-primary/20">
                   <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-6xl font-bold text-primary">$1</span>
-                    <span className="text-2xl text-muted-foreground">/usuario</span>
+                    <span className="text-4xl font-bold text-primary">Modelo Flexible</span>
                   </div>
-                  <p className="text-muted-foreground mt-2">por mes</p>
+                  <p className="text-muted-foreground mt-2">por condominio</p>
                   <Badge className="mt-4 bg-primary/20 text-primary border-primary/30">
-                    Sin planes corporativos - Modelo masivo
+                    Contacta para cotización personalizada
                   </Badge>
                 </div>
 
