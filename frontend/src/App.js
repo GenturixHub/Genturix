@@ -8,6 +8,7 @@ import { ModulesProvider, useModules } from './contexts/ModulesContext';
 import { Toaster } from './components/ui/sonner';
 import { toast } from 'sonner';
 import LoginPage from './pages/LoginPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import PanelSelectionPage from './pages/PanelSelectionPage';
 import DashboardPage from './pages/DashboardPage';
 import SecurityModule from './pages/SecurityModule';
