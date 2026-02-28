@@ -3,17 +3,37 @@
 ## Overview
 Genturix is a multi-tenant security and condominium management platform built with React frontend and FastAPI backend.
 
-## Latest Feature Patch (2026-02-28)
+## Latest P0 Stability Patch (2026-02-28)
 
-### PART 1: Resident Approval → Create User + Send Credentials
-- **Status:** ✅ Already implemented
-- **Endpoint:** `POST /api/access-requests/{id}/action`
-- **Behavior:** When admin approves, creates user with temp password, sends email
-
-### PART 2: Admin Dashboard Scroll Fix
-- **Status:** ✅ Fixed
+### PART 1: Admin Dashboard Scroll Fix ✅ COMPLETED
+- **Status:** ✅ Fixed and Verified
 - **File:** `components/layout/DashboardLayout.js`
-- **Change:** Added `min-h-screen flex flex-col` + `overflow-y-auto` to main content
+- **Change:** 
+  - Changed outer container from `min-h-screen` to `h-screen overflow-hidden`
+  - Inner flex container uses `h-screen` for proper height constraint
+  - `main` element has `flex-1 overflow-y-auto min-h-0` for correct flex scroll behavior
+- **Test Result:** scrollHeight=936, clientHeight=436, scroll from 0 to 200 worked
+
+### PART 2: Resident Credential Email on Approval ✅ COMPLETED
+- **Status:** ✅ Fixed and Verified
+- **File:** `backend/server.py` - `send_access_approved_email` function (line ~13574)
+- **Changes:**
+  - Now uses centralized `send_email` service from `services/email_service.py`
+  - Uses `get_sender()` for correct sender address
+  - Uses `get_user_credentials_email_html()` template for consistent branding
+  - Enhanced logging: `[EMAIL TRIGGER]`, `[EMAIL SERVICE]`, `[EMAIL SENT]`
+  - Proper error handling with try/except and logging
+- **Test Result:** `email_sent: true` returned from approval endpoint, email ID logged
+
+### Email Service Health
+- **Endpoint:** `GET /api/email/debug` (SuperAdmin only)
+- **Status:** HEALTHY
+- **Sender:** `Genturix Security <no-reply@genturix.com>`
+- **Resend API:** Configured and working
+
+---
+
+## Previous Feature Patch (2026-02-28)
 
 ### PART 3: Forgot Password Feature
 - **Status:** ✅ Implemented
