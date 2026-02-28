@@ -363,7 +363,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = useCallback(async () => {
-    console.log('[Auth] Manual logout');
+    console.log('[Auth] Manual logout - clearing all user data');
     
     try {
       if (accessToken) {
@@ -394,11 +394,18 @@ export const AuthProvider = ({ children }) => {
       // This prevents data leakage between users on shared devices
       clearPersistedCache();
       
+      // CRITICAL FIX: Clear TanStack Query in-memory cache
+      // This ensures no stale profile/user data persists after logout
+      if (queryClient) {
+        queryClient.clear();
+        console.log('[Auth] QueryClient cache cleared');
+      }
+      
       setUser(null);
       setAccessToken(null);
       setPasswordResetRequired(false);
       
-      console.log('[Auth] Logout complete - push subscription preserved');
+      console.log('[Auth] Logout complete - all caches cleared');
     }
   }, [accessToken]);
 
