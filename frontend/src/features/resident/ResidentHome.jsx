@@ -329,16 +329,24 @@ const ResidentHome = () => {
   
   // Viewport width for drag calculations
   const containerRef = useRef(null);
-  const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
+  const [viewportWidth, setViewportWidth] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth;
+    }
+    return 375;
+  });
   
-  // MotionValue for interactive drag - follows finger exactly
-  const x = useMotionValue(-activeIndex * viewportWidth);
+  // MotionValue for interactive drag - initialized to 0, synced via useEffect
+  const x = useMotionValue(0);
   
   // Track if currently dragging to prevent position updates
   const isDragging = useRef(false);
   
-  // Update viewport width on resize
+  // Initialize position on mount and update on resize
   useEffect(() => {
+    // Set initial position
+    x.set(-activeIndex * viewportWidth);
+    
     const handleResize = () => {
       const newWidth = window.innerWidth;
       setViewportWidth(newWidth);
@@ -349,14 +357,14 @@ const ResidentHome = () => {
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [activeIndex, x]);
+  }, []); // Empty deps - only run on mount
   
-  // Sync x position when activeIndex changes (from tab clicks only, not during drag)
+  // Sync x position when activeIndex changes (from tab clicks)
   useEffect(() => {
     if (!isDragging.current) {
       x.set(-activeIndex * viewportWidth);
     }
-  }, [activeIndex, viewportWidth, x]);
+  }, [activeIndex, viewportWidth]);
 
   // Handle drag start
   const handleDragStart = useCallback(() => {
