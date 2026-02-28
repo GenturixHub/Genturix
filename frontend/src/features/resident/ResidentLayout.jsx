@@ -19,32 +19,6 @@ const ResidentLayout = ({ children, activeTab, onTabChange, title = 'GENTURIX' }
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  // Swipe navigation functions
-  const goNextTab = useCallback(() => {
-    const index = TAB_ORDER.indexOf(activeTab);
-    if (index < TAB_ORDER.length - 1) {
-      onTabChange(TAB_ORDER[index + 1]);
-    }
-  }, [activeTab, onTabChange]);
-
-  const goPrevTab = useCallback(() => {
-    const index = TAB_ORDER.indexOf(activeTab);
-    if (index > 0) {
-      onTabChange(TAB_ORDER[index - 1]);
-    }
-  }, [activeTab, onTabChange]);
-
-  // Swipe handlers attached to main scroll container
-  const swipeHandlers = useSwipeable({
-    onSwipedLeft: goNextTab,
-    onSwipedRight: goPrevTab,
-    delta: 40,
-    preventScrollOnSwipe: false,
-    trackTouch: true,
-    trackMouse: false,
-    touchEventOptions: { passive: false }
-  });
-
   // Navigation items with translations
   const RESIDENT_NAV_ITEMS = useMemo(() => [
     { 
