@@ -62,11 +62,17 @@ export function usePushNotifications() {
   const [error, setError] = useState(null);
   const [registration, setRegistration] = useState(null);
   
-  // v3.0: Track if initial local check is done (fast, non-blocking)
+  // v4.0: Track if initial local check is done (fast, non-blocking)
   const [isInitialized, setIsInitialized] = useState(false);
+  
+  // v4.0: Track if user needs to re-subscribe (subscription expired)
+  const [needsResubscription, setNeedsResubscription] = useState(
+    () => localStorage.getItem(PUSH_NEEDS_RESUBSCRIBE_KEY) === 'true'
+  );
   
   // Prevent duplicate sync operations
   const syncInProgressRef = useRef(false);
+  const validationInProgressRef = useRef(false);
   const mountedRef = useRef(true);
 
   // Check browser support
