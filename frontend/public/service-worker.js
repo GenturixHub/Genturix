@@ -1,17 +1,21 @@
 // =========================================================================
-// GENTURIX Service Worker v14 - PUSH + SMART CACHE
+// GENTURIX Service Worker v15 - PUSH + SMART CACHE + API STALE-WHILE-REVALIDATE
 // =========================================================================
 // Handles push notifications with intelligent caching for static assets.
-// Uses Stale-While-Revalidate for JS, CSS, icons, fonts.
-// API calls are NEVER cached.
+// Uses Stale-While-Revalidate for JS, CSS, icons, fonts AND select API endpoints.
+// POST/PUT/DELETE requests are NEVER cached.
 // =========================================================================
 
 // IMPORTANT: Increment this version on each deploy
-const SW_VERSION = '14.0.0';
-const CACHE_NAME = 'genturix-cache-v14';
+const SW_VERSION = '15.0.0';
+const CACHE_NAME = 'genturix-cache-v15';
+const API_CACHE_NAME = 'genturix-api-cache-v15';
 
 // List of valid caches (all others will be deleted)
-const CACHE_WHITELIST = [CACHE_NAME];
+const CACHE_WHITELIST = [CACHE_NAME, API_CACHE_NAME];
+
+// API cache duration: 24 hours
+const API_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;
 
 // Static assets to cache (Stale-While-Revalidate)
 const STATIC_ASSET_PATTERNS = [
@@ -26,25 +30,42 @@ const STATIC_ASSET_PATTERNS = [
   /\.svg$/
 ];
 
+// API endpoints to cache with Stale-While-Revalidate (GET only)
+const CACHEABLE_API_PATTERNS = [
+  /\/api\/profile/,
+  /\/api\/notifications/,
+  /\/api\/directory/,
+  /\/api\/visits/,
+  /\/api\/authorizations/,
+  /\/api\/resident\/reservations/,
+  /\/api\/areas/,
+  /\/api\/settings/
+];
+
 // Patterns to NEVER cache
 const NO_CACHE_PATTERNS = [
-  /\/api\//,
   /chrome-extension/,
   /sockjs-node/,
   /hot-update/
 ];
 
-// Check if request should use cache
-function shouldCache(url) {
+// Check if request should use static asset cache
+function shouldCacheStatic(url) {
   const urlStr = url.toString();
   
-  // Never cache API or dynamic content
+  // Never cache these
   if (NO_CACHE_PATTERNS.some(pattern => pattern.test(urlStr))) {
     return false;
   }
   
   // Cache static assets
   return STATIC_ASSET_PATTERNS.some(pattern => pattern.test(urlStr));
+}
+
+// Check if API request should be cached
+function shouldCacheAPI(url) {
+  const urlStr = url.toString();
+  return CACHEABLE_API_PATTERNS.some(pattern => pattern.test(urlStr));
 }
 
 // =========================================================================
