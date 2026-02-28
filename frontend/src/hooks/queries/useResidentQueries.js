@@ -192,8 +192,8 @@ export function useDeleteAuthorization() {
     
     // Optimistic update - remove item immediately from UI
     onMutate: async (authId) => {
-      // Cancel any outgoing refetches to avoid overwriting optimistic update
-      await queryClient.cancelQueries({ queryKey: residentKeys.authorizations() });
+      // Cancel ALL related queries to prevent stale data from overwriting
+      await queryClient.cancelQueries({ queryKey: residentKeys.all });
       
       // Snapshot the previous value
       const previousAuthorizations = queryClient.getQueryData(residentKeys.authorizations());
@@ -205,7 +205,14 @@ export function useDeleteAuthorization() {
       });
       
       // Return context with the snapshotted value
-      return { previousAuthorizations };
+      return { previousAuthorizations, deletedId: authId };
+    },
+    
+    // On success: DON'T invalidate immediately - keep the optimistic state
+    onSuccess: (data, authId, context) => {
+      // The item is already removed from cache in onMutate
+      // Only invalidate notifications (not authorizations!)
+      queryClient.invalidateQueries({ queryKey: residentKeys.notifications() });
     },
     
     // If mutation fails, rollback to previous state
@@ -213,14 +220,9 @@ export function useDeleteAuthorization() {
       if (context?.previousAuthorizations) {
         queryClient.setQueryData(residentKeys.authorizations(), context.previousAuthorizations);
       }
-    },
-    
-    // After success or error, invalidate to ensure consistency
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: residentKeys.authorizations() });
-      // Also invalidate notifications in case there are related entries
-      queryClient.invalidateQueries({ queryKey: residentKeys.notifications() });
     }
+    
+    // Removed onSettled to prevent immediate refetch that would bring back deleted item
   });
 }
 
