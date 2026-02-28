@@ -15200,6 +15200,88 @@ async def get_super_admin_audit(
     return logs
 
 
+@api_router.get("/super-admin/audit/global")
+async def get_global_audit_logs(
+    limit: int = 500,
+    module: Optional[str] = None,
+    event_type: Optional[str] = None,
+    condominium_id: Optional[str] = None,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
+):
+    """
+    Global System Audit - SuperAdmin Only.
+    
+    Returns logs from ALL condominiums with full details.
+    
+    Fields returned:
+    - timestamp
+    - user_id
+    - user_email (fetched from users collection)
+    - condominium_id
+    - condominium_name (fetched from condominiums collection)
+    - action (event_type)
+    - module
+    - details
+    
+    Sorted by newest first.
+    """
+    query = {}
+    
+    if module:
+        query["module"] = module
+    if event_type:
+        query["event_type"] = event_type
+    if condominium_id:
+        query["condominium_id"] = condominium_id
+    
+    # Fetch logs
+    logs = await db.audit_logs.find(query, {"_id": 0}).sort("timestamp", -1).to_list(limit)
+    
+    # Enrich with user emails and condominium names
+    user_ids = list(set([log.get("user_id") for log in logs if log.get("user_id")]))
+    condo_ids = list(set([log.get("condominium_id") for log in logs if log.get("condominium_id")]))
+    
+    # Fetch users and condominiums for enrichment
+    users = {}
+    if user_ids:
+        user_docs = await db.users.find(
+            {"id": {"$in": user_ids}}, 
+            {"_id": 0, "id": 1, "email": 1}
+        ).to_list(len(user_ids))
+        users = {u["id"]: u.get("email", "N/A") for u in user_docs}
+    
+    condos = {}
+    if condo_ids:
+        condo_docs = await db.condominiums.find(
+            {"id": {"$in": condo_ids}}, 
+            {"_id": 0, "id": 1, "name": 1}
+        ).to_list(len(condo_ids))
+        condos = {c["id"]: c.get("name", "N/A") for c in condo_docs}
+    
+    # Enrich logs
+    enriched_logs = []
+    for log in logs:
+        enriched_log = {
+            "timestamp": log.get("timestamp"),
+            "user_id": log.get("user_id"),
+            "user_email": users.get(log.get("user_id"), "N/A"),
+            "condominium_id": log.get("condominium_id"),
+            "condominium_name": condos.get(log.get("condominium_id"), "Sistema"),
+            "action": log.get("event_type"),
+            "module": log.get("module"),
+            "endpoint": log.get("endpoint"),
+            "status": log.get("status", "success"),
+            "details": log.get("details", {})
+        }
+        enriched_logs.append(enriched_log)
+    
+    return {
+        "logs": enriched_logs,
+        "total": len(enriched_logs),
+        "scope": "global"
+    }
+
+
 @api_router.delete("/super-admin/condominiums/{condo_id}")
 async def permanently_delete_condominium(
     condo_id: str,
