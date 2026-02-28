@@ -1,9 +1,9 @@
 {
-  "id": "/",
+  "id": "/?source=pwa",
   "name": "GENTURIX",
   "short_name": "GENTURIX",
   "description": "Plataforma inteligente de seguridad y gestión de emergencias para condominios.",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0f172a",

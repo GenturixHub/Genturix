@@ -6,8 +6,8 @@
 // =========================================================================
 
 // IMPORTANT: Increment this version on each deploy
-const SW_VERSION = '9.0.0';
-const CACHE_NAME = 'genturix-cache-v9';
+const SW_VERSION = '10.0.0';
+const CACHE_NAME = 'genturix-cache-v10';
 
 // List of valid caches (all others will be deleted)
 const CACHE_WHITELIST = [CACHE_NAME];
@@ -46,6 +46,8 @@ self.addEventListener('activate', (event) => {
       self.clients.claim()
     ]).then(() => {
       console.log(`[SW v${SW_VERSION}] Activated and controlling all clients`);
+      // Force check for updates after activation (helps with domain migration)
+      self.registration.update();
     })
   );
 });
