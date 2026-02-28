@@ -100,12 +100,12 @@ const ResidentLayout = ({
         <div 
           style={{ 
             position: 'fixed',
-            bottom: 'calc(72px + env(safe-area-inset-bottom, 0px) + 8px)',
+            bottom: 'calc(72px + env(safe-area-inset-bottom, 0px) + 6px)',
             left: '50%',
             transform: 'translateX(-50%)',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
+            gap: '5px',
             zIndex: 45,
             pointerEvents: 'auto'
           }}
@@ -116,10 +116,10 @@ const ResidentLayout = ({
               key={index}
               onClick={() => onTabChange(TAB_IDS[index])}
               style={{
-                width: index === activeIndex ? '6px' : '4px',
-                height: index === activeIndex ? '6px' : '4px',
+                width: index === activeIndex ? '5px' : '3px',
+                height: index === activeIndex ? '5px' : '3px',
                 borderRadius: '50%',
-                backgroundColor: index === activeIndex ? '#22d3ee' : 'rgba(255,255,255,0.25)',
+                backgroundColor: index === activeIndex ? '#22d3ee' : 'rgba(255,255,255,0.2)',
                 transition: 'all 0.2s ease',
                 cursor: 'pointer'
               }}
