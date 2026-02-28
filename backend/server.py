@@ -13578,94 +13578,68 @@ async def send_access_approved_email(
     temporary_password: str,
     login_url: str
 ) -> dict:
-    """Send email when access request is approved"""
-    print(f"[EMAIL TRIGGER] access_approved → sending credentials to {recipient_email}")
+    """
+    Send email when access request is approved.
+    Uses centralized email service for consistent sending.
+    """
+    print(f"[EMAIL TRIGGER] access_approved → preparing credentials email for {recipient_email}")
+    logger.info(f"[EMAIL TRIGGER] Access approved - recipient: {recipient_email}, condo: {condominium_name}")
     
+    # Check if email is enabled globally
     email_enabled = await is_email_enabled()
     if not email_enabled:
         print(f"[EMAIL BLOCKED] Email toggle is OFF (recipient: {recipient_email})")
+        logger.warning(f"[EMAIL BLOCKED] Global email toggle disabled for {recipient_email}")
         return {"status": "skipped", "reason": "Email sending disabled"}
     
-    if not RESEND_API_KEY:
+    # Check if email service is configured
+    if not is_email_configured():
         print(f"[EMAIL BLOCKED] RESEND_API_KEY not configured")
+        logger.warning(f"[EMAIL BLOCKED] Email service not configured for {recipient_email}")
         return {"status": "skipped", "reason": "Email service not configured"}
     
-    # Use centralized sender
-    sender = SENDER_EMAIL
-    print(f"[EMAIL SERVICE] Sender: {sender}")
+    # Get centralized sender
+    sender = get_sender()
+    print(f"[EMAIL SERVICE] Using sender: {sender}")
+    logger.info(f"[EMAIL SERVICE] Sender configured: {sender}")
     
-    html_content = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    </head>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0A0A0F; color: #ffffff; margin: 0; padding: 0;">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #0F111A; border-radius: 12px; overflow: hidden;">
-            <tr>
-                <td style="padding: 40px 30px; background: linear-gradient(135deg, #10B981 0%, #059669 100%);">
-                    <h1 style="margin: 0; font-size: 28px; font-weight: 700; color: #ffffff;">¡Solicitud Aprobada!</h1>
-                    <p style="margin: 8px 0 0 0; font-size: 14px; color: rgba(255,255,255,0.8);">GENTURIX - {condominium_name}</p>
-                </td>
-            </tr>
-            <tr>
-                <td style="padding: 40px 30px;">
-                    <h2 style="margin: 0 0 20px 0; font-size: 22px; color: #ffffff;">¡Bienvenido/a, {user_name}!</h2>
-                    <p style="margin: 0 0 20px 0; font-size: 16px; color: #9CA3AF; line-height: 1.6;">
-                        Tu solicitud de acceso a <strong>{condominium_name}</strong> ha sido aprobada. Ya puedes iniciar sesión en la plataforma.
-                    </p>
-                    
-                    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #1E293B; border-radius: 8px; margin: 20px 0;">
-                        <tr>
-                            <td style="padding: 20px;">
-                                <table width="100%" cellpadding="0" cellspacing="0">
-                                    <tr>
-                                        <td style="padding: 8px 0; border-bottom: 1px solid #374151;">
-                                            <span style="color: #9CA3AF; font-size: 13px;">Email / Usuario</span><br>
-                                            <span style="color: #6366F1; font-size: 16px; font-weight: 600;">{recipient_email}</span>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td style="padding: 8px 0;">
-                                            <span style="color: #9CA3AF; font-size: 13px;">Contraseña Temporal</span><br>
-                                            <span style="color: #10B981; font-size: 18px; font-weight: 700; font-family: monospace; letter-spacing: 1px;">{temporary_password}</span>
-                                        </td>
-                                    </tr>
-                                </table>
-                            </td>
-                        </tr>
-                    </table>
-                    
-                    <div style="background-color: #FEF3C7; border-radius: 8px; padding: 16px; margin: 20px 0;">
-                        <p style="margin: 0; color: #92400E; font-size: 14px;">
-                            ⚠️ <strong>Importante:</strong> Deberás cambiar tu contraseña en el primer inicio de sesión.
-                        </p>
-                    </div>
-                    
-                    <a href="{login_url}" style="display: inline-block; padding: 14px 28px; background-color: #10B981; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 8px; margin: 20px 0;">
-                        Iniciar Sesión
-                    </a>
-                </td>
-            </tr>
-        </table>
-    </body>
-    </html>
-    """
+    # Build HTML content using the template from email_service
+    html_content = get_user_credentials_email_html(
+        user_name=user_name,
+        email=recipient_email,
+        password=temporary_password,
+        role="Residente",
+        condominium_name=condominium_name,
+        login_url=login_url
+    )
+    
+    subject = f"¡Solicitud Aprobada! - {condominium_name}"
     
     try:
-        params = {
-            "from": sender,
-            "to": [recipient_email],
-            "subject": f"✅ Acceso Aprobado - {condominium_name}",
-            "html": html_content
-        }
-        email_response = await asyncio.to_thread(resend.Emails.send, params)
-        print(f"[EMAIL SENT] {recipient_email}")
-        logger.info(f"[EMAIL] Access approved email sent to {recipient_email}")
-        return {"status": "success", "email_id": str(email_response)}
+        print(f"[EMAIL SERVICE] Attempting to send email to {recipient_email}")
+        logger.info(f"[EMAIL SERVICE] Sending approval email to {recipient_email}")
+        
+        # Use centralized async email sender
+        result = await send_email(
+            to=recipient_email,
+            subject=subject,
+            html=html_content,
+            sender=sender
+        )
+        
+        if result.get("success"):
+            print(f"[EMAIL SENT] Successfully sent to {recipient_email} - ID: {result.get('email_id')}")
+            logger.info(f"[EMAIL SENT] Access approval email sent to {recipient_email} - ID: {result.get('email_id')}")
+            return {"status": "success", "email_id": result.get("email_id")}
+        else:
+            error_msg = result.get("error", "Unknown error")
+            print(f"[EMAIL ERROR] Failed to send to {recipient_email}: {error_msg}")
+            logger.error(f"[EMAIL ERROR] Failed to send approval email to {recipient_email}: {error_msg}")
+            return {"status": "error", "reason": error_msg}
+            
     except Exception as e:
-        logger.error(f"[EMAIL ERROR] Failed to send approval email to {recipient_email}: {e}")
+        print(f"[EMAIL ERROR] Exception while sending to {recipient_email}: {str(e)}")
+        logger.error(f"[EMAIL ERROR] Exception sending approval email to {recipient_email}: {str(e)}", exc_info=True)
         return {"status": "error", "reason": str(e)}
 
 async def send_access_rejected_email(
