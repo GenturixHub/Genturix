@@ -3,6 +3,43 @@
 ## Overview
 Genturix is a multi-tenant security and condominium management platform built with React frontend and FastAPI backend.
 
+## Latest Corrective Patch (2026-02-28)
+
+### PART 1: Carousel Reverted to Simple Swipe
+- Removed: `useMotionValue`, `animate()`, `drag="x"`, `dragConstraints`, `dragElastic`
+- Added: `react-swipeable` with `delta: 70`
+- Behavior: Simple left/right swipe, no drag interaction
+- File: `frontend/src/features/resident/ResidentHome.jsx`
+
+### PART 2: Audit Log Multi-Tenant Isolation (CRITICAL FIX)
+- `/api/audit/logs`: Now filters by `condominium_id` for non-SuperAdmin users
+- `/api/audit/stats`: Now scoped by tenant
+- SuperAdmin sees ALL logs, others see ONLY their condominium
+- File: `backend/server.py` lines 12279-12360
+
+### PART 3: Global Audit for SuperAdmin
+- New endpoint: `GET /api/super-admin/audit/global`
+- Returns enriched logs with `user_email` and `condominium_name`
+- SuperAdmin only access
+
+### PART 4: Frontend Audit Toggle
+- Added `isGlobalView` toggle for SuperAdmin
+- Label: "Vista Global del Sistema"
+- File: `frontend/src/pages/AuditModule.js`
+
+### PART 5: Security Verified
+- `/api/authorizations`: ✅ tenant isolated
+- `/api/reservations`: ✅ tenant isolated
+- `/api/visits`: ✅ tenant isolated
+- `/api/directory`: ✅ tenant isolated
+- `/api/audit/logs`: ✅ NOW tenant isolated
+
+### ADDITIONAL: Mobile Form Fix (JoinPage)
+- Changed from `flex items-center justify-center` to `overflow-y-auto`
+- Added `pb-32` for safe area spacing
+- Submit button now always reachable on mobile
+- File: `frontend/src/pages/JoinPage.js`
+
 ## Latest Stability Patch (2026-02-28)
 
 ### Changes Applied
