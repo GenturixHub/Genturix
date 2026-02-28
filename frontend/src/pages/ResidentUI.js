@@ -11,8 +11,9 @@
  * - Perfil: User profile
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSwipeable } from 'react-swipeable';
 import { useAuth } from '../contexts/AuthContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { ScrollArea } from '../components/ui/scroll-area';
