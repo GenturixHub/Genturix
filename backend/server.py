@@ -5060,6 +5060,46 @@ async def create_visitor_authorization(
             logger.info(f"[PREREGISTRATION] Notifications sent for visitor {visitor_name}")
         except Exception as e:
             logger.warning(f"[PREREGISTRATION] Failed to send push notifications: {e}")
+        
+        # === SEND EMAIL TO GUARDS (fail-safe) ===
+        try:
+            # Get condominium info
+            condo_info = await db.condominiums.find_one(
+                {"id": condo_id},
+                {"_id": 0, "name": 1}
+            )
+            condo_name = condo_info.get("name", "Condominio") if condo_info else "Condominio"
+            
+            # Get guard users with email
+            guard_users_with_email = await db.users.find(
+                {"condominium_id": condo_id, "roles": {"$in": ["Guarda"]}, "is_active": True},
+                {"_id": 0, "email": 1, "full_name": 1}
+            ).to_list(20)
+            
+            for guard in guard_users_with_email:
+                guard_email = guard.get("email")
+                guard_name = guard.get("full_name", "Guardia")
+                if guard_email:
+                    try:
+                        preregistration_html = get_visitor_preregistration_email_html(
+                            guard_name=guard_name,
+                            visitor_name=visitor_name,
+                            resident_name=resident_name,
+                            apartment=apartment or "N/A",
+                            valid_from=auth_data.valid_from or "Hoy",
+                            valid_to=auth_data.valid_to or "Sin límite",
+                            condominium_name=condo_name
+                        )
+                        await send_email(
+                            to=guard_email,
+                            subject=f"📋 Visitante Preregistrado - {visitor_name}",
+                            html=preregistration_html
+                        )
+                    except Exception as guard_email_error:
+                        logger.warning(f"[EMAIL] Failed to send preregistration email to guard {guard_email}: {guard_email_error}")
+        except Exception as email_error:
+            logger.warning(f"[EMAIL] Failed to send preregistration emails: {email_error}")
+            # Continue - don't break API flow
     
     # Return without _id
     auth_doc.pop("_id", None)
