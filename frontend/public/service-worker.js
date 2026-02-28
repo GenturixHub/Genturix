@@ -215,7 +215,39 @@ self.addEventListener('notificationclose', (event) => {
 });
 
 // =========================================================================
-// FETCH - No caching, just pass through (avoid stale content issues)
+// FETCH - Stale-While-Revalidate for static assets, network-only for API
 // =========================================================================
-// We intentionally do NOT intercept fetch requests
-// This prevents caching issues after domain migration
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') return;
+  
+  // Skip non-http(s) requests
+  if (!url.protocol.startsWith('http')) return;
+  
+  // Check if this is a cacheable static asset
+  if (shouldCache(url)) {
+    // Stale-While-Revalidate strategy
+    event.respondWith(
+      caches.open(CACHE_NAME).then(cache => {
+        return cache.match(event.request).then(cachedResponse => {
+          const fetchPromise = fetch(event.request).then(networkResponse => {
+            // Only cache successful responses
+            if (networkResponse && networkResponse.status === 200) {
+              cache.put(event.request, networkResponse.clone());
+            }
+            return networkResponse;
+          }).catch(() => {
+            // Network failed, return cached if available
+            return cachedResponse;
+          });
+          
+          // Return cached immediately, update in background
+          return cachedResponse || fetchPromise;
+        });
+      })
+    );
+  }
+  // For API and dynamic content: let browser handle normally (no interception)
+});
