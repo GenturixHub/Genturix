@@ -1124,11 +1124,9 @@ const ResidentUI = () => {
   }
 
   return (
-    <div className="h-screen bg-[#05050A] flex flex-col overflow-hidden">
-      {/* Header - Mobile First: Compact, touch-friendly */}
-      {/* Swipe handlers attached to header ONLY - not to scroll content */}
+    <div className="h-screen bg-[#05050A] flex flex-col">
+      {/* Header - Fixed height, NO swipe handlers here */}
       <header 
-        {...(isMobile ? swipeHandlers : {})}
         className="flex items-center justify-between px-3 py-2.5 sm:px-4 sm:py-3 border-b border-[#1E293B]/50 flex-shrink-0"
       >
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
