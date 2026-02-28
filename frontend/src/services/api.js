@@ -613,6 +613,7 @@ class ApiService {
   subscribeToPush = (subscription) => this.post('/push/subscribe', { subscription });
   unsubscribeFromPush = (subscription) => this.delete('/push/unsubscribe', { subscription });
   getPushStatus = () => this.get('/push/status');
+  validateUserSubscription = () => this.get('/push/validate-user-subscription');
 
   // ==================== ADVANCED VISITOR AUTHORIZATIONS ====================
   // Resident endpoints
