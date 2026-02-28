@@ -247,13 +247,13 @@ const DashboardLayout = ({ children, title = 'Dashboard', variant = 'admin' }) =
         />
       )}
 
-      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
+      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'} min-h-screen flex flex-col`}>
         <Header 
           onMenuClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
           title={title}
         />
         
-        <main className="p-6">
+        <main className="flex-1 p-6 overflow-y-auto">
           {children}
         </main>
       </div>
