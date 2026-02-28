@@ -297,6 +297,9 @@ function AppRoutes() {
         </PublicRoute>
       } />
       
+      {/* Forgot Password Page (Public) */}
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      
       {/* Public Join/Access Request Page */}
       <Route path="/join/:token" element={<JoinPage />} />
       
