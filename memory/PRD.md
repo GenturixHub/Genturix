@@ -94,7 +94,16 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
 
 ## Changelog
 
-### 2025-02-28 (Current Session)
+### 2025-02-28 (Current Session - Final Stability Patch Verification)
+- **$1 Pricing Text Removal COMPLETED:** Removed the last remaining instance of pricing text from SuperAdminDashboard.js line 822 (MRR card footer that showed "${stats?.revenue?.price_per_user || 1}/usuario/mes")
+- **All 5 Pre-Production Fixes Verified:**
+  1. ✅ Carousel Interactive Drag (ResidentHome.jsx) - useMotionValue with drag='x'
+  2. ✅ PDF Export Fix (ResidentVisitHistory.jsx) - html2pdf.js with opacity:0 container
+  3. ✅ Danger Zone Protection (SuperAdminDashboard.js) - Password verification modal
+  4. ✅ $1 Pricing Text Removed - No marketing text visible
+  5. ✅ Email Service (email_service.py) - Resend integration working
+
+### 2025-02-28 (Previous Session)
 - **P0 Resident Carousel Fix:** Resolved critical mobile UX bug in ResidentHome.jsx
   - Fixed black empty space at bottom of all modules
   - Changed from viewport pixel widths to percentage-based (100/TAB_ORDER.length)%
