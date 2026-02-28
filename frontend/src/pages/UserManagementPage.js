@@ -595,8 +595,8 @@ const CreateUserDialog = ({ open, onClose, onSuccess }) => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-[#0F111A] border-[#1E293B]">
-                    <SelectItem value="basic">Básico ($1/mes)</SelectItem>
-                    <SelectItem value="pro">Pro ($3/mes)</SelectItem>
+                    <SelectItem value="basic">Básico</SelectItem>
+                    <SelectItem value="pro">Pro</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
