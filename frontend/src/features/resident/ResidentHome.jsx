@@ -436,8 +436,8 @@ const ResidentHome = () => {
 
   return (
     <ResidentLayout activeTab={activeTab} onTabChange={setActiveTab}>
-      {/* Animated Tab Content - Swipe handled by ResidentLayout */}
-      <div className="flex-1 min-h-0 flex flex-col">
+      {/* Animated Tab Content with Interactive Drag */}
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
         <AnimatePresence initial={false} mode="wait" custom={direction}>
           <motion.div
             key={activeTab}
@@ -447,7 +447,14 @@ const ResidentHome = () => {
             animate="center"
             exit="exit"
             transition={slideTransition}
+            // Interactive drag navigation
+            drag="x"
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.15}
+            dragMomentum={false}
+            onDragEnd={handleDragEnd}
             className={`flex-1 min-h-0 ${getTabPadding()}`}
+            style={{ touchAction: 'pan-y' }}
           >
             {renderTabContent()}
           </motion.div>
