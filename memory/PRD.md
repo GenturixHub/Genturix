@@ -3,6 +3,70 @@
 ## Overview
 Genturix is a multi-tenant security and condominium management platform built with React frontend and FastAPI backend.
 
+## Push Notification System Fix (2026-02-28) ✅ COMPLETE
+
+### Problem
+Push notifications were failing for 86% of users due to expired/invalid FCM subscriptions stored in the database (HTTP 410 Gone errors).
+
+### Solution Applied
+1. **NEW Endpoint: POST /api/push/validate-subscriptions (SuperAdmin only)**
+   - Validates all push subscriptions by sending test notifications
+   - Deletes subscriptions that return 404/410 (permanently invalid)
+   - Supports `dry_run=true` to preview without changes
+   - Returns detailed statistics: total, valid, invalid, deleted counts
+
+2. **NEW Endpoint: GET /api/push/validate-user-subscription**
+   - Validates individual user's push subscription
+   - Returns `action_required: "resubscribe"` if subscription expired
+   - Used by frontend to detect and prompt re-subscription
+
+3. **Subscription Limit: MAX_SUBSCRIPTIONS_PER_USER = 3**
+   - Prevents accumulation of stale subscriptions from multiple devices
+   - Automatically deletes oldest subscriptions when limit exceeded
+   - Implemented in POST /api/push/subscribe
+
+4. **Frontend Hook Update: usePushNotifications.js v4.0**
+   - Added `needsResubscription` state for UI prompt
+   - Added `validateSubscription()` function to check subscription validity
+   - Validates subscription 2 seconds after background sync
+   - Clears resubscription flag on successful re-subscribe
+
+### Files Modified
+- `/app/backend/server.py` - Lines 3894-3917 (subscription limit), 4100-4357 (validation endpoints)
+- `/app/frontend/src/hooks/usePushNotifications.js` - v4.0 with validation
+- `/app/frontend/src/services/api.js` - Added `validateUserSubscription()`
+
+### Verification
+- All endpoints tested: 12/12 backend tests passed
+- SuperAdmin-only restriction verified (403 for non-SuperAdmin)
+- Subscription limit enforced in code
+
+---
+
+## Identity Bug Fix (2026-02-28) ✅ COMPLETE
+
+### Problem
+After logout, the next user to login would see the previous user's profile information in the UI due to stale TanStack Query in-memory cache.
+
+### Root Cause
+The `queryClient.clear()` was not being called in the logout function of `AuthContext.js`, leaving cached profile data in memory.
+
+### Solution Applied
+- Added `queryClient.clear()` to the `logout` function in `AuthContext.js`
+- Also clears cache on new login to prevent identity leak when switching users
+- Import `queryClient` from `App.js` where it's exported
+
+### Files Modified
+- `/app/frontend/src/contexts/AuthContext.js` - Lines 166-169 (login clear), 404-409 (logout clear)
+- `/app/frontend/src/App.js` - Line 51 (export queryClient)
+
+### Verification
+- Playwright test: Admin login → Logout → Resident login ✅
+- Screenshot evidence: "Carlos Admin" → login form → "Residente de Prueba"
+- Console logs confirm: "[Auth] QueryClient cache cleared"
+
+---
+
 ## Android Push Notification Icons Fix (2026-02-28) ✅ COMPLETE
 
 ### Problem
