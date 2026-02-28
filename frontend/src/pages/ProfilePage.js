@@ -71,6 +71,7 @@ const ProfilePage = () => {
   const { user, refreshUser, logout } = useAuth();
   const { userId } = useParams(); // If userId is present, we're viewing someone else's profile
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
