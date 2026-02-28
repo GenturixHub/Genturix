@@ -116,12 +116,16 @@
         
         <!-- Service Worker Registration -->
         <script>
-            // Register Service Worker
+            // Register Service Worker with updateViaCache: none for domain migration
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
-                    navigator.serviceWorker.register('/service-worker.js')
+                    navigator.serviceWorker.register('/service-worker.js', {
+                        updateViaCache: 'none'
+                    })
                         .then(function(registration) {
                             console.log('GENTURIX SW registered:', registration.scope);
+                            // Check for updates immediately
+                            registration.update();
                         })
                         .catch(function(error) {
                             console.log('GENTURIX SW registration failed:', error);
