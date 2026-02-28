@@ -912,7 +912,7 @@ const ResidentReservations = () => {
   const pastReservations = myReservations.filter(r => ['rejected', 'cancelled'].includes(r.status));
   
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* Header - Fixed */}
       <div className="p-4 border-b border-[#1E293B] flex-shrink-0">
         <h2 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -942,9 +942,12 @@ const ResidentReservations = () => {
           </TabsTrigger>
         </TabsList>
         
-        {/* Areas Tab - Single scroll container */}
+        {/* Areas Tab - Native scroll */}
         <TabsContent value="areas" className="flex-1 mt-0 min-h-0">
-          <div className="scroll-container pb-28">
+          <div 
+            className="h-full overflow-y-auto"
+            style={{ WebkitOverflowScrolling: 'touch', paddingBottom: '112px' }}
+          >
             <div className="p-4 space-y-3">
               {areas.length > 0 ? (
                 areas.map(area => (
@@ -969,9 +972,12 @@ const ResidentReservations = () => {
           </div>
         </TabsContent>
         
-        {/* My Reservations Tab - Single scroll container */}
+        {/* My Reservations Tab - Native scroll */}
         <TabsContent value="mine" className="flex-1 mt-0 min-h-0">
-          <div className="scroll-container pb-28">
+          <div 
+            className="h-full overflow-y-auto"
+            style={{ WebkitOverflowScrolling: 'touch', paddingBottom: '112px' }}
+          >
             <div className="p-4 space-y-4">
               {/* Pending */}
               {pendingReservations.length > 0 && (
