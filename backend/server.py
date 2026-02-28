@@ -1759,6 +1759,7 @@ async def send_password_reset_link_email(
     
     try:
         email_response = await asyncio.to_thread(resend.Emails.send, params)
+        print(f"[EMAIL SENT] {recipient_email}")
         logger.info(f"Password reset link email sent to {recipient_email}")
         return {
             "status": "success",
