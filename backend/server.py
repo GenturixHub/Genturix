@@ -12320,16 +12320,38 @@ async def get_audit_logs(
 
 @api_router.get("/audit/stats")
 async def get_audit_stats(current_user = Depends(require_module("audit"))):
+    """
+    Get audit statistics - TENANT ISOLATED.
+    
+    - SuperAdmin: sees global stats
+    - Administrador: sees ONLY stats from their condominium
+    """
+    roles = current_user.get("roles", [])
+    
     # Verify role
-    if not any(role in current_user.get("roles", []) for role in ["Administrador", "SuperAdmin"]):
+    if not any(role in roles for role in ["Administrador", "SuperAdmin"]):
         raise HTTPException(status_code=403, detail="Acceso denegado")
+    
+    # Build tenant filter
+    base_query = {}
+    if "SuperAdmin" not in roles:
+        condo_id = current_user.get("condominium_id")
+        if condo_id:
+            base_query["condominium_id"] = condo_id
+        else:
+            return {
+                "total_events": 0,
+                "today_events": 0,
+                "login_failures": 0,
+                "panic_events": 0
+            }
     
     today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
     
-    total_events = await db.audit_logs.count_documents({})
-    today_events = await db.audit_logs.count_documents({"timestamp": {"$gte": today_start}})
-    login_failures = await db.audit_logs.count_documents({"event_type": "login_failure"})
-    panic_events = await db.audit_logs.count_documents({"event_type": "panic_button"})
+    total_events = await db.audit_logs.count_documents(base_query)
+    today_events = await db.audit_logs.count_documents({**base_query, "timestamp": {"$gte": today_start}})
+    login_failures = await db.audit_logs.count_documents({**base_query, "event_type": "login_failure"})
+    panic_events = await db.audit_logs.count_documents({**base_query, "event_type": "panic_button"})
     
     return {
         "total_events": total_events,
