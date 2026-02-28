@@ -145,6 +145,13 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
   - Added proper paddingBottom for bottom nav clearance
   - Improved drag physics: single-module transitions, dragMomentum=false
   - All 5 modules verified working (Emergency, Visits, Reservations, Directory, Profile)
+- [x] **Carousel Page Indicators (2025-02-28)**
+  - Added visual dot indicators showing current module position
+  - 5 dots positioned above bottom nav (fixed position)
+  - Active dot: cyan (#22d3ee), 5px
+  - Inactive dots: white/20% opacity, 3px
+  - Clickable for direct navigation between modules
+  - Smooth 0.2s transition animation
 
 ### P1 - High Priority
 - [ ] Auth module modularization
