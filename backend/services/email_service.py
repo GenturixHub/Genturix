@@ -10,11 +10,17 @@ Sender: Genturix Security <no-reply@gentrix.com>
 import os
 import asyncio
 import logging
+from pathlib import Path
 from typing import Optional, List, Dict, Any
+from dotenv import load_dotenv
 
 import resend
 
 logger = logging.getLogger(__name__)
+
+# Load environment variables from backend/.env
+ROOT_DIR = Path(__file__).parent.parent
+load_dotenv(ROOT_DIR / '.env')
 
 # Initialize Resend API key
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
