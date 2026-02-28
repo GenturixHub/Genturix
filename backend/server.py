@@ -14292,7 +14292,9 @@ async def process_access_request(
                 "reason": action_data.message
             },
             request.client.host if request.client else "unknown",
-            request.headers.get("user-agent", "unknown")
+            request.headers.get("user-agent", "unknown"),
+            condominium_id=condo_id,
+            user_email=current_user.get("email")
         )
         
         return {
