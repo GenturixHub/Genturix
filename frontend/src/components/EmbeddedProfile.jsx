@@ -19,6 +19,12 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Textarea } from './ui/textarea';
 import { ScrollArea } from './ui/scroll-area';
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from './ui/accordion';
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -51,7 +57,9 @@ import {
   LogOut,
   ArrowLeft,
   Key,
-  Pencil
+  Pencil,
+  Lock,
+  Bell
 } from 'lucide-react';
 
 // Role configuration with i18n keys
