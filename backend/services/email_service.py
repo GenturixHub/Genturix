@@ -39,9 +39,10 @@ def get_sender() -> str:
     if not RESEND_API_KEY:
         return FALLBACK_SENDER
     
-    # Check if using production domain
-    # If key is configured, use production sender
-    return DEFAULT_SENDER
+    # Note: For production, verify your domain at resend.com/domains
+    # Until then, use the sandbox sender for testing
+    # Production sender will be: Genturix Security <no-reply@gentrix.com>
+    return FALLBACK_SENDER  # Using sandbox until domain is verified
 
 
 def send_email_sync(
