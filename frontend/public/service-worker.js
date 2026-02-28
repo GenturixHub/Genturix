@@ -1,5 +1,5 @@
 // =========================================================================
-// GENTURIX Service Worker v12 - PUSH + SMART CACHE
+// GENTURIX Service Worker v13 - PUSH + SMART CACHE
 // =========================================================================
 // Handles push notifications with intelligent caching for static assets.
 // Uses Stale-While-Revalidate for JS, CSS, icons, fonts.
@@ -7,8 +7,8 @@
 // =========================================================================
 
 // IMPORTANT: Increment this version on each deploy
-const SW_VERSION = '12.0.0';
-const CACHE_NAME = 'genturix-cache-v12';
+const SW_VERSION = '13.0.0';
+const CACHE_NAME = 'genturix-cache-v13';
 
 // List of valid caches (all others will be deleted)
 const CACHE_WHITELIST = [CACHE_NAME];
