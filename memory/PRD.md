@@ -3,6 +3,46 @@
 ## Overview
 Genturix is a multi-tenant security and condominium management platform built with React frontend and FastAPI backend.
 
+## Multi-Tenant Security Patch (2026-02-28) ✅ COMPLETE
+
+### PART 1: Visits Data Leak (CRITICAL) - FIXED
+- **Status:** ✅ Fixed and Verified
+- **File:** `backend/server.py`
+- **Changes:**
+  - `/authorizations/my` (line 5387) now filters by `condominium_id`
+  - All visit-related endpoints verified to have tenant isolation
+- **Test:** 100% pass rate on multi-tenant isolation tests
+
+### PART 2: Audit Logs Not Recording - FIXED
+- **Status:** ✅ Fixed and Verified
+- **File:** `backend/server.py`
+- **Changes:**
+  - `log_audit_event()` now accepts `condominium_id` and `user_email` params
+  - Updated access approval/rejection to include condo_id in audit logs
+  - Reservation creation includes condo_id
+  - Visitor check-in includes condo_id
+- **Test:** Audit log created with `condominium_id=46b9d344...` after approval action
+
+### PART 3: Profile Image Not Updating - FIXED
+- **Status:** ✅ Fixed and Verified
+- **Files:**
+  - `frontend/src/pages/ProfilePage.js` - Added queryClient cache invalidation
+- **Changes:**
+  - Added `queryClient.invalidateQueries({ queryKey: profileKeys.own() })`
+  - Added `queryClient.invalidateQueries({ queryKey: profileKeys.all })`
+  - Proper import of `useQueryClient` and `profileKeys`
+- **Test:** Profile update flow verified via Playwright
+
+### PART 4: System Flow Logging - ADDED
+- **Status:** ✅ Implemented
+- **Markers Added:**
+  - `[FLOW] audit_event_logged`
+  - `[FLOW] profile_image_updated`
+  - `[FLOW] visitor_entry_registered`
+  - `[FLOW] reservation_created`
+
+---
+
 ## System Flow Patch (2026-02-28) ✅ COMPLETE
 
 ### Password Reset Flow - Enhanced Logging
