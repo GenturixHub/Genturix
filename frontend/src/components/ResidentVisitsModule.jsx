@@ -51,7 +51,7 @@ const ResidentVisitsModule = ({ notifications = [], onRefreshNotifications }) =>
           />
         </TabsContent>
         
-        <TabsContent value="history" className="flex-1 mt-0 overflow-hidden">
+        <TabsContent value="history" className="flex-1 mt-0">
           <ResidentVisitHistory />
         </TabsContent>
       </Tabs>
