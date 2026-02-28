@@ -16181,10 +16181,11 @@ async def get_email_config():
     """Get email configuration from database or create default"""
     config = await db.system_config.find_one({"key": "email_settings"})
     if not config:
-        # Default: emails disabled for testing
+        # Default: emails ENABLED for production
+        # Change to False only for testing environments
         default_config = {
             "key": "email_settings",
-            "email_enabled": False,
+            "email_enabled": True,  # PRODUCTION MODE: Emails enabled by default
             "updated_at": datetime.now(timezone.utc).isoformat(),
             "updated_by": "system"
         }
