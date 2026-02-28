@@ -431,7 +431,7 @@ const ResidentHome = () => {
             left: -(TAB_ORDER.length - 1) * viewportWidth, 
             right: 0 
           }}
-          dragElastic={0.05}
+          dragElastic={0.08}
           dragMomentum={false}
           dragDirectionLock
           onDragStart={handleDragStart}
