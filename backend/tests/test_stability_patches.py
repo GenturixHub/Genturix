@@ -15,7 +15,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://pre-production-qa.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://onboarding-fix-19.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 SUPERADMIN_EMAIL = "superadmin@genturix.com"
