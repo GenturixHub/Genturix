@@ -100,13 +100,13 @@ class TestAuthorizationNotifications:
         
         # Get guard notifications BEFORE creating authorization
         response_before = requests.get(
-            f"{BASE_URL}/api/guard/notifications",
+            f"{BASE_URL}/api/notifications",
             headers={"Authorization": f"Bearer {guard_token}"}
         )
         before_status = response_before.status_code
         notifications_before = []
         if before_status == 200:
-            notifications_before = response_before.json().get("notifications", [])
+            notifications_before = response_before.json()  # Returns list directly
         count_before = len(notifications_before)
         print(f"📋 Guard notifications before: {count_before}")
         
