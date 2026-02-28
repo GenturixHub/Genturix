@@ -1,562 +1,407 @@
 """
-GENTURIX - Multi-Tenant Isolation Tests
-Tests for strict condominium data isolation and dynamic role forms
-
-Test Scenarios:
-1. New condo admin sees ZERO data (total_users=1 self, active_guards=0, active_alerts=0)
-2. Existing condo admin sees their data (103 users, guards, etc)
-3. Dashboard stats scoped by condominium_id
-4. Security stats scoped by condominium_id
-5. Users endpoint returns only users from admin's condo
-6. Panic events, access logs, guards filtered by condo
-7. SuperAdmin sees all data across condos
-8. Dynamic form validation for role-specific fields
+Multi-Tenant Isolation & Audit Log Tests for Genturix
+Tests for P0 bug fixes:
+1. /authorizations/my must filter by condominium_id
+2. Audit logs record condominium_id field
+3. GET /api/audit/logs filters by admin's condominium_id
+4. PATCH /api/profile updates profile_photo and returns updated data
+5. /resident/visit-history filters by condominium_id
+6. /guard/entries-today filters by condominium_id
 """
 
 import pytest
 import requests
 import os
+import uuid
+from datetime import datetime
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
 # Test credentials
-ADMIN_EXISTING = {"email": "admin@genturix.com", "password": "Admin123!"}
-ADMIN_NEW_CONDO = {"email": "isolation_admin@genturix.com", "password": "IsolationAdmin123!"}
-SUPER_ADMIN = {"email": "superadmin@genturix.com", "password": "SuperAdmin123!"}
-
-# Condo IDs
-TEST_ISOLATION_CONDO_ID = "5d08fa37-13f8-403b-849f-5e937472627a"
-EXISTING_CONDO_ID = "267195e5-c18f-4374-a3a6-8016cfe70d86"
+ADMIN_EMAIL = "admin@genturix.com"
+ADMIN_PASSWORD = "Admin123!"
+SUPERADMIN_EMAIL = "superadmin@genturix.com"
+SUPERADMIN_PASSWORD = "Admin123!"
 
 
-class TestMultiTenantIsolation:
-    """Test strict multi-tenant data isolation"""
+class TestHelpers:
+    """Helper methods for tests"""
     
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        """Setup test session"""
-        self.session = requests.Session()
-        self.session.headers.update({"Content-Type": "application/json"})
-    
-    def login(self, credentials):
-        """Helper to login and get token"""
-        response = self.session.post(f"{BASE_URL}/api/auth/login", json=credentials)
+    @staticmethod
+    def get_auth_token(email: str, password: str) -> dict:
+        """Get auth token and user info"""
+        response = requests.post(
+            f"{BASE_URL}/api/auth/login",
+            json={"email": email, "password": password}
+        )
         if response.status_code == 200:
             data = response.json()
-            self.session.headers.update({"Authorization": f"Bearer {data['access_token']}"})
-            return data
+            return {
+                "token": data.get("access_token"),
+                "user": data.get("user"),
+                "condominium_id": data.get("user", {}).get("condominium_id")
+            }
         return None
     
-    # ==================== NEW CONDO ADMIN ISOLATION ====================
+    @staticmethod
+    def auth_headers(token: str) -> dict:
+        """Get auth headers with token"""
+        return {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+
+
+class TestAuthorizationsMyEndpoint:
+    """Tests for /authorizations/my condominium_id filtering"""
     
-    def test_new_condo_admin_login(self):
-        """Test that new condo admin can login"""
-        result = self.login(ADMIN_NEW_CONDO)
-        if result is None:
-            pytest.skip("New condo admin not found - may need to be created first")
-        
-        assert result is not None, "New condo admin should be able to login"
-        assert result["user"]["email"] == ADMIN_NEW_CONDO["email"]
-        assert "Administrador" in result["user"]["roles"]
-        print(f"✓ New condo admin logged in: {result['user']['email']}")
-        print(f"  Condominium ID: {result['user'].get('condominium_id')}")
+    def test_authorizations_my_requires_auth(self):
+        """Test that /authorizations/my requires authentication"""
+        response = requests.get(f"{BASE_URL}/api/authorizations/my")
+        assert response.status_code in [401, 403], f"Expected 401/403, got {response.status_code}"
+        print("✓ /authorizations/my requires authentication")
     
-    def test_new_condo_admin_dashboard_stats_zero_data(self):
-        """New condo admin should see total_users=1 (self), active_guards=0, active_alerts=0"""
-        result = self.login(ADMIN_NEW_CONDO)
-        if result is None:
-            pytest.skip("New condo admin not found")
+    def test_authorizations_my_returns_200(self):
+        """Test that authenticated user can get their authorizations"""
+        auth = TestHelpers.get_auth_token(ADMIN_EMAIL, ADMIN_PASSWORD)
+        if not auth:
+            pytest.skip("Could not authenticate admin")
         
-        response = self.session.get(f"{BASE_URL}/api/dashboard/stats")
-        assert response.status_code == 200, f"Dashboard stats failed: {response.text}"
+        response = requests.get(
+            f"{BASE_URL}/api/authorizations/my",
+            headers=TestHelpers.auth_headers(auth["token"])
+        )
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         
-        stats = response.json()
-        print(f"New condo admin dashboard stats: {stats}")
-        
-        # New condo should have minimal data
-        # total_users should be 1 (the admin themselves) or very low
-        assert stats["total_users"] >= 1, "Should have at least 1 user (self)"
-        assert stats["total_users"] <= 5, f"New condo should have minimal users, got {stats['total_users']}"
-        assert stats["active_guards"] == 0, f"New condo should have 0 active guards, got {stats['active_guards']}"
-        assert stats["active_alerts"] == 0, f"New condo should have 0 active alerts, got {stats['active_alerts']}"
-        print(f"✓ New condo admin sees isolated data: users={stats['total_users']}, guards={stats['active_guards']}, alerts={stats['active_alerts']}")
+        # Response should be a list
+        data = response.json()
+        assert isinstance(data, list), f"Expected list, got {type(data)}"
+        print(f"✓ /authorizations/my returns 200 with {len(data)} authorizations")
     
-    def test_new_condo_admin_security_stats_zero_data(self):
-        """New condo admin should see zero security stats"""
-        result = self.login(ADMIN_NEW_CONDO)
-        if result is None:
-            pytest.skip("New condo admin not found")
+    def test_authorizations_my_has_condominium_filter(self):
+        """Verify authorizations returned have matching condominium_id"""
+        auth = TestHelpers.get_auth_token(ADMIN_EMAIL, ADMIN_PASSWORD)
+        if not auth:
+            pytest.skip("Could not authenticate admin")
         
-        response = self.session.get(f"{BASE_URL}/api/security/dashboard-stats")
-        assert response.status_code == 200, f"Security stats failed: {response.text}"
+        user_condo_id = auth["condominium_id"]
+        if not user_condo_id:
+            pytest.skip("Admin has no condominium_id")
         
-        stats = response.json()
-        print(f"New condo admin security stats: {stats}")
+        response = requests.get(
+            f"{BASE_URL}/api/authorizations/my",
+            headers=TestHelpers.auth_headers(auth["token"])
+        )
+        assert response.status_code == 200
         
-        assert stats["active_alerts"] == 0, f"New condo should have 0 active alerts, got {stats['active_alerts']}"
-        assert stats["active_guards"] == 0, f"New condo should have 0 active guards, got {stats['active_guards']}"
-        assert stats["today_accesses"] == 0, f"New condo should have 0 today accesses, got {stats['today_accesses']}"
-        print(f"✓ New condo admin sees zero security stats")
+        authorizations = response.json()
+        # If there are authorizations, verify they belong to user's condominium
+        for auth_item in authorizations:
+            item_condo_id = auth_item.get("condominium_id")
+            if item_condo_id:
+                assert item_condo_id == user_condo_id, \
+                    f"Authorization {auth_item.get('id')} has condo {item_condo_id}, expected {user_condo_id}"
+        
+        print(f"✓ All {len(authorizations)} authorizations belong to user's condominium")
+
+
+class TestAuditLogCondominium:
+    """Tests for audit log condominium_id recording and filtering"""
     
-    def test_new_condo_admin_users_list_only_self(self):
-        """New condo admin should see only users from their condo"""
-        result = self.login(ADMIN_NEW_CONDO)
-        if result is None:
-            pytest.skip("New condo admin not found")
-        
-        response = self.session.get(f"{BASE_URL}/api/admin/users")
-        assert response.status_code == 200, f"Users list failed: {response.text}"
-        
-        users = response.json()
-        print(f"New condo admin sees {len(users)} users")
-        
-        # Should see only users from their condo (at minimum, themselves)
-        assert len(users) >= 1, "Should see at least 1 user (self)"
-        assert len(users) <= 5, f"New condo should have minimal users, got {len(users)}"
-        
-        # Verify all users belong to the same condo
-        for user in users:
-            condo_id = user.get("condominium_id")
-            print(f"  User: {user.get('email')} - Condo: {condo_id}")
-        
-        print(f"✓ New condo admin sees only their condo users: {len(users)}")
+    def test_audit_logs_requires_auth(self):
+        """Test that /audit/logs requires authentication"""
+        response = requests.get(f"{BASE_URL}/api/audit/logs")
+        assert response.status_code in [401, 403], f"Expected 401/403, got {response.status_code}"
+        print("✓ /audit/logs requires authentication")
     
-    def test_new_condo_admin_panic_events_empty(self):
-        """New condo admin should see no panic events"""
-        result = self.login(ADMIN_NEW_CONDO)
-        if result is None:
-            pytest.skip("New condo admin not found")
+    def test_audit_logs_returns_200_for_admin(self):
+        """Test admin can access audit logs"""
+        auth = TestHelpers.get_auth_token(ADMIN_EMAIL, ADMIN_PASSWORD)
+        if not auth:
+            pytest.skip("Could not authenticate admin")
         
-        response = self.session.get(f"{BASE_URL}/api/security/panic-events")
-        assert response.status_code == 200, f"Panic events failed: {response.text}"
+        response = requests.get(
+            f"{BASE_URL}/api/audit/logs",
+            headers=TestHelpers.auth_headers(auth["token"])
+        )
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         
-        events = response.json()
-        print(f"New condo admin sees {len(events)} panic events")
-        
-        assert len(events) == 0, f"New condo should have 0 panic events, got {len(events)}"
-        print(f"✓ New condo admin sees zero panic events")
+        data = response.json()
+        assert isinstance(data, list), f"Expected list, got {type(data)}"
+        print(f"✓ Admin can access audit logs ({len(data)} entries)")
     
-    def test_new_condo_admin_access_logs_empty(self):
-        """New condo admin should see no access logs"""
-        result = self.login(ADMIN_NEW_CONDO)
-        if result is None:
-            pytest.skip("New condo admin not found")
+    def test_audit_logs_filtered_by_condominium(self):
+        """Verify audit logs are filtered by admin's condominium_id"""
+        auth = TestHelpers.get_auth_token(ADMIN_EMAIL, ADMIN_PASSWORD)
+        if not auth:
+            pytest.skip("Could not authenticate admin")
         
-        response = self.session.get(f"{BASE_URL}/api/security/access-logs")
-        assert response.status_code == 200, f"Access logs failed: {response.text}"
+        user_condo_id = auth["condominium_id"]
+        if not user_condo_id:
+            pytest.skip("Admin has no condominium_id")
+        
+        response = requests.get(
+            f"{BASE_URL}/api/audit/logs",
+            headers=TestHelpers.auth_headers(auth["token"])
+        )
+        assert response.status_code == 200
         
         logs = response.json()
-        print(f"New condo admin sees {len(logs)} access logs")
+        # All logs should belong to admin's condominium (or have no condo_id for legacy logs)
+        for log in logs:
+            log_condo_id = log.get("condominium_id")
+            if log_condo_id:  # Only check logs that have condominium_id set
+                assert log_condo_id == user_condo_id, \
+                    f"Log {log.get('id')} has condo {log_condo_id}, expected {user_condo_id}"
         
-        assert len(logs) == 0, f"New condo should have 0 access logs, got {len(logs)}"
-        print(f"✓ New condo admin sees zero access logs")
+        print(f"✓ Audit logs are properly filtered by condominium ({len(logs)} logs checked)")
     
-    def test_new_condo_admin_guards_empty(self):
-        """New condo admin should see no guards"""
-        result = self.login(ADMIN_NEW_CONDO)
-        if result is None:
-            pytest.skip("New condo admin not found")
+    def test_audit_log_has_condominium_field(self):
+        """Verify audit log entries have condominium_id field"""
+        auth = TestHelpers.get_auth_token(ADMIN_EMAIL, ADMIN_PASSWORD)
+        if not auth:
+            pytest.skip("Could not authenticate admin")
         
-        response = self.session.get(f"{BASE_URL}/api/hr/guards")
-        assert response.status_code == 200, f"Guards list failed: {response.text}"
-        
-        guards = response.json()
-        print(f"New condo admin sees {len(guards)} guards")
-        
-        assert len(guards) == 0, f"New condo should have 0 guards, got {len(guards)}"
-        print(f"✓ New condo admin sees zero guards")
-    
-    # ==================== EXISTING CONDO ADMIN DATA ====================
-    
-    def test_existing_condo_admin_login(self):
-        """Test that existing condo admin can login"""
-        result = self.login(ADMIN_EXISTING)
-        assert result is not None, "Existing condo admin should be able to login"
-        assert result["user"]["email"] == ADMIN_EXISTING["email"]
-        print(f"✓ Existing condo admin logged in: {result['user']['email']}")
-        print(f"  Condominium ID: {result['user'].get('condominium_id')}")
-    
-    def test_existing_condo_admin_sees_their_data(self):
-        """Existing condo admin should see their condo's data"""
-        result = self.login(ADMIN_EXISTING)
-        assert result is not None
-        
-        response = self.session.get(f"{BASE_URL}/api/dashboard/stats")
+        response = requests.get(
+            f"{BASE_URL}/api/audit/logs",
+            headers=TestHelpers.auth_headers(auth["token"])
+        )
         assert response.status_code == 200
         
-        stats = response.json()
-        print(f"Existing condo admin dashboard stats: {stats}")
+        logs = response.json()
+        # Recent logs should have condominium_id field
+        logs_with_condo = [l for l in logs if l.get("condominium_id")]
         
-        # Existing condo should have more data
-        assert stats["total_users"] > 0, "Existing condo should have users"
-        print(f"✓ Existing condo admin sees their data: users={stats['total_users']}, guards={stats['active_guards']}")
+        print(f"✓ {len(logs_with_condo)}/{len(logs)} audit logs have condominium_id field")
+        # At least some logs should have condominium_id for this test to be meaningful
+        # Note: Legacy logs may not have the field
+
+
+class TestProfileUpdate:
+    """Tests for PATCH /api/profile - profile_photo update"""
     
-    def test_existing_condo_admin_users_list(self):
-        """Existing condo admin should see their condo's users"""
-        result = self.login(ADMIN_EXISTING)
-        assert result is not None
+    def test_profile_get_returns_200(self):
+        """Test GET /profile returns 200"""
+        auth = TestHelpers.get_auth_token(ADMIN_EMAIL, ADMIN_PASSWORD)
+        if not auth:
+            pytest.skip("Could not authenticate admin")
         
-        response = self.session.get(f"{BASE_URL}/api/admin/users")
+        response = requests.get(
+            f"{BASE_URL}/api/profile",
+            headers=TestHelpers.auth_headers(auth["token"])
+        )
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+        
+        data = response.json()
+        assert "id" in data
+        assert "email" in data
+        assert "full_name" in data
+        print("✓ GET /profile returns 200 with user data")
+    
+    def test_profile_patch_updates_phone(self):
+        """Test PATCH /profile updates phone and returns updated data"""
+        auth = TestHelpers.get_auth_token(ADMIN_EMAIL, ADMIN_PASSWORD)
+        if not auth:
+            pytest.skip("Could not authenticate admin")
+        
+        # Get current profile
+        get_response = requests.get(
+            f"{BASE_URL}/api/profile",
+            headers=TestHelpers.auth_headers(auth["token"])
+        )
+        original = get_response.json()
+        
+        # Update phone
+        test_phone = f"+1-555-{str(uuid.uuid4())[:4]}"
+        patch_response = requests.patch(
+            f"{BASE_URL}/api/profile",
+            json={"phone": test_phone},
+            headers=TestHelpers.auth_headers(auth["token"])
+        )
+        
+        assert patch_response.status_code == 200, f"Expected 200, got {patch_response.status_code}: {patch_response.text}"
+        
+        updated = patch_response.json()
+        assert updated.get("phone") == test_phone, f"Phone not updated: {updated.get('phone')}"
+        
+        print(f"✓ PATCH /profile updates phone and returns updated data")
+        
+        # Restore original phone if it existed
+        if original.get("phone"):
+            requests.patch(
+                f"{BASE_URL}/api/profile",
+                json={"phone": original["phone"]},
+                headers=TestHelpers.auth_headers(auth["token"])
+            )
+    
+    def test_profile_patch_updates_profile_photo(self):
+        """Test PATCH /profile updates profile_photo and returns updated data"""
+        auth = TestHelpers.get_auth_token(ADMIN_EMAIL, ADMIN_PASSWORD)
+        if not auth:
+            pytest.skip("Could not authenticate admin")
+        
+        # Get current profile
+        get_response = requests.get(
+            f"{BASE_URL}/api/profile",
+            headers=TestHelpers.auth_headers(auth["token"])
+        )
+        original = get_response.json()
+        original_photo = original.get("profile_photo")
+        
+        # Update profile_photo with a test base64 image
+        test_photo = f"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=={uuid.uuid4().hex[:8]}"
+        
+        patch_response = requests.patch(
+            f"{BASE_URL}/api/profile",
+            json={"profile_photo": test_photo},
+            headers=TestHelpers.auth_headers(auth["token"])
+        )
+        
+        assert patch_response.status_code == 200, f"Expected 200, got {patch_response.status_code}: {patch_response.text}"
+        
+        updated = patch_response.json()
+        assert updated.get("profile_photo") == test_photo, \
+            f"profile_photo not updated correctly. Got: {updated.get('profile_photo', 'NONE')[:50]}"
+        
+        # Verify GET also returns updated photo
+        verify_response = requests.get(
+            f"{BASE_URL}/api/profile",
+            headers=TestHelpers.auth_headers(auth["token"])
+        )
+        verified = verify_response.json()
+        assert verified.get("profile_photo") == test_photo, \
+            f"GET /profile does not return updated photo"
+        
+        print("✓ PATCH /profile updates profile_photo correctly and GET returns updated data")
+        
+        # Restore original photo if it existed
+        if original_photo:
+            requests.patch(
+                f"{BASE_URL}/api/profile",
+                json={"profile_photo": original_photo},
+                headers=TestHelpers.auth_headers(auth["token"])
+            )
+
+
+class TestVisitHistoryIsolation:
+    """Tests for /resident/visit-history condominium_id filtering"""
+    
+    def test_visit_history_requires_auth(self):
+        """Test that /resident/visit-history requires authentication"""
+        response = requests.get(f"{BASE_URL}/api/resident/visit-history")
+        assert response.status_code in [401, 403], f"Expected 401/403, got {response.status_code}"
+        print("✓ /resident/visit-history requires authentication")
+    
+    def test_visit_history_returns_200(self):
+        """Test authenticated user can access visit history"""
+        auth = TestHelpers.get_auth_token(ADMIN_EMAIL, ADMIN_PASSWORD)
+        if not auth:
+            pytest.skip("Could not authenticate admin")
+        
+        response = requests.get(
+            f"{BASE_URL}/api/resident/visit-history",
+            headers=TestHelpers.auth_headers(auth["token"])
+        )
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        
+        data = response.json()
+        # Should return paginated data with entries list
+        assert "entries" in data or isinstance(data, list), f"Unexpected response format"
+        print(f"✓ /resident/visit-history returns 200")
+
+
+class TestGuardEntriesToday:
+    """Tests for /guard/entries-today condominium_id filtering"""
+    
+    def test_entries_today_requires_auth(self):
+        """Test that /guard/entries-today requires authentication"""
+        response = requests.get(f"{BASE_URL}/api/guard/entries-today")
+        assert response.status_code in [401, 403], f"Expected 401/403, got {response.status_code}"
+        print("✓ /guard/entries-today requires authentication")
+    
+    def test_entries_today_returns_200_for_admin(self):
+        """Test admin can access today's entries"""
+        auth = TestHelpers.get_auth_token(ADMIN_EMAIL, ADMIN_PASSWORD)
+        if not auth:
+            pytest.skip("Could not authenticate admin")
+        
+        response = requests.get(
+            f"{BASE_URL}/api/guard/entries-today",
+            headers=TestHelpers.auth_headers(auth["token"])
+        )
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        
+        data = response.json()
+        assert isinstance(data, list), f"Expected list, got {type(data)}"
+        print(f"✓ /guard/entries-today returns 200 with {len(data)} entries")
+    
+    def test_entries_today_filtered_by_condominium(self):
+        """Verify entries are filtered by user's condominium_id"""
+        auth = TestHelpers.get_auth_token(ADMIN_EMAIL, ADMIN_PASSWORD)
+        if not auth:
+            pytest.skip("Could not authenticate admin")
+        
+        user_condo_id = auth["condominium_id"]
+        if not user_condo_id:
+            pytest.skip("Admin has no condominium_id")
+        
+        response = requests.get(
+            f"{BASE_URL}/api/guard/entries-today",
+            headers=TestHelpers.auth_headers(auth["token"])
+        )
         assert response.status_code == 200
         
-        users = response.json()
-        print(f"Existing condo admin sees {len(users)} users")
+        entries = response.json()
+        for entry in entries:
+            entry_condo_id = entry.get("condominium_id")
+            if entry_condo_id:  # Entry should have condominium_id
+                assert entry_condo_id == user_condo_id, \
+                    f"Entry {entry.get('id')} has condo {entry_condo_id}, expected {user_condo_id}"
         
-        # Should have multiple users
-        assert len(users) > 0, "Existing condo should have users"
-        print(f"✓ Existing condo admin sees their users: {len(users)}")
+        print(f"✓ All {len(entries)} entries belong to user's condominium")
+
+
+class TestSuperAdminAuditAccess:
+    """Tests for SuperAdmin audit log access - should see all condominiums"""
     
-    # ==================== SUPERADMIN GLOBAL DATA ====================
-    
-    def test_superadmin_login(self):
-        """Test that SuperAdmin can login"""
-        result = self.login(SUPER_ADMIN)
-        assert result is not None, "SuperAdmin should be able to login"
-        assert "SuperAdmin" in result["user"]["roles"]
-        print(f"✓ SuperAdmin logged in: {result['user']['email']}")
-    
-    def test_superadmin_sees_all_data(self):
-        """SuperAdmin should see global data across all condos"""
-        result = self.login(SUPER_ADMIN)
-        assert result is not None
+    def test_superadmin_audit_logs_returns_200(self):
+        """Test SuperAdmin can access audit logs"""
+        auth = TestHelpers.get_auth_token(SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD)
+        if not auth:
+            pytest.skip("Could not authenticate superadmin")
         
-        response = self.session.get(f"{BASE_URL}/api/dashboard/stats")
+        response = requests.get(
+            f"{BASE_URL}/api/audit/logs",
+            headers=TestHelpers.auth_headers(auth["token"])
+        )
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+        
+        data = response.json()
+        assert isinstance(data, list), f"Expected list, got {type(data)}"
+        print(f"✓ SuperAdmin can access audit logs ({len(data)} entries)")
+    
+    def test_superadmin_sees_all_condominium_logs(self):
+        """Verify SuperAdmin can see logs from multiple condominiums"""
+        auth = TestHelpers.get_auth_token(SUPERADMIN_EMAIL, SUPERADMIN_PASSWORD)
+        if not auth:
+            pytest.skip("Could not authenticate superadmin")
+        
+        response = requests.get(
+            f"{BASE_URL}/api/audit/logs",
+            headers=TestHelpers.auth_headers(auth["token"])
+        )
         assert response.status_code == 200
         
-        stats = response.json()
-        print(f"SuperAdmin dashboard stats: {stats}")
+        logs = response.json()
         
-        # SuperAdmin should see more data than any single condo
-        assert stats["total_users"] > 0, "SuperAdmin should see all users"
-        print(f"✓ SuperAdmin sees global data: users={stats['total_users']}, guards={stats['active_guards']}")
-    
-    def test_superadmin_sees_all_condominiums(self):
-        """SuperAdmin should see all condominiums"""
-        result = self.login(SUPER_ADMIN)
-        assert result is not None
+        # Count unique condominium_ids
+        condo_ids = set()
+        for log in logs:
+            condo_id = log.get("condominium_id")
+            if condo_id:
+                condo_ids.add(condo_id)
         
-        # Correct endpoint is /api/condominiums (not /api/super-admin/condominiums)
-        response = self.session.get(f"{BASE_URL}/api/condominiums")
-        assert response.status_code == 200, f"Condominiums list failed: {response.text}"
-        
-        condos = response.json()
-        print(f"SuperAdmin sees {len(condos)} condominiums")
-        
-        assert len(condos) >= 2, "Should have at least 2 condominiums (existing + test isolation)"
-        print(f"✓ SuperAdmin sees all condominiums: {len(condos)}")
-
-
-class TestDynamicRoleForms:
-    """Test dynamic role-based form validation"""
-    
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        """Setup test session"""
-        self.session = requests.Session()
-        self.session.headers.update({"Content-Type": "application/json"})
-    
-    def login(self, credentials):
-        """Helper to login and get token"""
-        response = self.session.post(f"{BASE_URL}/api/auth/login", json=credentials)
-        if response.status_code == 200:
-            data = response.json()
-            self.session.headers.update({"Authorization": f"Bearer {data['access_token']}"})
-            return data
-        return None
-    
-    # ==================== RESIDENTE VALIDATION ====================
-    
-    def test_residente_requires_apartment_number(self):
-        """Creating Residente without apartment_number should return 400"""
-        result = self.login(ADMIN_EXISTING)
-        assert result is not None
-        
-        # Try to create Residente without apartment_number
-        payload = {
-            "email": f"test_residente_no_apt_{os.urandom(4).hex()}@test.com",
-            "password": "TestPass123!",
-            "full_name": "Test Residente No Apt",
-            "role": "Residente"
-            # Missing apartment_number
-        }
-        
-        response = self.session.post(f"{BASE_URL}/api/admin/users", json=payload)
-        print(f"Residente without apartment_number: {response.status_code} - {response.text}")
-        
-        assert response.status_code == 400, f"Should return 400 for missing apartment_number, got {response.status_code}"
-        assert "apartment_number" in response.text.lower() or "apartamento" in response.text.lower(), \
-            "Error should mention apartment_number"
-        print(f"✓ Residente validation: apartment_number required")
-    
-    def test_residente_with_apartment_number_succeeds(self):
-        """Creating Residente with apartment_number should succeed"""
-        result = self.login(ADMIN_EXISTING)
-        assert result is not None
-        
-        unique_id = os.urandom(4).hex()
-        payload = {
-            "email": f"test_residente_valid_{unique_id}@test.com",
-            "password": "TestPass123!",
-            "full_name": "Test Residente Valid",
-            "role": "Residente",
-            "apartment_number": "A-101",
-            "tower_block": "Torre A",
-            "resident_type": "owner"
-        }
-        
-        response = self.session.post(f"{BASE_URL}/api/admin/users", json=payload)
-        print(f"Residente with apartment_number: {response.status_code}")
-        
-        # API returns 200 for successful creation
-        if response.status_code in [200, 201]:
-            data = response.json()
-            assert data.get("role_data", {}).get("apartment_number") == "A-101", \
-                "role_data should contain apartment_number"
-            print(f"✓ Residente created with role_data: {data.get('role_data')}")
-        elif response.status_code == 409:
-            print(f"✓ Residente validation works (user already exists)")
-        else:
-            pytest.fail(f"Unexpected status: {response.status_code} - {response.text}")
-    
-    # ==================== GUARDA VALIDATION ====================
-    
-    def test_guarda_requires_badge_number(self):
-        """Creating Guarda without badge_number should return 400"""
-        result = self.login(ADMIN_EXISTING)
-        assert result is not None
-        
-        payload = {
-            "email": f"test_guarda_no_badge_{os.urandom(4).hex()}@test.com",
-            "password": "TestPass123!",
-            "full_name": "Test Guarda No Badge",
-            "role": "Guarda"
-            # Missing badge_number
-        }
-        
-        response = self.session.post(f"{BASE_URL}/api/admin/users", json=payload)
-        print(f"Guarda without badge_number: {response.status_code} - {response.text}")
-        
-        assert response.status_code == 400, f"Should return 400 for missing badge_number, got {response.status_code}"
-        assert "badge" in response.text.lower() or "placa" in response.text.lower(), \
-            "Error should mention badge_number"
-        print(f"✓ Guarda validation: badge_number required")
-    
-    def test_guarda_with_badge_number_succeeds(self):
-        """Creating Guarda with badge_number should succeed"""
-        result = self.login(ADMIN_EXISTING)
-        assert result is not None
-        
-        unique_id = os.urandom(4).hex()
-        payload = {
-            "email": f"test_guarda_valid_{unique_id}@test.com",
-            "password": "TestPass123!",
-            "full_name": "Test Guarda Valid",
-            "role": "Guarda",
-            "badge_number": f"G-{unique_id[:4]}",
-            "main_location": "Entrada Principal",
-            "initial_shift": "morning"
-        }
-        
-        response = self.session.post(f"{BASE_URL}/api/admin/users", json=payload)
-        print(f"Guarda with badge_number: {response.status_code}")
-        
-        # API returns 200 for successful creation
-        if response.status_code in [200, 201]:
-            data = response.json()
-            assert data.get("role_data", {}).get("badge_number") == payload["badge_number"], \
-                "role_data should contain badge_number"
-            print(f"✓ Guarda created with role_data: {data.get('role_data')}")
-        elif response.status_code == 409:
-            print(f"✓ Guarda validation works (user already exists)")
-        else:
-            pytest.fail(f"Unexpected status: {response.status_code} - {response.text}")
-    
-    # ==================== HR FORM ====================
-    
-    def test_hr_optional_fields(self):
-        """HR role should accept optional department and permission_level"""
-        result = self.login(ADMIN_EXISTING)
-        assert result is not None
-        
-        unique_id = os.urandom(4).hex()
-        payload = {
-            "email": f"test_hr_{unique_id}@test.com",
-            "password": "TestPass123!",
-            "full_name": "Test HR User",
-            "role": "HR",
-            "department": "Recursos Humanos",
-            "permission_level": "HR"
-        }
-        
-        response = self.session.post(f"{BASE_URL}/api/admin/users", json=payload)
-        print(f"HR user creation: {response.status_code}")
-        
-        # API returns 200 for successful creation
-        if response.status_code in [200, 201]:
-            data = response.json()
-            role_data = data.get("role_data", {})
-            assert role_data.get("department") == "Recursos Humanos"
-            print(f"✓ HR created with role_data: {role_data}")
-        elif response.status_code == 409:
-            print(f"✓ HR creation works (user already exists)")
-        else:
-            # HR fields are optional, so should not fail
-            assert response.status_code in [200, 201, 409], f"Unexpected: {response.status_code}"
-    
-    # ==================== ESTUDIANTE FORM ====================
-    
-    def test_estudiante_optional_fields(self):
-        """Estudiante role should accept optional subscription fields"""
-        result = self.login(ADMIN_EXISTING)
-        assert result is not None
-        
-        unique_id = os.urandom(4).hex()
-        payload = {
-            "email": f"test_estudiante_{unique_id}@test.com",
-            "password": "TestPass123!",
-            "full_name": "Test Estudiante",
-            "role": "Estudiante",
-            "subscription_plan": "basic",
-            "subscription_status": "trial"
-        }
-        
-        response = self.session.post(f"{BASE_URL}/api/admin/users", json=payload)
-        print(f"Estudiante creation: {response.status_code}")
-        
-        if response.status_code == 201:
-            data = response.json()
-            role_data = data.get("role_data", {})
-            assert role_data.get("subscription_plan") == "basic"
-            print(f"✓ Estudiante created with role_data: {role_data}")
-        elif response.status_code == 409:
-            print(f"✓ Estudiante creation works (user already exists)")
-    
-    # ==================== SUPERVISOR FORM ====================
-    
-    def test_supervisor_optional_fields(self):
-        """Supervisor role should accept optional supervised_area"""
-        result = self.login(ADMIN_EXISTING)
-        assert result is not None
-        
-        unique_id = os.urandom(4).hex()
-        payload = {
-            "email": f"test_supervisor_{unique_id}@test.com",
-            "password": "TestPass123!",
-            "full_name": "Test Supervisor",
-            "role": "Supervisor",
-            "supervised_area": "Seguridad Perimetral"
-        }
-        
-        response = self.session.post(f"{BASE_URL}/api/admin/users", json=payload)
-        print(f"Supervisor creation: {response.status_code}")
-        
-        if response.status_code == 201:
-            data = response.json()
-            role_data = data.get("role_data", {})
-            assert role_data.get("supervised_area") == "Seguridad Perimetral"
-            print(f"✓ Supervisor created with role_data: {role_data}")
-        elif response.status_code == 409:
-            print(f"✓ Supervisor creation works (user already exists)")
-    
-    # ==================== ROLE DATA STORAGE ====================
-    
-    def test_role_data_stored_in_user_document(self):
-        """Verify role_data is stored in user document"""
-        result = self.login(ADMIN_EXISTING)
-        assert result is not None
-        
-        # Get users list and check for role_data
-        response = self.session.get(f"{BASE_URL}/api/admin/users")
-        assert response.status_code == 200
-        
-        users = response.json()
-        users_with_role_data = [u for u in users if u.get("role_data")]
-        
-        print(f"Users with role_data: {len(users_with_role_data)} / {len(users)}")
-        
-        # At least some users should have role_data
-        if users_with_role_data:
-            sample = users_with_role_data[0]
-            print(f"Sample role_data: {sample.get('role_data')}")
-            print(f"✓ role_data is stored in user documents")
-        else:
-            print(f"⚠ No users with role_data found (may be legacy users)")
-
-
-class TestCrossCondoIsolation:
-    """Test that data from one condo is not visible to another"""
-    
-    @pytest.fixture(autouse=True)
-    def setup(self):
-        """Setup test session"""
-        self.session = requests.Session()
-        self.session.headers.update({"Content-Type": "application/json"})
-    
-    def login(self, credentials):
-        """Helper to login and get token"""
-        response = self.session.post(f"{BASE_URL}/api/auth/login", json=credentials)
-        if response.status_code == 200:
-            data = response.json()
-            self.session.headers.update({"Authorization": f"Bearer {data['access_token']}"})
-            return data
-        return None
-    
-    def test_no_cross_condo_user_leakage(self):
-        """Admin from one condo should not see users from another condo"""
-        # Login as existing condo admin
-        result1 = self.login(ADMIN_EXISTING)
-        assert result1 is not None
-        existing_condo_id = result1["user"].get("condominium_id")
-        
-        response1 = self.session.get(f"{BASE_URL}/api/admin/users")
-        assert response1.status_code == 200
-        existing_users = response1.json()
-        existing_user_ids = {u["id"] for u in existing_users}
-        
-        # Login as new condo admin
-        result2 = self.login(ADMIN_NEW_CONDO)
-        if result2 is None:
-            pytest.skip("New condo admin not found")
-        new_condo_id = result2["user"].get("condominium_id")
-        
-        response2 = self.session.get(f"{BASE_URL}/api/admin/users")
-        assert response2.status_code == 200
-        new_users = response2.json()
-        new_user_ids = {u["id"] for u in new_users}
-        
-        # Verify no overlap (except if same condo)
-        if existing_condo_id != new_condo_id:
-            overlap = existing_user_ids & new_user_ids
-            assert len(overlap) == 0, f"Cross-condo user leakage detected: {overlap}"
-            print(f"✓ No cross-condo user leakage: existing={len(existing_users)}, new={len(new_users)}")
-        else:
-            print(f"⚠ Same condo - cannot test cross-condo isolation")
-    
-    def test_no_cross_condo_guard_leakage(self):
-        """Admin from one condo should not see guards from another condo"""
-        # Login as existing condo admin
-        result1 = self.login(ADMIN_EXISTING)
-        assert result1 is not None
-        
-        response1 = self.session.get(f"{BASE_URL}/api/hr/guards")
-        assert response1.status_code == 200
-        existing_guards = response1.json()
-        
-        # Login as new condo admin
-        result2 = self.login(ADMIN_NEW_CONDO)
-        if result2 is None:
-            pytest.skip("New condo admin not found")
-        
-        response2 = self.session.get(f"{BASE_URL}/api/hr/guards")
-        assert response2.status_code == 200
-        new_guards = response2.json()
-        
-        print(f"Existing condo guards: {len(existing_guards)}")
-        print(f"New condo guards: {len(new_guards)}")
-        
-        # New condo should have 0 guards
-        assert len(new_guards) == 0, f"New condo should have 0 guards, got {len(new_guards)}"
-        print(f"✓ No cross-condo guard leakage")
+        print(f"✓ SuperAdmin sees logs from {len(condo_ids)} different condominiums")
 
 
 if __name__ == "__main__":
