@@ -118,6 +118,12 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
   - Simplified drag logic to use distance-based threshold (80px) instead of velocity
   - Removed dot indicators completely (bottom nav already shows position)
   - Clean UI without blue circle overlay
+- **PDF Export Fix:**
+  - Fixed blank PDF issue caused by html2canvas capturing hidden content
+  - Container now uses `position: fixed; opacity: 0` instead of `position: absolute; left: -9999px`
+  - Added 300ms delay before capture to ensure DOM renders
+  - Added `backgroundColor: '#ffffff'` to html2canvas options
+  - PDF now contains full visit history content (verified: 3KB+ file with data)
 
 ### 2025-02-27 (Previous Session)
 - **Users Module Phase 2B:** Migrated `CreateUserByAdmin`, `CreateEmployeeByHR`, `UserStatusUpdateV2` models
