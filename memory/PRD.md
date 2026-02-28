@@ -133,6 +133,13 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
      - Modal requires SuperAdmin password verification
      - Confirmation requires typing "DELETE SYSTEM"
   5. **Price Text Removed:** Eliminated "$1 USD / usuario / mes" marketing text from SuperAdmin dashboard
+- **Production Email Service (Resend):**
+  - Created centralized email service at `/app/backend/services/email_service.py`
+  - Standard sender: `Genturix Security <no-reply@genturix.com>`
+  - Email templates: welcome, password reset, notifications, emergency alerts
+  - Test endpoints: `GET /api/test-email?email=...` and `GET /api/email/service-status`
+  - Async sending with proper error handling and logging
+  - Compatible with Railway environment variables (RESEND_API_KEY)
 
 ### 2025-02-27 (Previous Session)
 - **Users Module Phase 2B:** Migrated `CreateUserByAdmin`, `CreateEmployeeByHR`, `UserStatusUpdateV2` models
