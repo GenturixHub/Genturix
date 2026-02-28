@@ -258,10 +258,11 @@ const ResidentHome = () => {
   const swipeHandlers = useSwipeable({
     onSwipedLeft: goNextTab,
     onSwipedRight: goPrevTab,
-    delta: 70,
+    delta: 40,
     preventScrollOnSwipe: false,
     trackTouch: true,
-    trackMouse: false
+    trackMouse: false,
+    touchEventOptions: { passive: false }
   });
   
   // Update previous tab reference after animation
