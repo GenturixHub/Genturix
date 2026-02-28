@@ -234,7 +234,7 @@ const DashboardLayout = ({ children, title = 'Dashboard', variant = 'admin' }) =
 
   // Desktop layout - unchanged
   return (
-    <div className="min-h-screen bg-[#05050A]">
+    <div className="h-screen bg-[#05050A] overflow-hidden">
       <Sidebar 
         collapsed={sidebarCollapsed} 
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} 
@@ -247,13 +247,13 @@ const DashboardLayout = ({ children, title = 'Dashboard', variant = 'admin' }) =
         />
       )}
 
-      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'} min-h-screen flex flex-col`}>
+      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'} h-screen flex flex-col`}>
         <Header 
           onMenuClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
           title={title}
         />
         
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 p-6 overflow-y-auto min-h-0">
           {children}
         </main>
       </div>
