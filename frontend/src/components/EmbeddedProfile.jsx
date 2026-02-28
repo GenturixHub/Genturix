@@ -382,30 +382,53 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
           )}
         </ProfileSection>
 
-        {/* Security Section */}
-        {isOwnProfile && (
+        {/* ========== NOTIFICATIONS SECTION ========== */}
+        {isOwnProfile && profile?.roles?.some(role => ['Guarda', 'Guardia', 'Administrador', 'Supervisor', 'SuperAdmin'].includes(role)) && (
           <ProfileSection 
-            icon={Key} 
-            title={t('profile.security', 'Seguridad')}
-            description={t('profile.securityDescription', 'Administra tu contraseña')}
+            icon={Bell} 
+            title={t('profile.notifications', 'Notificaciones')}
+            description={t('profile.notificationsDescription', 'Configura tus alertas')}
           >
-            <ChangePasswordForm 
-              embedded={true}
-              onSuccess={() => {
-                setSuccess(t('profile.passwordChanged', 'Contraseña actualizada. Tu sesión será cerrada.'));
-              }}
-            />
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-white/80">{t('security.panicAlerts')}</p>
+                  <p className="text-xs text-white/40">{t('profile.alertNotificationsHint', 'Receive panic alerts in real time')}</p>
+                </div>
+              </div>
+              <PushNotificationToggle />
+            </div>
           </ProfileSection>
         )}
 
-        {/* Push Notifications - Only for security roles */}
-        {isOwnProfile && profile?.roles?.some(role => ['Guarda', 'Guardia', 'Administrador', 'Supervisor', 'SuperAdmin'].includes(role)) && (
+        {/* ========== PRIVACY SECTION ========== */}
+        {isOwnProfile && (
           <ProfileSection 
-            icon={Shield} 
-            title={t('security.panicAlerts')}
-            description={t('profile.alertNotificationsHint', 'Receive panic alerts in real time')}
+            icon={Lock} 
+            title={t('profile.privacy', 'Privacidad')}
+            description={t('profile.privacyDescription', 'Administra tu seguridad')}
           >
-            <PushNotificationToggle />
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="change-password" className="border-white/10">
+                <AccordionTrigger 
+                  className="text-white/80 hover:text-white hover:no-underline py-3"
+                  data-testid="change-password-accordion"
+                >
+                  <div className="flex items-center gap-2">
+                    <Key className="w-4 h-4 text-white/50" />
+                    <span>{t('profile.changePassword', 'Cambiar Contraseña')}</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-2">
+                  <ChangePasswordForm 
+                    embedded={true}
+                    onSuccess={() => {
+                      setSuccess(t('profile.passwordChanged', 'Contraseña actualizada exitosamente'));
+                    }}
+                  />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </ProfileSection>
         )}
 
