@@ -12382,16 +12382,14 @@ async def export_audit_logs_pdf(
     condo_id = current_user.get("condominium_id")
     query = {}
     
-    # Apply tenant filter (SuperAdmin sees all, others see only their condo)
-    # Note: audit_logs may or may not have condominium_id depending on the event
-    if "SuperAdmin" not in roles and condo_id:
-        # For non-SuperAdmin, filter by condominium_id if present
-        # Some system events don't have condominium_id, so we include those too
-        query["$or"] = [
-            {"condominium_id": condo_id},
-            {"condominium_id": {"$exists": False}},
-            {"condominium_id": None}
-        ]
+    # CRITICAL: Apply strict tenant filter
+    # SuperAdmin sees all, others see ONLY their condo (no system logs)
+    if "SuperAdmin" not in roles:
+        if condo_id:
+            query["condominium_id"] = condo_id
+        else:
+            # No condominium assigned - return empty PDF
+            raise HTTPException(status_code=403, detail="No tiene condominio asignado")
     
     # Apply date filters (timestamp field is ISO string)
     if from_date:
