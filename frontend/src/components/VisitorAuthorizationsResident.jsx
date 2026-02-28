@@ -994,12 +994,12 @@ const VisitorAuthorizationsResident = ({ notifications: parentNotifications = []
         </Button>
       </div>
 
-      {/* Content - Scrollable area with proper mobile support */}
+      {/* Content - Scrollable area with flex layout (no maxHeight!) */}
       <div 
-        className="flex-1 overflow-y-auto pb-28"
-        style={{ WebkitOverflowScrolling: 'touch', maxHeight: 'calc(100vh - 200px)' }}
+        className="flex-1 min-h-0 overflow-y-auto"
+        style={{ WebkitOverflowScrolling: 'touch' }}
       >
-        <div className="p-4 space-y-4">
+        <div className="p-4 pb-32 space-y-4">
           {/* Notifications Panel (collapsible) */}
           {showNotifications && (
             <Card className="bg-[#0F111A] border-[#1E293B]">
