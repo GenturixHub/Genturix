@@ -28,21 +28,28 @@ if RESEND_API_KEY:
     resend.api_key = RESEND_API_KEY
 
 # Standard sender address for all emails (Production)
-DEFAULT_SENDER = "Genturix Security <no-reply@gentrix.com>"
+DEFAULT_SENDER = "Genturix Security <no-reply@genturix.com>"
 
-# Fallback sender for testing (Resend sandbox)
+# Fallback sender for testing (Resend sandbox) - NOT USED IN PRODUCTION
 FALLBACK_SENDER = "Genturix <onboarding@resend.dev>"
 
 
 def get_sender() -> str:
-    """Get the appropriate sender based on configuration."""
+    """
+    Get the production sender address.
+    All emails MUST use this centralized function.
+    
+    Returns:
+        Production sender: Genturix Security <no-reply@genturix.com>
+    """
     if not RESEND_API_KEY:
+        logger.warning("[EMAIL SERVICE] RESEND_API_KEY not configured")
         return FALLBACK_SENDER
     
-    # Note: For production, verify your domain at resend.com/domains
-    # Until then, use the sandbox sender for testing
-    # Production sender will be: Genturix Security <no-reply@gentrix.com>
-    return FALLBACK_SENDER  # Using sandbox until domain is verified
+    # Production sender - domain verified at resend.com/domains
+    sender = DEFAULT_SENDER
+    print(f"[EMAIL SERVICE] Sender: {sender}")
+    return sender
 
 
 def send_email_sync(
