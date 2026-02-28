@@ -76,14 +76,10 @@ const ResidentLayout = ({ children, activeTab, onTabChange, title = 'GENTURIX' }
         </div>
       </header>
 
-      {/* Content - Scrollable main area with swipe handlers */}
+      {/* Content - Full height container for carousel */}
       <main 
-        {...swipeHandlers}
-        className="flex-1 w-full overflow-y-auto"
-        style={{ 
-          WebkitOverflowScrolling: 'touch',
-          paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))'
-        }}
+        className="flex-1 min-h-0 flex flex-col"
+        style={{ overflow: 'hidden' }}
       >
         {children}
       </main>
