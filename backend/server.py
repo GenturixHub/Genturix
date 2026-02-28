@@ -4304,6 +4304,44 @@ async def trigger_panic(event: PanicEventCreate, request: Request, current_user 
         sender_id=current_user["id"]  # Exclude sender from notifications
     )
     
+    # === SEND EMAIL ALERT TO ADMINISTRATORS (fail-safe) ===
+    try:
+        # Get condominium info for email
+        condo_info = await db.condominiums.find_one(
+            {"id": condo_id}, 
+            {"_id": 0, "name": 1, "contact_email": 1}
+        )
+        condo_name = condo_info.get("name", "Condominio") if condo_info else "Condominio"
+        
+        # Get admin users for this condominium
+        admin_users = await db.users.find(
+            {"condominium_id": condo_id, "roles": {"$in": ["Administrador"]}, "is_active": True},
+            {"_id": 0, "email": 1, "full_name": 1}
+        ).to_list(10)
+        
+        # Send email to each admin
+        for admin in admin_users:
+            admin_email = admin.get("email")
+            if admin_email:
+                try:
+                    alert_html = get_emergency_alert_email_html(
+                        resident_name=current_user["full_name"],
+                        alert_type=panic_type_labels.get(event.panic_type.value, "Emergencia"),
+                        location=event.location or apartment,
+                        timestamp=datetime.now(timezone.utc).strftime("%d/%m/%Y %H:%M:%S UTC"),
+                        condominium_name=condo_name
+                    )
+                    await send_email(
+                        to=admin_email,
+                        subject=f"🚨 ALERTA DE EMERGENCIA - {condo_name}",
+                        html=alert_html
+                    )
+                except Exception as admin_email_error:
+                    logger.warning(f"[EMAIL] Failed to send emergency alert to admin {admin_email}: {admin_email_error}")
+    except Exception as email_error:
+        logger.warning(f"[EMAIL] Failed to send emergency alert emails: {email_error}")
+        # Continue - don't break API flow
+    
     # Log to audit
     await log_audit_event(
         AuditEventType.PANIC_BUTTON,
