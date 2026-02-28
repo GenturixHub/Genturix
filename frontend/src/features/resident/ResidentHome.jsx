@@ -332,54 +332,61 @@ const ResidentHome = () => {
   const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
   
   // MotionValue for interactive drag - follows finger exactly
-  const x = useMotionValue(0);
+  const x = useMotionValue(-activeIndex * viewportWidth);
+  
+  // Track if currently dragging to prevent position updates
+  const isDragging = useRef(false);
   
   // Update viewport width on resize
   useEffect(() => {
-    const handleResize = () => setViewportWidth(window.innerWidth);
+    const handleResize = () => {
+      const newWidth = window.innerWidth;
+      setViewportWidth(newWidth);
+      // Update position on resize if not dragging
+      if (!isDragging.current) {
+        x.set(-activeIndex * newWidth);
+      }
+    };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [activeIndex, x]);
   
-  // Sync x position when activeIndex changes (from tab clicks or drag end)
+  // Sync x position when activeIndex changes (from tab clicks only, not during drag)
   useEffect(() => {
-    const targetX = -activeIndex * viewportWidth;
-    animate(x, targetX, {
-      type: "spring",
-      stiffness: 300,
-      damping: 30
-    });
+    if (!isDragging.current) {
+      x.set(-activeIndex * viewportWidth);
+    }
   }, [activeIndex, viewportWidth, x]);
+
+  // Handle drag start
+  const handleDragStart = useCallback(() => {
+    isDragging.current = true;
+  }, []);
 
   // Handle drag end - snap to nearest module (max 1 module per swipe)
   const handleDragEnd = useCallback((event, info) => {
-    const { offset, velocity } = info;
-    const swipeThreshold = 50;
-    const velocityThreshold = 300;
+    isDragging.current = false;
+    
+    const { offset } = info;
+    const dragThreshold = 80; // pixels needed to change module
     
     let direction = 0;
     
-    // Quick flick detection (velocity takes priority)
-    if (Math.abs(velocity.x) > velocityThreshold) {
-      direction = velocity.x > 0 ? -1 : 1;
-    }
-    // Slow drag detection (offset-based)
-    else if (Math.abs(offset.x) > swipeThreshold) {
-      direction = offset.x > 0 ? -1 : 1;
+    // Simple distance-based detection - NO velocity to prevent skipping
+    if (offset.x < -dragThreshold) {
+      direction = 1; // Dragged left = go to next module
+    } else if (offset.x > dragThreshold) {
+      direction = -1; // Dragged right = go to previous module
     }
     
     // Only allow moving ONE module at a time
     const newIndex = Math.max(0, Math.min(activeIndex + direction, TAB_ORDER.length - 1));
     
+    // Snap to the target position
+    x.set(-newIndex * viewportWidth);
+    
     if (newIndex !== activeIndex) {
       setActiveTab(TAB_ORDER[newIndex]);
-    } else {
-      // Snap back to current position if no change
-      animate(x, -activeIndex * viewportWidth, {
-        type: "spring",
-        stiffness: 300,
-        damping: 30
-      });
     }
   }, [activeIndex, viewportWidth, x]);
 
