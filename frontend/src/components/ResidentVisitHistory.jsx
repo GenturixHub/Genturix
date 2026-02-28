@@ -5,13 +5,14 @@
  * - View visits related to resident's house
  * - Filters: Today, 7 days, 30 days, custom range, by type, by status
  * - Search: name, document, plate
- * - Export to PDF
+ * - Export to PDF (downloads automatically)
  * - Pagination with lazy loading
  * - Mobile-first responsive design
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import html2pdf from 'html2pdf.js';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Card, CardContent } from './ui/card';
