@@ -94,7 +94,17 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
 
 ## Changelog
 
-### 2025-02-27 (Current Session)
+### 2025-02-28 (Current Session)
+- **P0 Resident Carousel Fix:** Resolved critical mobile UX bug in ResidentHome.jsx
+  - Fixed black empty space at bottom of all modules
+  - Changed from viewport pixel widths to percentage-based (100/TAB_ORDER.length)%
+  - Added paddingBottom to each module for bottom nav clearance
+  - Removed conflicting swipe handlers from ResidentLayout
+  - Improved drag physics: dragMomentum=false, dragElastic=0.15
+  - Single-module transition constraint in handleDragEnd
+  - Test credentials: test-resident@genturix.com / Admin123!
+
+### 2025-02-27 (Previous Session)
 - **Users Module Phase 2B:** Migrated `CreateUserByAdmin`, `CreateEmployeeByHR`, `UserStatusUpdateV2` models
 - **Admin Billing Page Redesign:** Complete rewrite of payments module
   - Removed all hardcoded prices ($1 per user)
