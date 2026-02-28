@@ -16167,30 +16167,24 @@ async def set_email_status(
     }
 
 # ==================== EMAIL SERVICE ENDPOINTS ====================
-# Import centralized email service
-from services.email_service import (
-    send_email as email_service_send,
-    get_email_status as get_email_service_status,
-    is_email_configured,
-    get_welcome_email_html,
-    get_notification_email_html
-)
+# Aliases for backward compatibility (imports at top of file)
+email_service_send = send_email
+get_email_service_status = get_email_status
 
 @api_router.get("/test-email")
 async def test_email_simple(
-    email: str,
-    current_user = Depends(require_role("SuperAdmin"))
+    email: str = Query(..., description="Email address to send test email to")
 ):
     """
     Simple GET endpoint for quick email testing.
     
     Usage: GET /api/test-email?email=test@example.com
     
-    Only SuperAdmin can use this endpoint.
+    Returns: { "status": "sent" } on success
     """
     if not is_email_configured():
         return {
-            "success": False,
+            "status": "error",
             "error": "Email service not configured (RESEND_API_KEY missing)"
         }
     
@@ -16200,19 +16194,19 @@ async def test_email_simple(
         action_url=None
     )
     
-    result = await email_service_send(
-        to=email,
-        subject="[TEST] Genturix Email Service",
-        html=html
-    )
-    
-    return {
-        "success": result.get("success", False),
-        "email_id": result.get("email_id"),
-        "recipient": email,
-        "error": result.get("error"),
-        "service_status": get_email_service_status()
-    }
+    try:
+        result = await send_email(
+            to=email,
+            subject="[TEST] Genturix Email Service",
+            html=html
+        )
+        
+        if result.get("success"):
+            return {"status": "sent", "email_id": result.get("email_id")}
+        else:
+            return {"status": "error", "error": result.get("error")}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
 
 @api_router.get("/email/service-status")
 async def check_email_service_status(
