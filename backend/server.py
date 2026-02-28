@@ -13579,12 +13579,20 @@ async def send_access_approved_email(
     login_url: str
 ) -> dict:
     """Send email when access request is approved"""
+    print(f"[EMAIL TRIGGER] access_approved → sending credentials to {recipient_email}")
+    
     email_enabled = await is_email_enabled()
     if not email_enabled:
+        print(f"[EMAIL BLOCKED] Email toggle is OFF (recipient: {recipient_email})")
         return {"status": "skipped", "reason": "Email sending disabled"}
     
     if not RESEND_API_KEY:
+        print(f"[EMAIL BLOCKED] RESEND_API_KEY not configured")
         return {"status": "skipped", "reason": "Email service not configured"}
+    
+    # Use centralized sender
+    sender = SENDER_EMAIL
+    print(f"[EMAIL SERVICE] Sender: {sender}")
     
     html_content = f"""
     <!DOCTYPE html>
@@ -13647,15 +13655,17 @@ async def send_access_approved_email(
     
     try:
         params = {
-            "from": f"GENTURIX <{SENDER_EMAIL}>",
+            "from": sender,
             "to": [recipient_email],
             "subject": f"✅ Acceso Aprobado - {condominium_name}",
             "html": html_content
         }
         email_response = await asyncio.to_thread(resend.Emails.send, params)
+        print(f"[EMAIL SENT] {recipient_email}")
+        logger.info(f"[EMAIL] Access approved email sent to {recipient_email}")
         return {"status": "success", "email_id": str(email_response)}
     except Exception as e:
-        logger.error(f"Failed to send approval email: {e}")
+        logger.error(f"[EMAIL ERROR] Failed to send approval email to {recipient_email}: {e}")
         return {"status": "error", "reason": str(e)}
 
 async def send_access_rejected_email(
