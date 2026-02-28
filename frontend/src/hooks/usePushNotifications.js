@@ -298,11 +298,21 @@ export function usePushNotifications() {
           }
         }
         
-        // v3.0: BACKGROUND SYNC - Fire and forget, doesn't block UI
+        // v4.0: BACKGROUND SYNC - Fire and forget, doesn't block UI
         // Small delay to let UI render first
         setTimeout(() => {
           if (mountedRef.current) {
             syncSubscriptionStateBackground(reg);
+            
+            // v4.0: Validate subscription with backend after sync
+            // Only if user has local subscription (permission granted)
+            if (hasLocalSubscription && Notification.permission === 'granted') {
+              setTimeout(() => {
+                if (mountedRef.current) {
+                  validateSubscription();
+                }
+              }, 2000); // Wait 2s after sync to validate
+            }
           }
         }, 100);
         
