@@ -358,7 +358,13 @@ const ResidentHome = () => {
   }
 
   return (
-    <ResidentLayout activeTab={activeTab} onTabChange={setActiveTab}>
+    <ResidentLayout 
+      activeTab={activeTab} 
+      onTabChange={setActiveTab}
+      showIndicators={true}
+      indicatorCount={TAB_ORDER.length}
+      activeIndex={activeIndex}
+    >
       {/* Carousel Container - fills all available height */}
       <div 
         className="flex-1 relative"
