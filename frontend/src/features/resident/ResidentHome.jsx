@@ -377,14 +377,14 @@ const ResidentHome = () => {
     }
   }, [activeTab]);
 
-  // Handle drag end - switch module if threshold passed
+  // Get current module index
+  const activeIndex = TAB_ORDER.indexOf(activeTab);
+
+  // Handle drag end - snap to nearest module
   const handleDragEnd = useCallback((event, info) => {
     const { offset, velocity } = info;
     const swipeThreshold = 80;
     const velocityThreshold = 300;
-    
-    // Check if it's a valid horizontal swipe (not vertical scroll)
-    if (Math.abs(offset.y) > Math.abs(offset.x) * 0.5) return;
     
     // Swipe left (next module) - negative offset
     if (offset.x < -swipeThreshold || velocity.x < -velocityThreshold) {
@@ -401,64 +401,65 @@ const ResidentHome = () => {
     return <SuccessScreen alert={sentAlert} onDismiss={() => setSentAlert(null)} t={t} />;
   }
 
-  // Render active tab content based on current tab
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'emergency':
-        return (
-          <EmergencyTab
-            location={location}
-            locationLoading={locationLoading}
-            locationError={locationError}
-            onEmergency={handleEmergency}
-            sendingType={sendingType}
-            t={t}
-          />
-        );
-      case 'visits':
-        return <ResidentVisitsModule />;
-      case 'reservations':
-        return <ResidentReservations />;
-      case 'directory':
-        return <ProfileDirectory embedded={true} maxHeight="calc(100vh - 140px)" />;
-      case 'profile':
-        return <EmbeddedProfile />;
-      default:
-        return null;
-    }
-  };
-
-  // Get padding class based on active tab
-  const getTabPadding = () => {
-    if (activeTab === 'emergency' || activeTab === 'directory') return '';
-    return 'px-3 py-4';
-  };
-
   return (
     <ResidentLayout activeTab={activeTab} onTabChange={setActiveTab}>
-      {/* Animated Tab Content with Interactive Drag */}
-      <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-        <AnimatePresence initial={false} mode="wait" custom={direction}>
-          <motion.div
-            key={activeTab}
-            custom={direction}
-            variants={slideVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={slideTransition}
-            // Interactive drag navigation
-            drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.15}
-            dragMomentum={false}
-            onDragEnd={handleDragEnd}
-            className={`flex-1 min-h-0 ${getTabPadding()}`}
-            style={{ touchAction: 'pan-y' }}
-          >
-            {renderTabContent()}
-          </motion.div>
-        </AnimatePresence>
+      {/* Carousel Container */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <motion.div
+          className="flex h-full"
+          drag="x"
+          dragConstraints={{ 
+            left: -(TAB_ORDER.length - 1) * window.innerWidth, 
+            right: 0 
+          }}
+          dragElastic={0.1}
+          dragMomentum={false}
+          onDragEnd={handleDragEnd}
+          animate={{ 
+            x: -activeIndex * window.innerWidth 
+          }}
+          transition={{
+            type: "spring",
+            stiffness: 300,
+            damping: 30
+          }}
+          style={{ 
+            width: `${TAB_ORDER.length * 100}%`,
+            touchAction: 'pan-y'
+          }}
+        >
+          {/* Emergency Module */}
+          <div className="w-screen h-full flex-shrink-0 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <EmergencyTab
+              location={location}
+              locationLoading={locationLoading}
+              locationError={locationError}
+              onEmergency={handleEmergency}
+              sendingType={sendingType}
+              t={t}
+            />
+          </div>
+          
+          {/* Visits Module */}
+          <div className="w-screen h-full flex-shrink-0 overflow-y-auto px-3 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <ResidentVisitsModule />
+          </div>
+          
+          {/* Reservations Module */}
+          <div className="w-screen h-full flex-shrink-0 overflow-y-auto px-3 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <ResidentReservations />
+          </div>
+          
+          {/* Directory Module */}
+          <div className="w-screen h-full flex-shrink-0 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <ProfileDirectory embedded={true} />
+          </div>
+          
+          {/* Profile Module */}
+          <div className="w-screen h-full flex-shrink-0 overflow-y-auto px-3 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <EmbeddedProfile />
+          </div>
+        </motion.div>
       </div>
       
       {/* Push Permission Banner */}
