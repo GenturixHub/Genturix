@@ -38,34 +38,55 @@ import {
   Download,
   Globe
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const AuditModule = () => {
   const isMobile = useIsMobile();
+  const { user } = useAuth();
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+  const [isGlobalView, setIsGlobalView] = useState(false);
   const [filters, setFilters] = useState({
     module: '',
     event_type: '',
     search: ''
   });
+  
+  // Check if user is SuperAdmin
+  const isSuperAdmin = user?.roles?.includes('SuperAdmin');
 
   const fetchData = async () => {
     try {
-      const [logsData, statsData] = await Promise.all([
-        api.getAuditLogs(filters.module || filters.event_type ? {
+      let logsData;
+      
+      // SuperAdmin can toggle between global and local view
+      if (isSuperAdmin && isGlobalView) {
+        // Use global audit endpoint for SuperAdmin
+        const response = await api.get('/super-admin/audit/global', {
+          params: {
+            module: filters.module || undefined,
+            event_type: filters.event_type || undefined
+          }
+        });
+        logsData = response.logs || response;
+      } else {
+        // Regular tenant-scoped audit logs
+        logsData = await api.getAuditLogs(filters.module || filters.event_type ? {
           module: filters.module || undefined,
           event_type: filters.event_type || undefined
-        } : {}),
-        api.getAuditStats()
-      ]);
-      setLogs(logsData);
+        } : {});
+      }
+      
+      const statsData = await api.getAuditStats();
+      setLogs(Array.isArray(logsData) ? logsData : []);
       setStats(statsData);
     } catch (error) {
       console.error('Error fetching audit data:', error);
+      toast.error('Error al cargar datos de auditoría');
     } finally {
       setIsLoading(false);
     }
@@ -73,7 +94,7 @@ const AuditModule = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [isGlobalView]);
 
   const applyFilters = () => {
     setIsLoading(true);
