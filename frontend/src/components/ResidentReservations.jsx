@@ -966,13 +966,13 @@ const ResidentReservations = () => {
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
         </TabsContent>
         
-        {/* My Reservations Tab */}
-        <TabsContent value="mine" className="flex-1 mt-0 overflow-hidden">
-          <ScrollArea className="h-full">
-            <div className="p-4 pb-24 space-y-4">
+        {/* My Reservations Tab - Single scroll container */}
+        <TabsContent value="mine" className="flex-1 mt-0 min-h-0">
+          <div className="scroll-container pb-28">
+            <div className="p-4 space-y-4">
               {/* Pending */}
               {pendingReservations.length > 0 && (
                 <div>
