@@ -5,13 +5,13 @@
  * Uses independent ResidentLayout for mobile-first experience.
  * Full i18n support.
  * 
- * UI Enhancement: Smooth horizontal slide transitions between modules (Framer Motion)
+ * UI: Simple swipe navigation between modules (react-swipeable)
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { motion, useMotionValue, animate } from 'framer-motion';
+import { useSwipeable } from 'react-swipeable';
 import { useAuth } from '../../contexts/AuthContext';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
