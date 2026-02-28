@@ -8,10 +8,10 @@
  * UI Enhancement: Smooth horizontal slide transitions between modules (Framer Motion)
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
+import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
