@@ -6,8 +6,8 @@
 // =========================================================================
 
 // IMPORTANT: Increment this version on each deploy
-const SW_VERSION = '10.0.0';
-const CACHE_NAME = 'genturix-cache-v10';
+const SW_VERSION = '11.0.0';
+const CACHE_NAME = 'genturix-cache-v11';
 
 // List of valid caches (all others will be deleted)
 const CACHE_WHITELIST = [CACHE_NAME];
