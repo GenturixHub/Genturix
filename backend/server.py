@@ -4951,6 +4951,60 @@ async def create_visitor_authorization(
         request.headers.get("user-agent", "unknown")
     )
     
+    # ========== NOTIFY GUARDS AND ADMINS ==========
+    condo_id = current_user.get("condominium_id")
+    if condo_id:
+        resident_name = current_user.get("full_name", "Un residente")
+        visitor_name = auth_data.visitor_name
+        apartment = current_user.get("role_data", {}).get("apartment_number", "")
+        
+        # Create notification payload
+        notification_payload = {
+            "title": "📋 Nuevo visitante preregistrado",
+            "body": f"{visitor_name} - autorizado por {resident_name}" + (f" ({apartment})" if apartment else ""),
+            "icon": "/logo192.png",
+            "badge": "/logo192.png",
+            "tag": f"preregistration-{auth_id[:8]}",
+            "data": {
+                "type": "visitor_preregistration",
+                "authorization_id": auth_id,
+                "visitor_name": visitor_name,
+                "resident_name": resident_name,
+                "url": "/guard?tab=pending"
+            }
+        }
+        
+        # Create notification in DB for guards
+        guard_users = await db.users.find(
+            {"condominium_id": condo_id, "roles": {"$in": ["Guarda"]}, "is_active": True},
+            {"_id": 0, "id": 1}
+        ).to_list(None)
+        
+        for guard in guard_users:
+            await db.guard_notifications.insert_one({
+                "id": str(uuid.uuid4()),
+                "type": "visitor_preregistration",
+                "guard_user_id": guard["id"],
+                "condominium_id": condo_id,
+                "title": "Nuevo visitante preregistrado",
+                "message": f"{visitor_name} ha sido autorizado por {resident_name}" + (f" - Apto {apartment}" if apartment else ""),
+                "data": {
+                    "authorization_id": auth_id,
+                    "visitor_name": visitor_name,
+                    "resident_name": resident_name
+                },
+                "read": False,
+                "created_at": now
+            })
+        
+        # Send push notifications to guards and admins
+        try:
+            await send_push_to_guards(condo_id, notification_payload)
+            await send_push_to_admins(condo_id, notification_payload)
+            logger.info(f"[PREREGISTRATION] Notifications sent for visitor {visitor_name}")
+        except Exception as e:
+            logger.warning(f"[PREREGISTRATION] Failed to send push notifications: {e}")
+    
     # Return without _id
     auth_doc.pop("_id", None)
     return auth_doc
