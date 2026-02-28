@@ -14,10 +14,21 @@ import { useNavigate } from 'react-router-dom';
 import { Shield, LogOut, Users, Calendar, User, AlertTriangle } from 'lucide-react';
 import MobileBottomNav from '../../components/layout/BottomNav.js';
 
-const ResidentLayout = ({ children, activeTab, onTabChange, title = 'GENTURIX' }) => {
+const ResidentLayout = ({ 
+  children, 
+  activeTab, 
+  onTabChange, 
+  title = 'GENTURIX',
+  showIndicators = false,
+  indicatorCount = 5,
+  activeIndex = 0
+}) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
+
+  // Tab IDs for indicator click navigation
+  const TAB_IDS = ['emergency', 'visits', 'reservations', 'directory', 'profile'];
 
   // Navigation items with translations
   const RESIDENT_NAV_ITEMS = useMemo(() => [
