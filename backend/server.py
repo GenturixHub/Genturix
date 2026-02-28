@@ -4970,6 +4970,11 @@ async def get_my_authorizations(
         query["is_active"] = False
     elif status == "used":
         query["status"] = "used"
+    elif status == "all":
+        pass  # Return all including inactive
+    else:
+        # DEFAULT: Only return active (not deleted) authorizations
+        query["is_active"] = True
     
     authorizations = await db.visitor_authorizations.find(
         query, {"_id": 0}
