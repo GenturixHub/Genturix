@@ -71,6 +71,8 @@ def send_email_sync(
         response = resend.Emails.send(params)
         email_id = response.get("id", "unknown")
         
+        # Production logging
+        print(f"[EMAIL SENT] {to}")
         logger.info(f"[EMAIL] Sent to: {to} | Subject: {subject[:50]}... | ID: {email_id}")
         
         return {
