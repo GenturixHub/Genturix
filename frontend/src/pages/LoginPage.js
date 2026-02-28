@@ -61,10 +61,22 @@ const PasswordChangeDialog = ({ open, onClose, onSuccess, tempPassword }) => {
     
     setIsSubmitting(true);
     try {
-      await changePassword(currentPassword, newPassword);
+      await changePassword(currentPassword, newPassword, confirmPassword);
       onSuccess();
     } catch (err) {
-      setError(err.message || t('auth.changePasswordError', 'Error changing password'));
+      // Handle error properly - avoid [object Object]
+      const errorMessage = 
+        err?.response?.data?.detail ||
+        err?.data?.detail ||
+        err?.message ||
+        t('auth.changePasswordError', 'Error changing password');
+      
+      // If detail is an array (validation errors), extract first message
+      const finalMessage = Array.isArray(errorMessage) 
+        ? errorMessage[0]?.msg || 'Error de validación'
+        : errorMessage;
+        
+      setError(finalMessage);
     } finally {
       setIsSubmitting(false);
     }
