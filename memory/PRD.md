@@ -94,7 +94,22 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
 
 ## Changelog
 
-### 2025-02-28 (Current Session - Final Stability Patch Verification)
+### 2025-02-28 (Current Session - Resend Email Integration)
+- **Full Resend Email Integration Completed:**
+  - Created centralized email service at `/app/backend/services/email_service.py`
+  - Integrated email notifications in 5 system workflows:
+    1. **Condominium Creation:** Welcome email to admin with credentials
+    2. **User Account Creation:** Credentials email with login info
+    3. **Password Reset:** Reset email with temporary password
+    4. **Visitor Preregistration:** Notification email to guards
+    5. **Emergency Alerts:** Alert email to administrators
+  - Added 7 HTML email templates with Genturix branding
+  - Implemented fail-safe behavior (try/except) - API never breaks if email fails
+  - Added `[EMAIL SENT] <recipient>` logging for production monitoring
+  - Test endpoint: `GET /api/test-email?email=` returns `{status:"sent"}` or `{status:"error"}`
+  - Service status endpoint: `GET /api/email/service-status` (SuperAdmin only)
+  - **SANDBOX MODE:** Currently using `onboarding@resend.dev` until `gentrix.com` domain is verified
+  - When domain is verified, update `get_sender()` in email_service.py to return `DEFAULT_SENDER`
 - **$1 Pricing Text Removal COMPLETED:** Removed the last remaining instance of pricing text from SuperAdminDashboard.js line 822 (MRR card footer that showed "${stats?.revenue?.price_per_user || 1}/usuario/mes")
 - **All 5 Pre-Production Fixes Verified:**
   1. ✅ Carousel Interactive Drag (ResidentHome.jsx) - useMotionValue with drag='x'
