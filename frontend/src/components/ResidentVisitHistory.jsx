@@ -446,25 +446,28 @@ const generatePDF = async (exportData, t) => {
     </html>
   `;
   
-  // Create visible container for PDF generation (html2canvas needs visible elements)
+  // Create visible container for PDF generation (html2canvas needs rendered elements)
   const container = document.createElement('div');
   container.id = 'visit-history-pdf-container';
   container.innerHTML = html;
+  // Use visibility:hidden instead of opacity:0 - element takes space but invisible
+  // Position off-screen but still rendered
   container.style.cssText = `
     position: fixed;
     top: 0;
     left: 0;
-    width: 210mm;
-    min-height: 297mm;
+    width: 800px;
+    min-height: 1000px;
     background: #ffffff;
-    z-index: -1;
-    opacity: 0;
+    z-index: -9999;
+    visibility: visible;
     pointer-events: none;
+    overflow: visible;
   `;
   document.body.appendChild(container);
   
-  // Wait for DOM to render before capturing
-  await new Promise(resolve => setTimeout(resolve, 300));
+  // Wait longer for DOM to fully render before capturing
+  await new Promise(resolve => setTimeout(resolve, 500));
   
   // Generate filename with date
   const dateStr = new Date().toISOString().split('T')[0];
@@ -474,12 +477,15 @@ const generatePDF = async (exportData, t) => {
   const options = {
     margin: 10,
     filename: filename,
-    image: { type: 'jpeg', quality: 0.98 },
+    image: { type: 'png', quality: 1.0 },
     html2canvas: { 
       scale: 2, 
       useCORS: true,
       backgroundColor: '#ffffff',
-      logging: false
+      logging: false,
+      allowTaint: true,
+      windowWidth: 800,
+      windowHeight: 1000
     },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
