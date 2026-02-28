@@ -2,17 +2,21 @@
  * GENTURIX - TanStack Query Persistence Configuration
  * 
  * Persists query cache to localStorage for instant app startup.
+ * Behaves like a native app - loads cached data instantly, refetches in background.
  * 
  * PERSISTENCE RULES:
  * ✅ PERSIST: Resident modules (profile, reservations, authorizations, directory)
  * ✅ PERSIST: Static data (areas, settings)
  * ❌ DO NOT PERSIST: Guard alerts (handled via dehydrate filter in QueryClient)
  * 
- * MAX AGE: 10 minutes (600,000ms)
- * After maxAge, cache is considered stale and will refetch
+ * MAX AGE: 7 days (604,800,000ms)
+ * Cache survives reloads and days offline.
  */
 
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
+
+// 7 days in milliseconds
+export const CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Create localStorage persister for TanStack Query
@@ -29,11 +33,20 @@ export const createQueryPersister = () => {
     return createSyncStoragePersister({
       storage: window.localStorage,
       key: 'GENTURIX_QUERY_CACHE',
+      throttleTime: 1000, // Throttle writes to localStorage
     });
   } catch (error) {
     console.warn('[QueryPersist] Failed to create persister:', error);
     return undefined;
   }
+};
+
+/**
+ * Persist options for PersistQueryClientProvider
+ */
+export const persistOptions = {
+  maxAge: CACHE_MAX_AGE,
+  buster: 'v2', // Change this to invalidate all cached data
 };
 
 /**
