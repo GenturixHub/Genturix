@@ -363,52 +363,85 @@ const ResidentHome = () => {
       activeTab={activeTab} 
       onTabChange={setActiveTab}
     >
-      {/* Simple Swipe Container - single module visible at a time */}
+      {/* Simple Swipe Container - all modules mounted, only active one visible */}
       <div 
         {...swipeHandlers}
         className="flex-1 relative overflow-hidden"
         style={{ minHeight: 0 }}
       >
-        {/* Module Content - only active module is rendered */}
+        {/* All modules stay mounted for instant navigation + cache preservation */}
+        
+        {/* Emergency Module */}
         <div 
-          className="h-full overflow-y-auto"
+          className="h-full overflow-y-auto absolute inset-0"
           style={{ 
+            display: activeTab === 'emergency' ? 'block' : 'none',
             WebkitOverflowScrolling: 'touch',
             paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
           }}
         >
-          {activeTab === 'emergency' && (
-            <EmergencyTab
-              location={location}
-              locationLoading={locationLoading}
-              locationError={locationError}
-              onEmergency={handleEmergency}
-              sendingType={sendingType}
-              t={t}
-            />
-          )}
-          
-          {activeTab === 'visits' && (
-            <div className="px-3 py-4">
-              <ResidentVisitsModule />
-            </div>
-          )}
-          
-          {activeTab === 'reservations' && (
-            <div className="px-3 py-4">
-              <ResidentReservations />
-            </div>
-          )}
-          
-          {activeTab === 'directory' && (
-            <ProfileDirectory embedded={true} />
-          )}
-          
-          {activeTab === 'profile' && (
-            <div className="px-3 py-4">
-              <EmbeddedProfile />
-            </div>
-          )}
+          <EmergencyTab
+            location={location}
+            locationLoading={locationLoading}
+            locationError={locationError}
+            onEmergency={handleEmergency}
+            sendingType={sendingType}
+            t={t}
+          />
+        </div>
+        
+        {/* Visits Module */}
+        <div 
+          className="h-full overflow-y-auto absolute inset-0"
+          style={{ 
+            display: activeTab === 'visits' ? 'block' : 'none',
+            WebkitOverflowScrolling: 'touch',
+            paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
+          }}
+        >
+          <div className="px-3 py-4">
+            <ResidentVisitsModule />
+          </div>
+        </div>
+        
+        {/* Reservations Module */}
+        <div 
+          className="h-full overflow-y-auto absolute inset-0"
+          style={{ 
+            display: activeTab === 'reservations' ? 'block' : 'none',
+            WebkitOverflowScrolling: 'touch',
+            paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
+          }}
+        >
+          <div className="px-3 py-4">
+            <ResidentReservations />
+          </div>
+        </div>
+        
+        {/* Directory Module */}
+        <div 
+          className="h-full overflow-y-auto absolute inset-0"
+          style={{ 
+            display: activeTab === 'directory' ? 'block' : 'none',
+            WebkitOverflowScrolling: 'touch',
+            paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
+          }}
+        >
+          <ProfileDirectory embedded={true} />
+        </div>
+        
+        {/* Profile Module */}
+        <div 
+          className="h-full overflow-y-auto absolute inset-0"
+          style={{ 
+            display: activeTab === 'profile' ? 'block' : 'none',
+            WebkitOverflowScrolling: 'touch',
+            paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
+          }}
+        >
+          <div className="px-3 py-4">
+            <EmbeddedProfile />
+          </div>
         </div>
       </div>
       
