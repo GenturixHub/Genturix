@@ -1,5 +1,5 @@
 /**
- * GENTURIX Push Notifications Hook v3.0 (Non-Blocking)
+ * GENTURIX Push Notifications Hook v4.0 (Subscription Validation)
  * 
  * ARQUITECTURA: Backend como fuente de verdad + UI no bloqueante
  * 
@@ -13,11 +13,11 @@
  * - Caso C: SW ✅ + DB ✅ → Sincronizado, isSubscribed = true
  * - Caso D: SW ❌ + DB ❌ → Sincronizado, isSubscribed = false
  * 
- * v3.0 CHANGES:
- * - UI renders IMMEDIATELY based on local SW state
- * - Backend sync runs in BACKGROUND (fire-and-forget)
- * - No blocking of component mounting or module navigation
- * - Banner shows based on local state, corrects if sync finds discrepancy
+ * v4.0 CHANGES:
+ * - Added subscription validation via backend API
+ * - Detects expired subscriptions and prompts re-subscription
+ * - Added needsResubscription state for UI to show re-enable prompt
+ * - Improved cleanup of stale subscriptions
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -25,6 +25,7 @@ import api from '../services/api';
 
 // LocalStorage key for fast subscription state caching
 const PUSH_SUBSCRIBED_KEY = 'push_subscription_active';
+const PUSH_NEEDS_RESUBSCRIBE_KEY = 'push_needs_resubscribe';
 
 // Convert base64 to Uint8Array for applicationServerKey
 function urlBase64ToUint8Array(base64String) {
