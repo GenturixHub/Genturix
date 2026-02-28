@@ -3551,7 +3551,9 @@ async def change_password(
             "ip_address": request.client.host if request.client else "unknown"
         },
         request.client.host if request.client else "unknown",
-        request.headers.get("user-agent", "unknown")
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=current_user.get("condominium_id"),
+        user_email=current_user.get("email")
     )
     
     return {
