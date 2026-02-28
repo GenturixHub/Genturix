@@ -373,16 +373,25 @@ const LoginPage = () => {
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="remember"
-                    checked={rememberMe}
-                    onCheckedChange={setRememberMe}
-                    data-testid="remember-me-checkbox"
-                  />
-                  <Label htmlFor="remember" className="text-xs text-muted-foreground cursor-pointer">
-                    {t('auth.rememberMe')}
-                  </Label>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="remember"
+                      checked={rememberMe}
+                      onCheckedChange={setRememberMe}
+                      data-testid="remember-me-checkbox"
+                    />
+                    <Label htmlFor="remember" className="text-xs text-muted-foreground cursor-pointer">
+                      {t('auth.rememberMe')}
+                    </Label>
+                  </div>
+                  <Link 
+                    to="/forgot-password" 
+                    className="text-xs text-primary hover:underline"
+                    data-testid="forgot-password-link"
+                  >
+                    {t('auth.forgotPassword', '¿Olvidaste tu contraseña?')}
+                  </Link>
                 </div>
 
                 <Button
