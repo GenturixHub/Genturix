@@ -3226,7 +3226,8 @@ async def login(credentials: UserLogin, request: Request):
             "auth",
             {"email": normalized_email, "reason": "invalid_credentials"},
             request.client.host if request.client else "unknown",
-            request.headers.get("user-agent", "unknown")
+            request.headers.get("user-agent", "unknown"),
+            user_email=normalized_email
         )
         raise HTTPException(status_code=401, detail="Invalid email or password")
     
