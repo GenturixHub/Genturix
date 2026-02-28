@@ -336,35 +336,39 @@ const ResidentHome = () => {
     return 375;
   });
   
-  // MotionValue for interactive drag - initialized to 0, synced via useEffect
-  const x = useMotionValue(0);
+  // Raw motion value for drag (follows finger exactly)
+  const rawX = useMotionValue(0);
+  
+  // Spring-animated version for smooth snapping
+  const x = useSpring(rawX, {
+    stiffness: 300,
+    damping: 30,
+    mass: 0.8
+  });
   
   // Track if currently dragging to prevent position updates
   const isDragging = useRef(false);
   
-  // Initialize position on mount and update on resize
+  // Initialize and sync position
   useEffect(() => {
-    // Set initial position
-    x.set(-activeIndex * viewportWidth);
-    
+    const targetX = -activeIndex * viewportWidth;
+    if (!isDragging.current) {
+      rawX.set(targetX);
+    }
+  }, [activeIndex, viewportWidth, rawX]);
+  
+  // Handle resize
+  useEffect(() => {
     const handleResize = () => {
       const newWidth = window.innerWidth;
       setViewportWidth(newWidth);
-      // Update position on resize if not dragging
       if (!isDragging.current) {
-        x.set(-activeIndex * newWidth);
+        rawX.set(-activeIndex * newWidth);
       }
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []); // Empty deps - only run on mount
-  
-  // Sync x position when activeIndex changes (from tab clicks)
-  useEffect(() => {
-    if (!isDragging.current) {
-      x.set(-activeIndex * viewportWidth);
-    }
-  }, [activeIndex, viewportWidth]);
+  }, [activeIndex, rawX]);
 
   // Handle drag start
   const handleDragStart = useCallback(() => {
