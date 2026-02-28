@@ -11511,6 +11511,88 @@ async def approve_seat_upgrade(
         )
         
         logger.info(f"[SEAT-UPGRADE] Approved: {upgrade_req['current_seats']}→{new_seats} for condo={condo_id[:8]}...")
+        print(f"[FLOW] seat_upgrade_processed | request_id={request_id} status=approved condo_id={condo_id[:8]}")
+        
+        # === SEND EMAIL NOTIFICATION TO ADMIN ===
+        try:
+            # Get admin who requested the upgrade
+            requester_id = upgrade_req.get("requested_by")
+            requester = await db.users.find_one({"id": requester_id}, {"_id": 0, "email": 1, "full_name": 1})
+            
+            if requester and requester.get("email"):
+                admin_email = requester["email"]
+                admin_name = requester.get("full_name", "Administrador")
+                
+                print(f"[EMAIL TRIGGER] seat_upgrade_approved | email={admin_email} condo={condo.get('name')}")
+                logger.info(f"[EMAIL TRIGGER] seat_upgrade_approved | admin={admin_email}")
+                
+                upgrade_email_html = f"""
+                <!DOCTYPE html>
+                <html>
+                <head><meta charset="UTF-8"></head>
+                <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <div style="background: linear-gradient(135deg, #10B981 0%, #059669 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+                        <h1 style="color: #ffffff; margin: 0;">Solicitud Aprobada</h1>
+                        <p style="color: rgba(255,255,255,0.9); margin-top: 5px;">Upgrade de Asientos - GENTURIX</p>
+                    </div>
+                    
+                    <div style="background: #ffffff; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #eee;">
+                        <p>Hola {admin_name},</p>
+                        <p>Tu solicitud de upgrade de asientos ha sido <strong style="color: #10B981;">aprobada</strong>.</p>
+                        
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                    <td style="padding: 8px 0; color: #666;">Condominio:</td>
+                                    <td style="padding: 8px 0; font-weight: bold; text-align: right;">{condo.get('name', 'N/A')}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; color: #666;">Asientos anteriores:</td>
+                                    <td style="padding: 8px 0; text-align: right;">{upgrade_req['current_seats']}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; color: #666;">Nuevos asientos:</td>
+                                    <td style="padding: 8px 0; font-weight: bold; color: #10B981; text-align: right;">{new_seats}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; color: #666;">Fecha efectiva:</td>
+                                    <td style="padding: 8px 0; text-align: right;">{now.strftime('%d/%m/%Y')}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; color: #666;">Nuevo monto:</td>
+                                    <td style="padding: 8px 0; font-weight: bold; text-align: right;">${new_preview['effective_amount']:.2f}/{condo.get('billing_cycle', 'mes')}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        
+                        <p style="color: #666; font-size: 14px;">
+                            Los nuevos asientos ya están disponibles. Ahora puedes crear hasta {new_seats} usuarios en tu condominio.
+                        </p>
+                    </div>
+                    
+                    <div style="text-align: center; padding: 20px; color: #888; font-size: 12px;">
+                        <p>Este es un correo automático de Genturix Security.</p>
+                    </div>
+                </body>
+                </html>
+                """
+                
+                email_result = await send_email(
+                    to=admin_email,
+                    subject=f"✅ Solicitud de Asientos Aprobada - {condo.get('name', 'Genturix')}",
+                    html=upgrade_email_html
+                )
+                
+                if email_result.get("success"):
+                    print(f"[EMAIL SENT] seat_upgrade_approved | email={admin_email}")
+                    logger.info(f"[EMAIL SENT] seat_upgrade_approved to {admin_email}")
+                else:
+                    print(f"[EMAIL ERROR] seat_upgrade_approved failed | email={admin_email}")
+                    logger.warning(f"[EMAIL ERROR] seat_upgrade_approved failed for {admin_email}: {email_result.get('error')}")
+        except Exception as email_error:
+            print(f"[EMAIL ERROR] seat_upgrade_approved exception | error={str(email_error)}")
+            logger.error(f"[EMAIL ERROR] seat_upgrade_approved exception: {email_error}", exc_info=True)
+            # Don't fail the request if email fails
         
         return {
             "request_id": request_id,
