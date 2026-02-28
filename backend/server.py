@@ -16337,6 +16337,104 @@ async def check_email_service_status(
     """Get current email service configuration status."""
     return get_email_service_status()
 
+
+# ==================== EMAIL DEBUG ENDPOINT ====================
+@api_router.get("/email/debug")
+async def email_debug_endpoint(
+    test_email: Optional[str] = Query(None, description="Optional: Email to send test to"),
+    current_user = Depends(require_role("SuperAdmin"))
+):
+    """
+    Comprehensive email system diagnostic endpoint.
+    
+    Tests:
+    1. Resend API connection
+    2. Sender configuration
+    3. Email toggle status
+    4. Optional test email send
+    
+    Usage: GET /api/email/debug?test_email=your@email.com
+    """
+    diagnostics = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "checks": {}
+    }
+    
+    # Check 1: RESEND_API_KEY configured
+    api_key_ok = bool(RESEND_API_KEY)
+    diagnostics["checks"]["resend_api_key"] = {
+        "status": "OK" if api_key_ok else "FAIL",
+        "configured": api_key_ok,
+        "preview": f"{RESEND_API_KEY[:8]}..." if api_key_ok else None
+    }
+    
+    # Check 2: Sender configuration (from email_service)
+    sender = get_sender()
+    diagnostics["checks"]["sender_config"] = {
+        "status": "OK",
+        "sender": sender,
+        "service_configured": is_email_configured()
+    }
+    
+    # Check 3: Email toggle status (database)
+    email_toggle = await is_email_enabled()
+    diagnostics["checks"]["email_toggle"] = {
+        "status": "OK" if email_toggle else "WARN",
+        "enabled": email_toggle,
+        "note": "Emails are ENABLED" if email_toggle else "Emails are DISABLED - enable via POST /api/config/email-status"
+    }
+    
+    # Check 4: Database connectivity for email config
+    try:
+        config = await get_email_config()
+        diagnostics["checks"]["database_config"] = {
+            "status": "OK",
+            "email_enabled": config.get("email_enabled"),
+            "updated_at": config.get("updated_at"),
+            "updated_by": config.get("updated_by")
+        }
+    except Exception as e:
+        diagnostics["checks"]["database_config"] = {
+            "status": "FAIL",
+            "error": str(e)
+        }
+    
+    # Check 5: Optional test email
+    if test_email:
+        print(f"[EMAIL DEBUG] Sending test email to {test_email}")
+        try:
+            html = get_notification_email_html(
+                title="Email Debug Test - Genturix",
+                message=f"This is a diagnostic test email sent at {datetime.now(timezone.utc).isoformat()}. All systems are operational.",
+                action_url=None
+            )
+            result = await send_email(
+                to=test_email,
+                subject="[DEBUG] Genturix Email System Test",
+                html=html
+            )
+            diagnostics["checks"]["test_email_send"] = {
+                "status": "OK" if result.get("success") else "FAIL",
+                "recipient": test_email,
+                "result": result
+            }
+        except Exception as e:
+            diagnostics["checks"]["test_email_send"] = {
+                "status": "FAIL",
+                "recipient": test_email,
+                "error": str(e)
+            }
+    
+    # Overall status
+    all_ok = all(
+        check.get("status") in ["OK", "WARN"] 
+        for check in diagnostics["checks"].values()
+    )
+    diagnostics["overall_status"] = "HEALTHY" if all_ok else "ISSUES_DETECTED"
+    
+    return diagnostics
+
+
 # ==================== RESEND DIAGNOSTIC ENDPOINT (TEMPORARY) ====================
 class TestEmailRequest(BaseModel):
     recipient_email: str
