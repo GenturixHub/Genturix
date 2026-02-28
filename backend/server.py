@@ -103,6 +103,7 @@ from services.email_service import (
     send_email_sync,
     is_email_configured,
     get_email_status,
+    get_sender,
     get_welcome_email_html,
     get_password_reset_email_html,
     get_emergency_alert_email_html,
