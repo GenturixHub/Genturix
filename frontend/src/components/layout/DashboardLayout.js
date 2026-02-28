@@ -234,8 +234,9 @@ const DashboardLayout = ({ children, title = 'Dashboard', variant = 'admin' }) =
 
   // Desktop layout - Fixed scroll issue
   // Sidebar is position:fixed, so we need margin-left on the content area
+  // Using h-screen with flex layout to ensure proper scroll behavior
   return (
-    <div className="min-h-screen bg-[#05050A]">
+    <div className="h-screen bg-[#05050A] overflow-hidden">
       <Sidebar 
         collapsed={sidebarCollapsed} 
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} 
@@ -248,13 +249,13 @@ const DashboardLayout = ({ children, title = 'Dashboard', variant = 'admin' }) =
         />
       )}
 
-      <div className={`flex flex-col min-h-screen transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
+      <div className={`flex flex-col h-screen transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
         <Header 
           onMenuClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
           title={title}
         />
         
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 p-6 overflow-y-auto min-h-0">
           {children}
         </main>
       </div>
