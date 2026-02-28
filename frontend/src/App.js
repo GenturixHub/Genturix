@@ -49,11 +49,11 @@ const shouldDehydrateQuery = (query) => {
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60_000,         // Data considered fresh for 60s
-      gcTime: 10 * 60_000,       // Garbage collection after 10 minutes (match persist maxAge)
-      refetchOnWindowFocus: false,
+      staleTime: 5 * 60_000,      // Data considered fresh for 5 minutes
+      gcTime: 7 * 24 * 60 * 60_000, // Garbage collection after 7 days (match persist maxAge)
+      refetchOnWindowFocus: true, // Refetch when user returns to app
       retry: 1,
-      refetchOnMount: false,     // Use cached data on mount, refetch only if stale
+      refetchOnMount: 'always',   // Always check for fresh data on mount (background refetch)
     },
     dehydrate: {
       shouldDehydrateQuery,      // Filter which queries get persisted
