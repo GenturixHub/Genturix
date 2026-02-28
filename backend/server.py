@@ -3890,7 +3890,31 @@ async def subscribe_to_push(
     })
     if cleanup_result.deleted_count > 0:
         logger.info(f"[PUSH-CLEANUP] Removed {cleanup_result.deleted_count} invalid subscriptions for user {user_id}")
-    # ==================================================================
+    
+    # ==================== PHASE 2.5: SUBSCRIPTION LIMIT ====================
+    # Limit subscriptions per user to MAX_SUBSCRIPTIONS_PER_USER (default: 3)
+    # This prevents accumulation of stale subscriptions from multiple devices
+    MAX_SUBSCRIPTIONS_PER_USER = 3
+    
+    # Count existing subscriptions for this user (excluding current endpoint if exists)
+    existing_count = await db.push_subscriptions.count_documents({
+        "user_id": user_id,
+        "endpoint": {"$ne": subscription.endpoint}  # Don't count the one we're about to update/create
+    })
+    
+    if existing_count >= MAX_SUBSCRIPTIONS_PER_USER:
+        # Delete oldest subscriptions to make room
+        subscriptions_to_keep = MAX_SUBSCRIPTIONS_PER_USER - 1  # Leave room for new one
+        oldest_subs = await db.push_subscriptions.find(
+            {"user_id": user_id, "endpoint": {"$ne": subscription.endpoint}},
+            {"_id": 1, "endpoint": 1, "created_at": 1}
+        ).sort("created_at", 1).limit(existing_count - subscriptions_to_keep).to_list(None)
+        
+        if oldest_subs:
+            oldest_ids = [s["_id"] for s in oldest_subs]
+            delete_result = await db.push_subscriptions.delete_many({"_id": {"$in": oldest_ids}})
+            logger.info(f"[PUSH-LIMIT] Deleted {delete_result.deleted_count} oldest subscriptions for user {user_id[:12]}... (limit: {MAX_SUBSCRIPTIONS_PER_USER})")
+    # ======================================================================
     
     # Check if subscription already exists for this user + endpoint
     existing = await db.push_subscriptions.find_one({
