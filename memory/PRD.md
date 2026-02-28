@@ -3,6 +3,32 @@
 ## Overview
 Genturix is a multi-tenant security and condominium management platform built with React frontend and FastAPI backend.
 
+## Latest Feature Patch (2026-02-28)
+
+### PART 1: Resident Approval → Create User + Send Credentials
+- **Status:** ✅ Already implemented
+- **Endpoint:** `POST /api/access-requests/{id}/action`
+- **Behavior:** When admin approves, creates user with temp password, sends email
+
+### PART 2: Admin Dashboard Scroll Fix
+- **Status:** ✅ Fixed
+- **File:** `components/layout/DashboardLayout.js`
+- **Change:** Added `min-h-screen flex flex-col` + `overflow-y-auto` to main content
+
+### PART 3: Forgot Password Feature
+- **Status:** ✅ Implemented
+- **Frontend:** `/app/frontend/src/pages/ForgotPasswordPage.js`
+- **Route:** `/forgot-password`
+- **Backend Endpoints:**
+  - `POST /api/auth/request-password-reset` - Sends 6-digit code via email
+  - `POST /api/auth/reset-password` - Validates code, updates password
+- **Security:**
+  - Codes expire in 10 minutes
+  - Codes are hashed before storage
+  - Max 5 attempts per code
+  - Single use (deleted after success)
+  - No email enumeration (always returns success message)
+
 ## Latest Corrective Patch (2026-02-28)
 
 ### PART 1: Carousel Reverted to Simple Swipe
