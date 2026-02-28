@@ -205,6 +205,7 @@ const ResidentHome = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('emergency');
   
   // Location state
@@ -219,6 +220,31 @@ const ResidentHome = () => {
   // Notifications state
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  // Prefetch reservations and visits data for instant navigation
+  useEffect(() => {
+    const prefetchData = async () => {
+      try {
+        // Prefetch reservations
+        queryClient.prefetchQuery({
+          queryKey: ['reservations'],
+          queryFn: () => api.getReservations(),
+          staleTime: 10 * 60_000, // 10 minutes
+        });
+        
+        // Prefetch areas for reservations
+        queryClient.prefetchQuery({
+          queryKey: ['areas'],
+          queryFn: () => api.getAreas(),
+          staleTime: 10 * 60_000,
+        });
+      } catch (error) {
+        console.log('Prefetch completed (some may have failed)');
+      }
+    };
+    
+    prefetchData();
+  }, [queryClient]);
 
   // GPS Location tracking
   useEffect(() => {
