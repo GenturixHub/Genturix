@@ -254,8 +254,39 @@ const AuditModule = () => {
   }
 
   return (
-    <DashboardLayout title="Auditoría">
+    <DashboardLayout title={isGlobalView ? "Auditoría Global del Sistema" : "Auditoría"}>
       <div className="space-y-6">
+        {/* SuperAdmin Global Toggle */}
+        {isSuperAdmin && (
+          <Card className="grid-card border-cyan-500/30">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Globe className="w-5 h-5 text-cyan-400" />
+                  <div>
+                    <p className="font-medium">Vista Global del Sistema</p>
+                    <p className="text-sm text-muted-foreground">
+                      {isGlobalView 
+                        ? "Mostrando logs de TODOS los condominios" 
+                        : "Mostrando logs filtrados por tenant"}
+                    </p>
+                  </div>
+                </div>
+                <Button 
+                  variant={isGlobalView ? "default" : "outline"}
+                  onClick={() => {
+                    setIsGlobalView(!isGlobalView);
+                    setIsLoading(true);
+                  }}
+                  className={isGlobalView ? "bg-cyan-600 hover:bg-cyan-700" : ""}
+                >
+                  {isGlobalView ? "Desactivar Vista Global" : "Activar Vista Global"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
         {/* Stats */}
         <div className="grid gap-4 md:grid-cols-4">
           <Card className="grid-card">
