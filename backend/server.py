@@ -3107,17 +3107,26 @@ async def log_billing_event(
     details: dict,
     user_id: str = None
 ):
-    """Log billing-related events for audit"""
+    """
+    DEPRECATED: This function writes to billing_logs (legacy).
+    Use log_billing_engine_event() instead which writes to billing_events.
+    Kept for backward compatibility but marked for removal.
+    """
+    # Log deprecation warning (once per event type)
+    logger.warning(f"[DEPRECATED] log_billing_event called for {event_type} - use log_billing_engine_event instead")
+    
+    # Still write for backward compatibility, but will be removed in future
     event = {
         "id": str(uuid.uuid4()),
         "event_type": f"billing_{event_type}",
         "condominium_id": condominium_id,
         "user_id": user_id,
         "details": details,
-        "timestamp": datetime.now(timezone.utc).isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "_deprecated": True  # Mark as deprecated data
     }
     await db.billing_logs.insert_one(event)
-    logger.info(f"Billing event logged: {event_type} for condo {condominium_id}")
+    logger.info(f"[DEPRECATED] Billing event logged: {event_type} for condo {condominium_id}")
 
 # ==================== AUTH ROUTES ====================
 
