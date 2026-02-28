@@ -2291,7 +2291,7 @@ const EditCondoDialog = ({ condo, open, onClose, onSuccess }) => {
                 className="bg-[#0A0A0F] border-[#1E293B] mt-1"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Precio final: ${(1 * (1 - pricing.discount_percent / 100)).toFixed(2)} / usuario / mes
+                Descuento aplicado: {pricing.discount_percent}%
               </p>
             </div>
 
