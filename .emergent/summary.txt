@@ -1,40 +1,42 @@
 <analysis>**original_problem_statement:**
-The user wants to perform a final stability and security patch on the Genturix application before a production release. This involves addressing five specific, critical issues:
-1.  **Interactive Carousel:** The resident module carousel must be fully interactive, following the user's finger during a drag, similar to a native mobile app. It should not skip modules and must feel smooth.
-2.  **Blank PDF Export:** The visitor history PDF download results in a blank file. This needs to be fixed so the PDF contains the correct data.
-3.  **SuperAdmin Danger Zone:** The Reset entire system button is too accessible and dangerous. It needs to be hidden behind a password-protected modal.
-4.  **Remove Pricing Text:** All references to a  pricing model must be completely removed from the entire frontend.
-5.  **Production Emails:** The email sending system needs to be centralized and configured to use Resend with a production API key for all transactional emails (new users, password resets, etc.).
+The user initiated a series of requests to stabilize and enhance the Genturix production application. The work evolved through several stages:
+1.  **Initial Patches:** Fix a non-scrolling admin dashboard and a critical bug where resident credential emails were not being sent upon approval.
+2.  **System Audits:** Perform comprehensive end-to-end system flow audits to detect broken connections, missing triggers, and data integrity issues. Two major audits were conducted, resulting in detailed reports.
+3.  **Flow Repair:** Based on the audit findings, apply patches to fix a missing email trigger for seat upgrades, connect a UI for billing events, and enhance system logging.
+4.  **Critical Security & Data Integrity Patches:** Fix a multi-tenant data leak where residents could see visits from other condominiums. Correct the audit log system to properly store . Fix a bug where user profile images were not updating in the UI.
+5.  **Push Notification Fixes:** Address an issue where Android push notifications showed an incorrect, cached icon. Subsequently, diagnose why push notifications stopped working for most users.
+6.  **Critical Identity Bug:** Fix a severe bug where after logging out, the next user to log in would see the previous user's profile information in the UI due to a stale frontend cache.
 
 **User's preferred language**: Español
 
 **what currently exists?**
-The application is a full-stack React (frontend) and FastAPI (backend) system. The agent has completed a major patch set addressing the five critical issues requested by the user.
-- The resident carousel in  was refactored multiple times to use Framer Motion's  for an interactive drag experience.
-- The blank PDF issue in  was fixed by ensuring the content is rendered in a visible-but-hidden container () before being captured by .
-- The SuperAdmin Danger Zone in  is now protected by a modal that requires password verification.
-- A global search was performed, and all visible references to the  pricing model were removed.
-- A centralized email service () using Resend has been created, and a test endpoint confirmed it works.
+The application is a multi-tenant condominium management platform (React/FastAPI/MongoDB). The agent has successfully implemented a series of critical patches and fixes:
+-   **UI Fixes:** The admin dashboard scroll issue is resolved. The user profile image now updates correctly after upload.
+-   **Backend & Email Fixes:** The resident credential email flow is now working reliably. A missing email trigger for seat upgrade approvals has been added.
+-   **Security & Data Integrity:** A critical multi-tenant data leak in the visits module has been patched. The audit logging system now correctly stores  with every event, ensuring proper data isolation.
+-   **Critical Identity Bug:** A major bug causing user data to persist in the UI after logout has been fixed by ensuring the React Query cache is cleared upon logout.
+-   **Push Notifications:** The service worker was updated to force the correct, versioned icon on Android notifications. A subsequent failure was diagnosed to be caused by expired push subscriptions in the database.
+-   **System Audits:** Multiple detailed audit reports on system flow integrity have been generated and are located in the  directory.
 
 **Last working item**:
--   Last item agent was working: The agent completed the final task from the user's 5-point patch request, which was creating and verifying a centralized email service using Resend. The agent successfully sent a test email, confirming the setup.
+-   Last item agent was working: Fixing a critical identity bug where the UI would retain the previous user's profile data after they logged out and a new user logged in. The root cause was identified as the in-memory React Query cache not being cleared on logout.
+    - The fix involved exporting the  instance from  and calling  within the  function in .
 -   Status: USER VERIFICATION PENDING
--   Agent Testing Done: Y
--   Which testing method agent to use? testing agent. Given that this was a large, multi-part pre-production patch touching critical UX, security, and backend services, a full regression test is required to ensure stability.
+-   Agent Testing Done: Y (Manual testing with screenshots confirmed the fix for the specific scenario tested).
+-   Which testing method agent to use? both. The frontend testing agent should be used to run a comprehensive test suite covering login/logout/login sequences across different user roles (Admin, Guard, Resident) to ensure the identity cache is cleared in all cases. The backend testing agent can verify that API calls after re-login correspond to the correct user.
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: (P0) Final Verification of the 5-Point Stability Patch**
-    -   **Description:** The user requested five specific fixes. The agent has implemented solutions for all of them, but they have not been holistically verified by the user. The most critical and recurring of these is the carousel's behavior.
-    -   **Next debug checklist:** The next agent should guide the user through testing each of the five fixes:
-        1.  **Carousel:** Log in as a resident. Drag the modules. Does the content follow your finger exactly? Does it snap correctly? Does it ever skip a module?
-        2.  **PDF Export:** As a resident, go to the visit history and export the PDF. Does it download correctly? Is the content visible?
-        3.  **Danger Zone:** As a superadmin, go to System Settings. Is the Reset button gone? Does the Advanced Controls button show a password modal?
-        4.  **Pricing Text:** Navigate the app as a superadmin. Is there any visible text related to ?
-        5.  **Emails:** Use a function that triggers an email (like password reset) to confirm emails are being sent via Resend.
-    -   **Why fix this issue and what will be achieved with the fix?** This is the final quality gate before the user's desired production release. Confirming these fixes are working correctly is the highest priority.
-    -   **Status:** USER VERIFICATION PENDING
-    -   **Is recurring issue?** Y (Specifically the carousel)
+-   **Issue 1: (P0) Push Notifications are failing for most users.**
+    -   **Description:** An audit revealed that the majority (86%) of push subscriptions stored in the database are expired or invalid, resulting in  errors when the backend attempts to send a notification. This is the reason users are not receiving alerts.
+    -   **Attempted fixes:** The agent successfully diagnosed the problem by attempting to send test notifications and analyzing the database records. No fix has been implemented yet.
+    -   **Next debug checklist:**
+        1.  **Implement Cleanup:** Create a new backend endpoint (e.g., ) in  that iterates through all subscriptions in the  collection, attempts a dry-run send, and deletes any that return a  or  status code. This should be a protected SuperAdmin endpoint.
+        2.  **Implement Re-subscription Prompt:** In the frontend hook , add logic to detect when a user's subscription is invalid. When the app initializes, if the user has granted notification permission but  returns null, prompt them to re-enable notifications.
+        3.  **Implement Subscription Limits:** In , when saving a new push subscription, add logic to check if the user already has a certain number of subscriptions (e.g., 3). If they do, delete the oldest one before saving the new one. This prevents the accumulation of stale subscriptions.
+    -   **Why fix this issue and what will be achieved with the fix?** This is critical. Push notifications for visitor arrivals, panic alerts, and reservations are core features of the application. Fixing this will restore essential real-time communication.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** Y (Push subscriptions expire naturally over time, so a cleanup and re-subscription mechanism is essential for long-term health).
     -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on other issue:** None
 
@@ -43,93 +45,102 @@ None.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **(P1) Complete Users Module Modularization:** Move remaining user endpoints from  into .
-    -   **(P1) Refactor Large Frontend Components:** Break down  and .
+    -   **(P1) Complete Users Module Modularization:** Continue refactoring  by moving user-related endpoints into .
+    -   **(P1) Refactor Large Frontend Components:** Break down  and  into smaller, more manageable components.
+    -   **(P1) Remove Legacy  Writes:** The audit identified the  collection as legacy. The agent stopped new writes, but the code should be fully removed from  to reduce technical debt.
 -   **Future Tasks:**
-    -   **(P2) Modularize Remaining Backend Domains:** Continue refactoring  for auth, guards, reservations, etc.
+    -   **(P2) Modularize Remaining Backend Domains:** Continue refactoring  for auth, guards, and reservations.
     -   **(P2) CCTV Module Implementation.**
     -   **(P2) Implement HR performance reports for guards.**
 
 **Completed work in this session**
--   **Resident Carousel Interactive Swipe (CRITICAL):** Reworked the carousel logic in  multiple times to achieve a smooth, interactive, finger-following drag using Framer Motion's . Removed conflicting  properties and simplified the  logic.
--   **Blank PDF Export Fix:** Corrected the PDF generation in  by rendering the content in a container with  instead of  before capturing with , which resolved the blank file issue.
--   **SuperAdmin Danger Zone Protection:** Implemented a security layer in  where critical system-wide actions are now hidden behind a modal requiring the superadmin's password for verification.
--   **Pricing Text Removal:** Conducted a comprehensive search-and-replace across the frontend to remove all marketing text related to the /user pricing model.
--   **Centralized Resend Email Service:** Created a new  to handle all outgoing emails, configured it to use Resend, and verified its functionality with a test endpoint.
--   **PWA and Cache Enhancements:** Updated the TanStack Query cache to persist for 7 days and improved the service worker to use a  strategy for API calls.
+-   **Critical Identity Cache Bug Fixed:** Modified  to clear the React Query cache on logout, preventing stale user data from persisting in the UI.
+-   **Push Notification Icon Fix:** Updated  to use versioned icons, resolving an Android bug where the wrong icon was displayed.
+-   **Push Notification Failure Diagnosis:** Investigated and identified that expired push subscriptions in the database are the root cause of notification failures.
+-   **Critical Multi-Tenant Data Leak Patched:** Correctly applied  filters to visit-related endpoints in .
+-   **Audit Log System Repaired:** Updated the  function and its call sites in  to include , enabling proper multi-tenant log filtering.
+-   **Profile Image Update Flow Fixed:** Modified  to invalidate the React Query cache, ensuring the UI updates immediately after a new image is uploaded.
+-   **System Flow Patches Applied:** Added a missing email trigger for seat upgrade approvals, connected a new UI component () to display billing history, and deprecated the legacy  collection.
+-   **Admin Dashboard Scroll Fixed:** Corrected the CSS in  to enable scrolling on long pages.
+-   **Resident Credential Email Flow Fixed:** Repaired the logic in  to ensure residents receive their login credentials upon approval.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1: Monolithic Backend ():** The file still contains thousands of lines of code and needs to be fully modularized.
--   **Issue 2: Monolithic Frontend:** Key pages like  and  remain extremely large.
+-   **Issue 1: Monolithic Backend ():** The main server file remains thousands of lines long and is the primary source of technical debt. A full modularization is still needed.
+-   **Issue 2: Monolithic Frontend:** Key components like  and  are still overly large and complex, making maintenance difficult.
 
 **Known issue recurrence from previous fork**
--   **Carousel Interactivity:** The behavior of the resident carousel is the most persistent and sensitive issue in the project. It has been fixed numerous times, but subtle issues with drag behavior, snapping, and performance have recurred. The latest implementation is the most robust so far but requires careful user validation.
+-   **Push Subscription Expiration:** Identified in this session. Subscriptions have a limited lifespan and will become invalid over time. The system needs a permanent solution for cleanup and re-subscription.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Gesture Handling (Framer Motion):** Deep use of , , , and  to create a truly interactive carousel. The core principle is allowing  to directly control the motion value and only using  to handle the snap on drag release.
--   **Frontend PDF Generation:** Using  to convert a DOM element into a downloadable PDF. The key was to make the element available to the renderer () without it being .
--   **Backend Services:** Abstracting core functionality (like email) into a dedicated service () for better organization and maintainability.
--   **UI Security:** Using a state-controlled modal with a password input to verify a user's intent before revealing destructive actions.
+-   **React Query Cache Management:** Central to fixing the identity and profile image bugs. The key was understanding the difference between clearing persisted storage () and clearing the in-memory cache (), and using  to trigger data re-fetching.
+-   **Service Worker Lifecycle & Caching:** The PWA push notification icon fix required forcing a cache bypass by versioning filenames in  and bumping the .
+-   **Push Subscription Expiration:** The diagnosis of push failures centered on understanding that subscriptions are not permanent and can become invalid (), requiring a strategy for cleanup and user re-subscription.
+-   **Multi-Tenant Data Isolation:** Reinforcing security by ensuring all database queries in  for non-SuperAdmins are strictly filtered by .
 
 **key DB schema**
--   No schema changes were made in this session.
+-   **audit_logs**: Implicitly updated to include a  field on all new documents.
+-   **push_subscriptions**: Identified as containing many expired entries that need to be cleaned up.
 
 **All files of reference**
--   : **Most critical file.** Contains the interactive carousel logic.
--   : Contains the corrected PDF export logic.
--   : Contains the protected Danger Zone UI.
--   : The new centralized service for sending emails.
--   : The main backend file, now utilizing the email service.
+-   : Contains all backend logic, including the recent patches for data leaks, audit logs, and email triggers. The proposed push subscription cleanup logic will go here.
+-   : Contains the critical fix for the identity cache bug.
+-   : Contains the updated logic for displaying push notifications.
+-   : The frontend hook responsible for managing push subscriptions, where re-subscription logic needs to be added.
+-   : The diagnostic report detailing the cause of the push notification failure.
 
 **Areas that need refactoring**:
--    monolith remains a major piece of technical debt.
--   Large frontend components like  and  should be broken down.
+-    remains the highest priority for refactoring into a modular, router-based architecture.
+-   Large frontend components (, ) should be broken down.
 
 **key api endpoints**
--   : Created to verify the new Resend email service.
--   : Used by the new Danger Zone protection modal.
+-   **GET **: Patched to prevent multi-tenant data leak.
+-   **GET **: Now correctly filters logs by  for admins.
+-   **POST **: Audit logging was improved for this endpoint.
+-   **POST **: The endpoint used to send notifications, which is returning  for most subscriptions.
 
 **Critical Info for New Agent**
-1.  **HABLAR EN ESPAÑOL:** The user's language is Spanish. All communication must be in Spanish.
-2.  **VALIDATION IS THE NEXT STEP:** Your main task is not to code, but to guide the user through verifying the 5 fixes that were just implemented. Do not start new work until the user confirms the stability patch is successful.
-3.  **THE CAROUSEL IS EXTREMELY SENSITIVE:** The resident carousel () has a long history of being problematic. Be prepared for feedback on its feel and avoid making changes unless the user explicitly reports a bug with the current implementation. Simulator drag events have proven unreliable for testing it.
-4.  **ARCHITECTURAL DEBT:** The backend () and several frontend components are monolithic. While refactoring them is a future goal, do not undertake this without explicit user direction. The priority is stabilizing the current feature set.
+1.  **HABLAR EN ESPAÑOL:** The user's primary language is Spanish. All communication must be in Spanish.
+2.  **IMMEDIATE PRIORITY (P0):** Your first task is to fix the push notification system. The diagnosis is complete; you need to implement the cleanup and re-subscription solution outlined in the Pending/In progress Issue list.
+3.  **STABILITY OVER REFACTORING:** You are patching a production system. Implement the required fixes precisely. Avoid large-scale refactoring unless it's part of the explicit upcoming tasks.
+4.  **CACHE IS CRITICAL:** Be mindful of frontend caching (). The last critical bug was due to a stale cache. Any changes to user state or login/logout flows must consider cache invalidation.
 
 **documents and test reports created in this job**
--   /app/memory/PRD.md (updated multiple times)
--   /app/test_reports/iteration_1.json
--   /app/test_reports/iteration_2.json
--    (Test PDF created during debugging)
+-   
+-   
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
--   **(In Progress)** User submitted a final, detailed request to fix 5 specific issues before a production release: an interactive carousel, a blank PDF export, an unprotected Danger Zone for superadmins, visible  pricing text, and the need for a production-ready Resend email service.
--   **(Done)** User requested to fix the resident carousel, noting it was not interactive, skipped modules, and had broken visual dot indicators.
--   **(Done)** User requested a fix for the blank PDF export.
--   **(Done)** User requested a final stability patch, including restoring the interactive swipe, implementing persistent cache, improving the service worker, and increasing the PWA icon size.
--   **(Done)** User requested a patch set for notifications, PDF download, and a new Privacy section in the user profile.
--   **(Done)** User asked agent to finish the critical part, referring to the broken carousel layout.
+1.  **(In Progress)** Request to fix a critical identity bug where user profiles persisted after logout.
+2.  **(In Progress)** Request to diagnose and report why push notifications stopped working.
+3.  **(Completed)** Request to fix the push notification icon on Android.
+4.  **(Completed)** Request to apply a patch for several issues, including a critical visits data leak, broken audit logs, and a non-updating profile image.
+5.  **(Completed)** Request to apply a safe system patch to fix issues found in a prior audit (missing email trigger, UI for billing events, etc.).
+6.  **(Completed)** Request for a full system diagnostic report.
+7.  **(Completed)** Request for a full system flow integrity audit.
+8.  **(Completed)** Request to fix the admin dashboard scroll and resident approval email bugs.
 
 **Project Health Check:**
--   **Broken:** The resident carousel's interactivity is considered at-risk. While the agent's tests passed, it has a history of failing real-world user testing, and its success is pending final user validation.
--   **Mocked:** The Resend email integration is functionally complete but relies on a  from the environment, which must be correctly configured for production.
+-   **Broken:**
+    -   Push Notification delivery for most users.
+-   **Mocked:** None.
 
 **3rd Party Integrations**
--   : (Email service) - **Newly configured**
--   : (Frontend PDF generation) - **Newly configured**
--    & : (Data fetching and caching)
--   : (Animations and interactive carousel)
--   Stripe: (Payments)
--   Firebase Cloud Messaging & : (Push Notifications)
--    / : (Internationalization)
+-   : Email service.
+-    / : Backend and frontend libraries for sending Push Notifications.
+-   : Frontend data fetching and caching.
+-   : Resident carousel navigation.
+-   : Payments.
+-   : (Used for push notifications).
 
 **Testing status**
 -   Testing agent used after significant changes: YES
 -   Troubleshoot agent used after agent stuck in loop: NO
 -   Test files created: None
--   Known regressions: The resident carousel has a high risk of regression. Each change has historically introduced subtle bugs in the feel of the swipe.
+-   Known regressions: Push notifications failing, but this was caused by an underlying issue (subscription expiration) revealed by a service worker update, not a direct regression of the update itself.
 
 **Credentials to test flow:**
 -   **Super Admin:**  / 
@@ -138,4 +149,4 @@ None.
 -   **Guard:**  / 
 
 **What agent forgot to execute**
-The agent successfully addressed all five points from the user's most recent and comprehensive request. Nothing was forgotten. The next phase is entirely dependent on user testing and feedback.</analysis>
+The agent successfully diagnosed the critical push notification failure but did not proceed with implementing the fix. The next steps—creating a cleanup endpoint and a re-subscription prompt—were identified but not started. This is now the highest priority task for the next agent.</analysis>

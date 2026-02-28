@@ -11,7 +11,7 @@ import requests
 import os
 import random
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://onboarding-fix-19.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://genturix-stability.preview.emergentagent.com').rstrip('/')
 
 class TestAdminUserCreation:
     """Test Admin Create User functionality with badge_number for Guarda role"""
