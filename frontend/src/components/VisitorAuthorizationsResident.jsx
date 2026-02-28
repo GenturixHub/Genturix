@@ -954,8 +954,8 @@ const VisitorAuthorizationsResident = ({ notifications: parentNotifications = []
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0">
-      {/* Header */}
+    <div className="flex flex-col h-full">
+      {/* Header - Fixed, no scroll */}
       <div className="p-4 border-b border-[#1E293B] bg-[#0A0A0F] flex-shrink-0">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -994,12 +994,9 @@ const VisitorAuthorizationsResident = ({ notifications: parentNotifications = []
         </Button>
       </div>
 
-      {/* Content - Scrollable area with flex layout (no maxHeight!) */}
-      <div 
-        className="flex-1 min-h-0 overflow-y-auto"
-        style={{ WebkitOverflowScrolling: 'touch' }}
-      >
-        <div className="p-4 pb-32 space-y-4">
+      {/* SINGLE scroll container for entire content */}
+      <div className="scroll-container pb-28">
+        <div className="p-4 space-y-4">
           {/* Notifications Panel (collapsible) */}
           {showNotifications && (
             <Card className="bg-[#0F111A] border-[#1E293B]">
