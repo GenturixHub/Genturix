@@ -1,16 +1,51 @@
 // =========================================================================
-// GENTURIX Service Worker v8 - PUSH + CACHE CLEANUP + FORCE UPDATE
+// GENTURIX Service Worker v12 - PUSH + SMART CACHE
 // =========================================================================
-// Handles push notifications and ensures clean installation after domain migration.
-// Version 8 forces cleanup of all old caches and immediate activation.
+// Handles push notifications with intelligent caching for static assets.
+// Uses Stale-While-Revalidate for JS, CSS, icons, fonts.
+// API calls are NEVER cached.
 // =========================================================================
 
 // IMPORTANT: Increment this version on each deploy
-const SW_VERSION = '11.0.0';
-const CACHE_NAME = 'genturix-cache-v11';
+const SW_VERSION = '12.0.0';
+const CACHE_NAME = 'genturix-cache-v12';
 
 // List of valid caches (all others will be deleted)
 const CACHE_WHITELIST = [CACHE_NAME];
+
+// Static assets to cache (Stale-While-Revalidate)
+const STATIC_ASSET_PATTERNS = [
+  /\.js$/,
+  /\.css$/,
+  /\.woff2?$/,
+  /\.ttf$/,
+  /\.otf$/,
+  /\/icons\//,
+  /\/manifest\.json$/,
+  /\/logo\d+\.png$/,
+  /\.svg$/
+];
+
+// Patterns to NEVER cache
+const NO_CACHE_PATTERNS = [
+  /\/api\//,
+  /chrome-extension/,
+  /sockjs-node/,
+  /hot-update/
+];
+
+// Check if request should use cache
+function shouldCache(url) {
+  const urlStr = url.toString();
+  
+  // Never cache API or dynamic content
+  if (NO_CACHE_PATTERNS.some(pattern => pattern.test(urlStr))) {
+    return false;
+  }
+  
+  // Cache static assets
+  return STATIC_ASSET_PATTERNS.some(pattern => pattern.test(urlStr));
+}
 
 // =========================================================================
 // INSTALL - Force immediate activation (skipWaiting)
