@@ -3,7 +3,55 @@
 ## Overview
 Genturix is a multi-tenant security and condominium management platform built with React frontend and FastAPI backend.
 
-## Latest P0 Stability Patch (2026-02-28)
+## System Flow Patch (2026-02-28) ✅ COMPLETE
+
+### Password Reset Flow - Enhanced Logging
+- **Status:** ✅ Enhanced with debug logging
+- **File:** `backend/server.py`
+- **Changes:**
+  - Added `[RESET PASSWORD VERIFY]` debug logs
+  - Logs email, code_hash_match, expires_at, attempt_count
+  - Added `[FLOW] password_reset_success` marker
+- **Verified:** Code storage, lookup, expiration, rate limiting all working
+
+### Resident Approval Email - Enhanced Logging
+- **Status:** ✅ Enhanced with flow logging
+- **File:** `backend/server.py`
+- **Changes:**
+  - Added `[FLOW] access_request_approved` marker
+  - Added `[EMAIL TRIGGER] resident_credentials` with details
+  - Added explicit success/error logging for email delivery
+- **Test:** Email sent successfully with ID: 176b49cd-5007-4629-a59b-eb77368d60a1
+
+### Seat Upgrade Approval Email - NEW
+- **Status:** ✅ Implemented
+- **File:** `backend/server.py`
+- **Changes:**
+  - Added email notification when SuperAdmin approves upgrade
+  - Email includes: condo name, seat counts, effective date, new amount
+  - Added `[EMAIL TRIGGER] seat_upgrade_approved` logging
+- **Location:** `approve_seat_upgrade()` endpoint
+
+### Billing Events UI Panel - NEW
+- **Status:** ✅ Implemented
+- **Files:**
+  - `frontend/src/pages/AdminBillingPage.js` - BillingEventsPanel component
+  - `frontend/src/services/api.js` - getBillingEvents() method
+- **Features:**
+  - Displays billing event timeline
+  - Color-coded event types
+  - Show more/less toggle
+  - Connected to `GET /api/billing/events/{condo_id}`
+
+### billing_logs Deprecated
+- **Status:** ⚠️ Marked as deprecated
+- **File:** `backend/server.py`
+- **Action:** Use `log_billing_engine_event()` instead
+- **Existing data:** Preserved (not deleted)
+
+---
+
+## Previous P0 Stability Patch (2026-02-28)
 
 ### PART 1: Admin Dashboard Scroll Fix ✅ COMPLETED
 - **Status:** ✅ Fixed and Verified
