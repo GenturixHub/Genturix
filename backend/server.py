@@ -3160,13 +3160,6 @@ async def login(credentials: UserLogin, request: Request):
     # ==================== AUTHENTICATION ====================
     user = await db.users.find_one({"email": normalized_email})
     
-    # DEBUG: Log user lookup result
-    logger.debug(f"[LOGIN-DEBUG] Email: {normalized_email}, User found: {user is not None}")
-    if user:
-        logger.debug(f"[LOGIN-DEBUG] User ID: {user.get('id')}, Has hash: {'hashed_password' in user}")
-        pw_result = verify_password(credentials.password, user.get("hashed_password", ""))
-        logger.debug(f"[LOGIN-DEBUG] Password verification result: {pw_result}")
-    
     if not user or not verify_password(credentials.password, user.get("hashed_password", "")):
         await log_audit_event(
             AuditEventType.LOGIN_FAILURE,
