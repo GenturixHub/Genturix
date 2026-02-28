@@ -3262,7 +3262,9 @@ async def login(credentials: UserLogin, request: Request):
         "auth",
         {"email": user["email"], "password_reset_required": password_reset_required},
         request.client.host if request.client else "unknown",
-        request.headers.get("user-agent", "unknown")
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=user.get("condominium_id"),
+        user_email=user.get("email")
     )
     
     # Build response body (without refresh_token in body for security)
