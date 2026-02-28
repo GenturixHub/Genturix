@@ -3774,6 +3774,7 @@ async def reset_password_with_code(
     
     print(f"[AUTH EVENT] Password reset SUCCESS | email={email}")
     logger.info(f"[PASSWORD-RESET] Password reset completed for {email}")
+    print(f"[FLOW] password_reset_success | email={email}")
     
     return {"message": "Contraseña actualizada exitosamente"}
 
