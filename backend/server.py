@@ -4097,6 +4097,266 @@ async def cleanup_invalid_subscriptions(current_user = Depends(require_role(Role
     }
 
 
+@api_router.post("/push/validate-subscriptions")
+async def validate_and_cleanup_subscriptions(
+    dry_run: bool = True,
+    current_user = Depends(require_role(RoleEnum.SUPER_ADMIN))
+):
+    """
+    [SUPERADMIN ONLY] Validate push subscriptions by sending test notifications.
+    
+    This endpoint:
+    1. Fetches all push subscriptions from the database
+    2. Sends a silent/test push to each one
+    3. Deletes subscriptions that return 404/410 (permanently invalid)
+    4. Reports results
+    
+    Parameters:
+    - dry_run: If True (default), only validates without sending or deleting.
+               Set to False to actually test and clean invalid subscriptions.
+    
+    This is the DEFINITIVE solution for cleaning expired FCM subscriptions.
+    """
+    logger.info(f"[PUSH-VALIDATE] ========== VALIDATION START (dry_run={dry_run}) ==========")
+    
+    # Get all subscriptions
+    all_subscriptions = await db.push_subscriptions.find({}).to_list(None)
+    total_count = len(all_subscriptions)
+    
+    if total_count == 0:
+        return {
+            "message": "No hay suscripciones para validar",
+            "dry_run": dry_run,
+            "total": 0,
+            "valid": 0,
+            "invalid": 0,
+            "deleted": 0
+        }
+    
+    logger.info(f"[PUSH-VALIDATE] Found {total_count} subscriptions to validate")
+    
+    valid_count = 0
+    invalid_count = 0
+    deleted_count = 0
+    errors_detail = []
+    
+    # Test payload - silent notification (won't show to users)
+    test_payload = {
+        "title": "GENTURIX System Check",
+        "body": "Validación de suscripción",
+        "silent": True,
+        "tag": "system-validation",
+        "data": {"type": "validation", "timestamp": datetime.now(timezone.utc).isoformat()}
+    }
+    
+    for sub in all_subscriptions:
+        endpoint = sub.get("endpoint", "")
+        endpoint_short = endpoint[-30:] if len(endpoint) > 30 else endpoint
+        user_id = sub.get("user_id", "unknown")
+        sub_id = sub.get("_id")
+        
+        if not endpoint:
+            # Invalid subscription without endpoint
+            invalid_count += 1
+            if not dry_run:
+                await db.push_subscriptions.delete_one({"_id": sub_id})
+                deleted_count += 1
+            errors_detail.append({
+                "endpoint": "MISSING",
+                "user_id": user_id[:12] if user_id else "N/A",
+                "error": "No endpoint"
+            })
+            continue
+        
+        if dry_run:
+            # In dry run mode, just count as "to be validated"
+            valid_count += 1
+            continue
+        
+        # Build subscription_info for webpush
+        subscription_info = {
+            "endpoint": endpoint,
+            "keys": {
+                "p256dh": sub.get("p256dh", ""),
+                "auth": sub.get("auth", "")
+            }
+        }
+        
+        # Validate keys exist
+        if not subscription_info["keys"]["p256dh"] or not subscription_info["keys"]["auth"]:
+            invalid_count += 1
+            await db.push_subscriptions.delete_one({"_id": sub_id})
+            deleted_count += 1
+            errors_detail.append({
+                "endpoint": endpoint_short,
+                "user_id": user_id[:12] if user_id else "N/A",
+                "error": "Missing keys"
+            })
+            continue
+        
+        # Try to send test push
+        try:
+            webpush(
+                subscription_info=subscription_info,
+                data=json.dumps(test_payload),
+                vapid_private_key=VAPID_PRIVATE_KEY,
+                vapid_claims={"sub": f"mailto:{VAPID_CLAIMS_EMAIL}"}
+            )
+            # Success - subscription is valid
+            valid_count += 1
+            logger.debug(f"[PUSH-VALIDATE] ✅ Valid: {endpoint_short}")
+            
+        except WebPushException as e:
+            status_code = e.response.status_code if e.response else 0
+            
+            if status_code in [404, 410]:
+                # Subscription is PERMANENTLY invalid - delete it
+                invalid_count += 1
+                await db.push_subscriptions.delete_one({"_id": sub_id})
+                deleted_count += 1
+                errors_detail.append({
+                    "endpoint": endpoint_short,
+                    "user_id": user_id[:12] if user_id else "N/A",
+                    "error": f"HTTP {status_code} - Expired/Gone"
+                })
+                logger.info(f"[PUSH-VALIDATE] ❌ Invalid (deleted): {endpoint_short} - HTTP {status_code}")
+            else:
+                # Temporary error - keep subscription
+                valid_count += 1
+                logger.warning(f"[PUSH-VALIDATE] ⚠️ Temp error (kept): {endpoint_short} - HTTP {status_code}")
+                
+        except Exception as e:
+            # Network or other error - keep subscription (might be temporary)
+            valid_count += 1
+            logger.warning(f"[PUSH-VALIDATE] ⚠️ Unknown error (kept): {endpoint_short} - {str(e)[:50]}")
+    
+    logger.info(f"[PUSH-VALIDATE] ========== VALIDATION COMPLETE ==========")
+    logger.info(f"[PUSH-VALIDATE] Total: {total_count} | Valid: {valid_count} | Invalid: {invalid_count} | Deleted: {deleted_count}")
+    
+    return {
+        "message": f"Validación {'simulada' if dry_run else 'completada'}: {invalid_count} suscripciones inválidas {'detectadas' if dry_run else 'eliminadas'}",
+        "dry_run": dry_run,
+        "total": total_count,
+        "valid": valid_count,
+        "invalid": invalid_count,
+        "deleted": deleted_count,
+        "errors_detail": errors_detail[:20] if errors_detail else []  # Limit to 20 for response size
+    }
+
+
+@api_router.get("/push/validate-user-subscription")
+async def validate_user_subscription(current_user = Depends(get_current_user)):
+    """
+    Validate if the current user's push subscription is still valid.
+    
+    This endpoint:
+    1. Gets the user's push subscription from DB
+    2. Sends a silent test push
+    3. Returns whether the subscription is valid
+    
+    Frontend should call this on app load to detect expired subscriptions
+    and prompt the user to re-enable notifications if needed.
+    """
+    user_id = current_user.get("id")
+    
+    # Get user's subscriptions
+    subscriptions = await db.push_subscriptions.find(
+        {"user_id": user_id, "is_active": True}
+    ).to_list(None)
+    
+    if not subscriptions:
+        return {
+            "has_subscription": False,
+            "is_valid": False,
+            "subscription_count": 0,
+            "message": "No tienes suscripciones push activas"
+        }
+    
+    # Test the most recent subscription
+    latest_sub = sorted(subscriptions, key=lambda x: x.get("updated_at", ""), reverse=True)[0]
+    endpoint = latest_sub.get("endpoint", "")
+    
+    if not endpoint:
+        return {
+            "has_subscription": True,
+            "is_valid": False,
+            "subscription_count": len(subscriptions),
+            "message": "Suscripción inválida (sin endpoint)"
+        }
+    
+    # Build subscription_info
+    subscription_info = {
+        "endpoint": endpoint,
+        "keys": {
+            "p256dh": latest_sub.get("p256dh", ""),
+            "auth": latest_sub.get("auth", "")
+        }
+    }
+    
+    if not subscription_info["keys"]["p256dh"] or not subscription_info["keys"]["auth"]:
+        return {
+            "has_subscription": True,
+            "is_valid": False,
+            "subscription_count": len(subscriptions),
+            "message": "Suscripción inválida (faltan claves)"
+        }
+    
+    # Silent test payload
+    test_payload = {
+        "title": "",
+        "body": "",
+        "silent": True,
+        "tag": "validation-check",
+        "data": {"type": "validation"}
+    }
+    
+    try:
+        webpush(
+            subscription_info=subscription_info,
+            data=json.dumps(test_payload),
+            vapid_private_key=VAPID_PRIVATE_KEY,
+            vapid_claims={"sub": f"mailto:{VAPID_CLAIMS_EMAIL}"}
+        )
+        return {
+            "has_subscription": True,
+            "is_valid": True,
+            "subscription_count": len(subscriptions),
+            "message": "Suscripción válida"
+        }
+        
+    except WebPushException as e:
+        status_code = e.response.status_code if e.response else 0
+        
+        if status_code in [404, 410]:
+            # Subscription expired - delete it
+            await db.push_subscriptions.delete_one({"endpoint": endpoint})
+            
+            return {
+                "has_subscription": True,
+                "is_valid": False,
+                "subscription_count": len(subscriptions) - 1,
+                "message": "Tu suscripción push ha expirado. Por favor, reactiva las notificaciones.",
+                "action_required": "resubscribe"
+            }
+        else:
+            # Temporary error - assume valid
+            return {
+                "has_subscription": True,
+                "is_valid": True,
+                "subscription_count": len(subscriptions),
+                "message": "Suscripción posiblemente válida (error temporal)"
+            }
+            
+    except Exception as e:
+        logger.warning(f"[PUSH-VALIDATE-USER] Error validating subscription for {user_id}: {str(e)}")
+        return {
+            "has_subscription": True,
+            "is_valid": True,  # Assume valid on network errors
+            "subscription_count": len(subscriptions),
+            "message": "No se pudo validar (error de red)"
+        }
+
+
 # ============================================================
 # TEMPORARY CLEANUP ENDPOINT - REMOVE AFTER PRODUCTION CLEAN
 # ============================================================
