@@ -15673,6 +15673,7 @@ async def onboarding_create_condominium(
         
         # === STEP 5: Send Welcome Email to Admin (fail-safe) ===
         try:
+            print(f"[EMAIL TRIGGER] create_condominium → sending welcome email to {normalized_admin_email}")
             login_url = f"{FRONTEND_URL}/login" if FRONTEND_URL else "https://genturix.com/login"
             welcome_html = get_condominium_welcome_email_html(
                 admin_name=wizard_data.admin.full_name,
@@ -15681,12 +15682,14 @@ async def onboarding_create_condominium(
                 password=admin_password,
                 login_url=login_url
             )
-            await send_email(
+            email_result = await send_email(
                 to=normalized_admin_email,
                 subject=f"¡Bienvenido a GENTURIX! - {wizard_data.condominium.name}",
                 html=welcome_html
             )
+            print(f"[EMAIL RESULT] create_condominium → {email_result}")
         except Exception as email_error:
+            print(f"[EMAIL ERROR] create_condominium → {email_error}")
             logger.warning(f"[EMAIL] Failed to send welcome email to {normalized_admin_email}: {email_error}")
             # Continue - don't break API flow
         
