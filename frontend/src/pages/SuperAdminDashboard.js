@@ -208,8 +208,8 @@ const SystemResetButton = ({ onSuccess }) => {
     setAuthError('');
     
     try {
-      // Verify password with backend
-      const response = await api.post('/api/superadmin/verify-password', { password });
+      // Verify password with backend (api.post already adds /api prefix)
+      const response = await api.post('/superadmin/verify-password', { password });
       if (response.verified) {
         setShowAuthDialog(false);
         setShowConfirm(true);
@@ -223,7 +223,7 @@ const SystemResetButton = ({ onSuccess }) => {
         // Fallback: verify by re-login check
         try {
           const user = JSON.parse(localStorage.getItem('user') || '{}');
-          const loginResponse = await api.post('/api/auth/login', {
+          const loginResponse = await api.post('/auth/login', {
             email: user.email,
             password: password
           });
