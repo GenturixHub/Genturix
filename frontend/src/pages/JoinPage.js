@@ -400,33 +400,36 @@ const JoinPage = () => {
               </div>
               
               {/* Submit Button */}
-              <Button 
-                type="submit" 
-                className="w-full h-12" 
-                disabled={submitting}
-                data-testid="join-submit"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                    Enviando...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-5 h-5 mr-2" />
-                    Enviar Solicitud
-                  </>
-                )}
-              </Button>
+              <div className="pt-4">
+                <Button 
+                  type="submit" 
+                  className="w-full h-12" 
+                  disabled={submitting}
+                  data-testid="join-submit"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                      Enviando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-5 h-5 mr-2" />
+                      Enviar Solicitud
+                    </>
+                  )}
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
         
         {/* Already have account link */}
-        <div className="text-center">
+        <div className="text-center pb-8">
           <Button variant="link" onClick={() => navigate('/login')} className="text-muted-foreground">
             ¿Ya tienes cuenta? Inicia sesión
           </Button>
+        </div>
         </div>
       </div>
     </div>
