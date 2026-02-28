@@ -129,6 +129,12 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
   - Removed broken `screenshots` section (files didn't exist)
   - Removed broken `shortcuts` section (icons didn't exist)
   - All 8 icons verified and accessible
+- [x] **Resident Carousel Layout Fix (2025-02-28)**
+  - Fixed black empty space at bottom of modules
+  - Implemented percentage-based widths instead of viewport pixels
+  - Added proper paddingBottom for bottom nav clearance
+  - Improved drag physics: single-module transitions, dragMomentum=false
+  - All 5 modules verified working (Emergency, Visits, Reservations, Directory, Profile)
 
 ### P1 - High Priority
 - [ ] Auth module modularization
