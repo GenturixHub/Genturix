@@ -363,39 +363,21 @@ const ResidentHome = () => {
       activeTab={activeTab} 
       onTabChange={setActiveTab}
     >
-      {/* Carousel Container - fills all available height */}
+      {/* Simple Swipe Container - single module visible at a time */}
       <div 
-        ref={containerRef}
-        className="flex-1 relative"
-        style={{ 
-          overflow: 'hidden',
-          minHeight: 0 
-        }}
+        {...swipeHandlers}
+        className="flex-1 relative overflow-hidden"
+        style={{ minHeight: 0 }}
       >
-        <motion.div
-          className="flex h-full"
-          drag="x"
-          dragConstraints={{ left: 0, right: 0 }}
-          dragElastic={0.1}
-          dragMomentum={false}
-          dragDirectionLock
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
+        {/* Module Content - only active module is rendered */}
+        <div 
+          className="h-full overflow-y-auto"
           style={{ 
-            x,
-            width: `${TAB_ORDER.length * 100}%`,
-            touchAction: 'pan-y'
+            WebkitOverflowScrolling: 'touch',
+            paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
           }}
         >
-          {/* Emergency Module */}
-          <div 
-            className="h-full flex-shrink-0 overflow-y-auto"
-            style={{ 
-              width: `${100 / TAB_ORDER.length}%`,
-              WebkitOverflowScrolling: 'touch',
-              paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
-            }}
-          >
+          {activeTab === 'emergency' && (
             <EmergencyTab
               location={location}
               locationLoading={locationLoading}
@@ -404,62 +386,30 @@ const ResidentHome = () => {
               sendingType={sendingType}
               t={t}
             />
-          </div>
+          )}
           
-          {/* Visits Module */}
-          <div 
-            className="h-full flex-shrink-0 overflow-y-auto"
-            style={{ 
-              width: `${100 / TAB_ORDER.length}%`,
-              WebkitOverflowScrolling: 'touch',
-              paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
-            }}
-          >
+          {activeTab === 'visits' && (
             <div className="px-3 py-4">
               <ResidentVisitsModule />
             </div>
-          </div>
+          )}
           
-          {/* Reservations Module */}
-          <div 
-            className="h-full flex-shrink-0 overflow-y-auto"
-            style={{ 
-              width: `${100 / TAB_ORDER.length}%`,
-              WebkitOverflowScrolling: 'touch',
-              paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
-            }}
-          >
+          {activeTab === 'reservations' && (
             <div className="px-3 py-4">
               <ResidentReservations />
             </div>
-          </div>
+          )}
           
-          {/* Directory Module */}
-          <div 
-            className="h-full flex-shrink-0 overflow-y-auto"
-            style={{ 
-              width: `${100 / TAB_ORDER.length}%`,
-              WebkitOverflowScrolling: 'touch',
-              paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
-            }}
-          >
+          {activeTab === 'directory' && (
             <ProfileDirectory embedded={true} />
-          </div>
+          )}
           
-          {/* Profile Module */}
-          <div 
-            className="h-full flex-shrink-0 overflow-y-auto"
-            style={{ 
-              width: `${100 / TAB_ORDER.length}%`,
-              WebkitOverflowScrolling: 'touch',
-              paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
-            }}
-          >
+          {activeTab === 'profile' && (
             <div className="px-3 py-4">
               <EmbeddedProfile />
             </div>
-          </div>
-        </motion.div>
+          )}
+        </div>
       </div>
       
       {/* Push Permission Banner */}
