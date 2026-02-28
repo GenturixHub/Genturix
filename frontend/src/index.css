@@ -26,6 +26,17 @@ body {
     -webkit-tap-highlight-color: transparent; /* Remove tap highlight */
 }
 
+/* Mobile scroll optimization */
+html, body, #root {
+    height: 100%;
+    overflow: hidden;
+}
+
+#root {
+    display: flex;
+    flex-direction: column;
+}
+
 h1, h2, h3, h4, h5, h6 {
     font-family: 'Outfit', sans-serif;
 }
