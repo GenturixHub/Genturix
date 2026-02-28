@@ -89,10 +89,45 @@ const ResidentLayout = ({
 
       {/* Content - Full height container for carousel */}
       <main 
-        className="flex-1 min-h-0 flex flex-col"
+        className="flex-1 min-h-0 flex flex-col relative"
         style={{ overflow: 'hidden' }}
       >
         {children}
+        
+        {/* Carousel Page Indicators */}
+        {showIndicators && (
+          <div 
+            style={{ 
+              position: 'absolute',
+              bottom: '8px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              zIndex: 20
+            }}
+            data-testid="carousel-indicators"
+          >
+            {Array.from({ length: indicatorCount }).map((_, index) => (
+              <div
+                key={index}
+                onClick={() => onTabChange(TAB_IDS[index])}
+                style={{
+                  width: index === activeIndex ? '6px' : '4px',
+                  height: index === activeIndex ? '6px' : '4px',
+                  borderRadius: '50%',
+                  backgroundColor: index === activeIndex ? '#22d3ee' : 'rgba(255,255,255,0.25)',
+                  transition: 'all 0.2s ease',
+                  cursor: 'pointer'
+                }}
+                role="button"
+                aria-label={`Go to ${TAB_IDS[index]} module`}
+                data-testid={`carousel-dot-${TAB_IDS[index]}`}
+              />
+            ))}
+          </div>
+        )}
       </main>
 
       {/* Bottom Navigation - Fixed, app-style */}
