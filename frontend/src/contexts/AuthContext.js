@@ -306,8 +306,25 @@ export const AuthProvider = ({ children }) => {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Password change failed');
+      const errorData = await response.json();
+      
+      // Handle Pydantic validation errors (array format)
+      let errorMessage = 'Password change failed';
+      
+      if (Array.isArray(errorData.detail)) {
+        // Pydantic returns an array of validation errors
+        errorMessage = errorData.detail[0]?.msg || errorData.detail[0]?.message || 'Error de validación';
+      } else if (typeof errorData.detail === 'string') {
+        errorMessage = errorData.detail;
+      } else if (errorData.message) {
+        errorMessage = errorData.message;
+      } else if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+      
+      const error = new Error(errorMessage);
+      error.data = errorData;
+      throw error;
     }
 
     setPasswordResetRequired(false);
