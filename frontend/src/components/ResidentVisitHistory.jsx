@@ -409,40 +409,29 @@ const generatePDF = async (exportData, t) => {
     <head>
       <meta charset="UTF-8">
       <title>${t('visitors.pdf.title')} - GENTURIX</title>
-      <style>
-        body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
-        h1 { color: #1a1a2e; margin-bottom: 5px; }
-        .subtitle { color: #666; margin-bottom: 20px; }
-        .info-box { background: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        .info-box p { margin: 5px 0; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th { background: #1a1a2e; color: white; padding: 12px 8px; text-align: left; }
-        tr:nth-child(even) { background: #f9f9f9; }
-        .footer { margin-top: 30px; text-align: center; color: #999; font-size: 12px; }
-      </style>
     </head>
-    <body>
-      <h1>${t('visitors.pdf.title')}</h1>
-      <p class="subtitle">${t('visitors.pdf.generatedBy')}</p>
+    <body style="font-family: Arial, sans-serif; padding: 20px; color: #333; background: #ffffff; margin: 0;">
+      <h1 style="color: #1a1a2e; margin-bottom: 5px;">${t('visitors.pdf.title')}</h1>
+      <p style="color: #666; margin-bottom: 20px;">${t('visitors.pdf.generatedBy')}</p>
       
-      <div class="info-box">
-        <p><strong>${t('visitors.pdf.resident')}:</strong> ${exportData.resident_name}</p>
-        <p><strong>${t('visitors.pdf.apartment')}:</strong> ${exportData.apartment}</p>
-        <p><strong>${t('visitors.pdf.condominium')}:</strong> ${exportData.condominium_name}</p>
-        <p><strong>${t('visitors.pdf.exportDate')}:</strong> ${new Date(exportData.export_date).toLocaleString('es-ES')}</p>
-        ${filterInfo.length > 0 ? `<p><strong>${t('visitors.pdf.appliedFilters')}:</strong> ${filterInfo.join(' | ')}</p>` : ''}
-        <p><strong>${t('visitors.pdf.totalRecords')}:</strong> ${exportData.total_entries}</p>
+      <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <p style="margin: 5px 0;"><strong>${t('visitors.pdf.resident')}:</strong> ${exportData.resident_name}</p>
+        <p style="margin: 5px 0;"><strong>${t('visitors.pdf.apartment')}:</strong> ${exportData.apartment}</p>
+        <p style="margin: 5px 0;"><strong>${t('visitors.pdf.condominium')}:</strong> ${exportData.condominium_name}</p>
+        <p style="margin: 5px 0;"><strong>${t('visitors.pdf.exportDate')}:</strong> ${new Date(exportData.export_date).toLocaleString('es-ES')}</p>
+        ${filterInfo.length > 0 ? `<p style="margin: 5px 0;"><strong>${t('visitors.pdf.appliedFilters')}:</strong> ${filterInfo.join(' | ')}</p>` : ''}
+        <p style="margin: 5px 0;"><strong>${t('visitors.pdf.totalRecords')}:</strong> ${exportData.total_entries}</p>
       </div>
       
-      <table>
+      <table style="width: 100%; border-collapse: collapse; margin-top: 20px;">
         <thead>
           <tr>
-            <th>${t('visitors.pdf.visitor')}</th>
-            <th>${t('visitors.pdf.type')}</th>
-            <th>${t('visitors.pdf.entry')}</th>
-            <th>${t('visitors.pdf.exit')}</th>
-            <th>${t('visitors.pdf.duration')}</th>
-            <th>${t('visitors.pdf.status')}</th>
+            <th style="background: #1a1a2e; color: white; padding: 12px 8px; text-align: left;">${t('visitors.pdf.visitor')}</th>
+            <th style="background: #1a1a2e; color: white; padding: 12px 8px; text-align: left;">${t('visitors.pdf.type')}</th>
+            <th style="background: #1a1a2e; color: white; padding: 12px 8px; text-align: left;">${t('visitors.pdf.entry')}</th>
+            <th style="background: #1a1a2e; color: white; padding: 12px 8px; text-align: left;">${t('visitors.pdf.exit')}</th>
+            <th style="background: #1a1a2e; color: white; padding: 12px 8px; text-align: left;">${t('visitors.pdf.duration')}</th>
+            <th style="background: #1a1a2e; color: white; padding: 12px 8px; text-align: left;">${t('visitors.pdf.status')}</th>
           </tr>
         </thead>
         <tbody>
@@ -450,19 +439,32 @@ const generatePDF = async (exportData, t) => {
         </tbody>
       </table>
       
-      <div class="footer">
+      <div style="margin-top: 30px; text-align: center; color: #999; font-size: 12px;">
         <p>${t('visitors.pdf.footer')}</p>
       </div>
     </body>
     </html>
   `;
   
-  // Create temporary container for PDF generation
+  // Create visible container for PDF generation (html2canvas needs visible elements)
   const container = document.createElement('div');
+  container.id = 'visit-history-pdf-container';
   container.innerHTML = html;
-  container.style.position = 'absolute';
-  container.style.left = '-9999px';
+  container.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 210mm;
+    min-height: 297mm;
+    background: #ffffff;
+    z-index: -1;
+    opacity: 0;
+    pointer-events: none;
+  `;
   document.body.appendChild(container);
+  
+  // Wait for DOM to render before capturing
+  await new Promise(resolve => setTimeout(resolve, 300));
   
   // Generate filename with date
   const dateStr = new Date().toISOString().split('T')[0];
@@ -473,7 +475,12 @@ const generatePDF = async (exportData, t) => {
     margin: 10,
     filename: filename,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
+    html2canvas: { 
+      scale: 2, 
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false
+    },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
   
