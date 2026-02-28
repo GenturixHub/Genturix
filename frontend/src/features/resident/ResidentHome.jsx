@@ -336,26 +336,28 @@ const ResidentHome = () => {
     return 375;
   });
   
-  // Raw motion value for drag (follows finger exactly)
-  const rawX = useMotionValue(0);
+  // Motion value for drag - follows finger during drag, animates on snap
+  const x = useMotionValue(0);
   
-  // Spring-animated version for smooth snapping
-  const x = useSpring(rawX, {
-    stiffness: 300,
-    damping: 30,
-    mass: 0.8
-  });
-  
-  // Track if currently dragging to prevent position updates
+  // Track if currently dragging
   const isDragging = useRef(false);
   
-  // Initialize and sync position
+  // Animate to position (used for tab clicks and snap)
+  const animateToIndex = useCallback((index) => {
+    const targetX = -index * viewportWidth;
+    animate(x, targetX, {
+      type: "spring",
+      stiffness: 300,
+      damping: 30
+    });
+  }, [viewportWidth, x]);
+  
+  // Sync position when activeIndex changes (from tab clicks)
   useEffect(() => {
-    const targetX = -activeIndex * viewportWidth;
     if (!isDragging.current) {
-      rawX.set(targetX);
+      animateToIndex(activeIndex);
     }
-  }, [activeIndex, viewportWidth, rawX]);
+  }, [activeIndex, animateToIndex]);
   
   // Handle resize
   useEffect(() => {
@@ -363,12 +365,12 @@ const ResidentHome = () => {
       const newWidth = window.innerWidth;
       setViewportWidth(newWidth);
       if (!isDragging.current) {
-        rawX.set(-activeIndex * newWidth);
+        x.set(-activeIndex * newWidth);
       }
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [activeIndex, rawX]);
+  }, [activeIndex, x]);
 
   // Handle drag start
   const handleDragStart = useCallback(() => {
