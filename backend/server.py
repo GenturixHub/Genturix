@@ -3186,9 +3186,11 @@ async def register(user_data: UserCreate, request: Request):
         AuditEventType.USER_CREATED,
         user_id,
         "auth",
-        {"email": user_data.email, "roles": forced_role, "condominium_id": user_data.condominium_id},
+        {"email": user_data.email, "roles": forced_role},
         request.client.host if request.client else "unknown",
-        request.headers.get("user-agent", "unknown")
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=user_data.condominium_id,
+        user_email=user_data.email
     )
     
     return UserResponse(
