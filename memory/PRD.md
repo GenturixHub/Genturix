@@ -3,6 +3,27 @@
 ## Overview
 Genturix is a multi-tenant security and condominium management platform built with React frontend and FastAPI backend.
 
+## Latest Stability Patch (2026-02-28)
+
+### Changes Applied
+| Part | Description | Status |
+|------|-------------|--------|
+| PART 1 | Password change flow | ✅ Verified (not modified) |
+| PART 2 | Double API prefix `/api/api/` | ✅ Fixed in SuperAdminDashboard.js |
+| PART 3 | Swipe navigation carousel | ✅ Threshold set to 80px |
+| PART 4 | PDF export | ✅ Already correct (opacity:0, z-index:-1) |
+| PART 5 | Danger zone protection | ✅ Already implemented |
+| PART 6 | Pricing text `$1` | ✅ Already removed |
+| PART 7 | Email service (Resend) | ✅ Verified, logging added |
+| PART 8 | Email debug endpoint | ✅ GET /api/email/debug working |
+| PART 9 | Rate limiting | ✅ Added to change-password |
+| PART 10 | Logging | ✅ Added [AUTH EVENT] logging |
+
+### Files Modified
+- `frontend/src/pages/SuperAdminDashboard.js` - Fixed `/api/api/` → `/`
+- `frontend/src/features/resident/ResidentHome.jsx` - Threshold 80px
+- `backend/server.py` - Rate limiting + AUTH logging
+
 ## Core Features
 - Multi-tenant condominium management
 - User authentication with role-based access control
