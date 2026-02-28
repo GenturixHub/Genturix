@@ -341,22 +341,36 @@ const ResidentHome = () => {
 
   // Get current module index
   const activeIndex = TAB_ORDER.indexOf(activeTab);
+  
+  // Viewport width for calculations
+  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 375;
 
-  // Handle drag end - snap to nearest module
+  // Handle drag end - calculate nearest module based on final position
   const handleDragEnd = useCallback((event, info) => {
     const { offset, velocity } = info;
-    const swipeThreshold = 80;
-    const velocityThreshold = 300;
     
-    // Swipe left (next module) - negative offset
-    if (offset.x < -swipeThreshold || velocity.x < -velocityThreshold) {
-      goNextTab();
+    // Calculate direction based on offset and velocity
+    let direction = 0;
+    
+    // Use velocity for quick flicks
+    if (Math.abs(velocity.x) > 200) {
+      direction = velocity.x > 0 ? -1 : 1;
     }
-    // Swipe right (previous module) - positive offset
-    else if (offset.x > swipeThreshold || velocity.x > velocityThreshold) {
-      goPrevTab();
+    // Use offset for slow drags
+    else if (Math.abs(offset.x) > 50) {
+      direction = offset.x > 0 ? -1 : 1;
     }
-  }, [goNextTab, goPrevTab]);
+    
+    // Calculate new index (max change = 1 module)
+    const newIndex = activeIndex + direction;
+    
+    // Clamp to valid range
+    const clampedIndex = Math.max(0, Math.min(newIndex, TAB_ORDER.length - 1));
+    
+    if (clampedIndex !== activeIndex) {
+      setActiveTab(TAB_ORDER[clampedIndex]);
+    }
+  }, [activeIndex]);
 
   // Success Screen - early return AFTER all hooks
   if (sentAlert) {
@@ -365,25 +379,27 @@ const ResidentHome = () => {
 
   return (
     <ResidentLayout activeTab={activeTab} onTabChange={setActiveTab}>
-      {/* Carousel Container */}
+      {/* Carousel Container - strict height control */}
       <div className="flex-1 min-h-0 overflow-hidden">
         <motion.div
           className="flex h-full"
           drag="x"
           dragConstraints={{ 
-            left: -(TAB_ORDER.length - 1) * window.innerWidth, 
+            left: -(TAB_ORDER.length - 1) * viewportWidth, 
             right: 0 
           }}
-          dragElastic={0.1}
-          dragMomentum={false}
+          dragElastic={0.2}
+          dragMomentum={true}
+          dragDirectionLock
           onDragEnd={handleDragEnd}
           animate={{ 
-            x: -activeIndex * window.innerWidth 
+            x: -activeIndex * viewportWidth 
           }}
           transition={{
             type: "spring",
-            stiffness: 300,
-            damping: 30
+            stiffness: 220,
+            damping: 26,
+            mass: 0.9
           }}
           style={{ 
             width: `${TAB_ORDER.length * 100}%`,
@@ -391,7 +407,10 @@ const ResidentHome = () => {
           }}
         >
           {/* Emergency Module */}
-          <div className="w-screen h-full flex-shrink-0 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div 
+            className="w-screen h-full flex-shrink-0 overflow-y-auto"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
             <EmergencyTab
               location={location}
               locationLoading={locationLoading}
@@ -403,23 +422,41 @@ const ResidentHome = () => {
           </div>
           
           {/* Visits Module */}
-          <div className="w-screen h-full flex-shrink-0 overflow-y-auto px-3 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
-            <ResidentVisitsModule />
+          <div 
+            className="w-screen h-full flex-shrink-0 overflow-y-auto"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
+            <div className="px-3 py-4 h-full">
+              <ResidentVisitsModule />
+            </div>
           </div>
           
           {/* Reservations Module */}
-          <div className="w-screen h-full flex-shrink-0 overflow-y-auto px-3 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
-            <ResidentReservations />
+          <div 
+            className="w-screen h-full flex-shrink-0 overflow-y-auto"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
+            <div className="px-3 py-4 h-full">
+              <ResidentReservations />
+            </div>
           </div>
           
           {/* Directory Module */}
-          <div className="w-screen h-full flex-shrink-0 overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div 
+            className="w-screen h-full flex-shrink-0 overflow-y-auto"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
             <ProfileDirectory embedded={true} />
           </div>
           
           {/* Profile Module */}
-          <div className="w-screen h-full flex-shrink-0 overflow-y-auto px-3 py-4" style={{ WebkitOverflowScrolling: 'touch' }}>
-            <EmbeddedProfile />
+          <div 
+            className="w-screen h-full flex-shrink-0 overflow-y-auto"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
+            <div className="px-3 py-4 h-full">
+              <EmbeddedProfile />
+            </div>
           </div>
         </motion.div>
       </div>
