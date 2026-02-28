@@ -197,8 +197,11 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
   const roleConfig = ROLE_CONFIG[primaryRole] || { icon: User, color: 'bg-white/5 text-white/60 border-white/10', label: primaryRole };
 
   return (
-    <ScrollArea className="h-full">
-      <div className="px-4 py-6 space-y-5 max-w-lg mx-auto pb-32">
+    <div 
+      className="h-full overflow-y-auto"
+      style={{ WebkitOverflowScrolling: 'touch' }}
+    >
+      <div className="px-4 py-6 space-y-5 max-w-lg mx-auto" style={{ paddingBottom: '112px' }}>
         
         {/* Back Button */}
         {onBack && (
