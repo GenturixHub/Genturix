@@ -402,8 +402,8 @@ const ResidentHome = () => {
 
   return (
     <ResidentLayout activeTab={activeTab} onTabChange={setActiveTab}>
-      {/* Swipeable Container for Module Navigation */}
-      <div {...swipeHandlers} className="flex-1 min-h-0 flex flex-col">
+      {/* Animated Tab Content - Swipe handled by ResidentLayout */}
+      <div className="flex-1 min-h-0 flex flex-col">
         <AnimatePresence initial={false} mode="wait" custom={direction}>
           <motion.div
             key={activeTab}
