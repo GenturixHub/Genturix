@@ -903,7 +903,6 @@ const OverviewTab = ({ stats, billingOverview, isLoading, onRefresh, onNavigateT
       {/* Platform Info */}
       <div className="text-center text-xs text-muted-foreground">
         <p>GENTURIX Platform • Multi-tenant Security System</p>
-        <p className="mt-1">Modelo de Precios: <strong className="text-green-400">$1 USD / usuario / mes</strong></p>
       </div>
     </div>
   );
