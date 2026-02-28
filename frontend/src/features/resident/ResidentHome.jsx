@@ -336,34 +336,36 @@ const ResidentHome = () => {
     return 375;
   });
   
-  // Motion value for drag - follows finger during drag, animates on snap
+  // Motion value for interactive drag - follows finger exactly
   const x = useMotionValue(0);
   
   // Track if currently dragging
   const isDragging = useRef(false);
   
-  // Animate to position (used for tab clicks and snap)
+  // Animate to specific index with spring animation
   const animateToIndex = useCallback((index) => {
     const targetX = -index * viewportWidth;
     animate(x, targetX, {
       type: "spring",
-      stiffness: 300,
-      damping: 30
+      stiffness: 320,
+      damping: 32,
+      mass: 0.8
     });
   }, [viewportWidth, x]);
   
-  // Sync position when activeIndex changes (from tab clicks)
+  // Sync position when activeIndex changes (from tab clicks only)
   useEffect(() => {
     if (!isDragging.current) {
       animateToIndex(activeIndex);
     }
   }, [activeIndex, animateToIndex]);
   
-  // Handle resize
+  // Handle resize - update width and reposition
   useEffect(() => {
     const handleResize = () => {
       const newWidth = window.innerWidth;
       setViewportWidth(newWidth);
+      // Immediate reposition on resize (no animation)
       if (!isDragging.current) {
         x.set(-activeIndex * newWidth);
       }
@@ -377,29 +379,30 @@ const ResidentHome = () => {
     isDragging.current = true;
   }, []);
 
-  // Handle drag end - snap to nearest module (max 1 module per swipe)
+  // Handle drag end - snap to nearest module
   const handleDragEnd = useCallback((event, info) => {
     isDragging.current = false;
     
     const { offset } = info;
-    // Use 20% of viewport width as threshold for more natural feel
-    const dragThreshold = viewportWidth * 0.2;
+    // 25% of viewport as threshold for natural swipe feel
+    const threshold = viewportWidth * 0.25;
     
-    let direction = 0;
+    let newIndex = activeIndex;
     
-    // Distance-based detection only - prevents skipping modules
-    if (offset.x < -dragThreshold) {
-      direction = 1; // Dragged left = go to next module
-    } else if (offset.x > dragThreshold) {
-      direction = -1; // Dragged right = go to previous module
+    // Determine direction based on drag distance (NOT velocity)
+    if (offset.x < -threshold) {
+      // Swiped left → go to next module (max +1)
+      newIndex = Math.min(activeIndex + 1, TAB_ORDER.length - 1);
+    } else if (offset.x > threshold) {
+      // Swiped right → go to previous module (max -1)
+      newIndex = Math.max(activeIndex - 1, 0);
     }
+    // If offset is within threshold, stay on current module
     
-    // Only allow moving ONE module at a time
-    const newIndex = Math.max(0, Math.min(activeIndex + direction, TAB_ORDER.length - 1));
-    
-    // Animate to the target position
+    // Always animate to target position (snap)
     animateToIndex(newIndex);
     
+    // Update tab if changed
     if (newIndex !== activeIndex) {
       setActiveTab(TAB_ORDER[newIndex]);
     }
