@@ -142,12 +142,12 @@ class TestAuthorizationNotifications:
         
         # Get guard notifications AFTER creating authorization
         response_after = requests.get(
-            f"{BASE_URL}/api/guard/notifications",
+            f"{BASE_URL}/api/notifications",
             headers={"Authorization": f"Bearer {guard_token}"}
         )
         
         assert response_after.status_code == 200, f"Failed to get guard notifications: {response_after.status_code}"
-        notifications_after = response_after.json().get("notifications", [])
+        notifications_after = response_after.json()  # Returns list directly
         count_after = len(notifications_after)
         print(f"📋 Guard notifications after: {count_after}")
         
