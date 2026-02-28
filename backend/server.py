@@ -4935,9 +4935,13 @@ async def trigger_panic(event: PanicEventCreate, request: Request, current_user 
             "push_notifications": push_result
         },
         request.client.host if request.client else "unknown",
-        request.headers.get("user-agent", "unknown")
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id,
+        user_email=user_email
     )
     
+    # Log flow event
+    print(f"[FLOW] panic_alert_triggered | event_id={panic_event['id']} type={event.panic_type.value} condo={condo_id[:8]} guards_notified={len(active_guards)}")
     logger.info(f"[PANIC-DIAG] SUCCESS: Alert {panic_event['id']} created, {len(active_guards)} guards notified")
     
     return {
