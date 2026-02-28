@@ -359,27 +359,29 @@ const ResidentHome = () => {
 
   return (
     <ResidentLayout activeTab={activeTab} onTabChange={setActiveTab}>
-      {/* Carousel Container - strict height control */}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      {/* Carousel Container - fills all available height */}
+      <div 
+        className="flex-1 relative"
+        style={{ 
+          overflow: 'hidden',
+          minHeight: 0 
+        }}
+      >
         <motion.div
           className="flex h-full"
           drag="x"
-          dragConstraints={{ 
-            left: -(TAB_ORDER.length - 1) * viewportWidth, 
-            right: 0 
-          }}
-          dragElastic={0.2}
-          dragMomentum={true}
+          dragConstraints={{ left: 0, right: 0 }}
+          dragElastic={0.15}
+          dragMomentum={false}
           dragDirectionLock
           onDragEnd={handleDragEnd}
           animate={{ 
-            x: -activeIndex * viewportWidth 
+            x: `${-activeIndex * 100 / TAB_ORDER.length}%`
           }}
           transition={{
             type: "spring",
-            stiffness: 220,
-            damping: 26,
-            mass: 0.9
+            stiffness: 300,
+            damping: 30
           }}
           style={{ 
             width: `${TAB_ORDER.length * 100}%`,
@@ -388,8 +390,12 @@ const ResidentHome = () => {
         >
           {/* Emergency Module */}
           <div 
-            className="w-screen h-full flex-shrink-0 overflow-y-auto"
-            style={{ WebkitOverflowScrolling: 'touch' }}
+            className="h-full flex-shrink-0 overflow-y-auto"
+            style={{ 
+              width: `${100 / TAB_ORDER.length}%`,
+              WebkitOverflowScrolling: 'touch',
+              paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
+            }}
           >
             <EmergencyTab
               location={location}
@@ -403,38 +409,54 @@ const ResidentHome = () => {
           
           {/* Visits Module */}
           <div 
-            className="w-screen h-full flex-shrink-0 overflow-y-auto"
-            style={{ WebkitOverflowScrolling: 'touch' }}
+            className="h-full flex-shrink-0 overflow-y-auto"
+            style={{ 
+              width: `${100 / TAB_ORDER.length}%`,
+              WebkitOverflowScrolling: 'touch',
+              paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
+            }}
           >
-            <div className="px-3 py-4 h-full">
+            <div className="px-3 py-4">
               <ResidentVisitsModule />
             </div>
           </div>
           
           {/* Reservations Module */}
           <div 
-            className="w-screen h-full flex-shrink-0 overflow-y-auto"
-            style={{ WebkitOverflowScrolling: 'touch' }}
+            className="h-full flex-shrink-0 overflow-y-auto"
+            style={{ 
+              width: `${100 / TAB_ORDER.length}%`,
+              WebkitOverflowScrolling: 'touch',
+              paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
+            }}
           >
-            <div className="px-3 py-4 h-full">
+            <div className="px-3 py-4">
               <ResidentReservations />
             </div>
           </div>
           
           {/* Directory Module */}
           <div 
-            className="w-screen h-full flex-shrink-0 overflow-y-auto"
-            style={{ WebkitOverflowScrolling: 'touch' }}
+            className="h-full flex-shrink-0 overflow-y-auto"
+            style={{ 
+              width: `${100 / TAB_ORDER.length}%`,
+              WebkitOverflowScrolling: 'touch',
+              paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
+            }}
           >
             <ProfileDirectory embedded={true} />
           </div>
           
           {/* Profile Module */}
           <div 
-            className="w-screen h-full flex-shrink-0 overflow-y-auto"
-            style={{ WebkitOverflowScrolling: 'touch' }}
+            className="h-full flex-shrink-0 overflow-y-auto"
+            style={{ 
+              width: `${100 / TAB_ORDER.length}%`,
+              WebkitOverflowScrolling: 'touch',
+              paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
+            }}
           >
-            <div className="px-3 py-4 h-full">
+            <div className="px-3 py-4">
               <EmbeddedProfile />
             </div>
           </div>
