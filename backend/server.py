@@ -16155,7 +16155,7 @@ async def set_email_status(
 # Import centralized email service
 from services.email_service import (
     send_email as email_service_send,
-    get_email_status,
+    get_email_status as get_email_service_status,
     is_email_configured,
     get_welcome_email_html,
     get_notification_email_html
@@ -16196,15 +16196,15 @@ async def test_email_simple(
         "email_id": result.get("email_id"),
         "recipient": email,
         "error": result.get("error"),
-        "service_status": get_email_status()
+        "service_status": get_email_service_status()
     }
 
-@api_router.get("/email/status")
-async def get_email_service_status(
+@api_router.get("/email/service-status")
+async def check_email_service_status(
     current_user = Depends(require_role("SuperAdmin"))
 ):
     """Get current email service configuration status."""
-    return get_email_status()
+    return get_email_service_status()
 
 # ==================== RESEND DIAGNOSTIC ENDPOINT (TEMPORARY) ====================
 class TestEmailRequest(BaseModel):
