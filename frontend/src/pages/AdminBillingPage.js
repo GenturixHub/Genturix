@@ -725,6 +725,10 @@ const AdminBillingPage = () => {
               onRefresh={fetchBillingData}
               isLoading={isLoading}
             />
+            <BillingEventsPanel 
+              condoId={billingInfo?.condominium_id}
+              isLoading={isLoading}
+            />
           </div>
         </div>
 
