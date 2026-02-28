@@ -184,8 +184,11 @@ const ProfileDirectory = ({ onViewProfile, embedded = false, maxHeight = "100%" 
         )}
       </div>
 
-      {/* Directory Content - Full width */}
-      <ScrollArea className="flex-1">
+      {/* Directory Content - Native scroll */}
+      <div 
+        className="flex-1 min-h-0 overflow-y-auto"
+        style={{ WebkitOverflowScrolling: 'touch', paddingBottom: '112px' }}
+      >
         <div className={`space-y-4 ${embedded ? 'py-3' : ''}`}>
           {!hasUsers ? (
             <div className="bg-[#0F111A] border border-[#1E293B] rounded-2xl p-8 text-center">
