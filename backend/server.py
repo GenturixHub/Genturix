@@ -5078,6 +5078,7 @@ async def create_visitor_authorization(
         
         # === SEND EMAIL TO GUARDS (fail-safe) ===
         try:
+            print(f"[EMAIL TRIGGER] visitor_preregistration → notifying guards for visitor {visitor_name}")
             # Get condominium info
             condo_info = await db.condominiums.find_one(
                 {"id": condo_id},
@@ -5090,6 +5091,8 @@ async def create_visitor_authorization(
                 {"condominium_id": condo_id, "roles": {"$in": ["Guarda"]}, "is_active": True},
                 {"_id": 0, "email": 1, "full_name": 1}
             ).to_list(20)
+            
+            print(f"[EMAIL DEBUG] Found {len(guard_users_with_email)} guards with email")
             
             for guard in guard_users_with_email:
                 guard_email = guard.get("email")
