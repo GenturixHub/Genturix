@@ -155,15 +155,21 @@ const ProfilePage = () => {
     setSuccess(null);
 
     try {
-      await api.patch('/profile', formData);
+      const updatedProfile = await api.patch('/profile', formData);
       setSuccess('Perfil actualizado correctamente');
       setEditMode(false);
-      // Refresh user data
+      
+      // Invalidate profile cache to force refetch
+      queryClient.invalidateQueries({ queryKey: profileKeys.own() });
+      queryClient.invalidateQueries({ queryKey: profileKeys.all });
+      
+      // Refresh user data in auth context
       if (refreshUser) {
         await refreshUser();
       }
-      // Update local profile state
-      setProfile(prev => ({ ...prev, ...formData }));
+      
+      // Update local profile state with returned data
+      setProfile(prev => ({ ...prev, ...updatedProfile }));
     } catch (err) {
       setError(err.message || 'Error al actualizar perfil');
     } finally {
