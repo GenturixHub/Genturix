@@ -4233,6 +4233,10 @@ async def validate_and_cleanup_subscriptions(
     logger.info(f"[PUSH-VALIDATE] ========== VALIDATION COMPLETE ==========")
     logger.info(f"[PUSH-VALIDATE] Total: {total_count} | Valid: {valid_count} | Invalid: {invalid_count} | Deleted: {deleted_count}")
     
+    # Log with requested format for monitoring
+    remaining = total_count - deleted_count
+    logger.info(f"[PUSH CLEANUP] deleted_subscriptions={deleted_count} remaining={remaining}")
+    
     return {
         "message": f"Validación {'simulada' if dry_run else 'completada'}: {invalid_count} suscripciones inválidas {'detectadas' if dry_run else 'eliminadas'}",
         "dry_run": dry_run,
