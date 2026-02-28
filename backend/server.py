@@ -16198,7 +16198,7 @@ async def is_email_enabled():
     return config.get("email_enabled", False)
 
 @api_router.get("/config/email-status")
-async def get_email_status(current_user = Depends(get_current_user)):
+async def get_config_email_status(current_user = Depends(get_current_user)):
     """
     Get current email sending status.
     Any authenticated user can check this.
