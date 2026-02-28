@@ -286,8 +286,11 @@ export const AuthProvider = ({ children }) => {
     return outputArray;
   };
 
-  const changePassword = async (currentPassword, newPassword) => {
+  const changePassword = async (currentPassword, newPassword, confirmPassword = null) => {
     if (!accessToken) throw new Error('Not authenticated');
+    
+    // If confirmPassword not provided, use newPassword (for forced reset flow)
+    const confirmPwd = confirmPassword || newPassword;
     
     const response = await fetch(`${API_URL}/api/auth/change-password`, {
       method: 'POST',
@@ -298,6 +301,7 @@ export const AuthProvider = ({ children }) => {
       body: JSON.stringify({
         current_password: currentPassword,
         new_password: newPassword,
+        confirm_password: confirmPwd,
       }),
     });
 
