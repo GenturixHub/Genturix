@@ -326,7 +326,7 @@ export function usePushNotifications() {
     };
 
     initServiceWorker();
-  }, [isSupported, syncSubscriptionStateBackground]);
+  }, [isSupported, syncSubscriptionStateBackground, validateSubscription]);
 
   // Subscribe to push notifications
   const subscribe = useCallback(async () => {
