@@ -4,7 +4,7 @@ GENTURIX - Centralized Email Service
 Production email sending using Resend.
 All outgoing emails should go through this service.
 
-Sender: Genturix Security <no-reply@genturix.com>
+Sender: Genturix Security <no-reply@gentrix.com>
 """
 
 import os
@@ -21,8 +21,8 @@ RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
 if RESEND_API_KEY:
     resend.api_key = RESEND_API_KEY
 
-# Standard sender address for all emails
-DEFAULT_SENDER = "Genturix Security <no-reply@genturix.com>"
+# Standard sender address for all emails (Production)
+DEFAULT_SENDER = "Genturix Security <no-reply@gentrix.com>"
 
 # Fallback sender for testing (Resend sandbox)
 FALLBACK_SENDER = "Genturix <onboarding@resend.dev>"
