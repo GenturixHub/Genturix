@@ -3,6 +3,58 @@
 ## Overview
 Genturix is a multi-tenant security and condominium management platform built with React frontend and FastAPI backend.
 
+## Stability Review (2026-02-28) ✅ COMPLETE
+
+### Summary
+Comprehensive stability and correctness review performed as Senior SaaS Engineer. All 7 parts verified and corrected.
+
+### PART 1: Push Notifications ✅
+- Endpoint `POST /api/push/validate-subscriptions` validates and cleans expired subscriptions
+- Auto-deletes on 404/410 errors during normal push sending
+- Added `[PUSH CLEANUP] deleted_subscriptions=# remaining=#` log format
+- Subscription limit: 3 per user
+
+### PART 2: Identity Cache Leak ✅ 
+- `queryClient.clear()` confirmed in logout function
+- Query keys properly scoped (profile data fetched per-user from backend)
+- No cross-user data leak possible after logout
+
+### PART 3: Audit Logging ✅
+- Added `condominium_id` and `user_email` to critical audit events:
+  - `LOGIN_SUCCESS`: Now includes `condominium_id=user.condominium_id`
+  - `LOGIN_FAILURE`: Now includes `user_email`
+  - `PASSWORD_CHANGED`: Now includes `condominium_id` and `user_email`
+  - `PANIC_BUTTON`: Now includes `condominium_id` and `user_email`
+- Multi-tenant isolation verified in `/api/audit/logs` endpoint
+
+### PART 4: Email Credentials ✅
+- Email flow verified with proper logging
+- `[EMAIL TRIGGER]` logs confirmed for: access_approved, password_reset, visitor_preregistration
+- `[EMAIL ERROR]` logs on failures
+
+### PART 5: Dashboard Scroll ✅
+- CSS verified: `h-screen overflow-hidden` container + `flex-1 overflow-y-auto min-h-0` main
+- Scroll working in Admin dashboard (verified via screenshot)
+
+### PART 6: Flow Logging ✅
+- Added `[FLOW] panic_alert_triggered | event_id=... type=... condo=... guards_notified=...`
+- Existing flows verified: audit_event_logged, password_reset_success, visitor_entry_registered, reservation_created, access_request_approved
+
+### PART 7: Multi-Tenant Isolation ✅
+- 111 lines using `condominium_id` from `current_user`
+- Audit logs filtered by `condominium_id` for non-SuperAdmin
+- All data queries respect tenant boundaries
+
+### Files Modified
+- `/app/backend/server.py`:
+  - Line 3261-3270: LOGIN_SUCCESS audit with condominium_id
+  - Line 3223-3232: LOGIN_FAILURE audit with user_email
+  - Line 3543-3558: PASSWORD_CHANGED audit with condominium_id
+  - Line 4233-4238: Added [PUSH CLEANUP] log
+  - Line 4924-4944: PANIC_BUTTON audit with condominium_id + [FLOW] log
+
+---
+
 ## Push Notification System Fix (2026-02-28) ✅ COMPLETE
 
 ### Problem
