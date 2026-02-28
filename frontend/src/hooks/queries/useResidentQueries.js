@@ -183,14 +183,43 @@ export function useCreateAuthorization() {
   });
 }
 
-// Delete authorization mutation
+// Delete authorization mutation with optimistic update
 export function useDeleteAuthorization() {
   const queryClient = useQueryClient();
   
   return useMutation({
     mutationFn: (authId) => api.deleteAuthorization(authId),
-    onSuccess: () => {
+    
+    // Optimistic update - remove item immediately from UI
+    onMutate: async (authId) => {
+      // Cancel any outgoing refetches to avoid overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: residentKeys.authorizations() });
+      
+      // Snapshot the previous value
+      const previousAuthorizations = queryClient.getQueryData(residentKeys.authorizations());
+      
+      // Optimistically update: remove the deleted item
+      queryClient.setQueryData(residentKeys.authorizations(), (old) => {
+        if (!old) return old;
+        return old.filter(auth => auth.id !== authId);
+      });
+      
+      // Return context with the snapshotted value
+      return { previousAuthorizations };
+    },
+    
+    // If mutation fails, rollback to previous state
+    onError: (err, authId, context) => {
+      if (context?.previousAuthorizations) {
+        queryClient.setQueryData(residentKeys.authorizations(), context.previousAuthorizations);
+      }
+    },
+    
+    // After success or error, invalidate to ensure consistency
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: residentKeys.authorizations() });
+      // Also invalidate notifications in case there are related entries
+      queryClient.invalidateQueries({ queryKey: residentKeys.notifications() });
     }
   });
 }
