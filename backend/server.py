@@ -3696,23 +3696,37 @@ async def reset_password_with_code(
     if not any(c.isdigit() for c in new_password):
         raise HTTPException(status_code=400, detail="La contraseña debe contener al menos un número")
     
-    # Find reset code
+    # Find reset code - query by normalized email
+    print(f"[RESET PASSWORD VERIFY] Looking up code for email={email}")
     reset_record = await db.password_reset_codes.find_one({"email": email})
     
     if not reset_record:
+        print(f"[RESET PASSWORD VERIFY] NO RECORD FOUND for email={email}")
+        logger.warning(f"[RESET PASSWORD VERIFY] No reset record found for email={email}")
         raise HTTPException(status_code=400, detail="No hay código de verificación para este correo")
     
     # Check expiration
     expires_at = datetime.fromisoformat(reset_record["expires_at"].replace("Z", "+00:00"))
-    if datetime.now(timezone.utc) > expires_at:
+    now_utc = datetime.now(timezone.utc)
+    is_expired = now_utc > expires_at
+    
+    print(f"[RESET PASSWORD VERIFY] email={email} expires_at={expires_at.isoformat()} now={now_utc.isoformat()} expired={is_expired}")
+    
+    if is_expired:
         await db.password_reset_codes.delete_one({"email": email})
+        logger.info(f"[RESET PASSWORD VERIFY] Code expired for email={email}")
         raise HTTPException(status_code=400, detail="El código ha expirado. Solicita uno nuevo.")
     
     # Verify code (compare hashes)
     code_hash = hashlib.sha256(code.encode()).hexdigest()
     stored_hash = reset_record.get("code_hash")
+    code_hash_match = code_hash == stored_hash
+    attempt_count = reset_record.get("attempts", 0)
     
-    if code_hash != stored_hash:
+    print(f"[RESET PASSWORD VERIFY] email={email} code_hash_match={code_hash_match} attempt_count={attempt_count}")
+    logger.info(f"[RESET PASSWORD VERIFY] email={email} code_hash_match={code_hash_match} attempts={attempt_count}")
+    
+    if not code_hash_match:
         # Increment attempts
         attempts = reset_record.get("attempts", 0) + 1
         if attempts >= 5:
