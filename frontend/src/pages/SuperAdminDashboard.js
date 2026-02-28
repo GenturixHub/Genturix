@@ -818,9 +818,6 @@ const OverviewTab = ({ stats, billingOverview, isLoading, onRefresh, onNavigateT
                 <p className="text-xs text-muted-foreground">MRR (USD)</p>
               </div>
             </div>
-            <div className="mt-3 text-xs text-muted-foreground">
-              ${stats?.revenue?.price_per_user || 1}/usuario/mes
-            </div>
           </CardContent>
         </Card>
 
