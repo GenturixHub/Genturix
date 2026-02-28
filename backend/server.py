@@ -6081,8 +6081,11 @@ async def fast_checkin(
             "authorization_id": checkin_data.authorization_id
         },
         request.client.host if request.client else "unknown",
-        request.headers.get("user-agent", "unknown")
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id,
+        user_email=current_user.get("email")
     )
+    print(f"[FLOW] visitor_entry_registered | entry_id={entry_id} visitor={visitor_name} authorized={is_authorized} condo={condo_id[:8]}")
     
     entry_doc.pop("_id", None)
     return {
