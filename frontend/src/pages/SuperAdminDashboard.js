@@ -2275,9 +2275,9 @@ const EditCondoDialog = ({ condo, open, onClose, onSuccess }) => {
           </TabsContent>
 
           <TabsContent value="pricing" className="space-y-4 mt-4">
-            <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
-              <p className="text-sm text-green-400 font-medium">Precio Base: $1 USD / usuario / mes</p>
-              <p className="text-xs text-muted-foreground mt-1">Este es el precio base de la plataforma</p>
+            <div className="p-4 rounded-lg bg-primary/10 border border-primary/30">
+              <p className="text-sm text-primary font-medium">Configuración de Precios</p>
+              <p className="text-xs text-muted-foreground mt-1">Administra los descuentos y planes de facturación</p>
             </div>
 
             <div>
