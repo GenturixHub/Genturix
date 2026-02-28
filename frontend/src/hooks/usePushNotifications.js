@@ -524,7 +524,10 @@ export function usePushNotifications() {
     isLoading,
     error,
     
-    // v3.0: isInitialized replaces isSynced/isSyncing for non-blocking behavior
+    // v4.0: Track if subscription expired and needs re-enable
+    needsResubscription,
+    
+    // v4.0: isInitialized replaces isSynced/isSyncing for non-blocking behavior
     // isInitialized becomes true as soon as local SW check completes (fast)
     // Background sync continues but doesn't block UI
     isInitialized,
@@ -537,6 +540,7 @@ export function usePushNotifications() {
     subscribe,
     unsubscribe,
     refreshSync,
+    validateSubscription,
     testNotification
   };
 }
