@@ -11624,6 +11624,8 @@ async def approve_seat_upgrade(
             }}
         )
         
+        print(f"[FLOW] seat_upgrade_processed | request_id={request_id} status=rejected condo_id={condo_id[:8]}")
+        
         await log_billing_engine_event(
             event_type="upgrade_rejected",
             condominium_id=condo_id,
