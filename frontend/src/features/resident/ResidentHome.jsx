@@ -399,9 +399,6 @@ const ResidentHome = () => {
     <ResidentLayout 
       activeTab={activeTab} 
       onTabChange={setActiveTab}
-      showIndicators={true}
-      indicatorCount={TAB_ORDER.length}
-      activeIndex={activeIndex}
     >
       {/* Carousel Container - fills all available height */}
       <div 
@@ -419,9 +416,10 @@ const ResidentHome = () => {
             left: -(TAB_ORDER.length - 1) * viewportWidth, 
             right: 0 
           }}
-          dragElastic={0.1}
+          dragElastic={0.05}
           dragMomentum={false}
           dragDirectionLock
+          onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
           style={{ 
             x,
