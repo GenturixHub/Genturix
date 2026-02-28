@@ -186,16 +186,68 @@ const STATUS_CONFIG = {
 };
 
 // ============================================
-// SYSTEM RESET BUTTON (Danger Zone)
+// SYSTEM RESET BUTTON (Protected Danger Zone)
 // ============================================
 const SystemResetButton = ({ onSuccess }) => {
   const [isResetting, setIsResetting] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [password, setPassword] = useState('');
   const [confirmText, setConfirmText] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [authError, setAuthError] = useState('');
+
+  // Verify superadmin password before showing danger zone
+  const handleVerifyPassword = async () => {
+    if (!password.trim()) {
+      setAuthError('Ingresa tu contraseña');
+      return;
+    }
+    
+    setIsVerifying(true);
+    setAuthError('');
+    
+    try {
+      // Verify password with backend
+      const response = await api.post('/api/superadmin/verify-password', { password });
+      if (response.verified) {
+        setShowAuthDialog(false);
+        setShowConfirm(true);
+        setPassword('');
+      } else {
+        setAuthError('Contraseña incorrecta');
+      }
+    } catch (error) {
+      // If endpoint doesn't exist, try alternative verification
+      if (error.status === 404) {
+        // Fallback: verify by re-login check
+        try {
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          const loginResponse = await api.post('/api/auth/login', {
+            email: user.email,
+            password: password
+          });
+          if (loginResponse.access_token) {
+            setShowAuthDialog(false);
+            setShowConfirm(true);
+            setPassword('');
+          } else {
+            setAuthError('Contraseña incorrecta');
+          }
+        } catch {
+          setAuthError('Contraseña incorrecta');
+        }
+      } else {
+        setAuthError(error.message || 'Error de verificación');
+      }
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
   const handleReset = async () => {
-    if (confirmText !== 'BORRAR TODO') {
-      toast.error('Debes escribir "BORRAR TODO" para confirmar');
+    if (confirmText !== 'DELETE SYSTEM') {
+      toast.error('Debes escribir "DELETE SYSTEM" para confirmar');
       return;
     }
 
@@ -215,22 +267,83 @@ const SystemResetButton = ({ onSuccess }) => {
 
   return (
     <>
+      {/* Initial button - doesn't show danger action directly */}
       <Button
         variant="outline"
-        className="w-full border-red-500/50 text-red-400 hover:bg-red-500/10 hover:border-red-500"
-        onClick={() => setShowConfirm(true)}
-        data-testid="reset-all-btn"
+        className="w-full border-slate-600/50 text-slate-400 hover:bg-slate-500/10 hover:border-slate-500"
+        onClick={() => setShowAuthDialog(true)}
+        data-testid="advanced-controls-btn"
       >
-        <Trash2 className="w-4 h-4 mr-2" />
-        Limpiar Sistema Completo
+        <Shield className="w-4 h-4 mr-2" />
+        Acceder a Controles Avanzados
       </Button>
 
+      {/* Step 1: Password verification dialog */}
+      <AlertDialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+        <AlertDialogContent className="bg-[#0F111A] border-[#1E293B]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Lock className="w-5 h-5 text-primary" />
+              Verificación Requerida
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4">
+              <p>Para acceder a los controles avanzados del sistema, ingresa tu contraseña de SuperAdmin.</p>
+              <div className="space-y-2">
+                <Label htmlFor="verify-password">Contraseña</Label>
+                <Input
+                  id="verify-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setAuthError('');
+                  }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleVerifyPassword()}
+                  placeholder="Tu contraseña de SuperAdmin"
+                  className="bg-[#0A0A0F] border-[#1E293B]"
+                  disabled={isVerifying}
+                />
+                {authError && (
+                  <p className="text-sm text-red-400">{authError}</p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              className="bg-[#1E293B] border-[#2D3B4F]"
+              onClick={() => {
+                setPassword('');
+                setAuthError('');
+              }}
+            >
+              Cancelar
+            </AlertDialogCancel>
+            <Button
+              onClick={handleVerifyPassword}
+              disabled={isVerifying || !password.trim()}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {isVerifying ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Verificando...
+                </>
+              ) : (
+                'Verificar'
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Step 2: Danger zone confirmation (only after password verified) */}
       <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
         <AlertDialogContent className="bg-[#0F111A] border-[#1E293B]">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2 text-red-400">
               <AlertTriangle className="w-5 h-5" />
-              ⚠️ ACCIÓN IRREVERSIBLE
+              ⚠️ DANGER ZONE - ACCIÓN IRREVERSIBLE
             </AlertDialogTitle>
             <AlertDialogDescription className="space-y-3">
               <p>Esta acción eliminará <strong>TODOS</strong> los datos del sistema:</p>
@@ -243,21 +356,47 @@ const SystemResetButton = ({ onSuccess }) => {
                 <li>Todos los registros de acceso y auditoría</li>
               </ul>
               <p className="text-red-400 font-semibold mt-4">
-                Para confirmar, escribe &quot;BORRAR TODO&quot; en el campo de abajo:
+                Para confirmar, escribe &quot;DELETE SYSTEM&quot; en el campo de abajo:
               </p>
               <Input
                 value={confirmText}
-                onChange={(e) => setConfirmText(e.target.value)}
-                placeholder="Escribe BORRAR TODO"
-                className="bg-[#0A0A0F] border-red-500/50 text-center font-mono"
+                onChange={(e) => setConfirmText(e.target.value.toUpperCase())}
+                placeholder="Escribe DELETE SYSTEM"
+                className="bg-[#0A0A0F] border-red-500/50 text-center font-mono uppercase"
               />
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-[#1E293B] border-[#2D3B4F]">
+            <AlertDialogCancel 
+              className="bg-[#1E293B] border-[#2D3B4F]"
+              onClick={() => setConfirmText('')}
+            >
               Cancelar
             </AlertDialogCancel>
             <Button
+              variant="destructive"
+              onClick={handleReset}
+              disabled={isResetting || confirmText !== 'DELETE SYSTEM'}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isResetting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Limpiando...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Limpiar Sistema Completo
+                </>
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+};
               variant="destructive"
               onClick={handleReset}
               disabled={isResetting || confirmText !== 'BORRAR TODO'}
