@@ -106,8 +106,9 @@ const ResidentLayout = ({ children, activeTab, onTabChange, title = 'GENTURIX' }
         </div>
       </header>
 
-      {/* Content - Scrollable main area */}
+      {/* Content - Scrollable main area with swipe handlers */}
       <main 
+        {...swipeHandlers}
         className="flex-1 w-full overflow-y-auto"
         style={{ 
           WebkitOverflowScrolling: 'touch',
