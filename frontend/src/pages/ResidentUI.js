@@ -1305,14 +1305,14 @@ const ResidentUI = () => {
           </TabsList>
         )}
 
-        {/* Swipeable Content Area */}
+        {/* Swipeable Content Area - flex layout for proper scrolling */}
         <div 
           {...(isMobile ? swipeHandlers : {})} 
-          className="flex-1 min-h-0 overflow-hidden"
+          className="flex-1 min-h-0 flex flex-col"
         >
           <TabsContent 
             value="emergency" 
-            className="h-full flex flex-col mt-0 overflow-y-auto"
+            className="flex-1 flex flex-col mt-0 min-h-0 overflow-y-auto"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
             <EmergencyTab
@@ -1326,7 +1326,7 @@ const ResidentUI = () => {
 
           <TabsContent 
             value="authorizations" 
-            className="h-full mt-0 overflow-y-auto"
+            className="flex-1 mt-0 min-h-0 overflow-y-auto"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
             <ResidentVisitsModule 
@@ -1337,7 +1337,7 @@ const ResidentUI = () => {
 
           <TabsContent 
             value="reservations" 
-            className="h-full mt-0 overflow-y-auto"
+            className="flex-1 mt-0 min-h-0 overflow-y-auto"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
             <ResidentReservations />
@@ -1345,15 +1345,15 @@ const ResidentUI = () => {
           
           <TabsContent 
             value="directory" 
-            className="h-full mt-0 overflow-y-auto"
+            className="flex-1 mt-0 min-h-0 overflow-y-auto"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
-            <ProfileDirectory embedded={true} maxHeight={isMobile ? "calc(100vh - 140px)" : "calc(100vh - 180px)"} />
+            <ProfileDirectory embedded={true} />
           </TabsContent>
           
           <TabsContent 
             value="profile" 
-            className="h-full mt-0 overflow-y-auto"
+            className="flex-1 mt-0 min-h-0 overflow-y-auto"
             style={{ WebkitOverflowScrolling: 'touch' }}
           >
             <EmbeddedProfile onBack={() => setActiveTab('panic')} />
