@@ -457,14 +457,33 @@ const generatePDF = async (exportData, t) => {
     </html>
   `;
   
-  // Open print dialog
-  const printWindow = window.open('', '_blank');
-  printWindow.document.write(html);
-  printWindow.document.close();
-  printWindow.focus();
-  setTimeout(() => {
-    printWindow.print();
-  }, 500);
+  // Create temporary container for PDF generation
+  const container = document.createElement('div');
+  container.innerHTML = html;
+  container.style.position = 'absolute';
+  container.style.left = '-9999px';
+  document.body.appendChild(container);
+  
+  // Generate filename with date
+  const dateStr = new Date().toISOString().split('T')[0];
+  const filename = `historial-visitas-${dateStr}.pdf`;
+  
+  // PDF options for automatic download
+  const options = {
+    margin: 10,
+    filename: filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+  
+  // Generate and download PDF
+  try {
+    await html2pdf().set(options).from(container).save();
+  } finally {
+    // Clean up
+    document.body.removeChild(container);
+  }
 };
 
 // ============================================
