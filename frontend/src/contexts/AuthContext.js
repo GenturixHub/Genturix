@@ -161,6 +161,13 @@ export const AuthProvider = ({ children }) => {
     const data = await response.json();
     console.log('[Auth] Login successful');
     
+    // CRITICAL: Clear any previous user's cached data before setting new user
+    // This prevents identity leak when switching users
+    if (queryClient) {
+      queryClient.clear();
+      console.log('[Auth] QueryClient cache cleared for new user');
+    }
+    
     // SECURITY: Only store access_token and user in localStorage
     // refresh_token is now sent as httpOnly cookie by backend
     localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.access_token);
