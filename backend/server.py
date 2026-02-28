@@ -1619,8 +1619,10 @@ async def send_password_reset_email(
         
         if isinstance(email_response, dict):
             email_id = email_response.get("id", "N/A")
+            print(f"[EMAIL SENT] {recipient_email}")
             logger.info(f"[RESEND-AUDIT] SUCCESS | email_id={email_id} | recipient={recipient_email} | type=password_reset")
         else:
+            print(f"[EMAIL SENT] {recipient_email}")
             logger.info(f"[RESEND-AUDIT] SUCCESS | response_type={type(email_response).__name__} | recipient={recipient_email}")
         
         return {
