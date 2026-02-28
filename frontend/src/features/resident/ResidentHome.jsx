@@ -465,7 +465,7 @@ const ResidentHome = () => {
       
       {/* Carousel Page Indicators */}
       <div 
-        className="flex justify-center items-center gap-1.5 py-1.5 bg-[#05050A]/60 backdrop-blur-sm"
+        className="flex justify-center items-center gap-1 py-1"
         style={{ 
           position: 'absolute',
           bottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
@@ -479,11 +479,16 @@ const ResidentHome = () => {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`rounded-full transition-all duration-200 ${
-              index === activeIndex 
-                ? 'bg-cyan-400 w-1.5 h-1.5' 
-                : 'bg-white/30 w-1 h-1 hover:bg-white/50'
-            }`}
+            style={{
+              width: index === activeIndex ? '6px' : '4px',
+              height: index === activeIndex ? '6px' : '4px',
+              borderRadius: '50%',
+              backgroundColor: index === activeIndex ? '#22d3ee' : 'rgba(255,255,255,0.3)',
+              transition: 'all 0.2s ease',
+              border: 'none',
+              padding: 0,
+              cursor: 'pointer'
+            }}
             aria-label={`Go to ${tab} module`}
             data-testid={`carousel-dot-${tab}`}
           />
