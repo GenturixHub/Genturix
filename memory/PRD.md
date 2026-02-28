@@ -103,6 +103,11 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
   - Improved drag physics: dragMomentum=false, dragElastic=0.15
   - Single-module transition constraint in handleDragEnd
   - Test credentials: test-resident@genturix.com / Admin123!
+- **Carousel Page Indicators:** Added visual dots above bottom nav (5 dots, active=cyan)
+- **Pre-production Patch Set (3 fixes):**
+  1. **Visitor Preregistration Notifications:** Guards now receive notifications when residents create authorizations. Added logic in `POST /api/authorizations` to create `guard_notifications` entries and send push notifications.
+  2. **PDF Download Fix:** Changed `ResidentVisitHistory.jsx` from `window.print()` to `html2pdf.js` with `.save()` for automatic file download.
+  3. **Privacy Section in Profile:** Added Privacy section with Accordion for "Cambiar Contraseña" in `EmbeddedProfile.jsx`. Works for all roles (resident, guard, admin, superadmin).
 
 ### 2025-02-27 (Previous Session)
 - **Users Module Phase 2B:** Migrated `CreateUserByAdmin`, `CreateEmployeeByHR`, `UserStatusUpdateV2` models
