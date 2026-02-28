@@ -450,6 +450,7 @@ const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, s
         </p>
       </div>
     </div>
+    </div>
   </div>
 );
 
