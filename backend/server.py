@@ -16151,6 +16151,61 @@ async def set_email_status(
         "updated_by": current_user.get("email")
     }
 
+# ==================== EMAIL SERVICE ENDPOINTS ====================
+# Import centralized email service
+from services.email_service import (
+    send_email as email_service_send,
+    get_email_status,
+    is_email_configured,
+    get_welcome_email_html,
+    get_notification_email_html
+)
+
+@api_router.get("/test-email")
+async def test_email_simple(
+    email: str,
+    current_user = Depends(require_role("SuperAdmin"))
+):
+    """
+    Simple GET endpoint for quick email testing.
+    
+    Usage: GET /api/test-email?email=test@example.com
+    
+    Only SuperAdmin can use this endpoint.
+    """
+    if not is_email_configured():
+        return {
+            "success": False,
+            "error": "Email service not configured (RESEND_API_KEY missing)"
+        }
+    
+    html = get_notification_email_html(
+        title="Test Email - Genturix",
+        message=f"This is a test email sent at {datetime.now(timezone.utc).isoformat()}. If you received this, the email service is working correctly.",
+        action_url=None
+    )
+    
+    result = await email_service_send(
+        to=email,
+        subject="[TEST] Genturix Email Service",
+        html=html
+    )
+    
+    return {
+        "success": result.get("success", False),
+        "email_id": result.get("email_id"),
+        "recipient": email,
+        "error": result.get("error"),
+        "service_status": get_email_status()
+    }
+
+@api_router.get("/email/status")
+async def get_email_service_status(
+    current_user = Depends(require_role("SuperAdmin"))
+):
+    """Get current email service configuration status."""
+    return get_email_status()
+
 # ==================== RESEND DIAGNOSTIC ENDPOINT (TEMPORARY) ====================
 class TestEmailRequest(BaseModel):
     recipient_email: str
