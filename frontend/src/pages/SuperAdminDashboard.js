@@ -397,24 +397,6 @@ const SystemResetButton = ({ onSuccess }) => {
     </>
   );
 };
-              variant="destructive"
-              onClick={handleReset}
-              disabled={isResetting || confirmText !== 'BORRAR TODO'}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {isResetting ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : (
-                <Trash2 className="w-4 h-4 mr-2" />
-              )}
-              Borrar Todo
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
-  );
-};
 
 // ============================================
 // SYSTEM CONFIG SECTION (Email Toggle)
