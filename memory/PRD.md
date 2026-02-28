@@ -113,6 +113,11 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
   2. **Persistent 7-Day Cache:** TanStack Query cache now persists to localStorage for 7 days. App loads cached data instantly, background refetch updates data.
   3. **Service Worker API Cache:** v15 adds StaleWhileRevalidate for API GET requests (/api/profile, /api/notifications, /api/directory, /api/visits, /api/authorizations) with 24h expiry.
   4. **PWA Icons 85% Size:** Regenerated all icons with logo filling 85% of canvas for larger visual presence in Android launcher.
+- **Carousel Navigation Fix:**
+  - Removed conflicting `animate()` calls that prevented interactive drag
+  - Simplified drag logic to use distance-based threshold (80px) instead of velocity
+  - Removed dot indicators completely (bottom nav already shows position)
+  - Clean UI without blue circle overlay
 
 ### 2025-02-27 (Previous Session)
 - **Users Module Phase 2B:** Migrated `CreateUserByAdmin`, `CreateEmployeeByHR`, `UserStatusUpdateV2` models
