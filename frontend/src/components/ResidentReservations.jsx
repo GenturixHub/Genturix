@@ -912,8 +912,8 @@ const ResidentReservations = () => {
   const pastReservations = myReservations.filter(r => ['rejected', 'cancelled'].includes(r.status));
   
   return (
-    <div className="min-h-0 flex-1 flex flex-col overflow-hidden">
-      {/* Header */}
+    <div className="flex flex-col h-full">
+      {/* Header - Fixed */}
       <div className="p-4 border-b border-[#1E293B] flex-shrink-0">
         <h2 className="text-lg font-semibold text-white flex items-center gap-2">
           <Calendar className="w-5 h-5 text-primary" />
@@ -924,8 +924,8 @@ const ResidentReservations = () => {
         </p>
       </div>
       
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      {/* Tabs - Content scrolls */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
         <TabsList className="grid grid-cols-2 mx-4 mt-3 bg-[#0A0A0F] flex-shrink-0">
           <TabsTrigger value="areas" className="text-xs" data-testid="tab-areas">
             <Building2 className="w-3.5 h-3.5 mr-1.5" />
@@ -942,10 +942,10 @@ const ResidentReservations = () => {
           </TabsTrigger>
         </TabsList>
         
-        {/* Areas Tab */}
-        <TabsContent value="areas" className="flex-1 mt-0 overflow-hidden">
-          <ScrollArea className="h-full">
-            <div className="p-4 pb-24 space-y-3">
+        {/* Areas Tab - Single scroll container */}
+        <TabsContent value="areas" className="flex-1 mt-0 min-h-0">
+          <div className="scroll-container pb-28">
+            <div className="p-4 space-y-3">
               {areas.length > 0 ? (
                 areas.map(area => (
                   <AreaCard 
