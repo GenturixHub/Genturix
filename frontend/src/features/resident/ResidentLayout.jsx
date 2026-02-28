@@ -18,17 +18,11 @@ const ResidentLayout = ({
   children, 
   activeTab, 
   onTabChange, 
-  title = 'GENTURIX',
-  showIndicators = false,
-  indicatorCount = 5,
-  activeIndex = 0
+  title = 'GENTURIX'
 }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
-
-  // Tab IDs for indicator click navigation
-  const TAB_IDS = ['emergency', 'visits', 'reservations', 'directory', 'profile'];
 
   // Navigation items with translations
   const RESIDENT_NAV_ITEMS = useMemo(() => [
@@ -94,42 +88,6 @@ const ResidentLayout = ({
       >
         {children}
       </main>
-      
-      {/* Carousel Page Indicators - positioned above bottom nav */}
-      {showIndicators && (
-        <div 
-          style={{ 
-            position: 'fixed',
-            bottom: 'calc(72px + env(safe-area-inset-bottom, 0px) + 6px)',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '5px',
-            zIndex: 45,
-            pointerEvents: 'auto'
-          }}
-          data-testid="carousel-indicators"
-        >
-          {Array.from({ length: indicatorCount }).map((_, index) => (
-            <div
-              key={index}
-              onClick={() => onTabChange(TAB_IDS[index])}
-              style={{
-                width: index === activeIndex ? '5px' : '3px',
-                height: index === activeIndex ? '5px' : '3px',
-                borderRadius: '50%',
-                backgroundColor: index === activeIndex ? '#22d3ee' : 'rgba(255,255,255,0.2)',
-                transition: 'all 0.2s ease',
-                cursor: 'pointer'
-              }}
-              role="button"
-              aria-label={`Go to ${TAB_IDS[index]} module`}
-              data-testid={`carousel-dot-${TAB_IDS[index]}`}
-            />
-          ))}
-        </div>
-      )}
 
       {/* Bottom Navigation - Fixed, app-style */}
       <MobileBottomNav 
