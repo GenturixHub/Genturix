@@ -403,7 +403,7 @@ const ResidentHome = () => {
   return (
     <ResidentLayout activeTab={activeTab} onTabChange={setActiveTab}>
       {/* Animated Tab Content */}
-      <div className="h-full flex flex-col overflow-hidden">
+      <div className="h-full flex flex-col">
         <AnimatePresence initial={false} mode="wait" custom={direction}>
           <motion.div
             key={activeTab}
