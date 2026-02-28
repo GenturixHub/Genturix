@@ -1249,8 +1249,8 @@ const ResidentUI = () => {
         </div>
       </header>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      {/* Tabs with Swipe Support */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
         {/* Desktop Tabs - hidden on mobile */}
         {!isMobile && (
           <TabsList className="grid grid-cols-5 bg-[#0F111A] border-b border-[#1E293B] rounded-none h-12 flex-shrink-0">
@@ -1297,34 +1297,60 @@ const ResidentUI = () => {
           </TabsList>
         )}
 
-        <TabsContent value="emergency" className="flex-1 flex flex-col mt-0 overflow-hidden">
-          <EmergencyTab
-            location={location}
-            locationLoading={locationLoading}
-            locationError={locationError}
-            onEmergency={handleEmergency}
-            sendingType={sendingType}
-          />
-        </TabsContent>
+        {/* Swipeable Content Area */}
+        <div 
+          {...(isMobile ? swipeHandlers : {})} 
+          className="flex-1 min-h-0 overflow-hidden"
+        >
+          <TabsContent 
+            value="emergency" 
+            className="h-full flex flex-col mt-0 overflow-y-auto"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
+            <EmergencyTab
+              location={location}
+              locationLoading={locationLoading}
+              locationError={locationError}
+              onEmergency={handleEmergency}
+              sendingType={sendingType}
+            />
+          </TabsContent>
 
-        <TabsContent value="authorizations" className="flex-1 mt-0 overflow-y-auto overflow-x-hidden">
-          <ResidentVisitsModule 
-            notifications={notifications}
-            onRefreshNotifications={fetchNotifications}
-          />
-        </TabsContent>
+          <TabsContent 
+            value="authorizations" 
+            className="h-full mt-0 overflow-y-auto"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
+            <ResidentVisitsModule 
+              notifications={notifications}
+              onRefreshNotifications={fetchNotifications}
+            />
+          </TabsContent>
 
-        <TabsContent value="reservations" className="flex-1 mt-0 overflow-y-auto overflow-x-hidden">
-          <ResidentReservations />
-        </TabsContent>
-        
-        <TabsContent value="directory" className="flex-1 mt-0 overflow-hidden">
-          <ProfileDirectory embedded={true} maxHeight={isMobile ? "calc(100vh - 140px)" : "calc(100vh - 180px)"} />
-        </TabsContent>
-        
-        <TabsContent value="profile" className="flex-1 mt-0 overflow-y-auto overflow-x-hidden">
-          <EmbeddedProfile onBack={() => setActiveTab('panic')} />
-        </TabsContent>
+          <TabsContent 
+            value="reservations" 
+            className="h-full mt-0 overflow-y-auto"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
+            <ResidentReservations />
+          </TabsContent>
+          
+          <TabsContent 
+            value="directory" 
+            className="h-full mt-0 overflow-y-auto"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
+            <ProfileDirectory embedded={true} maxHeight={isMobile ? "calc(100vh - 140px)" : "calc(100vh - 180px)"} />
+          </TabsContent>
+          
+          <TabsContent 
+            value="profile" 
+            className="h-full mt-0 overflow-y-auto"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
+            <EmbeddedProfile onBack={() => setActiveTab('panic')} />
+          </TabsContent>
+        </div>
       </Tabs>
 
       {/* Emergency Call Footer - Hidden on mobile (use bottom nav) */}
