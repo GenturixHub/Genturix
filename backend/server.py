@@ -2204,12 +2204,20 @@ async def log_audit_event(
     module: str,
     details: dict,
     ip_address: str = "unknown",
-    user_agent: str = "unknown"
+    user_agent: str = "unknown",
+    condominium_id: Optional[str] = None,
+    user_email: Optional[str] = None
 ):
+    """
+    Log an audit event with multi-tenant support.
+    CRITICAL: Always pass condominium_id for tenant isolation.
+    """
     audit_log = {
         "id": str(uuid.uuid4()),
         "event_type": event_type.value,
         "user_id": user_id,
+        "user_email": user_email,
+        "condominium_id": condominium_id,
         "module": module,
         "details": details,
         "ip_address": ip_address,
@@ -2217,6 +2225,7 @@ async def log_audit_event(
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
     await db.audit_logs.insert_one(audit_log)
+    print(f"[FLOW] audit_event_logged | event={event_type.value} module={module} condo={condominium_id[:8] if condominium_id else 'N/A'}")
 
 # ==================== PUSH NOTIFICATION HELPERS ====================
 async def send_push_notification(subscription_info: dict, payload: dict) -> bool:
