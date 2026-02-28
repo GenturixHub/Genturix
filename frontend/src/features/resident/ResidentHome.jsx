@@ -382,11 +382,12 @@ const ResidentHome = () => {
     isDragging.current = false;
     
     const { offset } = info;
-    const dragThreshold = 80; // pixels needed to change module
+    // Use 20% of viewport width as threshold for more natural feel
+    const dragThreshold = viewportWidth * 0.2;
     
     let direction = 0;
     
-    // Simple distance-based detection - NO velocity to prevent skipping
+    // Distance-based detection only - prevents skipping modules
     if (offset.x < -dragThreshold) {
       direction = 1; // Dragged left = go to next module
     } else if (offset.x > dragThreshold) {
@@ -402,7 +403,7 @@ const ResidentHome = () => {
     if (newIndex !== activeIndex) {
       setActiveTab(TAB_ORDER[newIndex]);
     }
-  }, [activeIndex, animateToIndex]);
+  }, [activeIndex, viewportWidth, animateToIndex]);
 
   // Success Screen - early return AFTER all hooks
   if (sentAlert) {
