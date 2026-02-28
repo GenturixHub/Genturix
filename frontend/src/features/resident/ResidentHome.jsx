@@ -240,6 +240,30 @@ const ResidentHome = () => {
   
   const direction = getDirection(prevTabRef.current, activeTab);
   
+  // Swipe navigation between modules
+  const goNextTab = useCallback(() => {
+    const index = TAB_ORDER.indexOf(activeTab);
+    if (index < TAB_ORDER.length - 1) {
+      setActiveTab(TAB_ORDER[index + 1]);
+    }
+  }, [activeTab]);
+  
+  const goPrevTab = useCallback(() => {
+    const index = TAB_ORDER.indexOf(activeTab);
+    if (index > 0) {
+      setActiveTab(TAB_ORDER[index - 1]);
+    }
+  }, [activeTab]);
+  
+  const swipeHandlers = useSwipeable({
+    onSwipedLeft: goNextTab,
+    onSwipedRight: goPrevTab,
+    delta: 70,
+    preventScrollOnSwipe: false,
+    trackTouch: true,
+    trackMouse: false
+  });
+  
   // Update previous tab reference after animation
   useEffect(() => {
     prevTabRef.current = activeTab;
