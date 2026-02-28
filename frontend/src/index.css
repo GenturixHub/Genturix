@@ -37,6 +37,22 @@ html, body, #root {
     flex-direction: column;
 }
 
+/* ========================================
+   SCROLL CONTAINER - Mobile Physics
+   ======================================== */
+.scroll-container {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    scroll-behavior: smooth;
+}
+
+/* Ensure scroll containers can shrink in flex layouts */
+.scroll-container {
+    min-height: 0;
+    flex: 1;
+}
+
 h1, h2, h3, h4, h5, h6 {
     font-family: 'Outfit', sans-serif;
 }
