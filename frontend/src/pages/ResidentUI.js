@@ -1300,15 +1300,11 @@ const ResidentUI = () => {
           </TabsList>
         )}
 
-        {/* Swipeable Content Area - flex layout for proper scrolling */}
-        <div 
-          {...(isMobile ? swipeHandlers : {})} 
-          className="flex-1 min-h-0 flex flex-col"
-        >
+        {/* Content Area - NO swipe handlers here, modules handle their own scroll */}
+        <div className="flex-1 min-h-0 overflow-hidden">
           <TabsContent 
             value="emergency" 
-            className="flex-1 flex flex-col mt-0 min-h-0 overflow-y-auto"
-            style={{ WebkitOverflowScrolling: 'touch' }}
+            className="h-full flex flex-col mt-0"
           >
             <EmergencyTab
               location={location}
@@ -1321,8 +1317,7 @@ const ResidentUI = () => {
 
           <TabsContent 
             value="authorizations" 
-            className="flex-1 mt-0 min-h-0 overflow-y-auto"
-            style={{ WebkitOverflowScrolling: 'touch' }}
+            className="h-full mt-0"
           >
             <ResidentVisitsModule 
               notifications={notifications}
@@ -1332,24 +1327,21 @@ const ResidentUI = () => {
 
           <TabsContent 
             value="reservations" 
-            className="flex-1 mt-0 min-h-0 overflow-y-auto"
-            style={{ WebkitOverflowScrolling: 'touch' }}
+            className="h-full mt-0"
           >
             <ResidentReservations />
           </TabsContent>
           
           <TabsContent 
             value="directory" 
-            className="flex-1 mt-0 min-h-0 overflow-y-auto"
-            style={{ WebkitOverflowScrolling: 'touch' }}
+            className="h-full mt-0"
           >
             <ProfileDirectory embedded={true} />
           </TabsContent>
           
           <TabsContent 
             value="profile" 
-            className="flex-1 mt-0 min-h-0 overflow-y-auto"
-            style={{ WebkitOverflowScrolling: 'touch' }}
+            className="h-full mt-0"
           >
             <EmbeddedProfile onBack={() => setActiveTab('panic')} />
           </TabsContent>
