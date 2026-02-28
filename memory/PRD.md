@@ -108,6 +108,11 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
   1. **Visitor Preregistration Notifications:** Guards now receive notifications when residents create authorizations. Added logic in `POST /api/authorizations` to create `guard_notifications` entries and send push notifications.
   2. **PDF Download Fix:** Changed `ResidentVisitHistory.jsx` from `window.print()` to `html2pdf.js` with `.save()` for automatic file download.
   3. **Privacy Section in Profile:** Added Privacy section with Accordion for "Cambiar Contraseña" in `EmbeddedProfile.jsx`. Works for all roles (resident, guard, admin, superadmin).
+- **Stability Patch Set (4 fixes):**
+  1. **Interactive Swipe Carousel:** Restored fully interactive drag using `useMotionValue` - content follows finger during drag, snaps on release.
+  2. **Persistent 7-Day Cache:** TanStack Query cache now persists to localStorage for 7 days. App loads cached data instantly, background refetch updates data.
+  3. **Service Worker API Cache:** v15 adds StaleWhileRevalidate for API GET requests (/api/profile, /api/notifications, /api/directory, /api/visits, /api/authorizations) with 24h expiry.
+  4. **PWA Icons 85% Size:** Regenerated all icons with logo filling 85% of canvas for larger visual presence in Android launcher.
 
 ### 2025-02-27 (Previous Session)
 - **Users Module Phase 2B:** Migrated `CreateUserByAdmin`, `CreateEmployeeByHR`, `UserStatusUpdateV2` models
