@@ -193,7 +193,8 @@ COOKIE_MAX_AGE = REFRESH_TOKEN_EXPIRE_MINUTES * 60  # Convert to seconds
 
 # Email Configuration (Resend)
 RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
-SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'noreply@genturix.com')
+# Production sender: Genturix Security <no-reply@gentrix.com>
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'Genturix Security <no-reply@gentrix.com>')
 if RESEND_API_KEY:
     resend.api_key = RESEND_API_KEY
 
