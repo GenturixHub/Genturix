@@ -14082,6 +14082,9 @@ async def process_access_request(
         
         await db.users.insert_one(new_user)
         
+        print(f"[FLOW] access_request_approved | request_id={request_id} user_id={new_user['id']} email={access_request['email']}")
+        logger.info(f"[FLOW] access_request_approved | request_id={request_id} user_id={new_user['id']}")
+        
         # Update request status
         await db.access_requests.update_one(
             {"id": request_id},
@@ -14098,6 +14101,8 @@ async def process_access_request(
         # Send email if requested
         email_result = {"status": "skipped"}
         if action_data.send_email:
+            print(f"[EMAIL TRIGGER] resident_credentials | email={access_request['email']} condominium_id={condo_id} user_id={new_user['id']}")
+            logger.info(f"[EMAIL TRIGGER] resident_credentials | email={access_request['email']} condo={condo_id}")
             login_url = request.headers.get("origin", "") + "/login"
             email_result = await send_access_approved_email(
                 access_request["email"],
@@ -14106,6 +14111,13 @@ async def process_access_request(
                 temp_password,
                 login_url
             )
+            
+            # Log email result explicitly
+            if email_result.get("status") == "success":
+                print(f"[EMAIL SENT] resident_credentials | email={access_request['email']} email_id={email_result.get('email_id')}")
+            else:
+                print(f"[EMAIL ERROR] resident_credentials_failed | email={access_request['email']} reason={email_result.get('reason', 'unknown')}")
+                logger.error(f"[EMAIL ERROR] resident_credentials_failed | email={access_request['email']} reason={email_result.get('reason')}")
         
         # Log audit event
         await log_audit_event(
