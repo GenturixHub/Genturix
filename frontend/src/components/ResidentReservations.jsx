@@ -1052,7 +1052,7 @@ const ResidentReservations = () => {
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
         </TabsContent>
       </Tabs>
       
