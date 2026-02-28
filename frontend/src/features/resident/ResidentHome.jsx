@@ -396,13 +396,13 @@ const ResidentHome = () => {
     // Only allow moving ONE module at a time
     const newIndex = Math.max(0, Math.min(activeIndex + direction, TAB_ORDER.length - 1));
     
-    // Snap to the target position
-    rawX.set(-newIndex * viewportWidth);
+    // Animate to the target position
+    animateToIndex(newIndex);
     
     if (newIndex !== activeIndex) {
       setActiveTab(TAB_ORDER[newIndex]);
     }
-  }, [activeIndex, viewportWidth, rawX]);
+  }, [activeIndex, animateToIndex]);
 
   // Success Screen - early return AFTER all hooks
   if (sentAlert) {
