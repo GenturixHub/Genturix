@@ -448,7 +448,7 @@ const PaymentsModule = () => {
             </div>
             <p className="text-xs text-muted-foreground mt-4">
               Todos los pagos son procesados de forma segura a través de Stripe. 
-              El precio de GENTURIX es siempre <strong>$1 por usuario al mes</strong> - sin sorpresas, sin planes complicados.
+              Contacta a tu administrador para información sobre precios.
             </p>
           </CardContent>
         </Card>
