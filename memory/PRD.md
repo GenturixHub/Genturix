@@ -124,6 +124,15 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
   - Added 300ms delay before capture to ensure DOM renders
   - Added `backgroundColor: '#ffffff'` to html2canvas options
   - PDF now contains full visit history content (verified: 3KB+ file with data)
+- **Pre-Production Security & Stability Patch:**
+  1. **Resend Email:** Already configured and functional (resend==2.21.0)
+  2. **Carousel Swipe:** Improved threshold to 20% of viewport width for natural feel
+  3. **PDF Export:** Already fixed (visible container, 300ms delay)
+  4. **Danger Zone Protection:** SuperAdmin system reset now requires password verification:
+     - Hidden behind "Acceder a Controles Avanzados" button
+     - Modal requires SuperAdmin password verification
+     - Confirmation requires typing "DELETE SYSTEM"
+  5. **Price Text Removed:** Eliminated "$1 USD / usuario / mes" marketing text from SuperAdmin dashboard
 
 ### 2025-02-27 (Previous Session)
 - **Users Module Phase 2B:** Migrated `CreateUserByAdmin`, `CreateEmployeeByHR`, `UserStatusUpdateV2` models
