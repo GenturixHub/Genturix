@@ -9600,8 +9600,11 @@ async def create_reservation(
         "reservations",
         {"action": "reservation_created", "reservation_id": reservation_id, "area": area["name"], "date": reservation.date},
         request.client.host if request.client else "unknown",
-        request.headers.get("user-agent", "unknown")
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id,
+        user_email=current_user.get("email")
     )
+    print(f"[FLOW] reservation_created | id={reservation_id} area={area['name']} date={reservation.date} condo={condo_id[:8]}")
     
     return {
         "message": "Reservación creada exitosamente",
