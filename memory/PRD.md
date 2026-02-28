@@ -3,6 +3,40 @@
 ## Overview
 Genturix is a multi-tenant security and condominium management platform built with React frontend and FastAPI backend.
 
+## Android Push Notification Icons Fix (2026-02-28) ✅ COMPLETE
+
+### Problem
+Android push notifications were showing wrong/cached icons from early PWA install.
+
+### Solution Applied
+1. **Created versioned notification icons:**
+   - `/icons/notification-icon-v2.png` (96x96) - Main notification icon
+   - `/icons/badge-72-v2.png` (72x72) - Status bar badge
+
+2. **Updated Service Worker v15 → v16:**
+   - Explicit icon and badge paths with version suffix
+   - Always uses our icons (ignores payload icons to bypass cache)
+   - Added notification actions: "Ver" / "Cerrar"
+   - Smart routing based on notification type
+   - Cache version bumped to force refresh
+
+3. **Updated manifest.json:**
+   - Added notification-icon-v2.png (purpose: any)
+   - Added badge-72-v2.png (purpose: monochrome)
+
+### Files Modified
+- `/app/frontend/public/service-worker.js` - v16 with explicit icons
+- `/app/frontend/public/manifest.json` - Added notification icons
+- `/app/frontend/public/icons/notification-icon-v2.png` - NEW
+- `/app/frontend/public/icons/badge-72-v2.png` - NEW
+
+### Verification
+- Service Worker v16.0.0 deployed
+- Icons accessible at /icons/notification-icon-v2.png and /icons/badge-72-v2.png
+- Cache version bumped to genturix-cache-v16
+
+---
+
 ## Multi-Tenant Security Patch (2026-02-28) ✅ COMPLETE
 
 ### PART 1: Visits Data Leak (CRITICAL) - FIXED
