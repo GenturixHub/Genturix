@@ -16,7 +16,7 @@ import os
 import json
 import re
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://onboarding-fix-19.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://genturix-stability.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 TEST_RESIDENT = {
