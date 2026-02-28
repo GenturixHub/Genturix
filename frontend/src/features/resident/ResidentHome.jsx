@@ -362,7 +362,41 @@ const ResidentHome = () => {
     }
   }, [sendingType, location, user, t]);
 
-  // Success Screen
+  // Drag navigation functions - must be before any early return
+  const goNextTab = useCallback(() => {
+    const index = TAB_ORDER.indexOf(activeTab);
+    if (index < TAB_ORDER.length - 1) {
+      setActiveTab(TAB_ORDER[index + 1]);
+    }
+  }, [activeTab]);
+
+  const goPrevTab = useCallback(() => {
+    const index = TAB_ORDER.indexOf(activeTab);
+    if (index > 0) {
+      setActiveTab(TAB_ORDER[index - 1]);
+    }
+  }, [activeTab]);
+
+  // Handle drag end - switch module if threshold passed
+  const handleDragEnd = useCallback((event, info) => {
+    const { offset, velocity } = info;
+    const swipeThreshold = 80;
+    const velocityThreshold = 300;
+    
+    // Check if it's a valid horizontal swipe (not vertical scroll)
+    if (Math.abs(offset.y) > Math.abs(offset.x) * 0.5) return;
+    
+    // Swipe left (next module) - negative offset
+    if (offset.x < -swipeThreshold || velocity.x < -velocityThreshold) {
+      goNextTab();
+    }
+    // Swipe right (previous module) - positive offset
+    else if (offset.x > swipeThreshold || velocity.x > velocityThreshold) {
+      goPrevTab();
+    }
+  }, [goNextTab, goPrevTab]);
+
+  // Success Screen - early return AFTER all hooks
   if (sentAlert) {
     return <SuccessScreen alert={sentAlert} onDismiss={() => setSentAlert(null)} t={t} />;
   }
@@ -399,40 +433,6 @@ const ResidentHome = () => {
     if (activeTab === 'emergency' || activeTab === 'directory') return '';
     return 'px-3 py-4';
   };
-
-  // Drag navigation functions
-  const goNextTab = useCallback(() => {
-    const index = TAB_ORDER.indexOf(activeTab);
-    if (index < TAB_ORDER.length - 1) {
-      setActiveTab(TAB_ORDER[index + 1]);
-    }
-  }, [activeTab]);
-
-  const goPrevTab = useCallback(() => {
-    const index = TAB_ORDER.indexOf(activeTab);
-    if (index > 0) {
-      setActiveTab(TAB_ORDER[index - 1]);
-    }
-  }, [activeTab]);
-
-  // Handle drag end - switch module if threshold passed
-  const handleDragEnd = useCallback((event, info) => {
-    const { offset, velocity } = info;
-    const swipeThreshold = 80;
-    const velocityThreshold = 300;
-    
-    // Check if it's a valid horizontal swipe (not vertical scroll)
-    if (Math.abs(offset.y) > Math.abs(offset.x) * 0.5) return;
-    
-    // Swipe left (next module) - negative offset
-    if (offset.x < -swipeThreshold || velocity.x < -velocityThreshold) {
-      goNextTab();
-    }
-    // Swipe right (previous module) - positive offset
-    else if (offset.x > swipeThreshold || velocity.x > velocityThreshold) {
-      goPrevTab();
-    }
-  }, [goNextTab, goPrevTab]);
 
   return (
     <ResidentLayout activeTab={activeTab} onTabChange={setActiveTab}>
