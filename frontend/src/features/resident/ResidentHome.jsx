@@ -326,8 +326,32 @@ const ResidentHome = () => {
 
   // Get current module index
   const activeIndex = TAB_ORDER.indexOf(activeTab);
+  
+  // Viewport width for drag calculations
+  const containerRef = useRef(null);
+  const [viewportWidth, setViewportWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 375);
+  
+  // MotionValue for interactive drag - follows finger exactly
+  const x = useMotionValue(0);
+  
+  // Update viewport width on resize
+  useEffect(() => {
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
+  // Sync x position when activeIndex changes (from tab clicks or drag end)
+  useEffect(() => {
+    const targetX = -activeIndex * viewportWidth;
+    animate(x, targetX, {
+      type: "spring",
+      stiffness: 300,
+      damping: 30
+    });
+  }, [activeIndex, viewportWidth, x]);
 
-  // Handle drag end - natural physics with single-module constraint
+  // Handle drag end - snap to nearest module (max 1 module per swipe)
   const handleDragEnd = useCallback((event, info) => {
     const { offset, velocity } = info;
     const swipeThreshold = 50;
@@ -349,8 +373,15 @@ const ResidentHome = () => {
     
     if (newIndex !== activeIndex) {
       setActiveTab(TAB_ORDER[newIndex]);
+    } else {
+      // Snap back to current position if no change
+      animate(x, -activeIndex * viewportWidth, {
+        type: "spring",
+        stiffness: 300,
+        damping: 30
+      });
     }
-  }, [activeIndex]);
+  }, [activeIndex, viewportWidth, x]);
 
   // Success Screen - early return AFTER all hooks
   if (sentAlert) {
