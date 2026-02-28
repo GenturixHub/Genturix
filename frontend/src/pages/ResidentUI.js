@@ -1361,7 +1361,7 @@ const ResidentUI = () => {
         </footer>
       )}
 
-      {/* Mobile Bottom Navigation */}
+      {/* Mobile Bottom Navigation - Fixed position */}
       {isMobile && (
         <MobileBottomNav 
           items={RESIDENT_MOBILE_NAV}
