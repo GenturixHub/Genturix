@@ -5387,7 +5387,12 @@ async def get_my_authorizations(
     current_user = Depends(get_current_user)
 ):
     """Resident gets their own visitor authorizations with usage status"""
-    query = {"created_by": current_user["id"]}
+    # CRITICAL: Enforce tenant isolation
+    condo_id = current_user.get("condominium_id")
+    query = {
+        "created_by": current_user["id"],
+        "condominium_id": condo_id  # Multi-tenant filter
+    }
     
     if status == "active":
         query["is_active"] = True
