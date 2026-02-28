@@ -4084,16 +4084,18 @@ async def update_language(language_data: LanguageUpdate, current_user = Depends(
 @api_router.get("/profile/directory/condominium")
 async def get_condominium_directory(current_user = Depends(get_current_user)):
     """
-    Get all users in the same condominium (Profile Directory).
-    SuperAdmin can see all users across condominiums.
-    Returns users grouped by role for the directory view.
+    Get directory of condominium users.
+    
+    SECURITY: Residents can ONLY see admins and guards (emergency contacts).
+    Admins, Guards, and SuperAdmins can see all users.
     """
-    is_super_admin = "SuperAdmin" in current_user.get("roles", [])
+    user_roles = current_user.get("roles", [])
+    is_resident = "Residente" in user_roles and not any(r in user_roles for r in ["Administrador", "SuperAdmin", "Guarda", "Supervisor", "HR"])
+    is_super_admin = "SuperAdmin" in user_roles
     condo_id = current_user.get("condominium_id")
     
     # SuperAdmin can see all users if no specific condo
     if is_super_admin and not condo_id:
-        # Return empty - SuperAdmin should specify a condo to view directory
         return {"users": [], "grouped_by_role": {}, "condominium_name": None}
     
     if not condo_id and not is_super_admin:
@@ -4103,9 +4105,13 @@ async def get_condominium_directory(current_user = Depends(get_current_user)):
     condo = await db.condominiums.find_one({"id": condo_id}, {"_id": 0, "name": 1})
     condo_name = condo.get("name") if condo else "Desconocido"
     
-    # Get all active users in the condominium
+    # SECURITY FIX: Residents can only see admins and guards
+    base_query = {"condominium_id": condo_id, "is_active": True}
+    if is_resident:
+        base_query["roles"] = {"$in": ["Administrador", "Guarda", "Supervisor"]}
+    
     users_cursor = db.users.find(
-        {"condominium_id": condo_id, "is_active": True},
+        base_query,
         {"_id": 0, "id": 1, "full_name": 1, "email": 1, "roles": 1, "profile_photo": 1, "phone": 1, "public_description": 1, "role_data": 1}
     )
     users = await users_cursor.to_list(length=500)
