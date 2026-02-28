@@ -186,6 +186,25 @@
   }
 
   /* ==========================================
+     MOBILE SCROLL IMPROVEMENTS
+     ========================================== */
+  
+  /* Enable smooth touch scrolling on all scrollable containers */
+  .overflow-y-auto,
+  .overflow-auto,
+  [style*="overflow-y: auto"],
+  [style*="overflowY: auto"] {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* Fix for scroll containers inside flex layouts */
+  .flex-1.overflow-y-auto,
+  .flex-1.overflow-auto {
+    min-height: 0;
+  }
+
+  /* ==========================================
      VISIBILITY UTILITIES
      ========================================== */
   
