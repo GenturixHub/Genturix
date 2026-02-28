@@ -377,18 +377,17 @@ const SuccessScreen = ({ alert, onDismiss }) => {
 // EMERGENCY TAB - Optimized Mobile Layout
 // ============================================
 const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, sendingType }) => (
-  <div className="scroll-container pb-28">
-    <div 
-      className="emergency-container"
-      style={{
-        minHeight: 'calc(100dvh - 200px)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        padding: '12px 16px 24px',
-        gap: '16px'
-      }}
-    >
+  <div 
+    className="emergency-container"
+    style={{
+      minHeight: 'calc(100dvh - 200px)',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+      padding: '12px 16px 24px',
+      gap: '16px'
+    }}
+  >
     {/* TOP SECTION: GPS Status */}
     <div className="flex-shrink-0">
       <GPSStatus location={location} isLoading={locationLoading} error={locationError} />
