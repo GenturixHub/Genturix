@@ -137,14 +137,15 @@ self.addEventListener('message', (event) => {
 });
 
 // =========================================================================
-// PUSH - Receive and display push notification
+// PUSH - Receive and display push notification with correct icons
 // =========================================================================
 self.addEventListener('push', (event) => {
+  // Default notification data with versioned icons to bypass Android cache
   let data = {
     title: 'GENTURIX',
     body: 'Nueva notificación',
-    icon: '/logo192.png',
-    badge: '/logo192.png',
+    icon: NOTIFICATION_ICON,
+    badge: NOTIFICATION_BADGE,
     tag: 'genturix-notification',
     data: {}
   };
@@ -155,9 +156,10 @@ self.addEventListener('push', (event) => {
       data = {
         title: payload.title || data.title,
         body: payload.body || data.body,
-        icon: payload.icon || data.icon,
-        badge: payload.badge || data.badge,
-        tag: payload.tag || data.tag,
+        // Always use our versioned icons to override any cached ones
+        icon: NOTIFICATION_ICON,
+        badge: NOTIFICATION_BADGE,
+        tag: payload.tag || `genturix-${Date.now()}`,
         data: payload.data || {}
       };
     } catch (e) {
@@ -165,22 +167,39 @@ self.addEventListener('push', (event) => {
     }
   }
 
+  // Determine notification type for customization
+  const notificationType = data.data?.type || 'default';
+  const isPanicAlert = notificationType === 'panic_alert';
+  const isVisitor = notificationType === 'visitor_authorization' || notificationType === 'visitor_entry';
+  const isReservation = notificationType === 'reservation';
+
+  // Build notification options with actions
   const options = {
     body: data.body,
     icon: data.icon,
     badge: data.badge,
     tag: data.tag,
     renotify: true,
-    requireInteraction: data.data?.type === 'panic_alert',
-    vibrate: data.data?.type === 'panic_alert' ? [300, 100, 300] : [100],
-    data: data.data
+    requireInteraction: isPanicAlert,
+    vibrate: isPanicAlert ? [300, 100, 300, 100, 300] : [200, 100, 200],
+    data: data.data,
+    // Actions for user interaction
+    actions: isPanicAlert ? [
+      { action: 'view', title: 'Ver Alerta', icon: NOTIFICATION_ICON },
+      { action: 'dismiss', title: 'Cerrar' }
+    ] : [
+      { action: 'open', title: 'Ver', icon: NOTIFICATION_ICON },
+      { action: 'dismiss', title: 'Cerrar' }
+    ]
   };
+
+  console.log(`[SW v${SW_VERSION}] Showing notification: ${data.title} (type: ${notificationType})`);
 
   event.waitUntil(
     self.registration.showNotification(data.title, options)
       .then(() => {
         // Notify open tabs about new alert
-        if (data.data?.type === 'panic_alert') {
+        if (isPanicAlert) {
           return self.clients.matchAll({ type: 'window' }).then((clients) => {
             clients.forEach((client) => {
               client.postMessage({ type: 'NEW_PANIC_ALERT', data: data.data });
