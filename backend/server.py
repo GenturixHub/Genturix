@@ -3273,6 +3273,8 @@ async def login(credentials: UserLogin, request: Request):
         path="/api/auth"  # Restrict cookie to auth endpoints only
     )
     
+    print(f"[AUTH EVENT] Login SUCCESS | user_id={user['id']} | email={user['email']} | roles={user['roles']}")
+    
     return response
 
 @api_router.post("/auth/refresh")
