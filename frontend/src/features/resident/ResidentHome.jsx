@@ -465,7 +465,7 @@ const ResidentHome = () => {
       
       {/* Carousel Page Indicators */}
       <div 
-        className="flex justify-center items-center gap-2 py-2 bg-[#05050A]/80 backdrop-blur-sm"
+        className="flex justify-center items-center gap-1.5 py-1.5 bg-[#05050A]/60 backdrop-blur-sm"
         style={{ 
           position: 'absolute',
           bottom: 'calc(72px + env(safe-area-inset-bottom, 0px))',
@@ -481,8 +481,8 @@ const ResidentHome = () => {
             onClick={() => setActiveTab(tab)}
             className={`rounded-full transition-all duration-200 ${
               index === activeIndex 
-                ? 'bg-cyan-400 w-2.5 h-2.5 scale-110' 
-                : 'bg-gray-500/50 w-2 h-2 hover:bg-gray-400/60'
+                ? 'bg-cyan-400 w-1.5 h-1.5' 
+                : 'bg-white/30 w-1 h-1 hover:bg-white/50'
             }`}
             aria-label={`Go to ${tab} module`}
             data-testid={`carousel-dot-${tab}`}
