@@ -211,21 +211,34 @@ self.addEventListener('push', (event) => {
 });
 
 // =========================================================================
-// NOTIFICATION CLICK - Open or focus window
+// NOTIFICATION CLICK - Open or focus window based on action
 // =========================================================================
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  if (event.action === 'dismiss') return;
+  // Handle dismiss action
+  if (event.action === 'dismiss') {
+    console.log(`[SW v${SW_VERSION}] Notification dismissed by user`);
+    return;
+  }
 
   const data = event.notification.data || {};
   let url = '/';
 
+  // Determine URL based on notification type and action
   if (data.type === 'panic_alert') {
     url = '/guard?tab=alerts';
+  } else if (data.type === 'visitor_authorization') {
+    url = '/resident?tab=authorizations';
+  } else if (data.type === 'visitor_entry') {
+    url = '/resident?tab=visits';
+  } else if (data.type === 'reservation') {
+    url = '/resident?tab=reservations';
   } else if (data.url) {
     url = data.url;
   }
+
+  console.log(`[SW v${SW_VERSION}] Notification clicked (action: ${event.action || 'default'}) → navigating to ${url}`);
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
