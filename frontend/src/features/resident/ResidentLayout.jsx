@@ -76,27 +76,15 @@ const ResidentLayout = ({ children, activeTab, onTabChange, title = 'GENTURIX' }
         </div>
       </header>
 
-      {/* Content - Flex grow, controlled overflow */}
+      {/* Content - Scrollable main area */}
       <main 
-        className="flex-1 w-full"
+        className="flex-1 w-full overflow-y-auto"
         style={{ 
-          overflow: 'hidden',
-          display: 'flex',
-          flexDirection: 'column',
-          minHeight: 0
+          WebkitOverflowScrolling: 'touch',
+          paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))'
         }}
       >
-        <div 
-          style={{
-            flex: 1,
-            overflowX: 'hidden',
-            overflowY: 'auto',
-            WebkitOverflowScrolling: 'touch',
-            paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))'
-          }}
-        >
-          {children}
-        </div>
+        {children}
       </main>
 
       {/* Bottom Navigation - Fixed, app-style */}
