@@ -1,4 +1,4 @@
-# Trigger redeploy - 2026-02-26 MODULAR
+# Trigger redeploy - 2026-03-01 SECURITY PATCH
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Request, Body, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse, Response
@@ -26,6 +26,12 @@ import bcrypt
 import jwt
 from enum import Enum
 from bson import ObjectId
+
+# ==================== SECURITY IMPORTS (2026-03-01) ====================
+import bleach  # XSS protection via input sanitization
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionResponse, CheckoutStatusResponse, CheckoutSessionRequest
 import stripe  # For webhook signature verification
 import resend
