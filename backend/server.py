@@ -5396,6 +5396,9 @@ async def register_visitor_entry(
     
     entry_time = datetime.now(timezone.utc).isoformat()
     
+    # Sanitize user input
+    sanitized_notes = sanitize_text(entry_data.notes) if entry_data.notes else None
+    
     await db.visitors.update_one(
         {"id": visitor_id},
         {"$set": {
@@ -5403,7 +5406,7 @@ async def register_visitor_entry(
             "entry_at": entry_time,
             "entry_by": current_user["id"],
             "entry_by_name": current_user.get("full_name", "Guard"),
-            "entry_notes": entry_data.notes,
+            "entry_notes": sanitized_notes,
             "updated_at": entry_time
         }}
     )
