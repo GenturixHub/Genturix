@@ -29,6 +29,8 @@ import ProfilePage from './pages/ProfilePage';
 import JoinPage from './pages/JoinPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import CondominiumSettingsPage from './pages/CondominiumSettingsPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsOfServicePage from './pages/TermsOfServicePage';
 import UpdateAvailableModal from './components/UpdateAvailableModal';
 import InstallChoiceScreen from './components/InstallChoiceScreen';
 import useServiceWorkerUpdate from './hooks/useServiceWorkerUpdate';
