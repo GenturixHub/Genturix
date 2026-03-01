@@ -6898,8 +6898,8 @@ async def get_resident_visit_history(
                 entry_time = datetime.fromisoformat(entry["entry_at"].replace("Z", "+00:00"))
                 exit_time = datetime.fromisoformat(entry["exit_at"].replace("Z", "+00:00"))
                 duration_minutes = int((exit_time - entry_time).total_seconds() / 60)
-            except:
-                pass
+            except Exception as time_err:
+                logger.debug(f"[VISITS] Could not calculate duration: {time_err}")
         
         # Get authorization details if available
         auth_details = None
