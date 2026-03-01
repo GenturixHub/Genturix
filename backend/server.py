@@ -7016,13 +7016,21 @@ async def export_resident_visit_history(
         {"created_by": user_id, "condominium_id": condo_id}
     )
     
+    # P0 FIX: Build query with proper handling of empty arrays
+    or_conditions = []
+    
+    if resident_auth_ids:
+        or_conditions.append({"authorization_id": {"$in": resident_auth_ids}})
+    
+    if legacy_visitor_ids:
+        or_conditions.append({"visitor_id": {"$in": legacy_visitor_ids}})
+    
+    # Always include direct resident_id match
+    or_conditions.append({"resident_id": user_id})
+    
     query = {
-        "condominium_id": condo_id,
-        "$or": [
-            {"authorization_id": {"$in": resident_auth_ids}},
-            {"visitor_id": {"$in": legacy_visitor_ids}},
-            {"resident_id": user_id}
-        ]
+        "condominium_id": condo_id,  # REQUIRED
+        "$or": or_conditions
     }
     
     # Apply filters
