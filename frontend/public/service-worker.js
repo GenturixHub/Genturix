@@ -138,40 +138,51 @@ self.addEventListener('message', (event) => {
 
 // =========================================================================
 // PUSH - Receive and display push notification with correct icons
+// v17: Skip silent notifications and empty payloads - NO FALLBACKS
 // =========================================================================
 self.addEventListener('push', (event) => {
-  // Default notification data with versioned icons to bypass Android cache
-  let data = {
-    title: 'GENTURIX',
-    body: 'Nueva notificación',
+  // VALIDATION 1: No data = no notification
+  if (!event.data) {
+    console.log(`[SW v${SW_VERSION}] Push received with no data, ignoring`);
+    return;
+  }
+
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch (e) {
+    console.error(`[SW v${SW_VERSION}] Push data parse error:`, e);
+    return;
+  }
+
+  // VALIDATION 2: Skip silent notifications (system validation checks)
+  if (payload.silent === true) {
+    console.log(`[SW v${SW_VERSION}] Silent notification ignored (type: ${payload.data?.type || 'unknown'})`);
+    return;
+  }
+
+  // VALIDATION 3: Skip empty payloads - REQUIRE valid title AND body
+  const hasValidTitle = payload.title && typeof payload.title === 'string' && payload.title.trim() !== '';
+  const hasValidBody = payload.body && typeof payload.body === 'string' && payload.body.trim() !== '';
+  
+  if (!hasValidTitle || !hasValidBody) {
+    console.log(`[SW v${SW_VERSION}] Empty title/body ignored (title: "${payload.title}", body: "${payload.body}")`);
+    return;
+  }
+
+  // Build notification data from payload (NO FALLBACKS)
+  const data = {
+    title: payload.title,
+    body: payload.body,
     icon: NOTIFICATION_ICON,
     badge: NOTIFICATION_BADGE,
-    tag: 'genturix-notification',
-    data: {}
+    tag: payload.tag || `genturix-${Date.now()}`,
+    data: payload.data || {}
   };
-
-  if (event.data) {
-    try {
-      const payload = event.data.json();
-      data = {
-        title: payload.title || data.title,
-        body: payload.body || data.body,
-        // Always use our versioned icons to override any cached ones
-        icon: NOTIFICATION_ICON,
-        badge: NOTIFICATION_BADGE,
-        tag: payload.tag || `genturix-${Date.now()}`,
-        data: payload.data || {}
-      };
-    } catch (e) {
-      console.error(`[SW v${SW_VERSION}] Push data parse error:`, e);
-    }
-  }
 
   // Determine notification type for customization
   const notificationType = data.data?.type || 'default';
   const isPanicAlert = notificationType === 'panic_alert';
-  const isVisitor = notificationType === 'visitor_authorization' || notificationType === 'visitor_entry';
-  const isReservation = notificationType === 'reservation';
 
   // Build notification options with actions
   const options = {
@@ -193,7 +204,7 @@ self.addEventListener('push', (event) => {
     ]
   };
 
-  console.log(`[SW v${SW_VERSION}] Showing notification: ${data.title} (type: ${notificationType})`);
+  console.log(`[SW v${SW_VERSION}] Showing notification: "${data.title}" (type: ${notificationType})`);
 
   event.waitUntil(
     self.registration.showNotification(data.title, options)
