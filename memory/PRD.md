@@ -3,6 +3,49 @@
 ## Overview
 Genturix is a multi-tenant security and condominium management platform built with React frontend and FastAPI backend.
 
+## Store Assets Generation (2026-03-01) ✅ COMPLETE
+
+### Summary
+Generated all assets required for Google Play Store and Apple App Store submission.
+
+### Assets Created
+
+**Iconos (`/app/store-assets/icons/`):**
+- `playstore-icon.png` (1024x1024) - Google Play Store
+- `ios-app-icon.png` (1024x1024) - Apple App Store  
+- `icon-512.png` (512x512) - PWA
+- `icon-192.png` (192x192) - PWA manifest
+- `apple-touch-icon.png` (180x180) - iOS Safari
+- `notification-icon.png` (96x96) - Push notifications
+- `notification-badge.png` (72x72) - Notification badge
+
+**Screenshots Play Store (`/app/store-assets/screenshots/playstore/`):**
+- `01-login.png` - Pantalla de login
+- `02-emergencia.png` - Botón de pánico residente
+- `03-dashboard.png` - Dashboard admin
+- `04-usuarios.png` - Gestión de usuarios
+- `05-guardia.png` - Panel de guardia
+
+**Screenshots App Store (`/app/store-assets/screenshots/appstore/`):**
+- `01-login.png` - Pantalla de login
+- `02-emergencia.png` - Sistema de emergencia
+- `03-dashboard.png` - Panel de control
+- `04-usuarios.png` - Administración de usuarios
+- `05-seguridad.png` - Panel de seguridad
+
+### Manifest Updates
+- Added `apple-touch-icon` (180x180) to icons array
+- Added shortcuts for quick actions (Emergencia, Dashboard)
+
+### Files Created/Modified
+- `/app/store-assets/` - Directory structure
+- `/app/store-assets/README_STORE_ASSETS.md` - Documentation
+- `/app/store-assets/capture_screenshots.py` - Automation script
+- `/app/frontend/public/manifest.json` - Updated with shortcuts
+- `/app/frontend/public/icons/apple-touch-icon.png` - Copied from store-assets
+
+---
+
 ## Legal Pages Scroll Bug Fix (2026-03-01) ✅ COMPLETE
 
 ### Problem
