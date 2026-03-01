@@ -3,6 +3,39 @@
 ## Overview
 Genturix is a multi-tenant security and condominium management platform built with React frontend and FastAPI backend.
 
+## Critical System Audit - Identity + PDF (2026-03-01) ✅ COMPLETE
+
+### Issue 1: User Identity Collision - FIXED
+
+**Root Cause:** React Query cache keys were static and didn't include user scope, causing potential data leak between users on shared devices.
+
+**Fix Applied:**
+- Query keys now include `userId` or `condoId`: `['resident', 'directory', condoId]`
+- All mutations updated to use scoped keys
+- Cache isolation prevents cross-user data contamination
+
+**Files Modified:**
+- `/app/frontend/src/hooks/queries/useResidentQueries.js` - Added user-scoped query keys
+
+### Issue 2: PDF Export Blank - FIXED
+
+**Root Cause:** html2pdf.js container was positioned with `z-index: -9999` causing rendering issues.
+
+**Fix Applied:**
+- Changed container positioning to `position: absolute; top: -9999px`
+- Added explicit `offsetHeight` access to force layout reflow
+- Increased render wait time to 1000ms
+- Added blob size validation before download
+- Added print fallback if PDF generation fails
+
+**Files Modified:**
+- `/app/frontend/src/components/ResidentVisitHistory.jsx` - Fixed PDF generation
+
+### Audit Report
+- `/app/IDENTITY_PDF_AUDIT_REPORT.md` - Full root cause analysis
+
+---
+
 ## Capacitor Native Build Setup (2026-03-01) ✅ COMPLETE
 
 ### Summary
