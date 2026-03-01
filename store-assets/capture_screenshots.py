@@ -28,13 +28,16 @@ RESOLUTIONS = {
 async def login(page, user_type):
     """Login con las credenciales especificadas"""
     creds = CREDENTIALS[user_type]
-    await page.goto(f"{BASE_URL}/login")
-    await page.wait_for_load_state("networkidle")
+    await page.goto(f"{BASE_URL}/login", timeout=60000)
+    await asyncio.sleep(2)
+    try:
+        await page.wait_for_selector('input[type="email"]', timeout=10000)
+    except:
+        pass
     await page.fill('input[type="email"]', creds["email"])
     await page.fill('input[type="password"]', creds["password"])
     await page.click('button[type="submit"]')
-    await asyncio.sleep(4)
-    await page.wait_for_load_state("networkidle")
+    await asyncio.sleep(5)
 
 
 async def capture_playstore(browser):
