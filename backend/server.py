@@ -6819,6 +6819,7 @@ async def get_resident_visit_history(
     search: Optional[str] = None,  # Search by name, document, plate
     page: int = 1,
     page_size: int = 20,
+    request: Request = None,
     current_user = Depends(get_current_user)
 ):
     """
@@ -6829,7 +6830,9 @@ async def get_resident_visit_history(
     user_id = current_user["id"]
     condo_id = current_user.get("condominium_id")
     
+    # P0 SECURITY: Require valid condominium_id
     if not condo_id:
+        logger.warning(f"[SECURITY] resident/visit-history blocked: user {user_id} has no condominium_id")
         raise HTTPException(status_code=403, detail="Usuario no asignado a un condominio")
     
     # Base query: Only visits related to this resident's authorizations
@@ -6845,14 +6848,23 @@ async def get_resident_visit_history(
         {"created_by": user_id, "condominium_id": condo_id}
     )
     
-    # Build query for visitor_entries
+    # P0 FIX: Build query with proper handling of empty arrays
+    # If no authorizations exist, we should ONLY match by resident_id, not return all records
+    or_conditions = []
+    
+    if resident_auth_ids:
+        or_conditions.append({"authorization_id": {"$in": resident_auth_ids}})
+    
+    if legacy_visitor_ids:
+        or_conditions.append({"visitor_id": {"$in": legacy_visitor_ids}})
+    
+    # Always include direct resident_id match
+    or_conditions.append({"resident_id": user_id})
+    
+    # Build query with MANDATORY condominium_id filter
     query = {
-        "condominium_id": condo_id,
-        "$or": [
-            {"authorization_id": {"$in": resident_auth_ids}},
-            {"visitor_id": {"$in": legacy_visitor_ids}},
-            {"resident_id": user_id}
-        ]
+        "condominium_id": condo_id,  # REQUIRED - never query without this
+        "$or": or_conditions
     }
     
     # Date filtering
