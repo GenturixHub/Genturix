@@ -2,8 +2,6 @@
 """
 GENTURIX - Script para capturar screenshots para las tiendas
 Ejecutar: python3 capture_screenshots.py
-
-Requisitos: pip install playwright && playwright install chromium
 """
 
 import asyncio
@@ -25,105 +23,63 @@ RESOLUTIONS = {
 }
 
 
-async def login(page, user_type):
-    """Login con las credenciales especificadas"""
+async def capture_with_login(browser, resolution, user_type, output_path, filename):
+    """Capturar screenshot con login fresco en contexto nuevo"""
+    context = await browser.new_context(viewport=resolution, device_scale_factor=1)
+    page = await context.new_page()
+    
     creds = CREDENTIALS[user_type]
+    
     await page.goto(f"{BASE_URL}/login", timeout=60000)
     await asyncio.sleep(2)
-    try:
-        await page.wait_for_selector('input[type="email"]', timeout=10000)
-    except:
-        pass
+    
     await page.fill('input[type="email"]', creds["email"])
     await page.fill('input[type="password"]', creds["password"])
     await page.click('button[type="submit"]')
     await asyncio.sleep(5)
-
-
-async def capture_playstore(browser):
-    """Capturar screenshots para Google Play Store"""
-    print("\n📱 Capturando screenshots para Play Store (1080x1920)...")
     
-    context = await browser.new_context(
-        viewport=RESOLUTIONS["playstore"],
-        device_scale_factor=1
-    )
-    page = await context.new_page()
-    output = f"{OUTPUT_DIR}/playstore"
-    os.makedirs(output, exist_ok=True)
-    
-    # 1. Login Screen
-    await page.goto(f"{BASE_URL}/login", timeout=60000)
-    await asyncio.sleep(2)
-    await page.screenshot(path=f"{output}/01-login.png")
-    print("  ✅ 01-login.png")
-    
-    # 2. Emergency (Resident)
-    await login(page, "resident")
-    await page.screenshot(path=f"{output}/02-emergencia.png")
-    print("  ✅ 02-emergencia.png")
-    
-    # 3. Dashboard (Admin)
-    await login(page, "admin")
-    await page.screenshot(path=f"{output}/03-dashboard.png")
-    print("  ✅ 03-dashboard.png")
-    
-    # 4. Users Management
-    await page.goto(f"{BASE_URL}/admin/users", timeout=60000)
-    await asyncio.sleep(3)
-    await page.screenshot(path=f"{output}/04-usuarios.png")
-    print("  ✅ 04-usuarios.png")
-    
-    # 5. Guard Panel
-    await login(page, "guard")
-    await page.screenshot(path=f"{output}/05-guardia.png")
-    print("  ✅ 05-guardia.png")
+    await page.screenshot(path=f"{output_path}/{filename}")
+    print(f"  ✅ {filename}")
     
     await context.close()
-    print("✅ Play Store screenshots completados!")
 
 
-async def capture_appstore(browser):
-    """Capturar screenshots para Apple App Store"""
-    print("\n🍎 Capturando screenshots para App Store (1290x2796)...")
-    
-    context = await browser.new_context(
-        viewport=RESOLUTIONS["appstore"],
-        device_scale_factor=1
-    )
+async def capture_page(browser, resolution, user_type, url_path, output_path, filename):
+    """Capturar screenshot de una página específica"""
+    context = await browser.new_context(viewport=resolution, device_scale_factor=1)
     page = await context.new_page()
-    output = f"{OUTPUT_DIR}/appstore"
-    os.makedirs(output, exist_ok=True)
     
-    # 1. Login Screen
+    # Login first
+    creds = CREDENTIALS[user_type]
     await page.goto(f"{BASE_URL}/login", timeout=60000)
     await asyncio.sleep(2)
-    await page.screenshot(path=f"{output}/01-login.png")
-    print("  ✅ 01-login.png")
+    await page.fill('input[type="email"]', creds["email"])
+    await page.fill('input[type="password"]', creds["password"])
+    await page.click('button[type="submit"]')
+    await asyncio.sleep(4)
     
-    # 2. Emergency (Resident)
-    await login(page, "resident")
-    await page.screenshot(path=f"{output}/02-emergencia.png")
-    print("  ✅ 02-emergencia.png")
-    
-    # 3. Dashboard (Admin)
-    await login(page, "admin")
-    await page.screenshot(path=f"{output}/03-dashboard.png")
-    print("  ✅ 03-dashboard.png")
-    
-    # 4. Users Management
-    await page.goto(f"{BASE_URL}/admin/users", timeout=60000)
+    # Navigate to target page
+    await page.goto(f"{BASE_URL}{url_path}", timeout=60000)
     await asyncio.sleep(3)
-    await page.screenshot(path=f"{output}/04-usuarios.png")
-    print("  ✅ 04-usuarios.png")
     
-    # 5. Guard Panel
-    await login(page, "guard")
-    await page.screenshot(path=f"{output}/05-seguridad.png")
-    print("  ✅ 05-seguridad.png")
+    await page.screenshot(path=f"{output_path}/{filename}")
+    print(f"  ✅ {filename}")
     
     await context.close()
-    print("✅ App Store screenshots completados!")
+
+
+async def capture_login_screen(browser, resolution, output_path, filename):
+    """Capturar pantalla de login"""
+    context = await browser.new_context(viewport=resolution, device_scale_factor=1)
+    page = await context.new_page()
+    
+    await page.goto(f"{BASE_URL}/login", timeout=60000)
+    await asyncio.sleep(2)
+    
+    await page.screenshot(path=f"{output_path}/{filename}")
+    print(f"  ✅ {filename}")
+    
+    await context.close()
 
 
 async def main():
@@ -131,11 +87,37 @@ async def main():
     print(f"📍 URL: {BASE_URL}")
     print(f"📁 Output: {OUTPUT_DIR}")
     
+    os.makedirs(f"{OUTPUT_DIR}/playstore", exist_ok=True)
+    os.makedirs(f"{OUTPUT_DIR}/appstore", exist_ok=True)
+    
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         
-        await capture_playstore(browser)
-        await capture_appstore(browser)
+        # PLAY STORE (1080x1920)
+        print("\n📱 Capturando screenshots para Play Store (1080x1920)...")
+        ps_res = RESOLUTIONS["playstore"]
+        ps_out = f"{OUTPUT_DIR}/playstore"
+        
+        await capture_login_screen(browser, ps_res, ps_out, "01-login.png")
+        await capture_with_login(browser, ps_res, "resident", ps_out, "02-emergencia.png")
+        await capture_with_login(browser, ps_res, "admin", ps_out, "03-dashboard.png")
+        await capture_page(browser, ps_res, "admin", "/admin/users", ps_out, "04-usuarios.png")
+        await capture_with_login(browser, ps_res, "guard", ps_out, "05-guardia.png")
+        
+        print("✅ Play Store screenshots completados!")
+        
+        # APP STORE (1290x2796)
+        print("\n🍎 Capturando screenshots para App Store (1290x2796)...")
+        as_res = RESOLUTIONS["appstore"]
+        as_out = f"{OUTPUT_DIR}/appstore"
+        
+        await capture_login_screen(browser, as_res, as_out, "01-login.png")
+        await capture_with_login(browser, as_res, "resident", as_out, "02-emergencia.png")
+        await capture_with_login(browser, as_res, "admin", as_out, "03-dashboard.png")
+        await capture_page(browser, as_res, "admin", "/admin/users", as_out, "04-usuarios.png")
+        await capture_with_login(browser, as_res, "guard", as_out, "05-seguridad.png")
+        
+        print("✅ App Store screenshots completados!")
         
         await browser.close()
     
