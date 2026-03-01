@@ -57,8 +57,11 @@ export function useResidentNotifications(options = {}) {
 // UNREAD COUNT QUERY
 // ============================================
 export function useUnreadNotificationCount(options = {}) {
+  const { user } = useAuth();
+  const userId = user?.id;
+  
   return useQuery({
-    queryKey: residentKeys.unreadCount(),
+    queryKey: residentKeys.unreadCount(userId),
     queryFn: async () => {
       // Use the correct resident-specific endpoint
       const data = await api.get('/resident/visitor-notifications/unread-count');
@@ -66,6 +69,7 @@ export function useUnreadNotificationCount(options = {}) {
     },
     staleTime: 30_000,
     refetchInterval: 30_000,
+    enabled: !!userId,
     ...options
   });
 }
@@ -74,13 +78,17 @@ export function useUnreadNotificationCount(options = {}) {
 // AUTHORIZATIONS QUERY
 // ============================================
 export function useResidentAuthorizations(options = {}) {
+  const { user } = useAuth();
+  const userId = user?.id;
+  
   return useQuery({
-    queryKey: residentKeys.authorizations(),
+    queryKey: residentKeys.authorizations(userId),
     queryFn: async () => {
       const data = await api.getMyAuthorizations();
       return data || [];
     },
     staleTime: 60_000,           // Fresh for 60s
+    enabled: !!userId,
     ...options
   });
 }
@@ -89,8 +97,11 @@ export function useResidentAuthorizations(options = {}) {
 // RESERVATIONS QUERIES
 // ============================================
 export function useReservationAreas(options = {}) {
+  const { user } = useAuth();
+  const condoId = user?.condominium_id;
+  
   return useQuery({
-    queryKey: residentKeys.areas(),
+    queryKey: residentKeys.areas(condoId),
     queryFn: async () => {
       const data = await api.getReservationAreas();
       return (data || []).filter(a => a.is_active !== false);
@@ -98,6 +109,7 @@ export function useReservationAreas(options = {}) {
     staleTime: 5 * 60_000,        // Areas rarely change, 5 min cache
     refetchOnMount: false,        // Use cache on mount
     refetchOnWindowFocus: false,  // Don't refetch on focus
+    enabled: !!condoId,
     ...options
   });
 }
