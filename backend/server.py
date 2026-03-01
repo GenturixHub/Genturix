@@ -11664,7 +11664,8 @@ async def get_billing_balance(
                 billing_cycle_start = billing_date - timedelta(days=365)
             else:
                 billing_cycle_start = billing_date - timedelta(days=30)
-        except:
+        except Exception as date_err:
+            logger.debug(f"[BILLING] Billing date parse error: {date_err}")
             billing_cycle_start = datetime.now(timezone.utc) - timedelta(days=30)
     else:
         billing_cycle_start = datetime.now(timezone.utc) - timedelta(days=30)
