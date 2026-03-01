@@ -15,19 +15,22 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 // ============================================
 // QUERY KEYS (Centralized for consistency)
+// User-scoped to prevent identity collision
 // ============================================
 export const residentKeys = {
   all: ['resident'],
-  notifications: () => [...residentKeys.all, 'notifications'],
-  authorizations: () => [...residentKeys.all, 'authorizations'],
-  reservations: () => [...residentKeys.all, 'reservations'],
-  areas: () => [...residentKeys.all, 'areas'],
-  directory: () => [...residentKeys.all, 'directory'],
-  alerts: () => [...residentKeys.all, 'alerts'],
-  unreadCount: () => [...residentKeys.all, 'unreadCount'],
+  // User-scoped keys to prevent data leak between users
+  notifications: (userId) => [...residentKeys.all, 'notifications', userId],
+  authorizations: (userId) => [...residentKeys.all, 'authorizations', userId],
+  reservations: (userId) => [...residentKeys.all, 'reservations', userId],
+  areas: (condoId) => [...residentKeys.all, 'areas', condoId],
+  directory: (condoId) => [...residentKeys.all, 'directory', condoId],
+  alerts: (userId) => [...residentKeys.all, 'alerts', userId],
+  unreadCount: (userId) => [...residentKeys.all, 'unreadCount', userId],
 };
 
 // ============================================
