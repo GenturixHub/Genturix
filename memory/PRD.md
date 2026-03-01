@@ -3,6 +3,46 @@
 ## Overview
 Genturix is a multi-tenant security and condominium management platform built with React frontend and FastAPI backend.
 
+## Push Notifications Silent/Empty Fix (2026-03-01) ✅ COMPLETE
+
+### Problem
+Users receiving empty notifications with "GENTURIX / Nueva notificación" caused by:
+1. System validation pushes with `silent: true` being displayed
+2. Fallback values used when title/body were empty strings
+
+### Solution Applied (service-worker.js v17)
+1. **Skip silent notifications**: Early return when `payload.silent === true`
+2. **Validate title AND body**: Require both to be non-empty strings
+3. **Remove fallbacks**: No more "GENTURIX" / "Nueva notificación" defaults
+4. **Incremented version**: v16 → v17 to force client update
+
+### Code Changes
+```javascript
+// VALIDATION 2: Skip silent notifications
+if (payload.silent === true) {
+  console.log(`[SW v${SW_VERSION}] Silent notification ignored`);
+  return;
+}
+
+// VALIDATION 3: Require valid title AND body
+const hasValidTitle = payload.title && payload.title.trim() !== '';
+const hasValidBody = payload.body && payload.body.trim() !== '';
+if (!hasValidTitle || !hasValidBody) {
+  console.log(`[SW v${SW_VERSION}] Empty title/body ignored`);
+  return;
+}
+```
+
+### Files Modified
+- `/app/frontend/public/service-worker.js` - Complete rewrite of push handler
+
+### Verification
+- App loads correctly with SW v17 active
+- Validation endpoints still work (no visible notification)
+- Valid triggers (panic, visitors, reservations) have proper title/body
+
+---
+
 ## Stability Review (2026-02-28) ✅ COMPLETE
 
 ### Summary
