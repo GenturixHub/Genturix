@@ -14366,12 +14366,13 @@ async def get_invitation_info(token: str):
     }
 
 @api_router.post("/invitations/{token}/request")
+@limiter.limit(RATE_LIMIT_SENSITIVE)
 async def submit_access_request(
+    request: Request,
     token: str,
-    request_data: AccessRequestCreate,
-    request: Request
+    request_data: AccessRequestCreate
 ):
-    """Submit an access request using an invitation link (no auth required)"""
+    """Submit an access request using an invitation link - rate limited (no auth required)"""
     invitation = await db.invitations.find_one({"token": token}, {"_id": 0})
     
     if not invitation:
