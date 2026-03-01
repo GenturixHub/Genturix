@@ -6972,6 +6972,11 @@ async def get_resident_visit_history(
             "visitors_inside": inside_count
         }
     }
+    
+    # P0 SECURITY LOG
+    logger.info(f"[SECURITY] visit_query_scoped | endpoint=resident/visit-history | user_id={user_id[:12]}... | condo_id={condo_id[:12]}... | records_returned={len(enriched_entries)}")
+    
+    return result
 
 
 @api_router.get("/resident/visit-history/export")
