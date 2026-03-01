@@ -3,6 +3,53 @@
 ## Overview
 Genturix is a multi-tenant security and condominium management platform built with React frontend and FastAPI backend.
 
+## Capacitor Native Build Setup (2026-03-01) ✅ COMPLETE
+
+### Summary
+Configured Capacitor to generate native Android and iOS builds from the PWA.
+
+### Configuration
+- **App ID:** `com.genturix.app`
+- **App Name:** `Genturix`
+- **Web Dir:** `build`
+- **Capacitor Version:** 6.x
+
+### Platforms Added
+- Android (`/app/frontend/android/`)
+- iOS (`/app/frontend/ios/`)
+
+### Plugins Installed
+- `@capacitor/core@6` - Core functionality
+- `@capacitor/push-notifications@6` - Push notifications
+- `@capacitor/splash-screen@6` - Splash screen
+- `@capacitor/status-bar@6` - Status bar control
+
+### Assets Generated
+**Android:**
+- App icons (mipmap-mdpi through mipmap-xxxhdpi)
+- Adaptive icon foregrounds
+- Splash screens (portrait + landscape, all densities)
+- Updated AndroidManifest.xml with permissions
+
+**iOS:**
+- AppIcon.appiconset (15 sizes for all devices)
+- Splash.imageset
+
+### Documentation
+- `/app/store-release/BUILD_INSTRUCTIONS.md` - Complete build guide
+
+### Commands
+```bash
+# Build and sync
+yarn build && npx cap sync
+
+# Open in IDE
+npx cap open android
+npx cap open ios
+```
+
+---
+
 ## Store Assets Generation (2026-03-01) ✅ COMPLETE
 
 ### Summary
