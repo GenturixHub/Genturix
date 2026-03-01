@@ -37,14 +37,18 @@ export const residentKeys = {
 // NOTIFICATIONS QUERY
 // ============================================
 export function useResidentNotifications(options = {}) {
+  const { user } = useAuth();
+  const userId = user?.id;
+  
   return useQuery({
-    queryKey: residentKeys.notifications(),
+    queryKey: residentKeys.notifications(userId),
     queryFn: async () => {
       const data = await api.getVisitorNotifications();
       return data || [];
     },
     staleTime: 30_000,           // Fresh for 30s
     refetchInterval: 30_000,     // Poll every 30s (replaces setInterval)
+    enabled: !!userId,           // Only fetch when user is logged in
     ...options
   });
 }
