@@ -14418,19 +14418,25 @@ async def submit_access_request(
     if existing_request:
         raise HTTPException(status_code=400, detail="Ya existe una solicitud pendiente con este email")
     
+    # Sanitize user inputs
+    sanitized_name = sanitize_text(request_data.full_name.strip())
+    sanitized_apt = sanitize_text(request_data.apartment_number.strip())
+    sanitized_tower = sanitize_text(request_data.tower_block) if request_data.tower_block else None
+    sanitized_notes = sanitize_text(request_data.notes) if request_data.notes else None
+    
     # Create access request
     access_request = {
         "id": str(uuid.uuid4()),
         "invitation_id": invitation["id"],
         "condominium_id": invitation["condominium_id"],
         "condominium_name": invitation["condominium_name"],
-        "full_name": request_data.full_name.strip(),
+        "full_name": sanitized_name,
         "email": request_data.email.lower().strip(),
         "phone": request_data.phone,
-        "apartment_number": request_data.apartment_number.strip(),
-        "tower_block": request_data.tower_block,
+        "apartment_number": sanitized_apt,
+        "tower_block": sanitized_tower,
         "resident_type": request_data.resident_type,
-        "notes": request_data.notes,
+        "notes": sanitized_notes,
         "status": "pending_approval",
         "status_message": None,
         "created_at": datetime.now(timezone.utc).isoformat(),
