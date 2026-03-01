@@ -309,6 +309,10 @@ function AppRoutes() {
       {/* Password Reset Page (Public - accessed via email link) */}
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 
+      {/* Legal Pages (Public - required for App Store/Play Store) */}
+      <Route path="/privacy" element={<PrivacyPolicyPage />} />
+      <Route path="/terms" element={<TermsOfServicePage />} />
+
       {/* Role-based entry point - also checks install gate */}
       <Route path="/" element={<InstallGateRoute />} />
 
