@@ -9920,6 +9920,9 @@ async def create_reservation(
     reservation_id = str(uuid.uuid4())
     status = "pending" if area.get("requires_approval", False) else "approved"
     
+    # Sanitize user input
+    sanitized_purpose = sanitize_text(reservation.purpose) if reservation.purpose else ""
+    
     reservation_doc = {
         "id": reservation_id,
         "condominium_id": condo_id,
@@ -9928,7 +9931,7 @@ async def create_reservation(
         "date": reservation.date,
         "start_time": reservation.start_time,
         "end_time": reservation.end_time,
-        "purpose": reservation.purpose,
+        "purpose": sanitized_purpose,
         "guests_count": reservation.guests_count,
         "status": status,
         "created_at": datetime.now(timezone.utc).isoformat()
