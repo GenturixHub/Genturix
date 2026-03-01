@@ -3,6 +3,88 @@
 ## Overview
 Genturix is a multi-tenant security and condominium management platform built with React frontend and FastAPI backend.
 
+## Visit History Data Leak Fix (2026-03-01) ✅ COMPLETE
+
+### Problem
+Bug P0 reportado: Todos los residentes veían las mismas entradas de visitas en la sección "Utilizadas", incluso residentes de diferentes condominios.
+
+### Root Cause
+- El query `$or` con arrays vacíos (`resident_auth_ids`, `legacy_visitor_ids`) podría devolver registros inesperados
+- Falta de validación estricta de `condominium_id` antes de ejecutar queries
+
+### Solution Applied
+
+#### 1. `/authorizations/my` endpoint
+```python
+# BEFORE
+query = {
+    "created_by": current_user["id"],
+    "condominium_id": condo_id
+}
+
+# AFTER
+if not condo_id:
+    raise HTTPException(403, "Usuario no asignado a un condominio")
+    
+query = {
+    "created_by": user_id,
+    "condominium_id": condo_id  # REQUIRED
+}
+# + Security logging
+```
+
+#### 2. `/resident/visit-history` endpoint
+```python
+# BEFORE
+query = {
+    "condominium_id": condo_id,
+    "$or": [
+        {"authorization_id": {"$in": resident_auth_ids}},  # Empty array issue
+        {"visitor_id": {"$in": legacy_visitor_ids}},       # Empty array issue
+        {"resident_id": user_id}
+    ]
+}
+
+# AFTER
+or_conditions = []
+if resident_auth_ids:
+    or_conditions.append({"authorization_id": {"$in": resident_auth_ids}})
+if legacy_visitor_ids:
+    or_conditions.append({"visitor_id": {"$in": legacy_visitor_ids}})
+or_conditions.append({"resident_id": user_id})
+
+query = {
+    "condominium_id": condo_id,  # REQUIRED
+    "$or": or_conditions
+}
+# + Security logging
+```
+
+### Security Logging Added
+```
+[SECURITY] visit_query_scoped | endpoint=authorizations/my | user_id=... | condo_id=... | records_returned=...
+[SECURITY] visit_query_scoped | endpoint=resident/visit-history | user_id=... | condo_id=... | records_returned=...
+```
+
+### Frontend Cache Safety
+- `queryClient.clear()` already executes on login (line 167 AuthContext.js)
+- Prevents cached data from previous user appearing after logout/login
+
+### Verification Results
+- ✅ Resident A sees only their 4 authorizations
+- ✅ Admin sees 0 authorizations (correct - different user)
+- ✅ Resident A sees only their 3 visit history entries
+- ✅ Admin sees 0 visit history entries (correct - not their visits)
+- ✅ Cross-tenant isolation verified
+
+### Files Modified
+- `/app/backend/server.py`:
+  - Lines 5771-5812: `/authorizations/my` - Added condo_id validation + security logging
+  - Lines 6806-6865: `/resident/visit-history` - Fixed $or with empty arrays + security logging
+  - Lines 7010-7040: `/resident/visit-history/export` - Same fix applied
+
+---
+
 ## Production Security Patch (2026-03-01) ✅ COMPLETE
 
 ### Summary
