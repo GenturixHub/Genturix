@@ -3205,7 +3205,9 @@ async def log_billing_event(
 # ==================== AUTH ROUTES ====================
 
 @api_router.post("/auth/register", response_model=UserResponse)
-async def register(user_data: UserCreate, request: Request):
+@limiter.limit(RATE_LIMIT_AUTH)
+async def register(request: Request, user_data: UserCreate):
+    """Register new user - rate limited to prevent abuse"""
     existing = await db.users.find_one({"email": user_data.email})
     if existing:
         raise HTTPException(status_code=409, detail="Email already registered")
