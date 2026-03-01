@@ -5270,15 +5270,20 @@ async def create_visitor_preregistration(
     """Resident pre-registers a visitor - creates PENDING record"""
     visitor_id = str(uuid.uuid4())
     
+    # Sanitize user inputs
+    sanitized_name = sanitize_text(visitor.full_name)
+    sanitized_notes = sanitize_text(visitor.notes) if visitor.notes else None
+    sanitized_plate = sanitize_text(visitor.vehicle_plate) if visitor.vehicle_plate else None
+    
     visitor_doc = {
         "id": visitor_id,
-        "full_name": visitor.full_name,
+        "full_name": sanitized_name,
         "national_id": visitor.national_id,
-        "vehicle_plate": visitor.vehicle_plate,
+        "vehicle_plate": sanitized_plate,
         "visit_type": visitor.visit_type.value,
         "expected_date": visitor.expected_date,
         "expected_time": visitor.expected_time,
-        "notes": visitor.notes,
+        "notes": sanitized_notes,
         "status": VisitorStatusEnum.PENDING.value,
         "created_by": current_user["id"],
         "created_by_name": current_user.get("full_name", "Resident"),
