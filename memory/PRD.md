@@ -3,6 +3,62 @@
 ## Overview
 Genturix is a multi-tenant security and condominium management platform built with React frontend and FastAPI backend.
 
+## Legal Pages for App Store (2026-03-01) ✅ COMPLETE
+
+### Summary
+Added public Privacy Policy and Terms of Service pages required for Google Play Store and Apple App Store submission.
+
+### Files Created
+- `/app/frontend/src/pages/PrivacyPolicyPage.jsx` - Privacy Policy with 8 sections
+- `/app/frontend/src/pages/TermsOfServicePage.jsx` - Terms of Service with 8 sections
+
+### Routes Added (Public - No Auth Required)
+- `/privacy` - Privacy Policy page
+- `/terms` - Terms of Service page
+
+### Login Page Updates
+- Added legal agreement text: "Al continuar aceptas nuestros Términos de Servicio y Política de Privacidad"
+- Added footer links to both legal pages
+
+### Features
+- Dark theme consistent with Genturix UI
+- Responsive layout (mobile-friendly)
+- Scrollable content
+- Centered readable container (max-width 900px)
+- SEO meta tags (title, description)
+- Back navigation to login
+- Cross-links between legal pages
+
+### Privacy Policy Sections
+1. Introducción
+2. Datos que Recopilamos
+3. Cómo Usamos sus Datos
+4. Notificaciones Push
+5. Seguridad de Datos
+6. Servicios de Terceros
+7. Retención de Datos
+8. Contacto
+
+### Terms of Service Sections
+1. Aceptación de Términos
+2. Responsabilidades del Usuario
+3. Sistema de Autorización de Visitantes
+4. Uso del Sistema de Seguridad
+5. Responsabilidades de la Administración
+6. Disponibilidad del Servicio
+7. Limitación de Responsabilidad
+8. Información de Contacto
+
+### Verification
+- ✅ `/privacy` accessible without login
+- ✅ `/terms` accessible without login
+- ✅ SEO titles set correctly
+- ✅ Links from login page work
+- ✅ Footer links work
+- ✅ Mobile responsive
+
+---
+
 ## Visit History Data Leak Fix (2026-03-01) ✅ COMPLETE
 
 ### Problem
