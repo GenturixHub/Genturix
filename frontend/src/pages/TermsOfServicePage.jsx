@@ -15,9 +15,9 @@ const TermsOfServicePage = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-gray-200">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#0f172a]/95 backdrop-blur-sm border-b border-[#1e293b]">
+    <div className="h-screen flex flex-col bg-[#0f172a] text-gray-200">
+      {/* Header - Fixed at top */}
+      <header className="flex-shrink-0 bg-[#0f172a] border-b border-[#1e293b]">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
           <Link 
             to="/login" 
@@ -33,8 +33,9 @@ const TermsOfServicePage = () => {
         </div>
       </header>
 
-      {/* Content */}
-      <main className="max-w-4xl mx-auto px-4 py-8 pb-20">
+      {/* Content - Scrollable area */}
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl mx-auto px-4 py-8 pb-20">
         <div className="space-y-8">
           {/* Title */}
           <div className="text-center space-y-2">
