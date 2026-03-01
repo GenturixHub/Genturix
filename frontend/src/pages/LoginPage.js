@@ -409,15 +409,52 @@ const LoginPage = () => {
                     t('auth.loginButton', 'Sign In')
                   )}
                 </Button>
+
+                {/* Legal Links */}
+                <p className="text-[10px] text-center text-muted-foreground mt-4">
+                  {t('auth.legalAgreement', 'Al continuar aceptas nuestros')}{' '}
+                  <Link 
+                    to="/terms" 
+                    className="text-primary hover:underline"
+                    data-testid="terms-link"
+                  >
+                    {t('auth.termsOfService', 'Términos de Servicio')}
+                  </Link>
+                  {' '}{t('auth.and', 'y')}{' '}
+                  <Link 
+                    to="/privacy" 
+                    className="text-primary hover:underline"
+                    data-testid="privacy-link"
+                  >
+                    {t('auth.privacyPolicy', 'Política de Privacidad')}
+                  </Link>
+                </p>
               </form>
             </CardContent>
           </Card>
 
           {/* Footer */}
-          <div className="text-center">
+          <div className="text-center space-y-2">
             <p className="text-[10px] text-muted-foreground">
               GENTURIX v1.0 • {t('auth.enterprisePlatform', 'Enterprise Security Platform')}
             </p>
+            <div className="flex justify-center gap-3">
+              <Link 
+                to="/privacy" 
+                className="text-[10px] text-muted-foreground hover:text-primary transition-colors"
+                data-testid="footer-privacy-link"
+              >
+                {t('auth.privacyPolicy', 'Política de Privacidad')}
+              </Link>
+              <span className="text-[10px] text-muted-foreground">•</span>
+              <Link 
+                to="/terms" 
+                className="text-[10px] text-muted-foreground hover:text-primary transition-colors"
+                data-testid="footer-terms-link"
+              >
+                {t('auth.termsOfService', 'Términos de Servicio')}
+              </Link>
+            </div>
           </div>
         </div>
       </div>
