@@ -44,7 +44,7 @@
       "status": "PASS",
       "endpoint": "GET /api/test-email?email=",
       "evidence": "Returns {status:'sent', email_id:'7dadf4d9-85d6-4e50-8fea-81d4498432fb'} for verified emails. Returns {status:'error', error:'...'} for unverified emails (sandbox limitation).",
-      "curl": "curl 'https://genturix-stability.preview.emergentagent.com/api/test-email?email=genturix@gmail.com'"
+      "curl": "curl 'https://genturix-scroll-fix.preview.emergentagent.com/api/test-email?email=genturix@gmail.com'"
     },
     "email_service_status": {
       "status": "PASS",
