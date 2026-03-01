@@ -162,13 +162,17 @@ export function useReservationsData(options = {}) {
 // DIRECTORY QUERY
 // ============================================
 export function useCondominiumDirectory(options = {}) {
+  const { user } = useAuth();
+  const condoId = user?.condominium_id;
+  
   return useQuery({
-    queryKey: residentKeys.directory(),
+    queryKey: residentKeys.directory(condoId),
     queryFn: async () => {
       const data = await api.getCondominiumDirectory();
       return data;
     },
     staleTime: 5 * 60_000,       // Directory rarely changes
+    enabled: !!condoId,
     ...options
   });
 }
@@ -177,14 +181,18 @@ export function useCondominiumDirectory(options = {}) {
 // RESIDENT ALERTS QUERY
 // ============================================
 export function useResidentAlerts(options = {}) {
+  const { user } = useAuth();
+  const userId = user?.id;
+  
   return useQuery({
-    queryKey: residentKeys.alerts(),
+    queryKey: residentKeys.alerts(userId),
     queryFn: async () => {
       const data = await api.getResidentAlerts();
       return data || [];
     },
     staleTime: 10_000,           // Alerts should be fresh
     refetchInterval: 30_000,     // Poll for new alerts
+    enabled: !!userId,
     ...options
   });
 }
