@@ -115,8 +115,11 @@ export function useReservationAreas(options = {}) {
 }
 
 export function useMyReservations(options = {}) {
+  const { user } = useAuth();
+  const userId = user?.id;
+  
   return useQuery({
-    queryKey: residentKeys.reservations(),
+    queryKey: residentKeys.reservations(userId),
     queryFn: async () => {
       const data = await api.getReservations();
       return data || [];
@@ -124,6 +127,7 @@ export function useMyReservations(options = {}) {
     staleTime: 5 * 60_000,        // Match areas cache - 5 min
     refetchOnMount: false,        // Use cache on mount
     refetchOnWindowFocus: false,  // Don't refetch on focus
+    enabled: !!userId,
     ...options
   });
 }
