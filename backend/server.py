@@ -10211,7 +10211,8 @@ async def get_smart_availability(
         start_min = int(available_from.split(":")[1]) if ":" in available_from else 0
         end_hour = int(available_until.split(":")[0])
         end_min = int(available_until.split(":")[1]) if ":" in available_until else 0
-    except:
+    except Exception as parse_err:
+        logger.debug(f"[RESERVATIONS] Time parse error, using defaults: {parse_err}")
         start_hour, start_min = 6, 0
         end_hour, end_min = 22, 0
     
