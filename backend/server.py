@@ -6957,7 +6957,7 @@ async def get_resident_visit_history(
         "status": "inside"
     })
     
-    return {
+    result = {
         "entries": enriched_entries,
         "pagination": {
             "page": page,
