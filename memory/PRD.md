@@ -3,6 +3,33 @@
 ## Overview
 Genturix is a multi-tenant security and condominium management platform built with React frontend and FastAPI backend.
 
+## Legal Pages Scroll Bug Fix (2026-03-01) ✅ COMPLETE
+
+### Problem
+Las páginas legales (`/privacy` y `/terms`) no permitían scroll, impidiendo que los usuarios leyeran el contenido completo.
+
+### Root Cause
+- Layout incorrecto usando `min-h-screen` sin área de scroll definida
+- Header `sticky` causando conflicto con el scroll del body
+
+### Solution Applied
+- Cambio de `min-h-screen` a `h-screen flex flex-col`
+- Header con `flex-shrink-0` para tamaño fijo
+- Contenido principal con `flex-1 overflow-y-auto` para scroll interno
+- Eliminación de `sticky` en header (innecesario con nuevo layout)
+
+### Files Modified
+- `/app/frontend/src/pages/PrivacyPolicyPage.jsx`
+- `/app/frontend/src/pages/TermsOfServicePage.jsx`
+
+### Verification
+- ✅ Desktop scroll funciona (1920x800)
+- ✅ Mobile scroll funciona (375x667)
+- ✅ Footer visible al hacer scroll hasta el final
+- ✅ Header permanece visible durante scroll
+
+---
+
 ## Legal Pages for App Store (2026-03-01) ✅ COMPLETE
 
 ### Summary
@@ -23,7 +50,7 @@ Added public Privacy Policy and Terms of Service pages required for Google Play 
 ### Features
 - Dark theme consistent with Genturix UI
 - Responsive layout (mobile-friendly)
-- Scrollable content
+- Scrollable content ✅ FIXED
 - Centered readable container (max-width 900px)
 - SEO meta tags (title, description)
 - Back navigation to login
