@@ -13222,7 +13222,8 @@ async def export_audit_logs_pdf(
                 try:
                     dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
                     timestamp = dt.strftime("%Y-%m-%d %H:%M")
-                except:
+                except Exception as fmt_err:
+                    logger.debug(f"[AUDIT] Timestamp format error: {fmt_err}")
                     timestamp = str(timestamp)[:16]
             
             # Get user name from pre-fetched map or fallback
