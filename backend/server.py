@@ -7021,7 +7021,8 @@ async def export_resident_visit_history(
                 entry_time = datetime.fromisoformat(entry["entry_at"].replace("Z", "+00:00"))
                 exit_time = datetime.fromisoformat(entry["exit_at"].replace("Z", "+00:00"))
                 entry["duration_minutes"] = int((exit_time - entry_time).total_seconds() / 60)
-            except:
+            except Exception as calc_err:
+                logger.debug(f"[VISITS] Duration calc error: {calc_err}")
                 entry["duration_minutes"] = None
         else:
             entry["duration_minutes"] = None
