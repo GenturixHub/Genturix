@@ -450,24 +450,27 @@ const generatePDF = async (exportData, t) => {
   const container = document.createElement('div');
   container.id = 'visit-history-pdf-container';
   container.innerHTML = html;
-  // Use visibility:hidden instead of opacity:0 - element takes space but invisible
-  // Position off-screen but still rendered
+  
+  // CRITICAL FIX: Use absolute positioning in viewport but visually hidden
+  // html2canvas requires elements to be in the rendered DOM tree
   container.style.cssText = `
-    position: fixed;
-    top: 0;
+    position: absolute;
+    top: -9999px;
     left: 0;
     width: 800px;
     min-height: 1000px;
     background: #ffffff;
-    z-index: -9999;
+    z-index: 1;
     visibility: visible;
-    pointer-events: none;
     overflow: visible;
   `;
   document.body.appendChild(container);
   
-  // Wait longer for DOM to fully render before capturing
-  await new Promise(resolve => setTimeout(resolve, 500));
+  // Force browser reflow/layout to ensure content is rendered
+  container.offsetHeight;
+  
+  // Wait for DOM to fully render before capturing
+  await new Promise(resolve => setTimeout(resolve, 1000));
   
   // Generate filename with date
   const dateStr = new Date().toISOString().split('T')[0];
@@ -477,25 +480,67 @@ const generatePDF = async (exportData, t) => {
   const options = {
     margin: 10,
     filename: filename,
-    image: { type: 'png', quality: 1.0 },
+    image: { type: 'jpeg', quality: 0.98 },
     html2canvas: { 
       scale: 2, 
       useCORS: true,
       backgroundColor: '#ffffff',
-      logging: false,
+      logging: true, // Enable logging for debug
       allowTaint: true,
       windowWidth: 800,
-      windowHeight: 1000
+      scrollX: 0,
+      scrollY: 0,
+      // CRITICAL: Ensure the element is captured from the correct position
+      x: 0,
+      y: 0
     },
     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
   };
   
-  // Generate and download PDF
+  // Generate and download PDF with error handling
   try {
-    await html2pdf().set(options).from(container).save();
+    console.log('[PDF Export] Starting generation with', exportData.total_entries, 'entries');
+    
+    // Use output method to get blob and verify it has content
+    const pdfBlob = await html2pdf().set(options).from(container).outputPdf('blob');
+    
+    console.log('[PDF Export] Generated blob size:', pdfBlob?.size);
+    
+    if (pdfBlob && pdfBlob.size > 1000) {
+      // Create download link manually for better control
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      console.log('[PDF Export] Download triggered successfully');
+    } else {
+      console.error('[PDF Export] Generated PDF is too small or empty');
+      throw new Error('PDF generation failed - empty output');
+    }
+  } catch (error) {
+    console.error('[PDF Export] Error:', error);
+    // Fallback: Try window.print() approach
+    try {
+      console.log('[PDF Export] Trying print fallback...');
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.print();
+      }
+    } catch (printError) {
+      console.error('[PDF Export] Print fallback also failed:', printError);
+      throw error; // Re-throw original error
+    }
   } finally {
     // Clean up
-    document.body.removeChild(container);
+    if (document.body.contains(container)) {
+      document.body.removeChild(container);
+    }
   }
 };
 
