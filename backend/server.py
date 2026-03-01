@@ -3652,12 +3652,13 @@ class ResetPasswordWithCodeRequest(BaseModel):
 
 
 @api_router.post("/auth/request-password-reset")
+@limiter.limit(RATE_LIMIT_SENSITIVE)
 async def request_password_reset_code(
-    request_data: ForgotPasswordRequest,
-    request: Request
+    request: Request,
+    request_data: ForgotPasswordRequest
 ):
     """
-    Request a password reset code via email.
+    Request a password reset code via email - rate limited to prevent abuse.
     
     - Generates a 6-digit verification code
     - Code expires in 10 minutes
