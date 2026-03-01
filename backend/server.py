@@ -2337,8 +2337,8 @@ async def send_push_notification(subscription_info: dict, payload: dict) -> bool
         try:
             if e.response:
                 error_body = e.response.text[:100] if e.response.text else ""
-        except:
-            pass
+        except Exception as parse_err:
+            logger.debug(f"[PUSH] Could not parse error response: {parse_err}")
         
         # ONLY delete on 404 (Not Found) or 410 (Gone) - subscription is permanently invalid
         if status_code in [404, 410]:
