@@ -287,6 +287,50 @@ RATE_LIMIT_PUSH = "10/minute"         # Push notification endpoints
 
 logger.info(f"[SECURITY] Rate limiting enabled: global={RATE_LIMIT_GLOBAL}, auth={RATE_LIMIT_AUTH}, sensitive={RATE_LIMIT_SENSITIVE}")
 
+# ==================== INPUT SANITIZATION (2026-03-01) ====================
+def sanitize_text(text: str, max_length: int = 10000) -> str:
+    """
+    Sanitize user input to prevent XSS attacks.
+    
+    - Strips all HTML tags
+    - Removes potentially dangerous characters
+    - Truncates to max_length
+    
+    Use for: names, descriptions, messages, notes, etc.
+    Do NOT use for: IDs, emails, passwords, numeric fields
+    """
+    if not text:
+        return text
+    if not isinstance(text, str):
+        return str(text)
+    
+    # Remove HTML tags completely
+    cleaned = bleach.clean(text, tags=[], strip=True)
+    # Truncate to max length
+    return cleaned[:max_length] if len(cleaned) > max_length else cleaned
+
+
+def sanitize_dict_fields(data: dict, fields: List[str]) -> dict:
+    """
+    Sanitize specific fields in a dictionary.
+    Returns a new dict with sanitized values.
+    """
+    result = data.copy()
+    for field in fields:
+        if field in result and isinstance(result[field], str):
+            result[field] = sanitize_text(result[field])
+    return result
+
+
+# Fields that should be sanitized (user-provided text)
+SANITIZE_FIELDS = [
+    "full_name", "name", "description", "message", "notes",
+    "visitor_name", "public_description", "reason", "comments",
+    "address", "contact_phone", "apartment", "apartment_number"
+]
+
+logger.info(f"[SECURITY] Input sanitization enabled for fields: {SANITIZE_FIELDS}")
+
 # ==================== PHASE 2: REQUEST ID MIDDLEWARE ====================
 @app.middleware("http")
 async def request_id_middleware(request: Request, call_next):
