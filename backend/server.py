@@ -11399,7 +11399,8 @@ async def confirm_sinpe_payment(
                 billing_cycle_start = billing_cycle_start - timedelta(days=365)
             else:
                 billing_cycle_start = billing_cycle_start - timedelta(days=30)
-        except:
+        except Exception as date_err:
+            logger.debug(f"[BILLING] Date parse error, using default: {date_err}")
             billing_cycle_start = now - timedelta(days=30)
     else:
         billing_cycle_start = now - timedelta(days=30)
