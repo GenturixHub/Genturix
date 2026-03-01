@@ -53,9 +53,8 @@ async def capture_playstore(browser):
     os.makedirs(output, exist_ok=True)
     
     # 1. Login Screen
-    await page.goto(f"{BASE_URL}/login")
-    await page.wait_for_load_state("networkidle")
-    await asyncio.sleep(1)
+    await page.goto(f"{BASE_URL}/login", timeout=60000)
+    await asyncio.sleep(2)
     await page.screenshot(path=f"{output}/01-login.png")
     print("  ✅ 01-login.png")
     
@@ -70,8 +69,8 @@ async def capture_playstore(browser):
     print("  ✅ 03-dashboard.png")
     
     # 4. Users Management
-    await page.goto(f"{BASE_URL}/admin/users")
-    await asyncio.sleep(2)
+    await page.goto(f"{BASE_URL}/admin/users", timeout=60000)
+    await asyncio.sleep(3)
     await page.screenshot(path=f"{output}/04-usuarios.png")
     print("  ✅ 04-usuarios.png")
     
