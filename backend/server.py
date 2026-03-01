@@ -5771,14 +5771,22 @@ async def create_visitor_authorization(
 @api_router.get("/authorizations/my")
 async def get_my_authorizations(
     status: Optional[str] = None,  # active, expired, all, used
+    request: Request = None,
     current_user = Depends(get_current_user)
 ):
     """Resident gets their own visitor authorizations with usage status"""
     # CRITICAL: Enforce tenant isolation
+    user_id = current_user["id"]
     condo_id = current_user.get("condominium_id")
+    
+    # P0 SECURITY: Require valid condominium_id
+    if not condo_id:
+        logger.warning(f"[SECURITY] authorizations/my blocked: user {user_id} has no condominium_id")
+        raise HTTPException(status_code=403, detail="Usuario no asignado a un condominio")
+    
     query = {
-        "created_by": current_user["id"],
-        "condominium_id": condo_id  # Multi-tenant filter
+        "created_by": user_id,
+        "condominium_id": condo_id  # Multi-tenant filter - REQUIRED
     }
     
     if status == "active":
@@ -5797,6 +5805,9 @@ async def get_my_authorizations(
     authorizations = await db.visitor_authorizations.find(
         query, {"_id": 0}
     ).sort("created_at", -1).to_list(100)
+    
+    # SECURITY LOG
+    logger.info(f"[SECURITY] visit_query_scoped | endpoint=authorizations/my | user_id={user_id[:12]}... | condo_id={condo_id[:12]}... | status={status} | records_returned={len(authorizations)}")
     
     # Get condominium timezone for validity checks
     condo_timezone = None
