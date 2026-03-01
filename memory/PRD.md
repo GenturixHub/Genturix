@@ -3,6 +3,67 @@
 ## Overview
 Genturix is a multi-tenant security and condominium management platform built with React frontend and FastAPI backend.
 
+## Production Security Patch (2026-03-01) ✅ COMPLETE
+
+### Summary
+Applied critical P0 security fixes without architectural refactoring.
+
+### Changes Applied
+
+#### 1. Rate Limiting (slowapi)
+- **Global limit:** 60 requests/minute per IP
+- **Auth endpoints:** 5 requests/minute (login, register)
+- **Sensitive endpoints:** 3 requests/minute (password reset, access requests)
+- **Push endpoints:** 10 requests/minute
+
+#### 2. Input Sanitization (bleach)
+- `sanitize_text()` function added
+- Applied to: visitor names, notes, reservation purposes, access requests
+- Strips all HTML tags to prevent XSS
+
+#### 3. Error Handling
+- Replaced 8 instances of `except: pass` with `except Exception as e: logger.debug()`
+- No more silent error swallowing
+
+#### 4. Dependencies Added
+- `bleach==6.3.0`
+- `slowapi==0.1.9`
+
+### Files Modified
+- `/app/backend/server.py`:
+  - Lines 1-35: Added bleach, slowapi imports
+  - Lines 267-330: Rate limiter configuration + sanitization functions
+  - Lines 3207-3215: @limiter.limit on /auth/register
+  - Lines 3271-3275: @limiter.limit on /auth/login
+  - Lines 3650-3660: @limiter.limit on /auth/request-password-reset
+  - Lines 14384-14391: @limiter.limit on /invitations/{token}/request
+  - Lines 5264-5300: Sanitization on visitor pre-registration
+  - Lines 5383-5410: Sanitization on visitor entry notes
+  - Lines 9920-9940: Sanitization on reservation purpose
+  - Lines 14420-14455: Sanitization on access request fields
+  - Multiple except blocks: Added logging
+
+- `/app/backend/requirements.txt`: Added bleach, slowapi
+
+### Verification Results
+- ✅ Login works with rate limiting (HTTP 429 after 5 attempts)
+- ✅ Health check responds correctly
+- ✅ Visitors list works
+- ✅ Reservations list works
+- ✅ Push subscriptions validation works
+- ✅ Multi-tenant isolation intact
+
+### Security Status After Patch
+| Check | Before | After |
+|-------|--------|-------|
+| Rate Limiting | 2 endpoints | All auth endpoints |
+| Input Sanitization | None | All user text fields |
+| Error Handling | Silent | Logged |
+| JWT Secrets | ✅ Already OK | ✅ OK |
+| CORS | ✅ Already OK | ✅ OK |
+
+---
+
 ## Push Notifications Silent/Empty Fix (2026-03-01) ✅ COMPLETE
 
 ### Problem
