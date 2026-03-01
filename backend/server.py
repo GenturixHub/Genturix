@@ -3271,7 +3271,9 @@ async def register(request: Request, user_data: UserCreate):
     )
 
 @api_router.post("/auth/login", response_model=TokenResponse)
-async def login(credentials: UserLogin, request: Request):
+@limiter.limit(RATE_LIMIT_AUTH)
+async def login(request: Request, credentials: UserLogin):
+    """Login endpoint - rate limited to prevent brute force"""
     # ==================== RATE LIMITING CHECK ====================
     client_ip = request.client.host if request.client else "unknown"
     normalized_email = credentials.email.lower().strip()
