@@ -204,12 +204,13 @@ export function useResidentAlerts(options = {}) {
 // Create authorization mutation
 export function useCreateAuthorization() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   return useMutation({
     mutationFn: (authData) => api.createAuthorization(authData),
     onSuccess: () => {
       // Invalidate and refetch authorizations
-      queryClient.invalidateQueries({ queryKey: residentKeys.authorizations() });
+      queryClient.invalidateQueries({ queryKey: residentKeys.authorizations(user?.id) });
     }
   });
 }
@@ -217,6 +218,8 @@ export function useCreateAuthorization() {
 // Delete authorization mutation with optimistic update
 export function useDeleteAuthorization() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const userId = user?.id;
   
   return useMutation({
     mutationFn: (authId) => api.deleteAuthorization(authId),
@@ -227,10 +230,10 @@ export function useDeleteAuthorization() {
       await queryClient.cancelQueries({ queryKey: residentKeys.all });
       
       // Snapshot the previous value
-      const previousAuthorizations = queryClient.getQueryData(residentKeys.authorizations());
+      const previousAuthorizations = queryClient.getQueryData(residentKeys.authorizations(userId));
       
       // Optimistically update: remove the deleted item
-      queryClient.setQueryData(residentKeys.authorizations(), (old) => {
+      queryClient.setQueryData(residentKeys.authorizations(userId), (old) => {
         if (!old) return old;
         return old.filter(auth => auth.id !== authId);
       });
@@ -243,13 +246,13 @@ export function useDeleteAuthorization() {
     onSuccess: (data, authId, context) => {
       // The item is already removed from cache in onMutate
       // Only invalidate notifications (not authorizations!)
-      queryClient.invalidateQueries({ queryKey: residentKeys.notifications() });
+      queryClient.invalidateQueries({ queryKey: residentKeys.notifications(userId) });
     },
     
     // If mutation fails, rollback to previous state
     onError: (err, authId, context) => {
       if (context?.previousAuthorizations) {
-        queryClient.setQueryData(residentKeys.authorizations(), context.previousAuthorizations);
+        queryClient.setQueryData(residentKeys.authorizations(userId), context.previousAuthorizations);
       }
     }
     
@@ -260,11 +263,12 @@ export function useDeleteAuthorization() {
 // Create reservation mutation
 export function useCreateReservation() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   return useMutation({
     mutationFn: (reservationData) => api.createReservation(reservationData),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: residentKeys.reservations() });
+      queryClient.invalidateQueries({ queryKey: residentKeys.reservations(user?.id) });
     }
   });
 }
@@ -272,11 +276,12 @@ export function useCreateReservation() {
 // Cancel reservation mutation
 export function useCancelReservation() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   return useMutation({
     mutationFn: (reservationId) => api.cancelReservation(reservationId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: residentKeys.reservations() });
+      queryClient.invalidateQueries({ queryKey: residentKeys.reservations(user?.id) });
     }
   });
 }
@@ -284,12 +289,13 @@ export function useCancelReservation() {
 // Mark notification as read mutation
 export function useMarkNotificationRead() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   return useMutation({
     mutationFn: (notificationId) => api.markNotificationRead(notificationId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: residentKeys.notifications() });
-      queryClient.invalidateQueries({ queryKey: residentKeys.unreadCount() });
+      queryClient.invalidateQueries({ queryKey: residentKeys.notifications(user?.id) });
+      queryClient.invalidateQueries({ queryKey: residentKeys.unreadCount(user?.id) });
     }
   });
 }
