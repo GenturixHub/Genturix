@@ -272,6 +272,21 @@ app = FastAPI(
     redoc_url="/redoc" if ENVIRONMENT != "production" else None
 )
 
+# ==================== RATE LIMITING CONFIGURATION (2026-03-01) ====================
+# Global rate limiter using slowapi
+# Limits per IP address to prevent abuse
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Rate limit constants
+RATE_LIMIT_GLOBAL = "60/minute"      # Default for most endpoints
+RATE_LIMIT_AUTH = "5/minute"          # Login, register
+RATE_LIMIT_SENSITIVE = "3/minute"     # Password reset, access requests
+RATE_LIMIT_PUSH = "10/minute"         # Push notification endpoints
+
+logger.info(f"[SECURITY] Rate limiting enabled: global={RATE_LIMIT_GLOBAL}, auth={RATE_LIMIT_AUTH}, sensitive={RATE_LIMIT_SENSITIVE}")
+
 # ==================== PHASE 2: REQUEST ID MIDDLEWARE ====================
 @app.middleware("http")
 async def request_id_middleware(request: Request, call_next):
