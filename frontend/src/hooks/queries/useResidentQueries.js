@@ -303,11 +303,12 @@ export function useMarkNotificationRead() {
 // Send panic alert mutation
 export function useSendPanicAlert() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   
   return useMutation({
     mutationFn: (panicData) => api.sendPanicAlert(panicData),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: residentKeys.alerts() });
+      queryClient.invalidateQueries({ queryKey: residentKeys.alerts(user?.id) });
     }
   });
 }
