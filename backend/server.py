@@ -431,8 +431,8 @@ def get_user_id_from_request(request: Request) -> str:
     try:
         if hasattr(request.state, 'user'):
             return request.state.user.get('id', 'anonymous')
-    except:
-        pass
+    except Exception as e:
+        logger.debug(f"[AUTH] Could not extract user_id from request: {e}")
     return 'anonymous'
 
 @app.exception_handler(StarletteHTTPException)
