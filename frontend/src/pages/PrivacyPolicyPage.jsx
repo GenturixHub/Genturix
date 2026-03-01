@@ -299,6 +299,7 @@ const PrivacyPolicyPage = () => {
             </div>
           </footer>
         </div>
+        </div>
       </main>
     </div>
   );
