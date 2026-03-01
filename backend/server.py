@@ -10070,8 +10070,8 @@ async def get_area_availability(
                 "end_time": slot_end,
                 "status": "occupied" if slot_occupied else "available"
             })
-    except:
-        pass  # If time parsing fails, return empty slots
+    except Exception as slot_err:
+        logger.warning(f"[RESERVATIONS] Time slot parsing error: {slot_err}")
     
     # Get area configuration for frontend
     reservation_mode = area.get("reservation_mode", "flexible")
