@@ -3818,8 +3818,7 @@ async def reset_password_with_code(
     code_hash_match = code_hash == stored_hash
     attempt_count = reset_record.get("attempts", 0)
     
-    print(f"[RESET PASSWORD VERIFY] email={email} code_hash_match={code_hash_match} attempt_count={attempt_count}")
-    logger.info(f"[RESET PASSWORD VERIFY] email={email} code_hash_match={code_hash_match} attempts={attempt_count}")
+    logger.debug(f"[PASSWORD-RESET] Verifying code for {email}, match={code_hash_match}, attempts={attempt_count}")
     
     if not code_hash_match:
         # Increment attempts
@@ -3857,15 +3856,19 @@ async def reset_password_with_code(
     # Delete used code (single use)
     await db.password_reset_codes.delete_one({"email": email})
     
-    # Log audit event
-    await log_audit_event(
-        AuditEventType.PASSWORD_RESET_COMPLETED,
-        user.get("id"),
-        "auth",
-        {"method": "verification_code", "email": email},
-        request.client.host if request.client else "unknown",
-        request.headers.get("user-agent", "unknown")
-    )
+    # Log audit event (non-blocking - don't fail if audit logging fails)
+    try:
+        await log_audit_event(
+            AuditEventType.PASSWORD_RESET_COMPLETED,
+            user.get("id"),
+            "auth",
+            {"method": "verification_code", "email": email},
+            request.client.host if request.client else "unknown",
+            request.headers.get("user-agent", "unknown")
+        )
+    except Exception as audit_error:
+        # Audit logging should not block password reset success
+        logger.warning(f"[PASSWORD-RESET] Audit log failed (non-critical): {str(audit_error)}")
     
     print(f"[AUTH EVENT] Password reset SUCCESS | email={email}")
     logger.info(f"[PASSWORD-RESET] Password reset completed for {email}")
