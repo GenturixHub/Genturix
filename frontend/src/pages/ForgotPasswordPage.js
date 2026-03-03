@@ -65,15 +65,28 @@ const ForgotPasswordPage = () => {
         body: JSON.stringify({ email: email.trim().toLowerCase() })
       });
       
-      const data = await response.json();
-      
-      if (response.ok) {
+      // CRITICAL FIX: Check response.ok FIRST before parsing JSON
+      if (response.ok || response.status === 200 || response.status === 201) {
+        setError(null);
         toast.success('Código enviado a tu correo electrónico');
         setStep('code');
-      } else {
-        setError(data.detail || 'Error al enviar el código');
+        return;
       }
+      
+      // Parse error response
+      let errorMessage = 'Error al enviar el código';
+      try {
+        const data = await response.json();
+        if (data.detail) {
+          errorMessage = data.detail;
+        }
+      } catch (parseError) {
+        console.warn('Could not parse error response:', parseError);
+      }
+      
+      setError(errorMessage);
     } catch (err) {
+      console.error('Request code network error:', err);
       setError('Error de conexión. Intenta nuevamente.');
     } finally {
       setIsLoading(false);
@@ -126,21 +139,35 @@ const ForgotPasswordPage = () => {
         })
       });
       
-      const data = await response.json();
-      
-      if (response.ok) {
+      // CRITICAL FIX: Check response.ok FIRST before parsing JSON
+      // This prevents false "connection error" when backend succeeds
+      if (response.ok || response.status === 200 || response.status === 201) {
+        // Success - password was reset
+        setError(null);
         toast.success('Contraseña actualizada exitosamente');
         setStep('success');
-      } else {
-        if (data.detail?.includes('expired')) {
-          setError('El código ha expirado. Solicita uno nuevo.');
-        } else if (data.detail?.includes('invalid')) {
-          setError('Código inválido. Verifica e intenta nuevamente.');
-        } else {
-          setError(data.detail || 'Error al restablecer la contraseña');
-        }
+        return; // Exit early on success
       }
+      
+      // Only parse JSON for error responses
+      let errorMessage = 'Error al restablecer la contraseña';
+      try {
+        const data = await response.json();
+        if (data.detail?.includes('expired') || data.detail?.includes('expirado')) {
+          errorMessage = 'El código ha expirado. Solicita uno nuevo.';
+        } else if (data.detail?.includes('invalid') || data.detail?.includes('incorrecto')) {
+          errorMessage = 'Código inválido. Verifica e intenta nuevamente.';
+        } else if (data.detail) {
+          errorMessage = data.detail;
+        }
+      } catch (parseError) {
+        // JSON parse failed, use default error message
+        console.warn('Could not parse error response:', parseError);
+      }
+      
+      setError(errorMessage);
     } catch (err) {
+      console.error('Password reset network error:', err);
       setError('Error de conexión. Intenta nuevamente.');
     } finally {
       setIsLoading(false);
