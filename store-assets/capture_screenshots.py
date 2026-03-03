@@ -8,7 +8,7 @@ import asyncio
 from playwright.async_api import async_playwright
 import os
 
-BASE_URL = os.environ.get("APP_URL", "https://genturix-scroll-fix.preview.emergentagent.com")
+BASE_URL = os.environ.get("APP_URL", "https://genturix-fixes-1.preview.emergentagent.com")
 OUTPUT_DIR = "/app/store-assets/screenshots"
 
 CREDENTIALS = {

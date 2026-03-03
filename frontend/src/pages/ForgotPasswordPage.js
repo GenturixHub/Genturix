@@ -22,7 +22,6 @@ import {
   CheckCircle,
   Shield
 } from 'lucide-react';
-import api from '../services/api';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -98,6 +97,7 @@ const ForgotPasswordPage = () => {
     e.preventDefault();
     setError('');
     
+    // Validaciones de entrada
     if (!code.trim()) {
       setError('Por favor ingresa el código de verificación');
       return;
@@ -118,7 +118,6 @@ const ForgotPasswordPage = () => {
       return;
     }
     
-    // Password strength validation
     const hasUppercase = /[A-Z]/.test(newPassword);
     const hasNumber = /[0-9]/.test(newPassword);
     if (!hasUppercase || !hasNumber) {
@@ -128,8 +127,9 @@ const ForgotPasswordPage = () => {
     
     setIsLoading(true);
     
+    let response;
     try {
-      const response = await fetch(`${API_URL}/api/auth/reset-password`, {
+      response = await fetch(`${API_URL}/api/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -138,40 +138,47 @@ const ForgotPasswordPage = () => {
           new_password: newPassword
         })
       });
-      
-      // Check response.ok FIRST before parsing JSON
-      // This prevents false "connection error" when backend succeeds
-      if (response.ok || response.status === 200 || response.status === 201) {
-        // Success - password was reset
-        setError(null);
-        toast.success('Contraseña actualizada exitosamente');
-        setStep('success');
-        return; // Exit early on success
-      }
-      
-      // Only parse JSON for error responses
-      let errorMessage = 'Error al restablecer la contraseña';
-      try {
-        const data = await response.json();
-        if (data.detail?.includes('expired') || data.detail?.includes('expirado')) {
-          errorMessage = 'El código ha expirado. Solicita uno nuevo.';
-        } else if (data.detail?.includes('invalid') || data.detail?.includes('incorrecto')) {
-          errorMessage = 'Código inválido. Verifica e intenta nuevamente.';
-        } else if (data.detail) {
-          errorMessage = data.detail;
-        }
-      } catch (parseError) {
-        // JSON parse failed, use default error message
-        console.warn('[PASSWORD-RESET] Could not parse error response');
-      }
-      
-      setError(errorMessage);
-    } catch (err) {
-      console.error('[PASSWORD-RESET] Network error:', err.message);
+    } catch (networkError) {
+      // Este catch SOLO se activa si fetch falla (sin red, CORS bloqueado, etc.)
+      console.error('[RESET-PASSWORD] NETWORK ERROR:', networkError);
       setError('Error de conexión. Intenta nuevamente.');
-    } finally {
       setIsLoading(false);
+      return;
     }
+    
+    // === LOGS DE DIAGNÓSTICO ===
+    console.log('[RESET-PASSWORD] STATUS:', response.status);
+    console.log('[RESET-PASSWORD] OK:', response.ok);
+    
+    // Si response.ok === true, ÉXITO inmediato
+    if (response.ok) {
+      setError(null);
+      toast.success('Contraseña actualizada exitosamente');
+      setStep('success');
+      setIsLoading(false);
+      return; // Salir aquí - NO continuar
+    }
+    
+    // Solo llegamos aquí si response.ok === false (error del servidor)
+    console.log('[RESET-PASSWORD] Server returned error status:', response.status);
+    
+    let errorMessage = 'Error al restablecer la contraseña';
+    try {
+      const data = await response.json();
+      console.log('[RESET-PASSWORD] Error response data:', data);
+      if (data.detail?.includes('expired') || data.detail?.includes('expirado')) {
+        errorMessage = 'El código ha expirado. Solicita uno nuevo.';
+      } else if (data.detail?.includes('invalid') || data.detail?.includes('incorrecto')) {
+        errorMessage = 'Código inválido. Verifica e intenta nuevamente.';
+      } else if (data.detail) {
+        errorMessage = data.detail;
+      }
+    } catch (parseError) {
+      console.warn('[RESET-PASSWORD] Could not parse error JSON');
+    }
+    
+    setError(errorMessage);
+    setIsLoading(false);
   };
 
   // Step 3: Success - redirect to login
