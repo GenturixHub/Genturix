@@ -639,26 +639,71 @@ const ResidentVisitHistory = () => {
     setFilters(newFilters);
   };
   
-  // Export to PDF
+  // Export to PDF (uses backend PDF generation like AuditModule)
   const handleExport = async () => {
+    // Check if there's data to export
+    if (entries.length === 0) {
+      toast.error(t('visitors.history.noDataToExport') || 'No hay historial de visitas para exportar.');
+      return;
+    }
+    
     setExporting(true);
     try {
-      const params = {
-        filter_period: filters.period
-      };
-      if (filters.period === 'custom') {
-        params.date_from = filters.dateFrom || undefined;
-        params.date_to = filters.dateTo || undefined;
+      const accessToken = localStorage.getItem('genturix_access_token');
+      if (!accessToken) {
+        toast.error('No se encontró token de autenticación');
+        return;
       }
-      if (filters.visitorType) params.visitor_type = filters.visitorType;
-      if (filters.status) params.status = filters.status;
       
-      const exportData = await api.exportResidentVisitHistory(params);
-      await generatePDF(exportData, t);
-      toast.success(t('visitors.history.pdfGenerated'));
+      // Build query params from current filters
+      const params = new URLSearchParams();
+      if (filters.period) {
+        params.append('filter_period', filters.period);
+      }
+      if (filters.period === 'custom') {
+        if (filters.dateFrom) params.append('date_from', filters.dateFrom);
+        if (filters.dateTo) params.append('date_to', filters.dateTo);
+      }
+      if (filters.visitorType) params.append('visitor_type', filters.visitorType);
+      if (filters.status) params.append('status', filters.status);
+      
+      const API_URL = process.env.REACT_APP_BACKEND_URL;
+      const url = `${API_URL}/api/resident/visit-history/export/pdf${params.toString() ? '?' + params.toString() : ''}`;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || 'Error al exportar');
+      }
+      
+      // Get the blob from response
+      const blob = await response.blob();
+      
+      // Validate blob has content
+      if (blob.size < 1000) {
+        throw new Error('El PDF generado está vacío');
+      }
+      
+      // Create download link
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `historial-visitas-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      toast.success(t('visitors.history.pdfGenerated') || 'PDF descargado exitosamente');
     } catch (error) {
-      console.error('Error exporting:', error);
-      toast.error(t('visitors.history.exportError'));
+      console.error('Error exporting PDF:', error);
+      toast.error(t('visitors.history.exportError') || 'Error al exportar el PDF');
     } finally {
       setExporting(false);
     }
