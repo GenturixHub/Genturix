@@ -7088,6 +7088,240 @@ async def export_resident_visit_history(
     }
 
 
+@api_router.get("/resident/visit-history/export/pdf")
+async def export_resident_visit_history_pdf(
+    filter_period: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    visitor_type: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user = Depends(get_current_user)
+):
+    """
+    Export visit history as PDF file (like audit export).
+    Uses reportlab for reliable PDF generation.
+    """
+    user_id = current_user["id"]
+    condo_id = current_user.get("condominium_id")
+    
+    if not condo_id:
+        raise HTTPException(status_code=403, detail="Usuario no asignado a un condominio")
+    
+    # Get resident and condo info
+    user = await db.users.find_one({"id": user_id}, {"_id": 0, "full_name": 1, "role_data": 1})
+    condo = await db.condominiums.find_one({"id": condo_id}, {"_id": 0, "name": 1})
+    
+    resident_name = user.get("full_name", "N/A") if user else "N/A"
+    apartment = user.get("role_data", {}).get("apartment_number", "N/A") if user else "N/A"
+    condo_name = condo.get("name", "N/A") if condo else "N/A"
+    
+    # Build query (same as JSON export)
+    resident_auth_ids = await db.visitor_authorizations.distinct(
+        "id",
+        {"created_by": user_id, "condominium_id": condo_id}
+    )
+    
+    legacy_visitor_ids = await db.visitors.distinct(
+        "id",
+        {"created_by": user_id, "condominium_id": condo_id}
+    )
+    
+    or_conditions = []
+    if resident_auth_ids:
+        or_conditions.append({"authorization_id": {"$in": resident_auth_ids}})
+    if legacy_visitor_ids:
+        or_conditions.append({"visitor_id": {"$in": legacy_visitor_ids}})
+    or_conditions.append({"resident_id": user_id})
+    
+    query = {
+        "condominium_id": condo_id,
+        "$or": or_conditions
+    }
+    
+    # Apply filters
+    now = datetime.now(timezone.utc)
+    if filter_period == "today":
+        query["entry_at"] = {"$gte": now.strftime("%Y-%m-%d") + "T00:00:00"}
+    elif filter_period == "7days":
+        query["entry_at"] = {"$gte": (now - timedelta(days=7)).strftime("%Y-%m-%d") + "T00:00:00"}
+    elif filter_period == "30days":
+        query["entry_at"] = {"$gte": (now - timedelta(days=30)).strftime("%Y-%m-%d") + "T00:00:00"}
+    elif filter_period == "custom" and (date_from or date_to):
+        date_query = {}
+        if date_from:
+            date_query["$gte"] = f"{date_from}T00:00:00"
+        if date_to:
+            date_query["$lte"] = f"{date_to}T23:59:59"
+        if date_query:
+            query["entry_at"] = date_query
+    
+    if visitor_type:
+        query["visitor_type"] = visitor_type
+    if status:
+        query["status"] = status
+    
+    # Fetch entries
+    entries = await db.visitor_entries.find(query, {"_id": 0}).sort("entry_at", -1).to_list(500)
+    
+    logger.info(f"[VISIT-PDF-EXPORT] Generating PDF for {resident_name}, entries: {len(entries)}")
+    
+    # Create PDF using reportlab (same pattern as audit export)
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=30, bottomMargin=30, leftMargin=40, rightMargin=40)
+    elements = []
+    styles = getSampleStyleSheet()
+    
+    # Title style
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=18,
+        textColor=colors.HexColor('#0F172A'),
+        spaceAfter=20,
+        alignment=TA_CENTER
+    )
+    
+    # Subtitle style
+    subtitle_style = ParagraphStyle(
+        'CustomSubtitle',
+        parent=styles['Normal'],
+        fontSize=12,
+        textColor=colors.HexColor('#64748B'),
+        spaceBefore=5,
+        spaceAfter=20,
+        alignment=TA_CENTER
+    )
+    
+    # Header
+    elements.append(Paragraph("HISTORIAL DE VISITAS", title_style))
+    elements.append(Paragraph(f"Residente: {resident_name} | Apartamento: {apartment}", subtitle_style))
+    elements.append(Paragraph(f"Condominio: {condo_name}", subtitle_style))
+    elements.append(Paragraph(f"Generado: {now.strftime('%d/%m/%Y %H:%M')}", subtitle_style))
+    elements.append(Spacer(1, 20))
+    
+    if entries:
+        # Table header
+        table_data = [['Visitante', 'Tipo', 'Fecha', 'Entrada', 'Salida', 'Estado']]
+        
+        # Status translations
+        status_map = {
+            'completed': 'Completada',
+            'active': 'En curso',
+            'cancelled': 'Cancelada',
+            'pending': 'Pendiente'
+        }
+        
+        # Type translations
+        type_map = {
+            'guest': 'Invitado',
+            'delivery': 'Delivery',
+            'service': 'Servicio',
+            'contractor': 'Contratista',
+            'other': 'Otro'
+        }
+        
+        for entry in entries:
+            visitor_name = entry.get('visitor_name', 'N/A')
+            v_type = type_map.get(entry.get('visitor_type', ''), entry.get('visitor_type', 'N/A'))
+            
+            # Parse dates
+            entry_at = entry.get('entry_at', '')
+            exit_at = entry.get('exit_at', '')
+            
+            try:
+                entry_dt = datetime.fromisoformat(entry_at.replace('Z', '+00:00'))
+                date_str = entry_dt.strftime('%d/%m/%Y')
+                entry_time = entry_dt.strftime('%H:%M')
+            except:
+                date_str = 'N/A'
+                entry_time = 'N/A'
+            
+            try:
+                if exit_at:
+                    exit_dt = datetime.fromisoformat(exit_at.replace('Z', '+00:00'))
+                    exit_time = exit_dt.strftime('%H:%M')
+                else:
+                    exit_time = '-'
+            except:
+                exit_time = '-'
+            
+            v_status = status_map.get(entry.get('status', ''), entry.get('status', 'N/A'))
+            
+            table_data.append([visitor_name, v_type, date_str, entry_time, exit_time, v_status])
+        
+        # Create table
+        table = Table(table_data, colWidths=[120, 70, 70, 55, 55, 70])
+        table.setStyle(TableStyle([
+            # Header style
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1E293B')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 10),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+            ('TOPPADDING', (0, 0), (-1, 0), 10),
+            
+            # Data rows style
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F8FAFC')),
+            ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#1E293B')),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 9),
+            ('ALIGN', (0, 1), (-1, -1), 'CENTER'),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+            ('TOPPADDING', (0, 1), (-1, -1), 8),
+            
+            # Grid
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#CBD5E1')),
+            
+            # Alternating row colors
+            *[('BACKGROUND', (0, i), (-1, i), colors.HexColor('#EFF6FF')) for i in range(2, len(table_data), 2)],
+        ]))
+        
+        elements.append(table)
+        
+        # Footer with count
+        footer_style = ParagraphStyle(
+            'Footer',
+            parent=styles['Normal'],
+            fontSize=10,
+            textColor=colors.HexColor('#64748B'),
+            spaceBefore=20,
+            alignment=TA_CENTER
+        )
+        elements.append(Spacer(1, 15))
+        elements.append(Paragraph(f"Total de visitas: {len(entries)}", footer_style))
+    else:
+        # No records message
+        no_data_style = ParagraphStyle(
+            'NoData',
+            parent=styles['Normal'],
+            fontSize=12,
+            textColor=colors.HexColor('#94A3B8'),
+            alignment=TA_CENTER,
+            spaceBefore=50
+        )
+        elements.append(Paragraph("No hay visitas registradas para el período seleccionado.", no_data_style))
+    
+    # Build PDF
+    doc.build(elements)
+    
+    # Get PDF bytes
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+    
+    logger.info(f"[VISIT-PDF-EXPORT] PDF generated, size: {len(pdf_bytes)} bytes")
+    
+    # Return PDF file
+    filename = f"historial-visitas-{now.strftime('%Y%m%d-%H%M%S')}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )
+
+
 # ============================================
 # GUARD/ADMIN NOTIFICATIONS ENDPOINTS
 # ============================================

@@ -23,6 +23,7 @@ import { Label } from '../components/ui/label';
 import { ScrollArea } from '../components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Textarea } from '../components/ui/textarea';
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import {
   Dialog,
   DialogContent,
@@ -1989,9 +1990,12 @@ const UserManagementPage = () => {
                             <TableRow key={u.id} className="border-[#1E293B]" data-testid={`user-row-${u.id}`}>
                               <TableCell>
                                 <div className="flex items-center gap-3">
-                                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${config?.color || 'bg-gray-500/10'}`}>
-                                    <Icon className="w-5 h-5" />
-                                  </div>
+                                  <Avatar className="w-10 h-10">
+                                    <AvatarImage src={u.profile_photo} alt={u.full_name} />
+                                    <AvatarFallback className={config?.color || 'bg-gray-500/10'}>
+                                      <Icon className="w-5 h-5" />
+                                    </AvatarFallback>
+                                  </Avatar>
                                   <div>
                                     <p className="font-medium">{u.full_name || 'Sin nombre'}</p>
                                     <p className="text-xs text-muted-foreground">{u.phone || 'Sin teléfono'}</p>
@@ -2087,6 +2091,7 @@ const UserManagementPage = () => {
                           title={u.full_name || 'Sin nombre'}
                           subtitle={u.email}
                           icon={Icon}
+                          avatar={u.profile_photo}
                           status={statusBadge.label}
                           statusColor={userStatus === 'active' ? 'green' : userStatus === 'blocked' ? 'red' : 'yellow'}
                           details={[

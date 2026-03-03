@@ -10,6 +10,7 @@ import { useIsMobile } from './layout/BottomNav';
 import { cn } from '../lib/utils';
 import { MoreVertical, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,6 +26,7 @@ import {
  * @param {string} status - Status badge text
  * @param {string} statusColor - Color variant for status (green, red, yellow, blue, gray)
  * @param {React.ReactNode} icon - Icon component to display
+ * @param {string} avatar - Avatar image URL (takes priority over icon)
  * @param {Array} details - Array of {label, value} objects for additional info
  * @param {Array} actions - Array of {label, onClick, variant, icon} for action buttons
  * @param {function} onClick - Click handler for the entire card
@@ -36,6 +38,7 @@ export const MobileCard = ({
   status,
   statusColor = 'gray',
   icon: Icon,
+  avatar,
   details = [],
   actions = [],
   onClick,
@@ -69,7 +72,15 @@ export const MobileCard = ({
       {/* Header Row - More compact */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          {Icon && (
+          {/* Avatar with photo support - takes priority over icon */}
+          {avatar ? (
+            <Avatar className="w-9 h-9 flex-shrink-0">
+              <AvatarImage src={avatar} alt={title} />
+              <AvatarFallback className="bg-primary/10">
+                {Icon && <Icon className="w-4 h-4 text-primary" />}
+              </AvatarFallback>
+            </Avatar>
+          ) : Icon && (
             // MOBILE-FIRST: Smaller avatar (36px vs 40px)
             <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
               <Icon className="w-4 h-4 text-primary" />
