@@ -139,7 +139,7 @@ const ForgotPasswordPage = () => {
         })
       });
       
-      // CRITICAL FIX: Check response.ok FIRST before parsing JSON
+      // Check response.ok FIRST before parsing JSON
       // This prevents false "connection error" when backend succeeds
       if (response.ok || response.status === 200 || response.status === 201) {
         // Success - password was reset
@@ -162,12 +162,12 @@ const ForgotPasswordPage = () => {
         }
       } catch (parseError) {
         // JSON parse failed, use default error message
-        console.warn('Could not parse error response:', parseError);
+        console.warn('[PASSWORD-RESET] Could not parse error response');
       }
       
       setError(errorMessage);
     } catch (err) {
-      console.error('Password reset network error:', err);
+      console.error('[PASSWORD-RESET] Network error:', err.message);
       setError('Error de conexión. Intenta nuevamente.');
     } finally {
       setIsLoading(false);
