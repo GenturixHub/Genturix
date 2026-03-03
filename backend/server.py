@@ -4747,6 +4747,133 @@ async def update_language(language_data: LanguageUpdate, current_user = Depends(
     
     return {"message": "Language updated successfully", "language": language_data.language}
 
+
+class DeleteAccountRequest(BaseModel):
+    """Request model for account deletion"""
+    password: str
+    reason: Optional[str] = None
+
+
+@api_router.delete("/users/delete-account")
+async def delete_own_account(
+    delete_request: DeleteAccountRequest,
+    current_user = Depends(get_current_user)
+):
+    """
+    Delete the current user's own account.
+    
+    Flow:
+    1. Validate password
+    2. Check user can be deleted (not SuperAdmin, not sole Admin)
+    3. Delete user
+    4. Seat is automatically released (counted dynamically)
+    5. Clean up related data
+    
+    Returns:
+        Success message on deletion
+    """
+    user_id = current_user["id"]
+    user_email = current_user["email"]
+    user_roles = current_user.get("roles", [])
+    condominium_id = current_user.get("condominium_id")
+    
+    # SuperAdmin cannot delete their own account through this endpoint
+    if "SuperAdmin" in user_roles:
+        raise HTTPException(
+            status_code=403, 
+            detail="SuperAdmin no puede eliminar su cuenta por este medio"
+        )
+    
+    # Verify password
+    user_with_password = await db.users.find_one(
+        {"id": user_id}, 
+        {"_id": 0, "hashed_password": 1}
+    )
+    
+    if not user_with_password or not verify_password(delete_request.password, user_with_password["hashed_password"]):
+        raise HTTPException(status_code=401, detail="Contraseña incorrecta")
+    
+    # If user is an Admin, check they're not the last admin
+    if "Administrador" in user_roles and condominium_id:
+        admin_count = await db.users.count_documents({
+            "condominium_id": condominium_id,
+            "roles": "Administrador",
+            "is_active": True,
+            "id": {"$ne": user_id}  # Exclude current user
+        })
+        
+        if admin_count == 0:
+            raise HTTPException(
+                status_code=400, 
+                detail="No puedes eliminar tu cuenta porque eres el único administrador del condominio"
+            )
+    
+    # Log the deletion attempt
+    logger.info(f"[ACCOUNT-DELETE] User {user_email} (roles: {user_roles}) requesting account deletion")
+    
+    try:
+        # Clean up related data first
+        
+        # 1. Remove push subscriptions
+        await db.push_subscriptions.delete_many({"user_id": user_id})
+        
+        # 2. Remove password reset tokens
+        await db.password_reset_tokens.delete_many({"user_id": user_id})
+        
+        # 3. Cancel active visitor authorizations
+        await db.visitor_authorizations.update_many(
+            {"created_by": user_id, "status": "active"},
+            {"$set": {"status": "cancelled", "cancelled_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        
+        # 4. Cancel future reservations (not past ones for audit trail)
+        now = datetime.now(timezone.utc).isoformat()
+        await db.reservations.update_many(
+            {"user_id": user_id, "start_time": {"$gt": now}, "status": {"$in": ["confirmed", "pending"]}},
+            {"$set": {"status": "cancelled", "cancelled_at": now, "cancelled_reason": "account_deleted"}}
+        )
+        
+        # 5. Delete the user
+        result = await db.users.delete_one({"id": user_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=500, detail="Error al eliminar la cuenta")
+        
+        # Log successful deletion
+        logger.info(f"[ACCOUNT-DELETE] Successfully deleted user {user_email}")
+        
+        # Create audit log
+        if condominium_id:
+            await db.audit_logs.insert_one({
+                "id": str(uuid.uuid4()),
+                "condominium_id": condominium_id,
+                "action": "user_self_deleted",
+                "actor_id": user_id,
+                "actor_email": user_email,
+                "actor_roles": user_roles,
+                "details": {
+                    "reason": delete_request.reason or "No reason provided",
+                    "deleted_at": datetime.now(timezone.utc).isoformat()
+                },
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "ip_address": None
+            })
+        
+        # Note: Seat count is calculated dynamically by count_active_users()
+        # No need to manually decrement - the deleted user simply won't be counted
+        
+        return {
+            "success": True,
+            "message": "Tu cuenta ha sido eliminada exitosamente"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[ACCOUNT-DELETE] Error deleting user {user_email}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error interno al eliminar la cuenta")
+
+
 @api_router.get("/profile/directory/condominium")
 async def get_condominium_directory(current_user = Depends(get_current_user)):
     """

@@ -504,6 +504,10 @@ class ApiService {
   completePasswordReset = (token, newPassword) => 
     this.post('/auth/reset-password-complete', { token, new_password: newPassword });
 
+  // ==================== ACCOUNT DELETION ====================
+  deleteOwnAccount = (password, reason = '') => 
+    this.delete('/users/delete-account', { password, reason });
+
   // Condominiums (Multi-tenant)
   getCondominiums = () => this.get('/condominiums');
   getCondominium = (id) => this.get(`/condominiums/${id}`);

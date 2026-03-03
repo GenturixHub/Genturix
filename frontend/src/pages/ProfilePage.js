@@ -41,7 +41,9 @@ import {
   FileText,
   X,
   ZoomIn,
-  LogOut
+  LogOut,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -81,6 +83,14 @@ const ProfilePage = () => {
   const [editMode, setEditMode] = useState(false);
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  
+  // Delete account states
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteReason, setDeleteReason] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+  
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
@@ -193,6 +203,38 @@ const ProfilePage = () => {
       setFormData(prev => ({ ...prev, profile_photo: reader.result }));
     };
     reader.readAsDataURL(file);
+  };
+
+  // Handle account deletion
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      setDeleteError('Ingresa tu contraseña para confirmar');
+      return;
+    }
+    
+    setIsDeleting(true);
+    setDeleteError(null);
+    
+    try {
+      await api.deleteOwnAccount(deletePassword, deleteReason);
+      
+      // Success - logout and redirect
+      logout();
+      navigate('/login', { 
+        state: { message: 'Tu cuenta ha sido eliminada exitosamente' } 
+      });
+    } catch (err) {
+      console.error('Error deleting account:', err);
+      if (err.status === 401) {
+        setDeleteError('Contraseña incorrecta');
+      } else if (err.status === 400) {
+        setDeleteError(err.message || 'No puedes eliminar tu cuenta en este momento');
+      } else {
+        setDeleteError(err.message || 'Error al eliminar la cuenta');
+      }
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const getRoleSpecificInfo = () => {
@@ -694,6 +736,45 @@ const ProfilePage = () => {
           </DialogContent>
         </Dialog>
 
+        {/* Danger Zone - Delete Account (Only for own profile, not SuperAdmin) */}
+        {isOwnProfile && !profile?.roles?.includes('SuperAdmin') && (
+          <Card className="bg-[#0F111A] border-red-900/30 rounded-2xl">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2 text-red-400">
+                <AlertTriangle className="w-4 h-4" />
+                Zona de Peligro
+              </CardTitle>
+              <CardDescription>
+                Acciones irreversibles que afectan tu cuenta
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-red-950/20 rounded-lg border border-red-900/30">
+                <div>
+                  <h4 className="font-medium text-red-300">Eliminar mi cuenta</h4>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Esta acción es permanente. Se eliminarán todos tus datos y perderás acceso a la plataforma.
+                  </p>
+                </div>
+                <Button
+                  variant="destructive"
+                  className="shrink-0"
+                  onClick={() => {
+                    setShowDeleteConfirm(true);
+                    setDeletePassword('');
+                    setDeleteReason('');
+                    setDeleteError(null);
+                  }}
+                  data-testid="delete-account-btn"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Eliminar Cuenta
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Logout Section - Mobile visible, always show for own profile */}
         {isOwnProfile && (
           <Card className="bg-[#0F111A] border-[#1E293B] lg:hidden">
@@ -734,6 +815,91 @@ const ProfilePage = () => {
               >
                 Cerrar Sesión
               </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Delete Account Confirmation Dialog */}
+        <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <AlertDialogContent className="bg-[#0F111A] border-red-900/50">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2 text-red-400">
+                <AlertTriangle className="w-5 h-5" />
+                Eliminar Cuenta Permanentemente
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-muted-foreground">
+                Esta acción <span className="text-red-400 font-semibold">NO se puede deshacer</span>. 
+                Se eliminarán todos tus datos, autorizaciones de visitantes, reservaciones y acceso a la plataforma.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            
+            <div className="space-y-4 py-4">
+              {/* Password confirmation */}
+              <div className="space-y-2">
+                <Label htmlFor="delete-password" className="text-sm">
+                  Ingresa tu contraseña para confirmar
+                </Label>
+                <Input
+                  id="delete-password"
+                  type="password"
+                  placeholder="Tu contraseña actual"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  className="bg-[#1E293B] border-[#2D3B4F]"
+                  data-testid="delete-password-input"
+                />
+              </div>
+              
+              {/* Optional reason */}
+              <div className="space-y-2">
+                <Label htmlFor="delete-reason" className="text-sm">
+                  ¿Por qué eliminas tu cuenta? (opcional)
+                </Label>
+                <Textarea
+                  id="delete-reason"
+                  placeholder="Ayúdanos a mejorar..."
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  className="bg-[#1E293B] border-[#2D3B4F] min-h-[80px]"
+                  data-testid="delete-reason-input"
+                />
+              </div>
+              
+              {/* Error message */}
+              {deleteError && (
+                <div className="flex items-center gap-2 text-red-400 text-sm bg-red-950/30 p-3 rounded-lg">
+                  <XCircle className="w-4 h-4 shrink-0" />
+                  {deleteError}
+                </div>
+              )}
+            </div>
+            
+            <AlertDialogFooter>
+              <AlertDialogCancel 
+                className="bg-[#1E293B] border-[#2D3B4F] hover:bg-[#2D3B4F]"
+                disabled={isDeleting}
+              >
+                Cancelar
+              </AlertDialogCancel>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteAccount}
+                disabled={isDeleting || !deletePassword}
+                className="bg-red-600 hover:bg-red-700"
+                data-testid="confirm-delete-btn"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Eliminando...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Eliminar Mi Cuenta
+                  </>
+                )}
+              </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
