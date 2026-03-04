@@ -454,6 +454,14 @@ const LoginPage = () => {
               >
                 {t('auth.termsOfService', 'Términos de Servicio')}
               </Link>
+              <span className="text-[10px] text-muted-foreground">•</span>
+              <Link 
+                to="/developer" 
+                className="text-[10px] text-muted-foreground hover:text-primary transition-colors"
+                data-testid="footer-developer-link"
+              >
+                {t('auth.developer', 'Desarrollador')}
+              </Link>
             </div>
           </div>
         </div>

@@ -107,10 +107,12 @@ import {
   TrendingUp,
   Check,
   X,
-  ArrowUpCircle
+  ArrowUpCircle,
+  Code2
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { Mail, MailX } from 'lucide-react';
+import DeveloperProfileManager from '../components/DeveloperProfileManager';
 
 // Super Admin Mobile Navigation
 const SuperAdminMobileNav = ({ activeTab, onTabChange }) => {
@@ -3715,6 +3717,10 @@ const SuperAdminDashboard = () => {
                 <DollarSign className="w-4 h-4" />
                 <span className="hidden sm:inline">Precios</span>
               </TabsTrigger>
+              <TabsTrigger value="platform" className="gap-2 data-[state=active]:bg-primary/20">
+                <Code2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Plataforma</span>
+              </TabsTrigger>
             </TabsList>
           )}
 
@@ -3736,6 +3742,12 @@ const SuperAdminDashboard = () => {
 
           <TabsContent value="pricing">
             <PricingTab />
+          </TabsContent>
+
+          <TabsContent value="platform">
+            <div className="space-y-6">
+              <DeveloperProfileManager />
+            </div>
           </TabsContent>
         </Tabs>
       </main>
