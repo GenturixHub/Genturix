@@ -59,7 +59,9 @@ import {
   Key,
   Pencil,
   Lock,
-  Bell
+  Bell,
+  AlertTriangle,
+  Trash2
 } from 'lucide-react';
 
 // Role configuration with i18n keys
@@ -125,6 +127,14 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
   const [editMode, setEditMode] = useState(false);
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  
+  // Delete account states
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteReason, setDeleteReason] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
+  
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
@@ -154,6 +164,35 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  // Handle account deletion
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      setDeleteError('Por favor ingresa tu contraseña');
+      return;
+    }
+    
+    setIsDeleting(true);
+    setDeleteError(null);
+    
+    try {
+      await api.deleteOwnAccount(deletePassword, deleteReason);
+      // Account deleted successfully - logout and redirect
+      logout();
+      navigate('/login');
+    } catch (err) {
+      console.error('Error deleting account:', err);
+      if (err.message?.includes('contraseña') || err.message?.includes('password')) {
+        setDeleteError('Contraseña incorrecta');
+      } else if (err.message?.includes('único') || err.message?.includes('only')) {
+        setDeleteError(err.message || 'No puedes eliminar tu cuenta en este momento');
+      } else {
+        setDeleteError(err.message || 'Error al eliminar la cuenta');
+      }
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleBack = () => {
@@ -437,6 +476,38 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
           <LanguageSelector />
         )}
 
+        {/* ========== DANGER ZONE - Delete Account ========== */}
+        {isOwnProfile && !profile?.roles?.includes('SuperAdmin') && (
+          <ProfileSection 
+            icon={AlertTriangle} 
+            title="Zona de Peligro"
+            description="Acciones irreversibles que afectan tu cuenta"
+            className="border border-red-500/20"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-3 bg-red-950/20 rounded-xl border border-red-900/30">
+              <div>
+                <h4 className="font-medium text-red-300 text-sm">Eliminar mi cuenta</h4>
+                <p className="text-xs text-white/50 mt-1">
+                  Esta acción es permanente. Se eliminarán todos tus datos.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(true);
+                  setDeletePassword('');
+                  setDeleteReason('');
+                  setDeleteError(null);
+                }}
+                className="shrink-0 flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-500/90 hover:bg-red-500 rounded-xl transition-colors"
+                data-testid="delete-account-btn"
+              >
+                <Trash2 className="w-4 h-4" />
+                Eliminar Cuenta
+              </button>
+            </div>
+          </ProfileSection>
+        )}
+
         {/* Logout Button */}
         {isOwnProfile && (
           <div className="pt-4">
@@ -496,6 +567,84 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
               >
                 <LogOut className="w-3.5 h-3.5" />
                 Cerrar Sesión
+              </button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Account Confirmation Dialog */}
+        <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <DialogContent className="bg-[#0A0A0F] border-white/10 max-w-md rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-red-400">
+                <AlertTriangle className="w-5 h-5" />
+                Eliminar Cuenta Permanentemente
+              </DialogTitle>
+              <DialogDescription className="text-white/50">
+                Esta acción es irreversible. Se eliminarán todos tus datos, incluyendo tu perfil, historial y configuración.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <label className="text-sm text-white/70">
+                  Confirma tu contraseña
+                </label>
+                <Input
+                  type="password"
+                  placeholder="Tu contraseña actual"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  className={minimalInputClass}
+                  data-testid="delete-password-input"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm text-white/70">
+                  ¿Por qué deseas eliminar tu cuenta? (opcional)
+                </label>
+                <Textarea
+                  placeholder="Tu opinión nos ayuda a mejorar..."
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  className={`${minimalInputClass} min-h-[80px] resize-none`}
+                  data-testid="delete-reason-input"
+                />
+              </div>
+              
+              {deleteError && (
+                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
+                  <p className="text-sm text-red-400">{deleteError}</p>
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <button 
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="px-4 py-2 text-sm text-white/60 hover:text-white/90 border border-white/10 hover:border-white/20 rounded-xl transition-all disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={handleDeleteAccount}
+                disabled={isDeleting || !deletePassword}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-500/90 hover:bg-red-500 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                data-testid="confirm-delete-btn"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Eliminando...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Eliminar Mi Cuenta
+                  </>
+                )}
               </button>
             </DialogFooter>
           </DialogContent>
