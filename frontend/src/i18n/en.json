@@ -137,7 +137,15 @@
     "about": "About",
     "publicDescriptionPlaceholder": "Write a brief description about yourself...",
     "noDescription": "No description",
-    "alertNotificationsHint": "Receive panic alerts in real time"
+    "alertNotificationsHint": "Receive panic alerts in real time",
+    "privacy": "Privacy",
+    "privacyDescription": "Manage your security",
+    "changePassword": "Change Password",
+    "dangerZone": "Danger Zone",
+    "deleteMyAccount": "Delete my account",
+    "deleteAccountWarning": "This action is permanent. All your data will be deleted and you will lose access to the platform.",
+    "deleteAccount": "Delete Account",
+    "passwordChanged": "Password updated successfully"
   },
   "settings": {
     "title": "Settings",
