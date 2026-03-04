@@ -86,7 +86,10 @@
     "passwordNumber": "Debe incluir al menos un número",
     "passwordsNoMatch": "Las contraseñas no coinciden",
     "passwordMustBeDifferent": "La nueva contraseña debe ser diferente a la temporal",
-    "changePasswordError": "Error al cambiar la contraseña"
+    "changePasswordError": "Error al cambiar la contraseña",
+    "developer": "Desarrollador",
+    "privacyPolicy": "Política de Privacidad",
+    "termsOfService": "Términos de Servicio"
   },
   "nav": {
     "dashboard": "Dashboard",

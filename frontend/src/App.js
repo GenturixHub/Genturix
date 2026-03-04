@@ -31,6 +31,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import CondominiumSettingsPage from './pages/CondominiumSettingsPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfServicePage from './pages/TermsOfServicePage';
+import DeveloperPage from './pages/DeveloperPage';
 import UpdateAvailableModal from './components/UpdateAvailableModal';
 import InstallChoiceScreen from './components/InstallChoiceScreen';
 import useServiceWorkerUpdate from './hooks/useServiceWorkerUpdate';
@@ -312,6 +313,7 @@ function AppRoutes() {
       {/* Legal Pages (Public - required for App Store/Play Store) */}
       <Route path="/privacy" element={<PrivacyPolicyPage />} />
       <Route path="/terms" element={<TermsOfServicePage />} />
+      <Route path="/developer" element={<DeveloperPage />} />
 
       {/* Role-based entry point - also checks install gate */}
       <Route path="/" element={<InstallGateRoute />} />

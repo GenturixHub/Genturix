@@ -86,7 +86,10 @@
     "passwordNumber": "Must include at least one number",
     "passwordsNoMatch": "Passwords do not match",
     "passwordMustBeDifferent": "New password must be different from temporary",
-    "changePasswordError": "Error changing password"
+    "changePasswordError": "Error changing password",
+    "developer": "Developer",
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service"
   },
   "nav": {
     "dashboard": "Dashboard",

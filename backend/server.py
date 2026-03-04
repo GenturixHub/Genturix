@@ -1061,6 +1061,17 @@ class VisitorExit(BaseModel):
     visitor_id: str
     notes: Optional[str] = None
 
+# ==================== DEVELOPER PROFILE MODEL ====================
+class DeveloperProfileUpdate(BaseModel):
+    name: Optional[str] = Field(None, max_length=100)
+    title: Optional[str] = Field(None, max_length=150)
+    bio: Optional[str] = Field(None, max_length=2000)
+    photo_url: Optional[str] = None
+    email: Optional[EmailStr] = None
+    website: Optional[str] = Field(None, max_length=500)
+    linkedin: Optional[str] = Field(None, max_length=500)
+    github: Optional[str] = Field(None, max_length=500)
+
 # ==================== RESERVATIONS MODELS ====================
 class AreaTypeEnum(str, Enum):
     POOL = "pool"
@@ -17982,6 +17993,155 @@ api_router.include_router(billing_router)
 # Include the super-admin billing router
 # This maintains the /api/super-admin/billing/* path structure
 api_router.include_router(billing_super_admin_router)
+
+# ==================== DEVELOPER PROFILE ENDPOINTS ====================
+@api_router.get("/developer-profile")
+async def get_developer_profile():
+    """
+    Public endpoint - Get the platform developer profile.
+    No authentication required.
+    """
+    profile = await db.platform_developer_profile.find_one({}, {"_id": 0})
+    
+    if not profile:
+        # Return default empty profile
+        return {
+            "id": None,
+            "name": "",
+            "title": "",
+            "bio": "",
+            "photo_url": None,
+            "email": "",
+            "website": "",
+            "linkedin": "",
+            "github": "",
+            "created_at": None,
+            "updated_at": None
+        }
+    
+    return profile
+
+@api_router.put("/super-admin/developer-profile")
+async def update_developer_profile(
+    profile_data: DeveloperProfileUpdate,
+    request: Request,
+    current_user = Depends(require_role("SuperAdmin"))
+):
+    """
+    SuperAdmin only - Update the platform developer profile.
+    """
+    now_iso = datetime.now(timezone.utc).isoformat()
+    
+    # Get existing profile or create new
+    existing = await db.platform_developer_profile.find_one({})
+    
+    if existing:
+        # Update existing profile
+        update_data = {k: v for k, v in profile_data.model_dump().items() if v is not None}
+        update_data["updated_at"] = now_iso
+        
+        await db.platform_developer_profile.update_one(
+            {"id": existing.get("id")},
+            {"$set": update_data}
+        )
+        
+        # Log audit
+        await db.audit_logs.insert_one({
+            "id": str(uuid.uuid4()),
+            "action": "developer_profile_updated",
+            "user_id": current_user.get("id"),
+            "resource_type": "platform",
+            "resource_id": "developer_profile",
+            "details": {"updated_fields": list(update_data.keys())},
+            "created_at": now_iso
+        })
+        
+        # Return updated profile
+        updated = await db.platform_developer_profile.find_one({}, {"_id": 0})
+        return updated
+    else:
+        # Create new profile
+        new_profile = {
+            "id": str(uuid.uuid4()),
+            "name": profile_data.name or "",
+            "title": profile_data.title or "",
+            "bio": profile_data.bio or "",
+            "photo_url": profile_data.photo_url,
+            "email": profile_data.email or "",
+            "website": profile_data.website or "",
+            "linkedin": profile_data.linkedin or "",
+            "github": profile_data.github or "",
+            "created_at": now_iso,
+            "updated_at": now_iso
+        }
+        
+        await db.platform_developer_profile.insert_one(new_profile)
+        
+        # Log audit
+        await db.audit_logs.insert_one({
+            "id": str(uuid.uuid4()),
+            "action": "developer_profile_created",
+            "user_id": current_user.get("id"),
+            "resource_type": "platform",
+            "resource_id": "developer_profile",
+            "details": {"profile_id": new_profile["id"]},
+            "created_at": now_iso
+        })
+        
+        # Remove _id before returning
+        if "_id" in new_profile:
+            del new_profile["_id"]
+        return new_profile
+
+@api_router.post("/super-admin/developer-profile/photo")
+async def upload_developer_photo(
+    request: Request,
+    current_user = Depends(require_role("SuperAdmin"))
+):
+    """
+    SuperAdmin only - Upload developer profile photo.
+    Accepts base64 encoded image data.
+    """
+    try:
+        body = await request.json()
+        photo_data = body.get("photo_data")  # Base64 encoded image
+        
+        if not photo_data:
+            raise HTTPException(status_code=400, detail="No photo data provided")
+        
+        # For now, store the base64 data directly
+        # In production, you'd upload to S3/Cloudinary and store the URL
+        now_iso = datetime.now(timezone.utc).isoformat()
+        
+        # Ensure profile exists
+        existing = await db.platform_developer_profile.find_one({})
+        
+        if existing:
+            await db.platform_developer_profile.update_one(
+                {"id": existing.get("id")},
+                {"$set": {"photo_url": photo_data, "updated_at": now_iso}}
+            )
+        else:
+            new_profile = {
+                "id": str(uuid.uuid4()),
+                "name": "",
+                "title": "",
+                "bio": "",
+                "photo_url": photo_data,
+                "email": "",
+                "website": "",
+                "linkedin": "",
+                "github": "",
+                "created_at": now_iso,
+                "updated_at": now_iso
+            }
+            await db.platform_developer_profile.insert_one(new_profile)
+        
+        return {"success": True, "message": "Photo uploaded successfully"}
+        
+    except Exception as e:
+        logger.error(f"[DEVELOPER-PHOTO] Upload error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Include the router in the main app
 app.include_router(api_router)
