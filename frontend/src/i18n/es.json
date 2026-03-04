@@ -137,7 +137,15 @@
     "about": "Acerca de",
     "publicDescriptionPlaceholder": "Escribe una breve descripción sobre ti...",
     "noDescription": "Sin descripción",
-    "alertNotificationsHint": "Recibe alertas de pánico en tiempo real"
+    "alertNotificationsHint": "Recibe alertas de pánico en tiempo real",
+    "privacy": "Privacidad",
+    "privacyDescription": "Administra tu seguridad",
+    "changePassword": "Cambiar Contraseña",
+    "dangerZone": "Zona de Peligro",
+    "deleteMyAccount": "Eliminar mi cuenta",
+    "deleteAccountWarning": "Esta acción es permanente. Se eliminarán todos tus datos y perderás acceso a la plataforma.",
+    "deleteAccount": "Eliminar Cuenta",
+    "passwordChanged": "Contraseña actualizada exitosamente"
   },
   "settings": {
     "title": "Configuración",

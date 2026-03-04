@@ -448,6 +448,7 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
             description={t('profile.privacyDescription', 'Administra tu seguridad')}
           >
             <Accordion type="single" collapsible className="w-full">
+              {/* Change Password */}
               <AccordionItem value="change-password" className="border-white/10">
                 <AccordionTrigger 
                   className="text-white/80 hover:text-white hover:no-underline py-3"
@@ -467,6 +468,46 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
                   />
                 </AccordionContent>
               </AccordionItem>
+
+              {/* Danger Zone - Delete Account (inside Privacy, not for SuperAdmin) */}
+              {!profile?.roles?.includes('SuperAdmin') && (
+                <AccordionItem value="danger-zone" className="border-white/10 border-t">
+                  <AccordionTrigger 
+                    className="text-red-400/80 hover:text-red-400 hover:no-underline py-3"
+                    data-testid="danger-zone-accordion"
+                  >
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-red-500/70" />
+                      <span>{t('profile.dangerZone', 'Zona de Peligro')}</span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-2">
+                    <div className="p-3 bg-red-950/20 rounded-xl border border-red-900/30">
+                      <div className="flex flex-col gap-3">
+                        <div>
+                          <h4 className="font-medium text-red-300 text-sm">{t('profile.deleteMyAccount', 'Eliminar mi cuenta')}</h4>
+                          <p className="text-xs text-white/50 mt-1">
+                            {t('profile.deleteAccountWarning', 'Esta acción es permanente. Se eliminarán todos tus datos.')}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setShowDeleteConfirm(true);
+                            setDeletePassword('');
+                            setDeleteReason('');
+                            setDeleteError(null);
+                          }}
+                          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-500/90 hover:bg-red-500 rounded-xl transition-colors"
+                          data-testid="delete-account-btn"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          {t('profile.deleteAccount', 'Eliminar Cuenta')}
+                        </button>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              )}
             </Accordion>
           </ProfileSection>
         )}
@@ -474,38 +515,6 @@ const EmbeddedProfile = ({ userId = null, onBack = null }) => {
         {/* Language Selector */}
         {isOwnProfile && (
           <LanguageSelector />
-        )}
-
-        {/* ========== DANGER ZONE - Delete Account ========== */}
-        {isOwnProfile && !profile?.roles?.includes('SuperAdmin') && (
-          <ProfileSection 
-            icon={AlertTriangle} 
-            title="Zona de Peligro"
-            description="Acciones irreversibles que afectan tu cuenta"
-            className="border border-red-500/20"
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-3 bg-red-950/20 rounded-xl border border-red-900/30">
-              <div>
-                <h4 className="font-medium text-red-300 text-sm">Eliminar mi cuenta</h4>
-                <p className="text-xs text-white/50 mt-1">
-                  Esta acción es permanente. Se eliminarán todos tus datos.
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  setShowDeleteConfirm(true);
-                  setDeletePassword('');
-                  setDeleteReason('');
-                  setDeleteError(null);
-                }}
-                className="shrink-0 flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-500/90 hover:bg-red-500 rounded-xl transition-colors"
-                data-testid="delete-account-btn"
-              >
-                <Trash2 className="w-4 h-4" />
-                Eliminar Cuenta
-              </button>
-            </div>
-          </ProfileSection>
         )}
 
         {/* Logout Button */}

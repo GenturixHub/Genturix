@@ -43,7 +43,9 @@ import {
   ZoomIn,
   LogOut,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  Lock,
+  Key
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -57,6 +59,14 @@ import {
 } from '../components/ui/alert-dialog';
 import ChangePasswordForm from '../components/ChangePasswordForm';
 import { PushNotificationToggle } from '../components/PushNotificationBanner';
+import LanguageSelector from '../components/LanguageSelector';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '../components/ui/accordion';
+import { useTranslation } from 'react-i18next';
 
 // Role configuration for display
 const ROLE_CONFIG = {
@@ -74,6 +84,7 @@ const ProfilePage = () => {
   const { userId } = useParams(); // If userId is present, we're viewing someone else's profile
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -677,14 +688,90 @@ const ProfilePage = () => {
           <PushNotificationToggle />
         )}
 
-        {/* Security Section - Change Password (only for own profile) */}
+        {/* ========== PRIVACY SECTION ========== */}
         {isOwnProfile && (
-          <ChangePasswordForm 
-            onSuccess={() => {
-              setSuccess('Contraseña actualizada exitosamente');
-              setTimeout(() => setSuccess(null), 3000);
-            }}
-          />
+          <Card className="bg-[#0F111A] border-[#1E293B] rounded-2xl">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2 text-white">
+                <Lock className="w-4 h-4" />
+                {t('profile.privacy', 'Privacidad')}
+              </CardTitle>
+              <CardDescription>
+                {t('profile.privacyDescription', 'Administra tu seguridad')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Accordion type="single" collapsible className="w-full">
+                {/* Change Password */}
+                <AccordionItem value="change-password" className="border-white/10">
+                  <AccordionTrigger 
+                    className="text-white/80 hover:text-white hover:no-underline py-3"
+                    data-testid="change-password-accordion"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Key className="w-4 h-4 text-white/50" />
+                      <span>{t('profile.changePassword', 'Cambiar Contraseña')}</span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-2">
+                    <ChangePasswordForm 
+                      embedded={true}
+                      onSuccess={() => {
+                        setSuccess(t('auth.passwordChanged', 'Contraseña actualizada exitosamente'));
+                        setTimeout(() => setSuccess(null), 3000);
+                      }}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Danger Zone - Delete Account (inside Privacy, not for SuperAdmin) */}
+                {!profile?.roles?.includes('SuperAdmin') && (
+                  <AccordionItem value="danger-zone" className="border-white/10 border-t">
+                    <AccordionTrigger 
+                      className="text-red-400/80 hover:text-red-400 hover:no-underline py-3"
+                      data-testid="danger-zone-accordion"
+                    >
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-red-500/70" />
+                        <span>{t('profile.dangerZone', 'Zona de Peligro')}</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pt-2">
+                      <div className="p-4 bg-red-950/20 rounded-lg border border-red-900/30">
+                        <div className="flex flex-col gap-3">
+                          <div>
+                            <h4 className="font-medium text-red-300">{t('profile.deleteMyAccount', 'Eliminar mi cuenta')}</h4>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {t('profile.deleteAccountWarning', 'Esta acción es permanente. Se eliminarán todos tus datos y perderás acceso a la plataforma.')}
+                            </p>
+                          </div>
+                          <Button
+                            variant="destructive"
+                            className="w-full sm:w-auto"
+                            onClick={() => {
+                              setShowDeleteConfirm(true);
+                              setDeletePassword('');
+                              setDeleteReason('');
+                              setDeleteError(null);
+                            }}
+                            data-testid="delete-account-btn"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            {t('profile.deleteAccount', 'Eliminar Cuenta')}
+                          </Button>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
+              </Accordion>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Language Selector (only for own profile) */}
+        {isOwnProfile && (
+          <LanguageSelector />
         )}
 
         {/* Photo Lightbox Modal */}
@@ -735,45 +822,6 @@ const ProfilePage = () => {
             </div>
           </DialogContent>
         </Dialog>
-
-        {/* Danger Zone - Delete Account (Only for own profile, not SuperAdmin) */}
-        {isOwnProfile && !profile?.roles?.includes('SuperAdmin') && (
-          <Card className="bg-[#0F111A] border-red-900/30 rounded-2xl">
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2 text-red-400">
-                <AlertTriangle className="w-4 h-4" />
-                Zona de Peligro
-              </CardTitle>
-              <CardDescription>
-                Acciones irreversibles que afectan tu cuenta
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 bg-red-950/20 rounded-lg border border-red-900/30">
-                <div>
-                  <h4 className="font-medium text-red-300">Eliminar mi cuenta</h4>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Esta acción es permanente. Se eliminarán todos tus datos y perderás acceso a la plataforma.
-                  </p>
-                </div>
-                <Button
-                  variant="destructive"
-                  className="shrink-0"
-                  onClick={() => {
-                    setShowDeleteConfirm(true);
-                    setDeletePassword('');
-                    setDeleteReason('');
-                    setDeleteError(null);
-                  }}
-                  data-testid="delete-account-btn"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Eliminar Cuenta
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Logout Section - Mobile visible, always show for own profile */}
         {isOwnProfile && (
