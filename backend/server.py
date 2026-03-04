@@ -191,6 +191,9 @@ JWT_ALGORITHM = os.environ.get('JWT_ALGORITHM', 'HS256')
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get('ACCESS_TOKEN_EXPIRE_MINUTES', 15))
 REFRESH_TOKEN_EXPIRE_MINUTES = int(os.environ.get('REFRESH_TOKEN_EXPIRE_MINUTES', 10080))
 
+# Guard role extended session - 12 hours (720 minutes) for security personnel on shift
+GUARD_ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get('GUARD_ACCESS_TOKEN_EXPIRE_MINUTES', 720))
+
 # ==================== SECURE COOKIE CONFIGURATION ====================
 # Cookie name for refresh token
 REFRESH_TOKEN_COOKIE_NAME = "genturix_refresh_token"
@@ -3334,7 +3337,21 @@ async def login(request: Request, credentials: UserLogin):
         "roles": user["roles"],
         "condominium_id": user.get("condominium_id")
     }
-    access_token = create_access_token(token_data)
+    
+    # Determine token expiration based on role
+    # Guards get extended sessions (12 hours) for shift work
+    user_roles = user.get("roles", [])
+    is_guard = "Guarda" in user_roles or "Guard" in user_roles
+    
+    if is_guard:
+        # Extended session for guards - 12 hours
+        access_token_expires = timedelta(minutes=GUARD_ACCESS_TOKEN_EXPIRE_MINUTES)
+        print(f"[AUTH] Guard role detected - using extended session ({GUARD_ACCESS_TOKEN_EXPIRE_MINUTES} minutes)")
+    else:
+        # Standard session for other roles
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    access_token = create_access_token(token_data, access_token_expires)
     refresh_token = create_refresh_token(token_data, refresh_token_id)
     
     await log_audit_event(
@@ -3490,7 +3507,17 @@ async def refresh_token_endpoint(request: Request, token_request: RefreshTokenRe
         "roles": user["roles"],
         "condominium_id": user.get("condominium_id")
     }
-    new_access_token = create_access_token(token_data)
+    
+    # Determine token expiration based on role (same logic as login)
+    user_roles = user.get("roles", [])
+    is_guard = "Guarda" in user_roles or "Guard" in user_roles
+    
+    if is_guard:
+        access_token_expires = timedelta(minutes=GUARD_ACCESS_TOKEN_EXPIRE_MINUTES)
+    else:
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    new_access_token = create_access_token(token_data, access_token_expires)
     new_refresh_token = create_refresh_token(token_data, new_refresh_token_id)
     
     await log_audit_event(
