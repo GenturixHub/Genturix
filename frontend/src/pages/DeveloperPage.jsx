@@ -16,7 +16,9 @@ import {
   Code2,
   User,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  X,
+  ZoomIn
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 
@@ -24,6 +26,7 @@ const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const DeveloperPage = () => {
   const [profileData, setProfileData] = useState(null);
+  const [isPhotoExpanded, setIsPhotoExpanded] = useState(false);
 
   // Fetch developer profile - using direct fetch for public endpoint
   const { data: profile, isLoading, error, refetch } = useQuery({
@@ -126,14 +129,24 @@ const DeveloperPage = () => {
           <div className="space-y-6 sm:space-y-8">
             {/* Profile Header */}
             <div className="flex flex-col items-center gap-4 sm:gap-6 sm:flex-row sm:items-start sm:gap-8">
-              {/* Photo */}
+              {/* Photo - Clickable to expand */}
               <div className="flex-shrink-0">
                 {displayProfile.photo_url ? (
-                  <img
-                    src={displayProfile.photo_url}
-                    alt={displayProfile.name || 'Desarrollador'}
-                    className="w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-2xl object-cover border-2 border-white/10"
-                  />
+                  <button
+                    onClick={() => setIsPhotoExpanded(true)}
+                    className="relative group cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-[#030712] rounded-2xl"
+                    aria-label="Ver foto en tamaño completo"
+                  >
+                    <img
+                      src={displayProfile.photo_url}
+                      alt={displayProfile.name || 'Desarrollador'}
+                      className="w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-2xl object-cover border-2 border-white/10 transition-all duration-300 group-hover:border-primary/50 group-hover:scale-[1.02]"
+                    />
+                    {/* Zoom overlay on hover */}
+                    <div className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <ZoomIn className="w-8 h-8 text-white drop-shadow-lg" />
+                    </div>
+                  </button>
                 ) : (
                   <div className="w-28 h-28 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-2xl bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center border-2 border-white/10">
                     <User className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 text-white/40" />
@@ -247,6 +260,41 @@ const DeveloperPage = () => {
           </p>
         </div>
       </footer>
+
+      {/* Photo Lightbox Modal */}
+      {isPhotoExpanded && displayProfile?.photo_url && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setIsPhotoExpanded(false)}
+        >
+          {/* Close button */}
+          <button
+            onClick={() => setIsPhotoExpanded(false)}
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors z-10"
+            aria-label="Cerrar"
+          >
+            <X className="w-6 h-6 text-white" />
+          </button>
+
+          {/* Developer name */}
+          <div className="absolute top-4 left-4 text-white/70 text-sm">
+            {displayProfile.name}
+          </div>
+
+          {/* Expanded photo */}
+          <img
+            src={displayProfile.photo_url}
+            alt={displayProfile.name || 'Desarrollador'}
+            className="max-w-full max-h-[85vh] rounded-2xl object-contain shadow-2xl animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          {/* Tap to close hint - mobile only */}
+          <p className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/40 text-xs sm:hidden">
+            Toca para cerrar
+          </p>
+        </div>
+      )}
     </div>
   );
 };
