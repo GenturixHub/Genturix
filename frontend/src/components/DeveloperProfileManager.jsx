@@ -3,7 +3,7 @@
  * 
  * SuperAdmin component to manage the platform developer profile.
  */
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { 
@@ -46,21 +46,25 @@ const DeveloperProfileManager = () => {
   const { data: profile, isLoading } = useQuery({
     queryKey: ['developer-profile'],
     queryFn: () => api.get('/developer-profile'),
-    onSuccess: (data) => {
-      if (data) {
-        setFormData({
-          name: data.name || '',
-          title: data.title || '',
-          bio: data.bio || '',
-          email: data.email || '',
-          website: data.website || '',
-          linkedin: data.linkedin || '',
-          github: data.github || '',
-          photo_url: data.photo_url || null
-        });
-      }
-    }
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: true,
   });
+
+  // Sync profile data with form state when data loads
+  useEffect(() => {
+    if (profile && profile.id) {
+      setFormData({
+        name: profile.name || '',
+        title: profile.title || '',
+        bio: profile.bio || '',
+        email: profile.email || '',
+        website: profile.website || '',
+        linkedin: profile.linkedin || '',
+        github: profile.github || '',
+        photo_url: profile.photo_url || null
+      });
+    }
+  }, [profile]);
 
   // Update profile mutation
   const updateMutation = useMutation({
