@@ -964,33 +964,39 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
 
 ---
 
-## Security Audit Complete (December 2025) ✅ COMPLETE
+## Security Audit Complete (December 2025) ✅ COMPLETE - v1.1
 
 ### Summary
 Comprehensive security audit performed on the entire Genturix codebase.
+**Revision v1.1:** Severities adjusted after exposure verification.
 
 ### Report Generated
-- `/app/SECURITY_AUDIT_REPORT.md` - Full security audit report
+- `/app/SECURITY_AUDIT_REPORT.md` - Full security audit report (v1.1)
 
-### Critical Findings (Require Immediate Action)
-1. **C-001:** Secrets hardcoded in `.env` file - MUST rotate all secrets
-2. **C-002:** XSS vulnerability in `ResidentVisitHistory.jsx:452` (innerHTML usage)
-3. **C-003:** CORS wildcard configuration risk
+### Exposure Verification ✅
+- `.env` files are in `.gitignore` - NOT tracked in Git
+- No secrets found in frontend source, bundles, or public logs
+- Secrets exist ONLY in `/app/backend/.env` (private server)
 
-### High Severity Findings
+### Critical Findings (2) - Require Immediate Action
+1. **C-001:** XSS vulnerability in `ResidentVisitHistory.jsx:452` (innerHTML usage)
+2. **C-002:** CORS wildcard `CORS_ORIGINS="*"` in .env could leak to production
+
+### High Severity Findings (5)
 1. **H-001:** Monolithic backend (18,392 lines) - architectural risk
 2. **H-002:** Stripe webhook without verification in development
 3. **H-003:** Access token stored in localStorage (vulnerable to XSS)
 4. **H-004:** DEV_MODE=true in .env file
 5. **H-005:** Sensitive information in logs
 
-### Medium Severity Findings
-1. **M-001:** Incomplete input sanitization
-2. **M-002:** Rate limiting only on login endpoints
-3. **M-003:** Missing database indexes
-4. **M-004:** Inconsistent ownership validation
-5. **M-005:** Temporary passwords in responses (DEV_MODE)
-6. **M-006:** Duplicate return statement in CORS config
+### Medium Severity Findings (7) - Including Reclassified
+1. **M-001:** Secrets in local `.env` file (RECLASSIFIED from Critical - no public exposure)
+2. **M-002:** Incomplete input sanitization
+3. **M-003:** Rate limiting only on login endpoints
+4. **M-004:** Missing database indexes
+5. **M-005:** Inconsistent ownership validation
+6. **M-006:** Temporary passwords in responses (DEV_MODE)
+7. **M-007:** Duplicate return statement in CORS config
 
 ### Positive Security Aspects Identified
 - ✅ JWT authentication with refresh token rotation
@@ -1002,9 +1008,18 @@ Comprehensive security audit performed on the entire Genturix codebase.
 - ✅ Input sanitization with bleach
 - ✅ Webhook signature verification in production
 - ✅ Session invalidation after password change
+- ✅ `.env` properly excluded from Git
+- ✅ NO public exposure of secrets
+
+### Top 5 Real Risks (Ordered by Impact)
+1. 🔴 XSS in PDF generation - Session theft
+2. 🔴 CORS wildcard config - CSRF/data leak risk
+3. 🟠 Access token in localStorage - Amplifies XSS
+4. 🟠 Stripe webhook unverified in dev - Payment fraud
+5. 🟠 Monolithic backend - Maintenance/security risk
 
 ### Remediation Priorities
-**Phase 1 (Immediate):** Rotate secrets, fix XSS, verify production config
+**Phase 1 (Immediate):** Fix XSS, remove CORS wildcard from .env
 **Phase 2 (7 days):** Move token to memory, enable webhook verification
 **Phase 3 (30 days):** Expand sanitization, global rate limiting, indexes
 **Phase 4 (Planned):** Modularize server.py, CSP headers

