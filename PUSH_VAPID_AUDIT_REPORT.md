@@ -10,8 +10,8 @@
 ### Variables de Entorno
 | Variable | Estado | Valor |
 |----------|--------|-------|
-| `VAPID_PUBLIC_KEY` | ✅ Configurada | `BB_Jr5X0KemRHT...` (86 chars) |
-| `VAPID_PRIVATE_KEY` | ✅ Configurada | `REDACTED_KEY` (43 chars) |
+| `VAPID_PUBLIC_KEY` | ✅ Configurada | `<REDACTED>` (86 chars) |
+| `VAPID_PRIVATE_KEY` | ✅ Configurada | `<REDACTED>` (43 chars) |
 | `VAPID_CLAIMS_EMAIL` | ✅ Configurada | `admin@genturix.com` |
 
 ### Verificación de Carga

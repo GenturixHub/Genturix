@@ -52,8 +52,8 @@ El sistema tiene una base sólida con multi-tenant isolation y autenticación ro
 **Impacto:** Seguridad crítica
 **Descripción:** Los JWT secrets están hardcodeados en .env con valores predecibles:
 ```
-JWT_SECRET_KEY="JWT_SECRET_REDACTED"
-JWT_REFRESH_SECRET_KEY="JWT_REFRESH_REDACTED"
+JWT_SECRET_KEY="<REDACTED - use cryptographically secure random string>"
+JWT_REFRESH_SECRET_KEY="<REDACTED - use cryptographically secure random string>"
 ```
 **Recomendación:** Generar secrets criptográficamente seguros y rotar en cada deploy.
 

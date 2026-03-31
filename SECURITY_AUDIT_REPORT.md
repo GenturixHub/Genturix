@@ -133,10 +133,10 @@ El código actual en `server.py` NO usa `CORS_ORIGINS` del `.env`, sino que tien
 /app/backend/.env  ← ÚNICO lugar (servidor privado)
 ```
 
-**Contenido del archivo (para referencia):**
+**Contenido del archivo (estructura - valores redactados):**
 ```
-JWT_SECRET_KEY="JWT_SECRET_REDACTED"
-JWT_REFRESH_SECRET_KEY="JWT_REFRESH_REDACTED"
+JWT_SECRET_KEY="<REDACTED>"
+JWT_REFRESH_SECRET_KEY="<REDACTED>"
 STRIPE_API_KEY=sk_test_...
 RESEND_API_KEY=re_...
 VAPID_PRIVATE_KEY=...

@@ -11,7 +11,7 @@
 ### Variables de Entorno
 | Variable | Estado | Valor |
 |----------|--------|-------|
-| `RESEND_API_KEY` | ✅ Presente | `re_MHqNnsK...` (36 chars) |
+| `RESEND_API_KEY` | ✅ Presente | `<REDACTED>` (36 chars) |
 | `SENDER_EMAIL` | ⚠️ Test Domain | `onboarding@resend.dev` |
 | `ENVIRONMENT` | ℹ️ | `development` |
 
