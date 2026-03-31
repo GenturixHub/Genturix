@@ -460,8 +460,39 @@ function AppRoutes() {
   );
 }
 
+// ==================== MAINTENANCE MODE ====================
+// Set to true to block ALL users from accessing the app
+// Set to false to restore normal operation
+const MAINTENANCE_MODE = true;
+// ===========================================================
+
 function App() {
   const { showUpdate, isUpdating, triggerUpdate, dismissUpdate } = useServiceWorkerUpdate();
+
+  // Maintenance mode - blocks entire app before any routing/auth
+  if (MAINTENANCE_MODE) {
+    return (
+      <div style={{
+        display: 'flex',
+        height: '100vh',
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'column',
+        fontFamily: 'sans-serif',
+        backgroundColor: '#0f172a',
+        color: 'white',
+        textAlign: 'center',
+        padding: '20px'
+      }}>
+        <h1 style={{fontSize: '28px', marginBottom: '10px'}}>
+          Servicio temporalmente no disponible
+        </h1>
+        <p style={{opacity: 0.7}}>
+          Estamos realizando ajustes tecnicos. Intenta mas tarde.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <PersistQueryClientProvider 
