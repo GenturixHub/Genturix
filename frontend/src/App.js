@@ -463,7 +463,7 @@ function AppRoutes() {
 // ==================== MAINTENANCE MODE ====================
 // Set to true to block ALL users from accessing the app
 // Set to false to restore normal operation
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 // ===========================================================
 
 function App() {
