@@ -1041,3 +1041,50 @@ The new AdminBillingPage is fully integrated with the billing engine:
 - Uses `GET /api/admin/seat-usage` for seat info
 - Uses `POST /api/billing/request-seat-upgrade` for upgrades
 - NO frontend calculations - all data comes from backend
+
+
+---
+
+## Notifications V2 Module (2026-04-14) - COMPLETE
+
+### Summary
+Implemented a new Notifications V2 module that coexists with the existing notification system. Provides admin broadcast capabilities, user notification preferences, and a paginated notification list.
+
+### Backend Endpoints (all under /api/notifications/v2/*)
+- `GET /notifications/v2` - List notifications with pagination, unread_only filter, notification_type filter
+- `GET /notifications/v2/unread-count` - Unread notification count for current user
+- `POST /notifications/v2/broadcast` - Admin/SuperAdmin creates broadcast notification (multi-tenant scoped)
+- `PATCH /notifications/v2/read/{id}` - Mark notification as read
+- `PATCH /notifications/v2/read-all` - Mark all notifications as read
+- `GET /notifications/v2/broadcasts` - Admin broadcast history with pagination
+- `GET /notifications/v2/preferences` - Get user notification preferences
+- `PATCH /notifications/v2/preferences` - Update notification preferences
+
+### MongoDB Collections
+- `notifications_v2` - Main notification storage with read_by array for per-user read tracking
+- `notification_broadcasts` - Broadcast history records
+- `notification_preferences` - Per-user notification preferences
+
+### Frontend Files
+- `/app/frontend/src/pages/NotificationsPage.js` - Admin broadcast form, broadcast history, notification list
+- `/app/frontend/src/components/NotificationPreferences.jsx` - Toggle preferences UI
+
+### Modified Files
+- `server.py` - Added V2 endpoints section before include_router
+- `api.js` - Added V2 API methods
+- `Sidebar.js` - Added "Notificaciones" nav entry for Administrador
+- `Header.js` - Updated bell to use V2 endpoints with fallback to legacy
+- `App.js` - Added route `/admin/notifications`
+- `es.json` / `en.json` - Added i18n translations
+
+### Safety
+- No existing endpoints modified
+- No existing schemas changed
+- Legacy /api/notifications endpoints still fully functional
+- All actions logged in audit_logs
+
+### Testing
+- 26/26 backend tests passed (100%)
+- Frontend UI verified: page renders, sidebar entry visible, header bell works
+- Role-based access: only Admin/SuperAdmin can create broadcasts
+- Multi-tenant: notifications scoped by condominium_id
