@@ -6,52 +6,22 @@ import { Input } from '../components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '../components/ui/select';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '../components/ui/dialog';
 import { toast } from 'sonner';
 import api from '../services/api';
 import {
-  DollarSign,
-  Plus,
-  CreditCard,
-  AlertTriangle,
-  CheckCircle,
-  TrendingUp,
-  Loader2,
-  ChevronLeft,
-  ChevronRight,
-  Filter,
-  Wallet,
-  Receipt,
-  ArrowDownCircle,
-  FileDown,
-  FileSpreadsheet,
+  DollarSign, Plus, CreditCard, AlertTriangle, CheckCircle, TrendingUp,
+  Loader2, Filter, Wallet, Receipt, ArrowDownCircle, FileDown, FileSpreadsheet,
+  Users, Settings, Save, Ban, Check,
 } from 'lucide-react';
 
-const STATUS_COLORS = {
-  paid: 'bg-green-500/15 text-green-400 border-green-500/30',
-  pending: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30',
-  overdue: 'bg-red-500/15 text-red-400 border-red-500/30',
-  partial: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-};
-const STATUS_LABELS = { paid: 'Pagado', pending: 'Pendiente', overdue: 'Vencido', partial: 'Parcial' };
-const ACCT_COLORS = {
-  al_dia: 'text-green-400',
-  atrasado: 'text-red-400',
-  adelantado: 'text-blue-400',
-};
-const ACCT_LABELS = { al_dia: 'Al día', atrasado: 'Atrasado', adelantado: 'Adelantado' };
-
+const ACCT_COLORS = { al_dia: 'text-green-400', atrasado: 'text-red-400', adelantado: 'text-blue-400' };
+const ACCT_LABELS = { al_dia: 'Al dia', atrasado: 'Atrasado', adelantado: 'Adelantado' };
+const ACCT_BG = { al_dia: 'bg-green-500/15 border-green-500/30', atrasado: 'bg-red-500/15 border-red-500/30', adelantado: 'bg-blue-500/15 border-blue-500/30' };
 function fmt(n) { return new Intl.NumberFormat('es-CR', { style: 'currency', currency: 'USD' }).format(n); }
 
 // ── Summary Cards ──
@@ -61,7 +31,7 @@ const SummaryCards = ({ summary }) => {
     { label: 'Total Cobrado', value: fmt(summary.global_due), color: 'text-white', icon: Receipt },
     { label: 'Total Pagado', value: fmt(summary.global_paid), color: 'text-green-400', icon: CheckCircle },
     { label: 'Balance Global', value: fmt(summary.global_balance), color: summary.global_balance > 0 ? 'text-red-400' : 'text-green-400', icon: DollarSign },
-    { label: 'Al día', value: summary.al_dia, color: 'text-green-400', icon: CheckCircle },
+    { label: 'Al dia', value: summary.al_dia, color: 'text-green-400', icon: CheckCircle },
     { label: 'Atrasados', value: summary.atrasado, color: 'text-red-400', icon: AlertTriangle },
   ];
   return (
@@ -84,7 +54,7 @@ const SummaryCards = ({ summary }) => {
   );
 };
 
-// ── Create Charge Catalog Dialog ──
+// ── Catalog Dialog ──
 const CatalogDialog = ({ open, onClose, onCreated }) => {
   const [name, setName] = useState('');
   const [type, setType] = useState('fixed');
@@ -125,17 +95,16 @@ const CatalogDialog = ({ open, onClose, onCreated }) => {
   );
 };
 
-// ── Create Charge Dialog ──
-const ChargeDialog = ({ open, onClose, onCreated, catalog }) => {
-  const [unitId, setUnitId] = useState('');
+// ── Charge Dialog ──
+const ChargeDialog = ({ open, onClose, onCreated, catalog, prefillUnit }) => {
+  const [unitId, setUnitId] = useState(prefillUnit || '');
   const [chargeTypeId, setChargeTypeId] = useState('');
   const [period, setPeriod] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; });
   const [amount, setAmount] = useState('');
   const [sending, setSending] = useState(false);
-
   const selectedCatalog = catalog.find(c => c.id === chargeTypeId);
   useEffect(() => { if (selectedCatalog && !amount) setAmount(String(selectedCatalog.default_amount)); }, [selectedCatalog, amount]);
-
+  useEffect(() => { if (prefillUnit) setUnitId(prefillUnit); }, [prefillUnit]);
   const handleSubmit = async () => {
     if (!unitId.trim() || !chargeTypeId || !period || !amount) return;
     setSending(true);
@@ -170,12 +139,13 @@ const ChargeDialog = ({ open, onClose, onCreated, catalog }) => {
   );
 };
 
-// ── Payment Dialog ──
-const PaymentDialog = ({ open, onClose, onCreated }) => {
-  const [unitId, setUnitId] = useState('');
+// ── Register Payment Dialog (admin) ──
+const PaymentDialog = ({ open, onClose, onCreated, prefillUnit }) => {
+  const [unitId, setUnitId] = useState(prefillUnit || '');
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState('efectivo');
   const [sending, setSending] = useState(false);
+  useEffect(() => { if (prefillUnit) setUnitId(prefillUnit); }, [prefillUnit]);
   const handleSubmit = async () => {
     if (!unitId.trim() || !amount) return;
     setSending(true);
@@ -218,28 +188,24 @@ const BulkChargeDialog = ({ open, onClose, onCreated, catalog }) => {
   const [dueDate, setDueDate] = useState('');
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState(null);
-
   const handleSubmit = async () => {
     if (!chargeTypeId || !period) return;
-    setSending(true);
-    setResult(null);
+    setSending(true); setResult(null);
     try {
       const data = { charge_type_id: chargeTypeId, period };
       if (dueDate) data.due_date = dueDate;
       const res = await api.generateBulkCharges(data);
       setResult(res);
-      toast.success(`${res.created_count} cargos generados, ${res.skipped_count} omitidos`);
+      toast.success(`${res.created_count} cargos generados`);
       onCreated?.();
     } catch (err) { toast.error(err.message || 'Error'); }
     finally { setSending(false); }
   };
-
   const handleClose = () => { setResult(null); setChargeTypeId(''); onClose(); };
-
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
       <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-md" data-testid="bulk-charge-dialog">
-        <DialogHeader><DialogTitle>Generación Masiva de Cargos</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Cargos Masivos</DialogTitle></DialogHeader>
         <div className="space-y-3">
           {!result ? (
             <>
@@ -250,41 +216,143 @@ const BulkChargeDialog = ({ open, onClose, onCreated, catalog }) => {
                 </SelectContent>
               </Select>
               <Input data-testid="bulk-period" type="month" value={period} onChange={(e) => setPeriod(e.target.value)} className="bg-[#181B25] border-[#1E293B]" />
-              <Input data-testid="bulk-due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} placeholder="Fecha de vencimiento (opcional)" className="bg-[#181B25] border-[#1E293B]" />
-              <p className="text-xs text-muted-foreground">Se generará un cargo para TODAS las unidades registradas. Las unidades que ya tengan este cargo para el período seleccionado serán omitidas.</p>
-              <Button onClick={handleSubmit} disabled={sending || !chargeTypeId || !period} data-testid="submit-bulk" className="w-full">
-                {sending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ArrowDownCircle className="w-4 h-4 mr-2" />} Generar Cargos Masivos
+              <Input data-testid="bulk-due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} placeholder="Fecha vencimiento (opcional)" className="bg-[#181B25] border-[#1E293B]" />
+              <Button onClick={handleSubmit} disabled={sending || !chargeTypeId} data-testid="submit-bulk" className="w-full">
+                {sending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ArrowDownCircle className="w-4 h-4 mr-2" />} Generar
               </Button>
             </>
           ) : (
-            <div className="space-y-3" data-testid="bulk-result">
-              <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-center">
-                <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
-                <p className="text-lg font-bold text-white">Cargos Generados</p>
-              </div>
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div className="p-3 rounded-lg bg-[#181B25]">
-                  <p className="text-xl font-bold text-white">{result.total_units}</p>
-                  <p className="text-[10px] text-muted-foreground">Total Unidades</p>
-                </div>
-                <div className="p-3 rounded-lg bg-[#181B25]">
-                  <p className="text-xl font-bold text-green-400">{result.created_count}</p>
-                  <p className="text-[10px] text-muted-foreground">Creados</p>
-                </div>
-                <div className="p-3 rounded-lg bg-[#181B25]">
-                  <p className="text-xl font-bold text-yellow-400">{result.skipped_count}</p>
-                  <p className="text-[10px] text-muted-foreground">Omitidos</p>
-                </div>
-              </div>
-              <div className="text-xs text-muted-foreground text-center">
-                <p>{result.charge_type} - {result.period} - {fmt(result.amount)} c/u</p>
-              </div>
-              <Button variant="outline" onClick={handleClose} className="w-full" data-testid="bulk-close">Cerrar</Button>
+            <div className="space-y-3 text-center" data-testid="bulk-result">
+              <CheckCircle className="w-10 h-10 text-green-400 mx-auto" />
+              <p className="text-lg font-bold">{result.created_count} creados, {result.skipped_count} omitidos</p>
+              <p className="text-xs text-muted-foreground">{result.charge_type} - {result.period} - {fmt(result.amount)}</p>
+              <Button variant="outline" onClick={handleClose} className="w-full">Cerrar</Button>
             </div>
           )}
         </div>
       </DialogContent>
     </Dialog>
+  );
+};
+
+// ── Payment Settings Dialog ──
+const PaymentSettingsDialog = ({ open, onClose }) => {
+  const [settings, setSettings] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setLoading(true);
+    api.getPaymentSettings().then(s => { setSettings(s || {}); setLoading(false); }).catch(() => setLoading(false));
+  }, [open]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await api.updatePaymentSettings(settings);
+      toast.success('Datos de pago actualizados');
+      onClose();
+    } catch (err) { toast.error(err.message || 'Error'); }
+    finally { setSaving(false); }
+  };
+
+  const update = (key, val) => setSettings(prev => ({ ...prev, [key]: val }));
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-lg" data-testid="payment-settings-dialog">
+        <DialogHeader><DialogTitle>Datos de Pago (SINPE / Transferencia)</DialogTitle></DialogHeader>
+        {loading ? (
+          <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin" /></div>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs text-muted-foreground mb-2 font-medium">SINPE Movil</p>
+              <div className="grid grid-cols-2 gap-3">
+                <Input value={settings.sinpe_number || ''} onChange={(e) => update('sinpe_number', e.target.value)} placeholder="Numero SINPE" className="bg-[#181B25] border-[#1E293B]" data-testid="sinpe-number" />
+                <Input value={settings.sinpe_name || ''} onChange={(e) => update('sinpe_name', e.target.value)} placeholder="Nombre titular" className="bg-[#181B25] border-[#1E293B]" data-testid="sinpe-name" />
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-2 font-medium">Transferencia Bancaria</p>
+              <div className="space-y-2">
+                <Input value={settings.bank_name || ''} onChange={(e) => update('bank_name', e.target.value)} placeholder="Nombre del banco" className="bg-[#181B25] border-[#1E293B]" data-testid="bank-name" />
+                <Input value={settings.bank_account || ''} onChange={(e) => update('bank_account', e.target.value)} placeholder="Numero de cuenta" className="bg-[#181B25] border-[#1E293B]" data-testid="bank-account" />
+                <Input value={settings.bank_iban || ''} onChange={(e) => update('bank_iban', e.target.value)} placeholder="IBAN" className="bg-[#181B25] border-[#1E293B]" data-testid="bank-iban" />
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-2 font-medium">Instrucciones adicionales</p>
+              <textarea value={settings.additional_instructions || ''} onChange={(e) => update('additional_instructions', e.target.value)} placeholder="Ej: Incluir numero de unidad como referencia" rows={2} className="w-full rounded-md bg-[#181B25] border border-[#1E293B] text-sm px-3 py-2 text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none" data-testid="payment-instructions" />
+            </div>
+            <Button onClick={handleSave} disabled={saving} className="w-full" data-testid="save-payment-settings">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />} Guardar
+            </Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// ── Payment Requests Panel (admin reviews resident payments) ──
+const PaymentRequestsPanel = () => {
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState(null);
+
+  const fetchRequests = useCallback(async () => {
+    try {
+      const data = await api.getPaymentRequests('pending');
+      setRequests(data.items || []);
+    } catch { setRequests([]); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchRequests(); }, [fetchRequests]);
+
+  const handleReview = async (id, action) => {
+    setProcessing(id);
+    try {
+      await api.reviewPaymentRequest(id, action);
+      toast.success(action === 'approved' ? 'Pago aprobado y registrado' : 'Pago rechazado');
+      fetchRequests();
+    } catch (err) { toast.error(err.message || 'Error'); }
+    finally { setProcessing(null); }
+  };
+
+  if (loading) return null;
+  if (requests.length === 0) return null;
+
+  return (
+    <Card className="bg-[#0F111A] border-[#1E293B] border-orange-500/30" data-testid="payment-requests-panel">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <CreditCard className="w-4 h-4 text-orange-400" />
+          Comprobantes de Pago Pendientes ({requests.length})
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {requests.map(pr => (
+          <div key={pr.id} className="p-3 rounded-lg bg-[#181B25] border border-orange-500/20 flex items-center gap-3" data-testid={`pr-${pr.id}`}>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white">{pr.resident_name} - {pr.unit_id}</p>
+              <p className="text-xs text-muted-foreground">{fmt(pr.amount)} via {pr.payment_method} {pr.reference ? `| Ref: ${pr.reference}` : ''}</p>
+              {pr.notes && <p className="text-xs text-muted-foreground mt-0.5">{pr.notes}</p>}
+            </div>
+            <div className="flex gap-1 flex-shrink-0">
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-green-400 hover:text-green-300 hover:bg-green-500/10" onClick={() => handleReview(pr.id, 'approved')} disabled={processing === pr.id} data-testid={`approve-${pr.id}`}>
+                {processing === pr.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              </Button>
+              <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10" onClick={() => handleReview(pr.id, 'rejected')} disabled={processing === pr.id} data-testid={`reject-${pr.id}`}>
+                <Ban className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 };
 
@@ -298,7 +366,9 @@ export default function FinanzasModule() {
   const [showCharge, setShowCharge] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showBulk, setShowBulk] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [exporting, setExporting] = useState(null);
+  const [prefillUnit, setPrefillUnit] = useState('');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -312,16 +382,18 @@ export default function FinanzasModule() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleExport = async (fmt) => {
-    setExporting(fmt);
+  const handleExport = async (f) => {
+    setExporting(f);
     try {
-      await api.downloadFinancialReport(fmt);
-      toast.success(fmt === 'pdf' ? 'PDF descargado' : 'CSV descargado');
-    } catch (err) {
-      toast.error(err.message || 'Error al exportar');
-    } finally {
-      setExporting(null);
-    }
+      await api.downloadFinancialReport(f);
+      toast.success(f === 'pdf' ? 'PDF descargado' : 'CSV descargado');
+    } catch (err) { toast.error(err.message || 'Error al exportar'); }
+    finally { setExporting(null); }
+  };
+
+  const openPaymentFor = (unitId) => {
+    setPrefillUnit(unitId);
+    setShowPayment(true);
   };
 
   return (
@@ -333,19 +405,25 @@ export default function FinanzasModule() {
           <>
             <SummaryCards summary={overview?.summary} />
 
+            {/* Pending Payment Requests */}
+            <PaymentRequestsPanel />
+
             {/* Actions */}
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={() => setShowCatalog(true)} data-testid="btn-new-catalog">
                 <Plus className="w-4 h-4 mr-1" /> Tipo de Cargo
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setShowCharge(true)} data-testid="btn-new-charge" disabled={catalog.length === 0}>
+              <Button size="sm" variant="outline" onClick={() => { setPrefillUnit(''); setShowCharge(true); }} data-testid="btn-new-charge" disabled={catalog.length === 0}>
                 <Receipt className="w-4 h-4 mr-1" /> Generar Cargo
               </Button>
               <Button size="sm" variant="outline" onClick={() => setShowBulk(true)} data-testid="btn-bulk-charge" disabled={catalog.length === 0}>
                 <ArrowDownCircle className="w-4 h-4 mr-1" /> Cargos Masivos
               </Button>
-              <Button size="sm" onClick={() => setShowPayment(true)} data-testid="btn-new-payment">
+              <Button size="sm" onClick={() => { setPrefillUnit(''); setShowPayment(true); }} data-testid="btn-new-payment">
                 <CreditCard className="w-4 h-4 mr-1" /> Registrar Pago
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setShowSettings(true)} data-testid="btn-payment-settings">
+                <Settings className="w-4 h-4 mr-1" /> Datos de Pago
               </Button>
               <div className="ml-auto flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => handleExport('pdf')} disabled={!!exporting} data-testid="btn-export-pdf">
@@ -375,7 +453,7 @@ export default function FinanzasModule() {
               </Card>
             )}
 
-            {/* Accounts Table */}
+            {/* Accounts Table - Enhanced with resident info */}
             <Card className="bg-[#0F111A] border-[#1E293B]">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base"><Wallet className="w-4 h-4 text-primary" /> Cuentas por Unidad</CardTitle>
@@ -387,21 +465,55 @@ export default function FinanzasModule() {
                     <p className="text-sm text-muted-foreground">No hay cuentas registradas. Genera un cargo para crear la primera.</p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    {overview.accounts.map((a) => (
-                      <div key={a.unit_id} data-testid={`account-${a.unit_id}`} className="p-3 rounded-lg bg-[#181B25] border border-[#1E293B]/50 flex items-center justify-between">
-                        <div>
-                          <span className="text-sm font-medium text-white">{a.unit_id}</span>
-                          <Badge variant="outline" className={`ml-2 text-[10px] h-5 ${ACCT_COLORS[a.status] ? `${a.status === 'al_dia' ? 'bg-green-500/15 border-green-500/30' : a.status === 'atrasado' ? 'bg-red-500/15 border-red-500/30' : 'bg-blue-500/15 border-blue-500/30'} ${ACCT_COLORS[a.status]}` : ''}`}>
-                            {ACCT_LABELS[a.status] || a.status}
-                          </Badge>
+                  <>
+                    {/* Table Header */}
+                    <div className="hidden sm:grid sm:grid-cols-[1fr_1.5fr_100px_120px_100px] gap-3 px-3 pb-2 text-xs text-muted-foreground font-medium border-b border-[#1E293B]/50 mb-2">
+                      <span>Unidad</span>
+                      <span>Residente</span>
+                      <span>Estado</span>
+                      <span className="text-right">Deuda</span>
+                      <span className="text-right">Accion</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {overview.accounts.map((a) => (
+                        <div key={a.unit_id} data-testid={`account-${a.unit_id}`} className="p-3 rounded-lg bg-[#181B25] border border-[#1E293B]/50 sm:grid sm:grid-cols-[1fr_1.5fr_100px_120px_100px] sm:items-center gap-3">
+                          {/* Unit */}
+                          <div>
+                            <span className="text-sm font-bold text-white">{a.unit_id}</span>
+                          </div>
+                          {/* Resident */}
+                          <div className="mt-1 sm:mt-0">
+                            {a.resident_name ? (
+                              <div>
+                                <p className="text-sm text-white truncate">{a.resident_name}</p>
+                                <p className="text-[10px] text-muted-foreground truncate">{a.resident_email}</p>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-muted-foreground/50">Sin residente asignado</span>
+                            )}
+                          </div>
+                          {/* Status */}
+                          <div className="mt-1 sm:mt-0">
+                            <Badge variant="outline" className={`text-[10px] h-5 ${ACCT_BG[a.status] || ''} ${ACCT_COLORS[a.status] || ''}`}>
+                              {ACCT_LABELS[a.status] || a.status}
+                            </Badge>
+                          </div>
+                          {/* Balance */}
+                          <div className="mt-1 sm:mt-0 text-right">
+                            <span className={`text-sm font-bold ${a.current_balance > 0 ? 'text-red-400' : a.current_balance < 0 ? 'text-blue-400' : 'text-green-400'}`}>
+                              {a.current_balance > 0 ? fmt(a.current_balance) : a.current_balance < 0 ? `-${fmt(Math.abs(a.current_balance))}` : '$0.00'}
+                            </span>
+                          </div>
+                          {/* Action */}
+                          <div className="mt-2 sm:mt-0 flex justify-end">
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openPaymentFor(a.unit_id)} data-testid={`pay-${a.unit_id}`}>
+                              <CreditCard className="w-3 h-3 mr-1" /> Pago
+                            </Button>
+                          </div>
                         </div>
-                        <span className={`text-sm font-bold ${a.current_balance > 0 ? 'text-red-400' : a.current_balance < 0 ? 'text-blue-400' : 'text-green-400'}`}>
-                          {a.current_balance > 0 ? `Debe: ${fmt(a.current_balance)}` : a.current_balance < 0 ? `A favor: ${fmt(Math.abs(a.current_balance))}` : 'Al día'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -409,9 +521,10 @@ export default function FinanzasModule() {
         )}
 
         <CatalogDialog open={showCatalog} onClose={() => setShowCatalog(false)} onCreated={fetchData} />
-        <ChargeDialog open={showCharge} onClose={() => setShowCharge(false)} onCreated={fetchData} catalog={catalog} />
-        <PaymentDialog open={showPayment} onClose={() => setShowPayment(false)} onCreated={fetchData} />
+        <ChargeDialog open={showCharge} onClose={() => setShowCharge(false)} onCreated={fetchData} catalog={catalog} prefillUnit={prefillUnit} />
+        <PaymentDialog open={showPayment} onClose={() => { setShowPayment(false); setPrefillUnit(''); }} onCreated={fetchData} prefillUnit={prefillUnit} />
         <BulkChargeDialog open={showBulk} onClose={() => setShowBulk(false)} onCreated={fetchData} catalog={catalog} />
+        <PaymentSettingsDialog open={showSettings} onClose={() => setShowSettings(false)} />
       </div>
     </DashboardLayout>
   );

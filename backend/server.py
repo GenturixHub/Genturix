@@ -3385,6 +3385,8 @@ async def login(request: Request, credentials: UserLogin):
             "is_active": user["is_active"],
             "created_at": user["created_at"],
             "condominium_id": user.get("condominium_id"),
+            "apartment": user.get("apartment") or user.get("role_data", {}).get("apartment_number"),
+            "profile_photo": user.get("profile_photo"),
             "password_reset_required": password_reset_required
         },
         "password_reset_required": password_reset_required
@@ -19308,11 +19310,28 @@ async def get_unit_account(
 async def get_financial_overview(
     current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPERVISOR, RoleEnum.SUPER_ADMIN)),
 ):
-    """Admin overview: all unit accounts, totals, overdue count."""
+    """Admin overview: all unit accounts with resident info, totals, overdue count."""
     condo_id = current_user.get("condominium_id")
     base = {"condominium_id": condo_id}
 
     accounts = await db.unit_accounts.find(base, {"_id": 0}).sort("unit_id", 1).to_list(500)
+
+    # Build a map of apartment_number -> user info for residents in this condo
+    resident_map = {}
+    async for u in db.users.find(
+        {"condominium_id": condo_id, "status": {"$ne": "disabled"}},
+        {"_id": 0, "id": 1, "full_name": 1, "email": 1, "role_data": 1, "roles": 1, "apartment": 1}
+    ):
+        apt = u.get("role_data", {}).get("apartment_number", "") or u.get("apartment", "")
+        if apt:
+            # If multiple users share an apartment, prefer Residente role
+            existing = resident_map.get(apt)
+            if not existing or "Residente" in u.get("roles", []):
+                resident_map[apt] = {
+                    "resident_id": u["id"],
+                    "resident_name": u.get("full_name", ""),
+                    "resident_email": u.get("email", ""),
+                }
 
     total_due = 0.0
     total_paid = 0.0
@@ -19320,6 +19339,8 @@ async def get_financial_overview(
     al_dia_count = 0
     adelantado_count = 0
 
+    # Enrich accounts with resident info
+    enriched_accounts = []
     for a in accounts:
         bal = a.get("current_balance", 0)
         if bal > 0:
@@ -19331,6 +19352,11 @@ async def get_financial_overview(
         else:
             al_dia_count += 1
 
+        unit_id = a.get("unit_id", "")
+        resident_info = resident_map.get(unit_id, {})
+        enriched = {**a, **resident_info}
+        enriched_accounts.append(enriched)
+
     # Global totals from records
     pipeline = [
         {"$match": base},
@@ -19341,7 +19367,7 @@ async def get_financial_overview(
     global_paid = round(agg[0]["sum_paid"], 2) if agg else 0
 
     return {
-        "accounts": accounts,
+        "accounts": enriched_accounts,
         "summary": {
             "total_units": len(accounts),
             "al_dia": al_dia_count,
@@ -19352,6 +19378,278 @@ async def get_financial_overview(
             "global_balance": round(global_due - global_paid, 2),
         },
     }
+
+
+# ── Payment Settings (SINPE / Transfer instructions) ──
+
+class PaymentSettingsUpdate(BaseModel):
+    sinpe_number: Optional[str] = Field(None, max_length=50)
+    sinpe_name: Optional[str] = Field(None, max_length=100)
+    bank_account: Optional[str] = Field(None, max_length=100)
+    bank_name: Optional[str] = Field(None, max_length=100)
+    bank_iban: Optional[str] = Field(None, max_length=50)
+    additional_instructions: Optional[str] = Field(None, max_length=500)
+
+
+@api_router.get("/finanzas/payment-settings")
+async def get_payment_settings(
+    current_user=Depends(get_current_user),
+):
+    """Get payment settings (SINPE/Transfer info) for the condominium."""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        return {}
+    condo = await db.condominiums.find_one({"id": condo_id}, {"_id": 0, "payment_settings": 1})
+    return condo.get("payment_settings", {}) if condo else {}
+
+
+@api_router.put("/finanzas/payment-settings")
+async def update_payment_settings(
+    payload: PaymentSettingsUpdate,
+    request: Request,
+    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN)),
+):
+    """Update payment settings (SINPE/Transfer info) for the condominium."""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="No condominium associated")
+
+    settings = {k: v for k, v in payload.model_dump().items() if v is not None}
+    await db.condominiums.update_one(
+        {"id": condo_id},
+        {"$set": {"payment_settings": settings}},
+    )
+
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT, current_user["id"], "finanzas",
+        {"action": "payment_settings_updated", "settings": list(settings.keys())},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id, user_email=current_user.get("email"),
+    )
+
+    return {"status": "ok", "settings": settings}
+
+
+# ── Assign Unit to User ──
+
+class AssignUnitPayload(BaseModel):
+    user_id: str
+    unit_id: str = Field(..., min_length=1, max_length=50)
+
+
+@api_router.post("/finanzas/assign-unit")
+async def assign_unit_to_user(
+    payload: AssignUnitPayload,
+    request: Request,
+    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN)),
+):
+    """Admin assigns a unit (apartment_number) to a user."""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="No condominium associated")
+
+    user = await db.users.find_one({"id": payload.user_id, "condominium_id": condo_id}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    await db.users.update_one(
+        {"id": payload.user_id},
+        {"$set": {
+            "role_data.apartment_number": payload.unit_id,
+            "apartment": payload.unit_id,
+        }},
+    )
+
+    # Also ensure unit_account exists
+    existing = await db.unit_accounts.find_one({"condominium_id": condo_id, "unit_id": payload.unit_id})
+    if not existing:
+        now = datetime.now(timezone.utc).isoformat()
+        await db.unit_accounts.insert_one({
+            "id": str(uuid.uuid4()),
+            "condominium_id": condo_id,
+            "unit_id": payload.unit_id,
+            "resident_id": payload.user_id,
+            "current_balance": 0,
+            "status": "al_dia",
+            "created_at": now,
+            "updated_at": now,
+        })
+
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT, current_user["id"], "finanzas",
+        {"action": "unit_assigned", "user_id": payload.user_id, "unit_id": payload.unit_id},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id, user_email=current_user.get("email"),
+    )
+
+    return {"status": "ok", "user_id": payload.user_id, "unit_id": payload.unit_id}
+
+
+# ── Resident Payment Request (manual) ──
+
+class PaymentRequestCreate(BaseModel):
+    amount: float = Field(..., gt=0)
+    payment_method: str = Field(..., max_length=50)
+    reference: Optional[str] = Field(None, max_length=200)
+    notes: Optional[str] = Field(None, max_length=500)
+
+
+@api_router.post("/finanzas/payment-request")
+async def create_payment_request(
+    payload: PaymentRequestCreate,
+    request: Request,
+    current_user=Depends(get_current_user),
+):
+    """Resident submits a payment request (SINPE/transfer proof)."""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="No condominium associated")
+
+    unit_id = current_user.get("apartment", "") or current_user.get("role_data", {}).get("apartment_number", "")
+    if not unit_id:
+        raise HTTPException(status_code=400, detail="No tienes una unidad asignada")
+
+    now = datetime.now(timezone.utc).isoformat()
+    pr = {
+        "id": str(uuid.uuid4()),
+        "condominium_id": condo_id,
+        "unit_id": unit_id,
+        "resident_id": current_user["id"],
+        "resident_name": current_user.get("full_name", ""),
+        "amount": round(payload.amount, 2),
+        "payment_method": sanitize_text(payload.payment_method),
+        "reference": sanitize_text(payload.reference) if payload.reference else "",
+        "notes": sanitize_text(payload.notes) if payload.notes else "",
+        "status": "pending",
+        "created_at": now,
+        "reviewed_at": None,
+        "reviewed_by": None,
+    }
+    await db.payment_requests.insert_one(pr)
+
+    # Notify admin
+    await db.notifications_v2.insert_one({
+        "id": str(uuid.uuid4()),
+        "condominium_id": condo_id,
+        "notification_type": "finanzas",
+        "title": "Nuevo comprobante de pago",
+        "message": f"{current_user.get('full_name', 'Residente')} ({unit_id}) reportó un pago de ${payload.amount:.2f} vía {payload.payment_method}",
+        "target_roles": ["Administrador"],
+        "target_users": [],
+        "read_by": [],
+        "created_at": now,
+    })
+
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT, current_user["id"], "finanzas",
+        {"action": "payment_request_created", "unit_id": unit_id, "amount": payload.amount, "method": payload.payment_method},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id, user_email=current_user.get("email"),
+    )
+
+    safe = {k: v for k, v in pr.items() if k != "_id"}
+    return safe
+
+
+@api_router.get("/finanzas/payment-requests")
+async def list_payment_requests(
+    status: Optional[str] = None,
+    current_user=Depends(get_current_user),
+):
+    """List payment requests. Admin sees all, resident sees own."""
+    condo_id = current_user.get("condominium_id")
+    roles = current_user.get("roles", [])
+    is_admin = any(r in roles for r in ["Administrador", "Supervisor", "SuperAdmin"])
+
+    query = {"condominium_id": condo_id}
+    if not is_admin:
+        query["resident_id"] = current_user["id"]
+    if status:
+        query["status"] = status
+
+    items = await db.payment_requests.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    return {"items": items}
+
+
+@api_router.patch("/finanzas/payment-requests/{request_id}")
+async def review_payment_request(
+    request_id: str,
+    action: str = Query(..., regex="^(approved|rejected)$"),
+    request: Request = None,
+    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN)),
+):
+    """Admin approves or rejects a payment request."""
+    condo_id = current_user.get("condominium_id")
+    pr = await db.payment_requests.find_one({"id": request_id, "condominium_id": condo_id}, {"_id": 0})
+    if not pr:
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+
+    now = datetime.now(timezone.utc).isoformat()
+    await db.payment_requests.update_one(
+        {"id": request_id},
+        {"$set": {"status": action, "reviewed_at": now, "reviewed_by": current_user["id"]}},
+    )
+
+    # If approved, register the actual payment
+    if action == "approved":
+        payment_data = PaymentCreate(
+            unit_id=pr["unit_id"],
+            amount=pr["amount"],
+            payment_method=pr["payment_method"],
+        )
+        # Re-use the register_payment logic
+        amount_remaining = round(pr["amount"], 2)
+        pending = await db.payment_records.find(
+            {"condominium_id": condo_id, "unit_id": pr["unit_id"], "status": {"$in": ["pending", "partial", "overdue"]}}
+        ).sort("period", 1).to_list(100)
+
+        for rec in pending:
+            if amount_remaining <= 0:
+                break
+            owed = round(rec.get("amount_due", 0) - rec.get("amount_paid", 0), 2)
+            if owed <= 0:
+                continue
+            apply = min(amount_remaining, owed)
+            new_paid = round(rec.get("amount_paid", 0) + apply, 2)
+            new_status = "paid" if new_paid >= rec["amount_due"] else "partial"
+            await db.payment_records.update_one(
+                {"id": rec["id"]},
+                {"$set": {"amount_paid": new_paid, "status": new_status, "paid_at": now, "payment_method": pr["payment_method"], "updated_at": now}},
+            )
+            amount_remaining = round(amount_remaining - apply, 2)
+
+        if amount_remaining > 0:
+            credit_record = {
+                "id": str(uuid.uuid4()),
+                "condominium_id": condo_id,
+                "unit_id": pr["unit_id"],
+                "charge_type_name": "Saldo a favor",
+                "period": datetime.now(timezone.utc).strftime("%Y-%m"),
+                "amount_due": 0,
+                "amount_paid": amount_remaining,
+                "balance_after": 0,
+                "status": "paid",
+                "paid_at": now,
+                "payment_method": pr["payment_method"],
+                "created_at": now,
+                "updated_at": now,
+            }
+            await db.payment_records.insert_one(credit_record)
+
+        await _recalculate_unit_balance(condo_id, pr["unit_id"])
+
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT, current_user["id"], "finanzas",
+        {"action": f"payment_request_{action}", "request_id": request_id, "unit_id": pr["unit_id"], "amount": pr["amount"]},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id, user_email=current_user.get("email"),
+    )
+
+    return {"status": "ok", "action": action, "request_id": request_id}
 
 
 

@@ -705,6 +705,20 @@ class ApiService {
   getUnitAccount = (unitId) => this.get(`/finanzas/unit/${unitId}`);
   getFinanzasOverview = () => this.get('/finanzas/overview');
   generateBulkCharges = (data) => this.post('/finanzas/generate-bulk', data);
+  // Payment settings (SINPE/Transfer info)
+  getPaymentSettings = () => this.get('/finanzas/payment-settings');
+  updatePaymentSettings = (data) => this.put('/finanzas/payment-settings', data);
+  // Unit assignment
+  assignUnit = (data) => this.post('/finanzas/assign-unit', data);
+  // Payment requests (resident → admin)
+  createPaymentRequest = (data) => this.post('/finanzas/payment-request', data);
+  getPaymentRequests = (status = null) => {
+    const qp = new URLSearchParams();
+    if (status) qp.append('status', status);
+    const qs = qp.toString();
+    return this.get(`/finanzas/payment-requests${qs ? `?${qs}` : ''}`);
+  };
+  reviewPaymentRequest = (requestId, action) => this.patch(`/finanzas/payment-requests/${requestId}?action=${action}`);
   downloadFinancialReport = async (format = 'pdf', period = null) => {
     const params = new URLSearchParams({ format });
     if (period) params.append('period', period);
