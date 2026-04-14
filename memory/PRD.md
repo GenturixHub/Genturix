@@ -945,6 +945,12 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
   - Clickable for direct navigation between modules
   - Smooth 0.2s transition animation
 
+### Railway Build Fix (2026-04-14) - COMPLETE
+- [x] Added `--extra-index-url` for emergentintegrations custom package index (ROOT CAUSE of Railway build failure)
+- [x] Aligned typer==0.21.1 / typer-slim==0.21.1 version mismatch
+- [x] Verified: httpx in requirements.txt, all httpx usage is async, no sync requests imports
+- [x] Verified: server.py compiles, imports succeed, pip check passes, CSP header is static string
+
 ### Navigation Regression Fix (2026-04-14) - COMPLETE
 - [x] Restored ALL 8 resident modules in bottom nav: Emergency, Visits, Reservations, Directory, Cases, Docs, Finances, Profile
 - [x] BottomNav compact mode for 8+ items (62px height, smaller icons/text)
