@@ -1088,3 +1088,52 @@ Implemented a new Notifications V2 module that coexists with the existing notifi
 - Frontend UI verified: page renders, sidebar entry visible, header bell works
 - Role-based access: only Admin/SuperAdmin can create broadcasts
 - Multi-tenant: notifications scoped by condominium_id
+
+
+---
+
+## Casos / Incidencias Module (2026-04-14) - COMPLETE
+
+### Summary
+Implemented a Cases/Incidents module for residents to report issues and admins to manage them. Includes full CRUD, comments with internal notes, status workflow, and notification integration.
+
+### Backend Endpoints (all under /api/casos/*)
+- `POST /casos` - Create case (any authenticated user)
+- `GET /casos` - List cases (admin: all in condo, resident: own only)
+- `GET /casos/stats` - Admin stats (total, open, in_progress, closed, urgent)
+- `GET /casos/{id}` - Case detail with comments
+- `PATCH /casos/{id}` - Admin updates status/priority/assignment
+- `POST /casos/{id}/comments` - Add comment (is_internal flag for admin-only notes)
+
+### MongoDB Collections
+- `casos` - Main case storage with status workflow
+- `caso_comments` - Comment thread per case
+
+### MongoDB Indexes Added
+- `casos`: condominium_id, created_by, status, created_at
+- `caso_comments`: caso_id
+
+### Frontend Files Created
+- `/app/frontend/src/pages/CasosModule.js` - Admin dashboard with stats, filters, detail dialog
+- `/app/frontend/src/components/CasosResident.jsx` - Resident create + list + detail
+
+### Files Modified
+- `server.py` - Added Casos section before Notifications V2
+- `api.js` - Added Casos API methods
+- `Sidebar.js` - Added "Casos" entry for Admin/Supervisor
+- `App.js` - Added route `/admin/casos`
+- `ResidentHome.jsx` - Added 'casos' to TAB_ORDER, imported CasosResident
+- `ResidentLayout.jsx` - Added 'casos' to RESIDENT_NAV_ITEMS
+- `es.json` / `en.json` - Added i18n translations
+
+### Integration
+- Case creation → notifications_v2 notification to Admin/Supervisor
+- Status change → notifications_v2 notification to case creator
+- New comment → notifications_v2 notification to other party
+- Push notifications sent on case creation
+
+### Testing
+- 24/24 backend tests passed (100%)
+- Frontend admin and resident flows verified
+- Role-based access: admin sees all, resident sees own only
+- Internal comments hidden from residents
