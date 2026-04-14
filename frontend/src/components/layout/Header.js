@@ -41,16 +41,30 @@ const Header = ({ onMenuClick, title }) => {
     // Only fetch for roles that handle notifications
     if (roles.includes('Administrador') || roles.includes('Supervisor') || roles.includes('Guarda') || roles.includes('SuperAdmin')) {
       try {
-        const [notifData, countData] = await Promise.all([
-          api.getNotifications(false),  // Get all notifications
-          api.getUnreadNotificationCount()  // Get unread count
-        ]);
+        // Try V2 first, fallback to legacy
+        let notifItems = [];
+        let count = 0;
+        try {
+          const [v2Data, v2Count] = await Promise.all([
+            api.getNotificationsV2(1, false),
+            api.getNotificationsV2UnreadCount()
+          ]);
+          notifItems = (v2Data?.items || []).slice(0, 10);
+          count = v2Count?.count || 0;
+        } catch {
+          // Fallback to legacy endpoints
+          const [notifData, countData] = await Promise.all([
+            api.getNotifications(false),
+            api.getUnreadNotificationCount()
+          ]);
+          notifItems = Array.isArray(notifData) ? notifData.slice(0, 10) : [];
+          count = countData?.count || 0;
+        }
         
-        setNotifications(Array.isArray(notifData) ? notifData.slice(0, 10) : []);
-        setUnreadCount(countData?.count || 0);
+        setNotifications(notifItems);
+        setUnreadCount(count);
       } catch (err) {
         console.error('Error fetching notifications:', err);
-        // Fallback to empty
         setNotifications([]);
         setUnreadCount(0);
       }
@@ -74,7 +88,11 @@ const Header = ({ onMenuClick, title }) => {
   const handleMarkRead = async (notificationId, e) => {
     e?.stopPropagation();
     try {
-      await api.markNotificationAsRead(notificationId);
+      try {
+        await api.markNotificationV2Read(notificationId);
+      } catch {
+        await api.markNotificationAsRead(notificationId);
+      }
       setNotifications(prev => prev.map(n => 
         n.id === notificationId ? {...n, read: true} : n
       ));
@@ -99,16 +117,19 @@ const Header = ({ onMenuClick, title }) => {
     
     // When opening the dropdown, mark visible unread notifications as read
     if (open && unreadCount > 0) {
-      // Small delay to let user see notifications first
       setTimeout(async () => {
         try {
-          await api.markAllNotificationsAsRead();
+          try {
+            await api.markAllNotificationsV2Read();
+          } catch {
+            await api.markAllNotificationsAsRead();
+          }
           setNotifications(prev => prev.map(n => ({...n, read: true})));
           setUnreadCount(0);
         } catch (error) {
           console.error('Error marking all as read:', error);
         }
-      }, 2000); // Mark as read after 2 seconds of viewing
+      }, 2000);
     }
   };
 
@@ -127,7 +148,12 @@ const Header = ({ onMenuClick, title }) => {
     if (unreadCount === 0) return;
     
     try {
-      const result = await api.markAllNotificationsAsRead();
+      let result;
+      try {
+        result = await api.markAllNotificationsV2Read();
+      } catch {
+        result = await api.markAllNotificationsAsRead();
+      }
       setNotifications(prev => prev.map(n => ({...n, read: true})));
       setUnreadCount(0);
       toast.success(`${result.count || 'Todas las'} notificaciones marcadas como leídas`);
@@ -233,43 +259,49 @@ const Header = ({ onMenuClick, title }) => {
               </div>
             ) : (
               <div className="max-h-80 overflow-y-auto">
-                {notifications.map((notif) => (
-                  <DropdownMenuItem 
-                    key={notif.id} 
-                    className={`flex items-start gap-3 py-3 cursor-pointer ${!notif.read ? 'bg-primary/5' : ''}`}
-                    onClick={() => navigate('/security')}
-                  >
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      notif.read ? 'bg-gray-500/20 text-gray-400' : 'bg-red-500/20 text-red-400'
-                    }`}>
-                      <AlertTriangle className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm ${notif.read ? 'text-muted-foreground' : 'font-medium'}`}>
-                        {notif.panic_type_label || 'Alerta'}
-                      </p>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {notif.resident_name} - {notif.location || 'Sin ubicación'}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        {new Date(notif.created_at).toLocaleString('es-ES', { 
-                          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
-                        })}
-                      </p>
-                    </div>
-                    {!notif.read && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0 flex-shrink-0"
-                        onClick={(e) => handleMarkRead(notif.id, e)}
-                        title="Marcar como leída"
-                      >
-                        <Check className="w-3 h-3" />
-                      </Button>
-                    )}
-                  </DropdownMenuItem>
-                ))}
+                {notifications.map((notif) => {
+                  // Support both v2 shape (title/message) and legacy shape (panic_type_label/resident_name)
+                  const displayTitle = notif.title || notif.panic_type_label || 'Alerta';
+                  const displayBody = notif.message || `${notif.resident_name || ''} - ${notif.location || 'Sin ubicación'}`;
+                  const isV2 = !!notif.title;
+                  return (
+                    <DropdownMenuItem 
+                      key={notif.id} 
+                      className={`flex items-start gap-3 py-3 cursor-pointer ${!notif.read ? 'bg-primary/5' : ''}`}
+                      onClick={() => navigate(isV2 ? '/admin/notifications' : '/security')}
+                    >
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                        notif.read ? 'bg-gray-500/20 text-gray-400' : 'bg-red-500/20 text-red-400'
+                      }`}>
+                        {isV2 ? <Bell className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm ${notif.read ? 'text-muted-foreground' : 'font-medium'}`}>
+                          {displayTitle}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {displayBody}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          {new Date(notif.created_at).toLocaleString('es-ES', { 
+                            day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
+                      {!notif.read && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 flex-shrink-0"
+                          onClick={(e) => handleMarkRead(notif.id, e)}
+                          title="Marcar como leída"
+                        >
+                          <Check className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </DropdownMenuItem>
+                  );
+                })}
               </div>
             )}
             {notifications.length > 0 && (
@@ -277,9 +309,9 @@ const Header = ({ onMenuClick, title }) => {
                 <DropdownMenuSeparator className="bg-[#1E293B]" />
                 <DropdownMenuItem 
                   className="text-center text-primary cursor-pointer"
-                  onClick={() => navigate('/security')}
+                  onClick={() => navigate('/admin/notifications')}
                 >
-                  Ver todas las alertas
+                  Ver todas las notificaciones
                 </DropdownMenuItem>
               </>
             )}

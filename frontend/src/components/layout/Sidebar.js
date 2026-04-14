@@ -15,7 +15,8 @@ import {
   Building2,
   Briefcase,
   Users,
-  Calendar
+  Calendar,
+  Bell,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
@@ -102,6 +103,13 @@ const Sidebar = ({ collapsed, onToggle }) => {
       roles: ['Administrador', 'Residente', 'Guarda'],
       descriptionKey: 'nav.reservationsDescription',
       moduleId: 'reservations'
+    },
+    {
+      titleKey: 'nav.notifications',
+      icon: Bell,
+      href: '/admin/notifications',
+      roles: ['Administrador'],
+      descriptionKey: 'nav.notificationsDescription'
     },
     {
       titleKey: 'nav.audit',

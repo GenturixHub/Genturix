@@ -32,6 +32,7 @@ import CondominiumSettingsPage from './pages/CondominiumSettingsPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import TermsOfServicePage from './pages/TermsOfServicePage';
 import DeveloperPage from './pages/DeveloperPage';
+import NotificationsPage from './pages/NotificationsPage';
 import UpdateAvailableModal from './components/UpdateAvailableModal';
 import InstallChoiceScreen from './components/InstallChoiceScreen';
 import useServiceWorkerUpdate from './hooks/useServiceWorkerUpdate';
@@ -365,6 +366,12 @@ function AppRoutes() {
       <Route path="/admin/settings" element={
         <ProtectedRoute allowedRoles={['Administrador']}>
           <CondominiumSettingsPage />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/admin/notifications" element={
+        <ProtectedRoute allowedRoles={['Administrador', 'SuperAdmin']}>
+          <NotificationsPage />
         </ProtectedRoute>
       } />
 

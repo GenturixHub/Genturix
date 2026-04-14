@@ -112,7 +112,9 @@
     "reservationsShort": "Reservas",
     "settingsShort": "Config",
     "more": "Más",
-    "logout": "Cerrar Sesión"
+    "logout": "Cerrar Sesión",
+    "notifications": "Notificaciones",
+    "notificationsDescription": "Alertas y broadcasts"
   },
   "profile": {
     "title": "Mi Perfil",
@@ -505,26 +507,12 @@
   "roles": {
     "superadmin": "Super Administrador",
     "admin": "Administrador",
-    "administrator": "Administrador",
     "supervisor": "Supervisor",
     "guard": "Guardia",
     "resident": "Residente",
     "hr": "Recursos Humanos",
     "student": "Estudiante",
-    "other": "Otro",
-    "labels": {
-      "Administrador": "Administrador",
-      "Supervisor": "Supervisor",
-      "HR": "Recursos Humanos",
-      "Guarda": "Guardia",
-      "Residente": "Residente",
-      "Estudiante": "Estudiante",
-      "SuperAdmin": "Super Admin"
-    },
-    "descriptions": {
-      "resident": "Acceso a pánico y visitas",
-      "guard": "Panel de seguridad y alertas"
-    }
+    "other": "Otro"
   },
   "status": {
     "active": "Activo",
@@ -602,16 +590,6 @@
     "validationError": "Error de validación",
     "sessionExpired": "Tu sesión ha expirado",
     "tryAgain": "Inténtalo de nuevo"
-  },
-  "roles": {
-    "superadmin": "Super Administrador",
-    "admin": "Administrador",
-    "supervisor": "Supervisor",
-    "guard": "Guardia",
-    "resident": "Residente",
-    "hr": "Recursos Humanos",
-    "student": "Estudiante",
-    "other": "Otro"
   },
   "time": {
     "today": "Hoy",
@@ -737,13 +715,11 @@
     "friday": "Viernes",
     "saturday": "Sábado",
     "sunday": "Domingo",
-
     "tabs": {
       "authorizations": "Autorizaciones",
       "authorizationsShort": "Visitas",
       "history": "Historial"
     },
-
     "authTypes": {
       "temporary": "Temporal",
       "temporaryDesc": "Una fecha o rango específico",
@@ -754,7 +730,6 @@
       "extended": "Extendido",
       "extendedDesc": "Rango de fechas + horario"
     },
-
     "days": {
       "monShort": "Lun",
       "tueShort": "Mar",
@@ -764,7 +739,6 @@
       "satShort": "Sáb",
       "sunShort": "Dom"
     },
-
     "visitorTypes": {
       "visitor": "Visitante",
       "visitorDesc": "Persona que viene a visitarte",
@@ -779,7 +753,6 @@
       "other": "Otro",
       "otherDesc": "Otro tipo de servicio"
     },
-
     "deliveryCompanies": {
       "uberEats": "Uber Eats",
       "rappi": "Rappi",
@@ -789,7 +762,6 @@
       "pedidosYa": "PedidosYa",
       "other": "Otro"
     },
-
     "serviceTypes": {
       "package": "Paquete",
       "food": "Comida",
@@ -806,7 +778,6 @@
       "office": "Oficina",
       "other": "Otro"
     },
-
     "card": {
       "valid": "Válida",
       "invalid": "Inválida",
@@ -816,7 +787,6 @@
       "visits": "visita",
       "visitsPlural": "visitas"
     },
-
     "form": {
       "newAuthorization": "Nueva Autorización",
       "editAuthorization": "Editar Autorización",
@@ -850,14 +820,12 @@
       "createAuthorization": "Crear Autorización",
       "completeRequired": "Completa los campos requeridos"
     },
-
     "notifications": {
       "title": "Notificaciones",
       "noNotifications": "No hay notificaciones",
       "count": "{{count}} notificaciones",
       "markAllRead": "Marcar todas leídas"
     },
-
     "list": {
       "title": "Autorizaciones",
       "newButton": "Nueva Autorización",
@@ -870,7 +838,6 @@
       "entryLabel": "Entrada",
       "guardLabel": "Guardia"
     },
-
     "delete": {
       "title": "Eliminar Autorización",
       "confirmMessage": "¿Estás seguro de eliminar la autorización de",
@@ -878,7 +845,6 @@
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
-
     "toast": {
       "authorizationUpdated": "Autorización actualizada",
       "authorizationCreated": "Autorización creada exitosamente",
@@ -887,7 +853,6 @@
       "deleteError": "Error al eliminar",
       "loadError": "Error al cargar datos"
     },
-
     "history": {
       "title": "Historial",
       "visitsCount": "{{count}} visitas",
@@ -928,7 +893,6 @@
         "hoursMinutes": "{{hours}}h {{minutes}}m"
       }
     },
-
     "pdf": {
       "title": "Historial de Visitas",
       "generatedBy": "Generado por GENTURIX",
@@ -947,6 +911,37 @@
       "noRecords": "No hay registros",
       "footer": "GENTURIX - Sistema de Gestión de Condominios"
     }
+  },
+  "notifications": {
+    "pageTitle": "Notificaciones",
+    "newBroadcast": "Nueva Notificación",
+    "title": "Título",
+    "titlePlaceholder": "Ej: Mantenimiento programado",
+    "message": "Mensaje",
+    "messagePlaceholder": "Escribe el mensaje de la notificación...",
+    "type": "Tipo",
+    "priority": "Prioridad",
+    "targetRoles": "Destinatarios",
+    "allRoles": "Se enviará a todos los roles",
+    "send": "Enviar Notificación",
+    "broadcastSent": "Notificación enviada",
+    "fillRequired": "Completa los campos requeridos",
+    "broadcastHistory": "Historial de Broadcasts",
+    "noHistory": "No hay broadcasts enviados",
+    "list": "Notificaciones",
+    "all": "Todas",
+    "unread": "Sin leer",
+    "markAllRead": "Marcar todas",
+    "allRead": "Todas las notificaciones están leídas",
+    "empty": "No hay notificaciones",
+    "preferences": "Preferencias de Notificaciones",
+    "prefBroadcasts": "Broadcasts",
+    "prefBroadcastsDesc": "Recibir anuncios del administrador",
+    "prefAlerts": "Alertas",
+    "prefAlertsDesc": "Alertas de seguridad y emergencias",
+    "prefSystem": "Sistema",
+    "prefSystemDesc": "Notificaciones del sistema",
+    "prefEmail": "Email",
+    "prefEmailDesc": "Recibir notificaciones por correo"
   }
 }
-

@@ -680,6 +680,21 @@ class ApiService {
     return this.get(`/authorizations/history${queryString ? `?${queryString}` : ''}`);
   };
   getAuthorizationStats = () => this.get('/authorizations/stats');
+  // ==================== NOTIFICATIONS V2 ====================
+  getNotificationsV2 = (page = 1, unreadOnly = false, notificationType = null) => {
+    const params = new URLSearchParams({ page, page_size: 20 });
+    if (unreadOnly) params.append('unread_only', 'true');
+    if (notificationType) params.append('notification_type', notificationType);
+    return this.get(`/notifications/v2?${params.toString()}`);
+  };
+  getNotificationsV2UnreadCount = () => this.get('/notifications/v2/unread-count');
+  createBroadcastV2 = (data) => this.post('/notifications/v2/broadcast', data);
+  markNotificationV2Read = (id) => this.patch(`/notifications/v2/read/${id}`);
+  markAllNotificationsV2Read = () => this.patch('/notifications/v2/read-all');
+  getBroadcastHistoryV2 = (page = 1) => this.get(`/notifications/v2/broadcasts?page=${page}&page_size=20`);
+  getNotificationPreferencesV2 = () => this.get('/notifications/v2/preferences');
+  updateNotificationPreferencesV2 = (data) => this.patch('/notifications/v2/preferences', data);
+
   // ==================== CONFIG ====================
   getDevModeStatus = () => this.get('/config/dev-mode');  // DEPRECATED: Use getTenantEnvironment
   getTenantEnvironment = () => this.get('/config/tenant-environment');
