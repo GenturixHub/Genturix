@@ -330,7 +330,8 @@ def sanitize_dict_fields(data: dict, fields: List[str]) -> dict:
 SANITIZE_FIELDS = [
     "full_name", "name", "description", "message", "notes",
     "visitor_name", "public_description", "reason", "comments",
-    "address", "contact_phone", "apartment", "apartment_number"
+    "address", "contact_phone", "apartment", "apartment_number",
+    "title", "comment", "subject", "body",
 ]
 
 logger.info(f"[SECURITY] Input sanitization enabled for fields: {SANITIZE_FIELDS}")
@@ -355,6 +356,11 @@ async def request_id_middleware(request: Request, call_next):
     
     # Add request_id header to response
     response.headers["X-Request-ID"] = request_id
+    
+    # Security headers
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     
     # Optional: Log request completion (debug level)
     if LOG_LEVEL == 'DEBUG':
@@ -3420,7 +3426,7 @@ async def refresh_token_endpoint(request: Request, token_request: RefreshTokenRe
     # Fall back to body if no cookie (backward compatibility)
     if not refresh_token_value and token_request and token_request.refresh_token:
         refresh_token_value = token_request.refresh_token
-        logger.warning("[SECURITY] Refresh token received in body instead of cookie - consider updating client")
+        logger.warning("[SECURITY] Refresh token received in body instead of cookie")
     
     if not refresh_token_value:
         raise HTTPException(status_code=401, detail="No refresh token provided")
@@ -3595,6 +3601,7 @@ async def get_me(current_user = Depends(get_current_user)):
     )
 
 @api_router.post("/auth/change-password")
+@limiter.limit(RATE_LIMIT_SENSITIVE)
 async def change_password(
     password_data: PasswordChangeRequest,
     request: Request,
@@ -3802,6 +3809,7 @@ async def request_password_reset_code(
 
 
 @api_router.post("/auth/reset-password")
+@limiter.limit(RATE_LIMIT_SENSITIVE)
 async def reset_password_with_code(
     request_data: ResetPasswordWithCodeRequest,
     request: Request
@@ -18854,6 +18862,7 @@ async def get_charges(
 # ── Payments ──
 
 @api_router.post("/finanzas/payments")
+@limiter.limit(RATE_LIMIT_PUSH)
 async def register_payment(
     payload: PaymentCreate,
     request: Request,
@@ -19098,6 +19107,14 @@ ALLOWED_EXTENSIONS = {
     "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
     "txt", "csv", "jpg", "jpeg", "png", "gif", "webp",
 }
+BLOCKED_EXTENSIONS = {
+    "exe", "bat", "cmd", "sh", "ps1", "msi", "dll", "com", "scr",
+    "vbs", "js", "jar", "py", "php", "asp", "aspx", "jsp", "cgi",
+}
+ALLOWED_MIME_PREFIXES = {
+    "application/pdf", "application/msword", "application/vnd.", "text/",
+    "image/jpeg", "image/png", "image/gif", "image/webp",
+}
 MIME_MAP = {
     "pdf": "application/pdf", "doc": "application/msword",
     "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -19109,6 +19126,28 @@ MIME_MAP = {
     "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
     "gif": "image/gif", "webp": "image/webp",
 }
+
+
+def _sanitize_filename(filename: str) -> str:
+    """Sanitize filename to prevent path traversal and injection."""
+    import unicodedata
+    name = unicodedata.normalize("NFKD", filename)
+    name = re.sub(r'[^\w\s\-.]', '', name)
+    name = re.sub(r'\.{2,}', '.', name)
+    name = name.strip('. ')
+    return name[:200] if name else "unnamed"
+
+
+def _validate_upload_mime(content_type: str, ext: str) -> bool:
+    """Validate that the MIME type is allowed and consistent with extension."""
+    if not content_type:
+        return False
+    # Block dangerous MIME types
+    dangerous = ["application/x-executable", "application/x-msdos-program", "application/x-sh"]
+    if content_type in dangerous:
+        return False
+    # Check against allowed prefixes
+    return any(content_type.startswith(prefix) for prefix in ALLOWED_MIME_PREFIXES)
 
 
 def _init_doc_storage():
@@ -19192,13 +19231,24 @@ async def upload_document(
     ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail=f"Tipo de archivo no permitido: .{ext}")
+    if ext in BLOCKED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Tipo de archivo bloqueado por seguridad")
 
     # Read and validate size
     data = await file.read()
     if len(data) > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail="Archivo excede 20 MB")
+    if len(data) == 0:
+        raise HTTPException(status_code=400, detail="Archivo vacío")
 
     content_type = file.content_type or MIME_MAP.get(ext, "application/octet-stream")
+
+    # MIME type validation
+    if not _validate_upload_mime(content_type, ext):
+        raise HTTPException(status_code=400, detail=f"Tipo MIME no permitido: {content_type}")
+
+    # Sanitize filename
+    safe_filename = _sanitize_filename(file.filename)
     storage_path = f"{DOC_APP_NAME}/docs/{condo_id}/{uuid.uuid4()}.{ext}"
 
     try:
@@ -19217,7 +19267,7 @@ async def upload_document(
         "description": sanitize_text(description) if description else "",
         "category": category,
         "file_url": result.get("path", storage_path),
-        "file_name": file.filename,
+        "file_name": safe_filename,
         "file_size": len(data),
         "file_type": content_type,
         "visibility": visibility,
@@ -19843,7 +19893,6 @@ def get_cors_origins() -> list:
         all_origins = list(set(production_origins + dev_origins))
         logger.info(f"[CORS] Development mode - allowing origins: {all_origins}")
         return all_origins
-        return all_origins
 
 cors_origins = get_cors_origins()
 logger.info(f"[CORS] Environment: {ENVIRONMENT}, Allowed origins: {cors_origins}")
@@ -19852,8 +19901,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
     allow_origins=cors_origins,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Requested-With", "Accept"],
 )
 
 # ==================== MONGODB INDEX INITIALIZATION ====================

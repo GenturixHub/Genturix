@@ -417,7 +417,7 @@ export const AuthProvider = ({ children }) => {
   }, [accessToken]);
 
   const refreshAccessToken = useCallback(async () => {
-    console.log('[Auth] Refreshing access token via httpOnly cookie...');
+    console.log('[Auth] Refreshing access token...');
     
     const response = await fetch(`${API_URL}/api/auth/refresh`, {
       method: 'POST',

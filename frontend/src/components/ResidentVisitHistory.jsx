@@ -13,6 +13,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import html2pdf from 'html2pdf.js';
+
+// XSS-safe text escaping for PDF HTML template
+function escapeHtml(str) {
+  if (!str) return '';
+  const s = String(str);
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Card, CardContent } from './ui/card';
@@ -384,8 +391,8 @@ const generatePDF = async (exportData, t) => {
     
     return `
       <tr>
-        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${entry.visitor_name || 'N/A'}</td>
-        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${type.label}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${escapeHtml(entry.visitor_name) || 'N/A'}</td>
+        <td style="padding: 8px; border-bottom: 1px solid #ddd;">${escapeHtml(type.label)}</td>
         <td style="padding: 8px; border-bottom: 1px solid #ddd;">${formatTime(entry.entry_at)}</td>
         <td style="padding: 8px; border-bottom: 1px solid #ddd;">${formatTime(entry.exit_at)}</td>
         <td style="padding: 8px; border-bottom: 1px solid #ddd;">${formatDuration(entry.duration_minutes)}</td>
@@ -415,9 +422,9 @@ const generatePDF = async (exportData, t) => {
       <p style="color: #666; margin-bottom: 20px;">${t('visitors.pdf.generatedBy')}</p>
       
       <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-        <p style="margin: 5px 0;"><strong>${t('visitors.pdf.resident')}:</strong> ${exportData.resident_name}</p>
-        <p style="margin: 5px 0;"><strong>${t('visitors.pdf.apartment')}:</strong> ${exportData.apartment}</p>
-        <p style="margin: 5px 0;"><strong>${t('visitors.pdf.condominium')}:</strong> ${exportData.condominium_name}</p>
+        <p style="margin: 5px 0;"><strong>${t('visitors.pdf.resident')}:</strong> ${escapeHtml(exportData.resident_name)}</p>
+        <p style="margin: 5px 0;"><strong>${t('visitors.pdf.apartment')}:</strong> ${escapeHtml(exportData.apartment)}</p>
+        <p style="margin: 5px 0;"><strong>${t('visitors.pdf.condominium')}:</strong> ${escapeHtml(exportData.condominium_name)}</p>
         <p style="margin: 5px 0;"><strong>${t('visitors.pdf.exportDate')}:</strong> ${new Date(exportData.export_date).toLocaleString('es-ES')}</p>
         ${filterInfo.length > 0 ? `<p style="margin: 5px 0;"><strong>${t('visitors.pdf.appliedFilters')}:</strong> ${filterInfo.join(' | ')}</p>` : ''}
         <p style="margin: 5px 0;"><strong>${t('visitors.pdf.totalRecords')}:</strong> ${exportData.total_entries}</p>
