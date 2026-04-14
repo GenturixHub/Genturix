@@ -945,6 +945,14 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
   - Clickable for direct navigation between modules
   - Smooth 0.2s transition animation
 
+### Document Upload Fix (2026-04-14) - COMPLETE
+- [x] Storage key auto-refresh: if key expires, automatically re-initializes (retry on 401/403)
+- [x] Detailed error messages returned to frontend (not generic "Error al subir archivo")
+- [x] Added debug logging: UPLOAD START, File read, MIME validation, UPLOAD SUCCESS
+- [x] Frontend upload uses fetch (not XHR) for proper FormData/timeout support
+- [x] Frontend download uses fetch with blob for proper binary file support
+- [x] Handles timeout, HTTP errors, storage init failures with specific error messages
+
 ### Railway Build Fix (2026-04-14) - COMPLETE
 - [x] Added `--extra-index-url` for emergentintegrations custom package index (ROOT CAUSE of Railway build failure)
 - [x] Aligned typer==0.21.1 / typer-slim==0.21.1 version mismatch

@@ -19609,43 +19609,85 @@ def _validate_upload_mime(content_type: str, ext: str) -> bool:
     return any(content_type.startswith(prefix) for prefix in ALLOWED_MIME_PREFIXES)
 
 
-async def _init_doc_storage():
+async def _init_doc_storage(force_refresh: bool = False):
     global _doc_storage_key
-    if _doc_storage_key:
+    if _doc_storage_key and not force_refresh:
         return _doc_storage_key
     if not EMERGENT_LLM_KEY:
-        raise HTTPException(status_code=503, detail="Storage not configured")
-    async with httpx.AsyncClient(timeout=30) as client:
-        resp = await client.post(
-            f"{STORAGE_URL}/init",
-            json={"emergent_key": EMERGENT_LLM_KEY},
-        )
-        resp.raise_for_status()
-        _doc_storage_key = resp.json()["storage_key"]
-        return _doc_storage_key
+        raise HTTPException(status_code=503, detail="Storage no configurado: falta EMERGENT_LLM_KEY")
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                f"{STORAGE_URL}/init",
+                json={"emergent_key": EMERGENT_LLM_KEY},
+            )
+            resp.raise_for_status()
+            _doc_storage_key = resp.json()["storage_key"]
+            logger.info("[DOCUMENTOS] Storage initialized successfully")
+            return _doc_storage_key
+    except httpx.HTTPStatusError as e:
+        logger.error(f"[DOCUMENTOS] Storage init failed: HTTP {e.response.status_code} - {e.response.text[:200]}")
+        _doc_storage_key = None
+        raise HTTPException(status_code=503, detail=f"Error inicializando storage: HTTP {e.response.status_code}")
+    except Exception as e:
+        logger.error(f"[DOCUMENTOS] Storage init error: {type(e).__name__}: {e}")
+        _doc_storage_key = None
+        raise HTTPException(status_code=503, detail=f"Error de conexion con storage: {type(e).__name__}")
 
 
 async def _put_object(path: str, data: bytes, content_type: str) -> dict:
     key = await _init_doc_storage()
-    async with httpx.AsyncClient(timeout=120) as client:
-        resp = await client.put(
-            f"{STORAGE_URL}/objects/{path}",
-            headers={"X-Storage-Key": key, "Content-Type": content_type},
-            content=data,
-        )
-        resp.raise_for_status()
-        return resp.json()
+    try:
+        async with httpx.AsyncClient(timeout=120) as client:
+            resp = await client.put(
+                f"{STORAGE_URL}/objects/{path}",
+                headers={"X-Storage-Key": key, "Content-Type": content_type},
+                content=data,
+            )
+            resp.raise_for_status()
+            return resp.json()
+    except httpx.HTTPStatusError as e:
+        logger.error(f"[DOCUMENTOS] Upload to storage failed: HTTP {e.response.status_code} - {e.response.text[:200]}")
+        # If 401/403, key may be expired — clear cache and retry once
+        if e.response.status_code in (401, 403):
+            logger.warning("[DOCUMENTOS] Storage key possibly expired, retrying with fresh key...")
+            key = await _init_doc_storage(force_refresh=True)
+            async with httpx.AsyncClient(timeout=120) as client:
+                resp = await client.put(
+                    f"{STORAGE_URL}/objects/{path}",
+                    headers={"X-Storage-Key": key, "Content-Type": content_type},
+                    content=data,
+                )
+                resp.raise_for_status()
+                return resp.json()
+        raise
+    except Exception as e:
+        logger.error(f"[DOCUMENTOS] Upload error: {type(e).__name__}: {e}")
+        raise
 
 
 async def _get_object(path: str):
     key = await _init_doc_storage()
-    async with httpx.AsyncClient(timeout=60) as client:
-        resp = await client.get(
-            f"{STORAGE_URL}/objects/{path}",
-            headers={"X-Storage-Key": key},
-        )
-        resp.raise_for_status()
-        return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
+    try:
+        async with httpx.AsyncClient(timeout=60) as client:
+            resp = await client.get(
+                f"{STORAGE_URL}/objects/{path}",
+                headers={"X-Storage-Key": key},
+            )
+            resp.raise_for_status()
+            return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
+    except httpx.HTTPStatusError as e:
+        # Retry with fresh key if unauthorized
+        if e.response.status_code in (401, 403):
+            key = await _init_doc_storage(force_refresh=True)
+            async with httpx.AsyncClient(timeout=60) as client:
+                resp = await client.get(
+                    f"{STORAGE_URL}/objects/{path}",
+                    headers={"X-Storage-Key": key},
+                )
+                resp.raise_for_status()
+                return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
+        raise
 
 
 class DocCategory(str, Enum):
@@ -19687,6 +19729,8 @@ async def upload_document(
     if not condo_id and "SuperAdmin" not in current_user.get("roles", []):
         raise HTTPException(status_code=400, detail="No condominium associated")
 
+    logger.info(f"[DOCUMENTOS] UPLOAD START | file={file.filename} | content_type={file.content_type} | user={current_user.get('email')} | condo={condo_id}")
+
     # Validate extension
     ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
     if ext not in ALLOWED_EXTENSIONS:
@@ -19696,12 +19740,14 @@ async def upload_document(
 
     # Read and validate size
     data = await file.read()
+    logger.info(f"[DOCUMENTOS] File read | size={len(data)} bytes | ext={ext}")
     if len(data) > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail="Archivo excede 20 MB")
     if len(data) == 0:
         raise HTTPException(status_code=400, detail="Archivo vacío")
 
     content_type = file.content_type or MIME_MAP.get(ext, "application/octet-stream")
+    logger.info(f"[DOCUMENTOS] MIME validation | content_type={content_type}")
 
     # MIME type validation
     if not _validate_upload_mime(content_type, ext):
@@ -19713,9 +19759,18 @@ async def upload_document(
 
     try:
         result = await _put_object(storage_path, data, content_type)
+        logger.info(f"[DOCUMENTOS] UPLOAD SUCCESS | path={storage_path}")
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions from storage init
+    except httpx.HTTPStatusError as e:
+        logger.error(f"[DOCUMENTOS] Storage HTTP error: {e.response.status_code} - {e.response.text[:200]}")
+        raise HTTPException(status_code=502, detail=f"Error al subir al storage: HTTP {e.response.status_code}")
+    except httpx.TimeoutException:
+        logger.error(f"[DOCUMENTOS] Storage timeout uploading {len(data)} bytes")
+        raise HTTPException(status_code=504, detail="Timeout al subir archivo. Intenta con un archivo más pequeño.")
     except Exception as e:
-        logger.error(f"[DOCUMENTOS] Upload failed: {e}")
-        raise HTTPException(status_code=500, detail="Error al subir archivo")
+        logger.error(f"[DOCUMENTOS] Upload failed: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error al subir archivo: {type(e).__name__}")
 
     roles_list = [r.strip() for r in allowed_roles.split(",") if r.strip()] if allowed_roles else []
     now = datetime.now(timezone.utc).isoformat()
