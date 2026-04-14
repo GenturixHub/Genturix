@@ -945,6 +945,30 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
   - Clickable for direct navigation between modules
   - Smooth 0.2s transition animation
 
+### Financial SaaS Upgrade (2026-04-14) - COMPLETE
+
+#### Admin Features
+- [x] Enhanced "Cuentas por Unidad" table: Unidad | Residente (nombre+email) | Estado | Deuda | Accion (Registrar Pago)
+- [x] Join unit_accounts + users collection to show resident info
+- [x] Payment Settings dialog: SINPE number/name, Bank name/account/IBAN, additional instructions
+- [x] Payment Requests panel: admin sees pending payment reports, approve/reject
+- [x] Unit assignment endpoint: POST /api/finanzas/assign-unit
+
+#### Resident Features
+- [x] Financial dashboard: "Tu unidad: A-101", Estado badge, Balance amount
+- [x] Charges breakdown by type
+- [x] Payment history
+- [x] "Pagar ahora" button → Method selection → SINPE/Transfer instructions with copy buttons
+- [x] Payment request submission (resident → admin review flow)
+
+#### Backend Endpoints Added
+- GET/PUT /api/finanzas/payment-settings (SINPE/bank info per condominium)
+- POST /api/finanzas/assign-unit (admin assigns apartment to user)
+- POST /api/finanzas/payment-request (resident reports payment)
+- GET /api/finanzas/payment-requests (list payment requests)
+- PATCH /api/finanzas/payment-requests/{id}?action=approved|rejected
+- Login response now includes `apartment` field
+
 ### Document Upload Fix (2026-04-14) - COMPLETE
 - [x] Storage key auto-refresh: if key expires, automatically re-initializes (retry on 401/403)
 - [x] Detailed error messages returned to frontend (not generic "Error al subir archivo")
