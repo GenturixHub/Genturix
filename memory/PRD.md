@@ -1178,3 +1178,42 @@ Implemented a document management module with Emergent Object Storage. Admins up
 - 14/17 backend tests passed (3 rate-limit failures, 0 actual bugs)
 - Frontend admin and resident flows verified
 - Security: file_url never returned, downloads proxied through backend
+
+
+---
+
+## Finanzas Avanzadas Module (2026-04-14) - COMPLETE
+
+### Summary
+Full financial tracking per housing unit with multiple charge types, automatic balance calculation, credit handling, advance payments, and general financial status.
+
+### Backend Endpoints
+- `POST/GET/PATCH /finanzas/catalog` - Charge type catalog CRUD
+- `POST /finanzas/charges` - Generate charge for unit+period (duplicate prevention via 409)
+- `GET /finanzas/charges` - List charges with filters
+- `POST /finanzas/payments` - Register payment (auto-apply to oldest pending, creates credit on overpay)
+- `GET /finanzas/payments` - Payment history
+- `GET /finanzas/unit/{unit_id}` - Full account status + breakdown + history
+- `GET /finanzas/overview` - Admin dashboard with summary stats
+
+### MongoDB Collections
+- `charges_catalog` - Charge types (cuota, agua, etc.) with default amounts
+- `unit_accounts` - Per-unit balance and status (auto-managed via upsert)
+- `payment_records` - All charges and payments with period tracking
+
+### Core Logic
+- **Balance**: `total_due - total_paid` (recalculated from source records)
+- **Status**: `al_dia` (balance=0), `atrasado` (balance>0), `adelantado` (balance<0)
+- **Credit**: Overpayment creates "Saldo a favor" record with negative balance
+- **Partial**: Payments apply to oldest charges first
+- **Advance**: Supports future period payments
+- **Duplicate prevention**: Same unit+charge_type+period returns 409
+
+### Frontend
+- Admin: `/admin/finanzas` with summary cards, catalog, accounts table, 3 action dialogs
+- Resident: "Finanzas" tab in bottom nav with balance card, breakdown, history
+- Sidebar: "Finanzas" entry for Administrador
+
+### Testing
+- 21/25 backend tests passed (4 rate-limit, 0 actual bugs)
+- Full flow verified: catalog → charges → partial pay → overpay → credit → overview
