@@ -704,6 +704,7 @@ class ApiService {
   };
   getUnitAccount = (unitId) => this.get(`/finanzas/unit/${unitId}`);
   getFinanzasOverview = () => this.get('/finanzas/overview');
+  generateBulkCharges = (data) => this.post('/finanzas/generate-bulk', data);
 
   // ==================== DOCUMENTOS ====================
   uploadDocument = async (file, meta) => {

@@ -209,6 +209,83 @@ const PaymentDialog = ({ open, onClose, onCreated }) => {
   );
 };
 
+// ── Bulk Charge Dialog ──
+const BulkChargeDialog = ({ open, onClose, onCreated, catalog }) => {
+  const [chargeTypeId, setChargeTypeId] = useState('');
+  const [period, setPeriod] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; });
+  const [dueDate, setDueDate] = useState('');
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const handleSubmit = async () => {
+    if (!chargeTypeId || !period) return;
+    setSending(true);
+    setResult(null);
+    try {
+      const data = { charge_type_id: chargeTypeId, period };
+      if (dueDate) data.due_date = dueDate;
+      const res = await api.generateBulkCharges(data);
+      setResult(res);
+      toast.success(`${res.created_count} cargos generados, ${res.skipped_count} omitidos`);
+      onCreated?.();
+    } catch (err) { toast.error(err.message || 'Error'); }
+    finally { setSending(false); }
+  };
+
+  const handleClose = () => { setResult(null); setChargeTypeId(''); onClose(); };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
+      <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-md" data-testid="bulk-charge-dialog">
+        <DialogHeader><DialogTitle>Generación Masiva de Cargos</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          {!result ? (
+            <>
+              <Select value={chargeTypeId} onValueChange={setChargeTypeId}>
+                <SelectTrigger data-testid="bulk-charge-type" className="bg-[#181B25] border-[#1E293B]"><SelectValue placeholder="Tipo de cargo" /></SelectTrigger>
+                <SelectContent className="bg-[#0F111A] border-[#1E293B]">
+                  {catalog.map(c => <SelectItem key={c.id} value={c.id}>{c.name} ({fmt(c.default_amount)})</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Input data-testid="bulk-period" type="month" value={period} onChange={(e) => setPeriod(e.target.value)} className="bg-[#181B25] border-[#1E293B]" />
+              <Input data-testid="bulk-due-date" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} placeholder="Fecha de vencimiento (opcional)" className="bg-[#181B25] border-[#1E293B]" />
+              <p className="text-xs text-muted-foreground">Se generará un cargo para TODAS las unidades registradas. Las unidades que ya tengan este cargo para el período seleccionado serán omitidas.</p>
+              <Button onClick={handleSubmit} disabled={sending || !chargeTypeId || !period} data-testid="submit-bulk" className="w-full">
+                {sending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ArrowDownCircle className="w-4 h-4 mr-2" />} Generar Cargos Masivos
+              </Button>
+            </>
+          ) : (
+            <div className="space-y-3" data-testid="bulk-result">
+              <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-center">
+                <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                <p className="text-lg font-bold text-white">Cargos Generados</p>
+              </div>
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="p-3 rounded-lg bg-[#181B25]">
+                  <p className="text-xl font-bold text-white">{result.total_units}</p>
+                  <p className="text-[10px] text-muted-foreground">Total Unidades</p>
+                </div>
+                <div className="p-3 rounded-lg bg-[#181B25]">
+                  <p className="text-xl font-bold text-green-400">{result.created_count}</p>
+                  <p className="text-[10px] text-muted-foreground">Creados</p>
+                </div>
+                <div className="p-3 rounded-lg bg-[#181B25]">
+                  <p className="text-xl font-bold text-yellow-400">{result.skipped_count}</p>
+                  <p className="text-[10px] text-muted-foreground">Omitidos</p>
+                </div>
+              </div>
+              <div className="text-xs text-muted-foreground text-center">
+                <p>{result.charge_type} - {result.period} - {fmt(result.amount)} c/u</p>
+              </div>
+              <Button variant="outline" onClick={handleClose} className="w-full" data-testid="bulk-close">Cerrar</Button>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 // ── Main Page ──
 export default function FinanzasModule() {
   const { t } = useTranslation();
@@ -218,6 +295,7 @@ export default function FinanzasModule() {
   const [showCatalog, setShowCatalog] = useState(false);
   const [showCharge, setShowCharge] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+  const [showBulk, setShowBulk] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -247,6 +325,9 @@ export default function FinanzasModule() {
               </Button>
               <Button size="sm" variant="outline" onClick={() => setShowCharge(true)} data-testid="btn-new-charge" disabled={catalog.length === 0}>
                 <Receipt className="w-4 h-4 mr-1" /> Generar Cargo
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setShowBulk(true)} data-testid="btn-bulk-charge" disabled={catalog.length === 0}>
+                <ArrowDownCircle className="w-4 h-4 mr-1" /> Cargos Masivos
               </Button>
               <Button size="sm" onClick={() => setShowPayment(true)} data-testid="btn-new-payment">
                 <CreditCard className="w-4 h-4 mr-1" /> Registrar Pago
@@ -307,6 +388,7 @@ export default function FinanzasModule() {
         <CatalogDialog open={showCatalog} onClose={() => setShowCatalog(false)} onCreated={fetchData} />
         <ChargeDialog open={showCharge} onClose={() => setShowCharge(false)} onCreated={fetchData} catalog={catalog} />
         <PaymentDialog open={showPayment} onClose={() => setShowPayment(false)} onCreated={fetchData} />
+        <BulkChargeDialog open={showBulk} onClose={() => setShowBulk(false)} onCreated={fetchData} catalog={catalog} />
       </div>
     </DashboardLayout>
   );

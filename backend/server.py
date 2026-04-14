@@ -18816,6 +18816,115 @@ async def create_charge(
     return safe
 
 
+class BulkChargeRequest(BaseModel):
+    charge_type_id: str
+    period: str = Field(..., pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
+    due_date: Optional[str] = None
+    unit_ids: Optional[List[str]] = None  # None = all existing units
+
+
+@api_router.post("/finanzas/generate-bulk")
+@limiter.limit(RATE_LIMIT_PUSH)
+async def generate_bulk_charges(
+    payload: BulkChargeRequest,
+    request: Request,
+    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN)),
+):
+    """Generate charges for all (or specified) units in the condominium. Skips duplicates."""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="No condominium associated")
+
+    # Validate charge type
+    charge_type = await db.charges_catalog.find_one(
+        {"id": payload.charge_type_id, "condominium_id": condo_id, "is_active": True}
+    )
+    if not charge_type:
+        raise HTTPException(status_code=404, detail="Tipo de cargo no encontrado")
+
+    # Determine target units
+    if payload.unit_ids and len(payload.unit_ids) > 0:
+        target_units = payload.unit_ids
+    else:
+        # All existing unit accounts in this condominium
+        accounts = await db.unit_accounts.find(
+            {"condominium_id": condo_id}, {"unit_id": 1, "_id": 0}
+        ).to_list(5000)
+        target_units = [a["unit_id"] for a in accounts]
+
+    if not target_units:
+        return {"total_units": 0, "created_count": 0, "skipped_count": 0, "message": "No hay unidades registradas"}
+
+    now = datetime.now(timezone.utc).isoformat()
+    due_date = payload.due_date or f"{payload.period}-15T00:00:00Z"
+    amount = round(charge_type["default_amount"], 2)
+
+    created_count = 0
+    skipped_count = 0
+
+    for unit_id in target_units:
+        # Check duplicate
+        existing = await db.payment_records.find_one({
+            "condominium_id": condo_id,
+            "unit_id": unit_id,
+            "charge_type_id": payload.charge_type_id,
+            "period": payload.period,
+        })
+        if existing:
+            skipped_count += 1
+            continue
+
+        record = {
+            "id": str(uuid.uuid4()),
+            "condominium_id": condo_id,
+            "unit_id": unit_id,
+            "resident_id": None,
+            "charge_type_id": payload.charge_type_id,
+            "charge_type_name": charge_type["name"],
+            "period": payload.period,
+            "amount_due": amount,
+            "amount_paid": 0.0,
+            "balance_after": 0.0,
+            "status": PaymentStatus.PENDING.value,
+            "due_date": due_date,
+            "paid_at": None,
+            "payment_method": None,
+            "created_at": now,
+            "updated_at": now,
+        }
+        await db.payment_records.insert_one(record)
+        created_count += 1
+
+    # Recalculate balances for all affected units
+    for unit_id in target_units:
+        await _recalculate_unit_balance(condo_id, unit_id)
+
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT, current_user["id"], "finanzas",
+        {
+            "action": "bulk_charges_generated",
+            "charge_type": charge_type["name"],
+            "period": payload.period,
+            "total_units": len(target_units),
+            "created": created_count,
+            "skipped": skipped_count,
+        },
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id, user_email=current_user.get("email"),
+    )
+
+    return {
+        "total_units": len(target_units),
+        "created_count": created_count,
+        "skipped_count": skipped_count,
+        "charge_type": charge_type["name"],
+        "period": payload.period,
+        "amount": amount,
+    }
+
+
+
 @api_router.get("/finanzas/charges")
 async def get_charges(
     unit_id: Optional[str] = None,
