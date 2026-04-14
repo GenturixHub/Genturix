@@ -1137,3 +1137,44 @@ Implemented a Cases/Incidents module for residents to report issues and admins t
 - Frontend admin and resident flows verified
 - Role-based access: admin sees all, resident sees own only
 - Internal comments hidden from residents
+
+
+---
+
+## Documentos Module (2026-04-14) - COMPLETE
+
+### Summary
+Implemented a document management module with Emergent Object Storage. Admins upload documents, residents view/download based on visibility controls.
+
+### Backend Endpoints (all under /api/documentos/*)
+- `POST /documentos` - Upload document (multipart form-data, admin only)
+- `GET /documentos` - List documents (visibility-filtered per role)
+- `GET /documentos/{id}` - Document metadata (file_url NEVER exposed)
+- `GET /documentos/{id}/download` - Download via backend proxy
+- `PATCH /documentos/{id}` - Update metadata (admin only)
+- `DELETE /documentos/{id}` - Soft delete (admin only)
+
+### Storage
+- Emergent Object Storage API (https://integrations.emergentagent.com/objstore)
+- EMERGENT_LLM_KEY in backend/.env
+- Files stored at `genturix/docs/{condo_id}/{uuid}.{ext}`
+- Raw storage URLs never exposed to frontend
+
+### MongoDB Collection: documents
+- Indexes: condominium_id, category, created_at
+
+### Visibility Model
+- `public` - visible to all users in condominium
+- `private` - visible only to admin/supervisor
+- `roles` - visible to specified roles via allowed_roles array
+
+### Frontend
+- `/app/frontend/src/pages/DocumentosModule.js` - Admin upload/manage
+- `/app/frontend/src/components/DocumentosResident.jsx` - Resident view/download
+- Sidebar: "Documentos" for Admin/Supervisor
+- Resident bottom nav: Emergency, Visits, Casos, Docs, Profile
+
+### Testing
+- 14/17 backend tests passed (3 rate-limit failures, 0 actual bugs)
+- Frontend admin and resident flows verified
+- Security: file_url never returned, downloads proxied through backend
