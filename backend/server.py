@@ -1,5 +1,5 @@
 # Trigger redeploy - 2026-03-01 SECURITY PATCH
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Request, Body, Query
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, status, Request, Body, Query, UploadFile, File as FastAPIFile
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse, Response
 from dotenv import load_dotenv
@@ -15,6 +15,7 @@ import hashlib
 import re
 import io
 import random
+import requests as http_requests
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr, field_validator
 from typing import List, Optional, Dict, Any, Tuple
@@ -18560,6 +18561,355 @@ async def add_caso_comment(
 
 
 
+
+# ==================== DOCUMENTOS ====================
+# Document management module with Emergent Object Storage
+# Collection: documents
+
+STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
+EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
+DOC_APP_NAME = "genturix"
+_doc_storage_key = None
+
+MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB
+ALLOWED_EXTENSIONS = {
+    "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx",
+    "txt", "csv", "jpg", "jpeg", "png", "gif", "webp",
+}
+MIME_MAP = {
+    "pdf": "application/pdf", "doc": "application/msword",
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "xls": "application/vnd.ms-excel",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "ppt": "application/vnd.ms-powerpoint",
+    "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "txt": "text/plain", "csv": "text/csv",
+    "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
+    "gif": "image/gif", "webp": "image/webp",
+}
+
+
+def _init_doc_storage():
+    global _doc_storage_key
+    if _doc_storage_key:
+        return _doc_storage_key
+    if not EMERGENT_LLM_KEY:
+        raise HTTPException(status_code=503, detail="Storage not configured")
+    resp = http_requests.post(
+        f"{STORAGE_URL}/init",
+        json={"emergent_key": EMERGENT_LLM_KEY},
+        timeout=30,
+    )
+    resp.raise_for_status()
+    _doc_storage_key = resp.json()["storage_key"]
+    return _doc_storage_key
+
+
+def _put_object(path: str, data: bytes, content_type: str) -> dict:
+    key = _init_doc_storage()
+    resp = http_requests.put(
+        f"{STORAGE_URL}/objects/{path}",
+        headers={"X-Storage-Key": key, "Content-Type": content_type},
+        data=data,
+        timeout=120,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _get_object(path: str):
+    key = _init_doc_storage()
+    resp = http_requests.get(
+        f"{STORAGE_URL}/objects/{path}",
+        headers={"X-Storage-Key": key},
+        timeout=60,
+    )
+    resp.raise_for_status()
+    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
+
+
+class DocCategory(str, Enum):
+    REGLAMENTO = "reglamento"
+    ACTA = "acta"
+    COMUNICADO = "comunicado"
+    CONTRATO = "contrato"
+    MANUAL = "manual"
+    FINANCIERO = "financiero"
+    OTRO = "otro"
+
+class DocVisibility(str, Enum):
+    PUBLIC = "public"
+    PRIVATE = "private"
+    ROLES = "roles"
+
+class DocUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    category: Optional[DocCategory] = None
+    visibility: Optional[DocVisibility] = None
+    allowed_roles: Optional[List[str]] = None
+
+
+@api_router.post("/documentos")
+async def upload_document(
+    request: Request,
+    file: UploadFile = FastAPIFile(...),
+    name: str = Query(..., min_length=1, max_length=200),
+    description: str = Query("", max_length=2000),
+    category: str = Query("otro"),
+    visibility: str = Query("public"),
+    allowed_roles: str = Query(""),
+    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN)),
+):
+    """Admin uploads a document to object storage."""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id and "SuperAdmin" not in current_user.get("roles", []):
+        raise HTTPException(status_code=400, detail="No condominium associated")
+
+    # Validate extension
+    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"Tipo de archivo no permitido: .{ext}")
+
+    # Read and validate size
+    data = await file.read()
+    if len(data) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="Archivo excede 20 MB")
+
+    content_type = file.content_type or MIME_MAP.get(ext, "application/octet-stream")
+    storage_path = f"{DOC_APP_NAME}/docs/{condo_id}/{uuid.uuid4()}.{ext}"
+
+    try:
+        result = _put_object(storage_path, data, content_type)
+    except Exception as e:
+        logger.error(f"[DOCUMENTOS] Upload failed: {e}")
+        raise HTTPException(status_code=500, detail="Error al subir archivo")
+
+    roles_list = [r.strip() for r in allowed_roles.split(",") if r.strip()] if allowed_roles else []
+    now = datetime.now(timezone.utc).isoformat()
+
+    doc = {
+        "id": str(uuid.uuid4()),
+        "condominium_id": condo_id,
+        "name": sanitize_text(name),
+        "description": sanitize_text(description) if description else "",
+        "category": category,
+        "file_url": result.get("path", storage_path),
+        "file_name": file.filename,
+        "file_size": len(data),
+        "file_type": content_type,
+        "visibility": visibility,
+        "allowed_roles": roles_list,
+        "uploaded_by": current_user["id"],
+        "uploaded_by_name": current_user.get("full_name", "Admin"),
+        "version": 1,
+        "parent_doc_id": None,
+        "is_deleted": False,
+        "created_at": now,
+        "updated_at": now,
+    }
+
+    await db.documents.insert_one(doc)
+
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT,
+        current_user["id"],
+        "documentos",
+        {"action": "document_uploaded", "doc_id": doc["id"], "name": doc["name"], "category": category},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id,
+        user_email=current_user.get("email"),
+    )
+
+    safe = {k: v for k, v in doc.items() if k not in ("_id", "file_url")}
+    return safe
+
+
+@api_router.get("/documentos")
+async def get_documents(
+    category: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 20,
+    current_user=Depends(get_current_user),
+):
+    """List documents visible to the current user."""
+    condo_id = current_user.get("condominium_id")
+    roles = current_user.get("roles", [])
+    is_admin = any(r in roles for r in ["Administrador", "Supervisor", "SuperAdmin"])
+
+    query = {"condominium_id": condo_id, "is_deleted": False}
+
+    if not is_admin:
+        query["$or"] = [
+            {"visibility": "public"},
+            {"visibility": "roles", "allowed_roles": {"$in": roles}},
+        ]
+
+    if category:
+        query["category"] = category
+
+    skip = (max(1, page) - 1) * page_size
+    total = await db.documents.count_documents(query)
+    items = (
+        await db.documents.find(query, {"_id": 0, "file_url": 0})
+        .sort("created_at", -1)
+        .skip(skip)
+        .limit(min(page_size, 50))
+        .to_list(min(page_size, 50))
+    )
+
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "total_pages": max(1, -(-total // page_size)),
+    }
+
+
+@api_router.get("/documentos/{doc_id}")
+async def get_document_detail(
+    doc_id: str,
+    current_user=Depends(get_current_user),
+):
+    """Get document metadata (no file_url exposed)."""
+    condo_id = current_user.get("condominium_id")
+    doc = await db.documents.find_one(
+        {"id": doc_id, "condominium_id": condo_id, "is_deleted": False},
+        {"_id": 0, "file_url": 0},
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento no encontrado")
+
+    roles = current_user.get("roles", [])
+    is_admin = any(r in roles for r in ["Administrador", "Supervisor", "SuperAdmin"])
+
+    if not is_admin:
+        if doc["visibility"] == "private":
+            raise HTTPException(status_code=403, detail="No tienes acceso")
+        if doc["visibility"] == "roles" and not any(r in doc.get("allowed_roles", []) for r in roles):
+            raise HTTPException(status_code=403, detail="No tienes acceso")
+
+    return doc
+
+
+@api_router.get("/documentos/{doc_id}/download")
+async def download_document(
+    doc_id: str,
+    current_user=Depends(get_current_user),
+):
+    """Download a document. Streams from object storage."""
+    condo_id = current_user.get("condominium_id")
+    doc = await db.documents.find_one(
+        {"id": doc_id, "condominium_id": condo_id, "is_deleted": False},
+        {"_id": 0},
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento no encontrado")
+
+    roles = current_user.get("roles", [])
+    is_admin = any(r in roles for r in ["Administrador", "Supervisor", "SuperAdmin"])
+
+    if not is_admin:
+        if doc["visibility"] == "private":
+            raise HTTPException(status_code=403, detail="No tienes acceso")
+        if doc["visibility"] == "roles" and not any(r in doc.get("allowed_roles", []) for r in roles):
+            raise HTTPException(status_code=403, detail="No tienes acceso")
+
+    try:
+        data, ct = _get_object(doc["file_url"])
+    except Exception as e:
+        logger.error(f"[DOCUMENTOS] Download failed: {e}")
+        raise HTTPException(status_code=500, detail="Error al descargar archivo")
+
+    return Response(
+        content=data,
+        media_type=doc.get("file_type", ct),
+        headers={
+            "Content-Disposition": f'attachment; filename="{doc["file_name"]}"',
+        },
+    )
+
+
+@api_router.patch("/documentos/{doc_id}")
+async def update_document(
+    doc_id: str,
+    payload: DocUpdate,
+    request: Request,
+    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN)),
+):
+    """Admin updates document metadata."""
+    condo_id = current_user.get("condominium_id")
+    doc = await db.documents.find_one(
+        {"id": doc_id, "condominium_id": condo_id, "is_deleted": False},
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento no encontrado")
+
+    update_fields = {}
+    if payload.name is not None:
+        update_fields["name"] = sanitize_text(payload.name)
+    if payload.description is not None:
+        update_fields["description"] = sanitize_text(payload.description)
+    if payload.category is not None:
+        update_fields["category"] = payload.category.value
+    if payload.visibility is not None:
+        update_fields["visibility"] = payload.visibility.value
+    if payload.allowed_roles is not None:
+        update_fields["allowed_roles"] = payload.allowed_roles
+
+    if not update_fields:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    update_fields["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.documents.update_one({"id": doc_id}, {"$set": update_fields})
+
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT,
+        current_user["id"],
+        "documentos",
+        {"action": "document_updated", "doc_id": doc_id, "fields": list(update_fields.keys())},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id,
+        user_email=current_user.get("email"),
+    )
+
+    updated = await db.documents.find_one({"id": doc_id}, {"_id": 0, "file_url": 0})
+    return updated
+
+
+@api_router.delete("/documentos/{doc_id}")
+async def delete_document(
+    doc_id: str,
+    request: Request,
+    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN)),
+):
+    """Soft-delete a document."""
+    condo_id = current_user.get("condominium_id")
+    result = await db.documents.update_one(
+        {"id": doc_id, "condominium_id": condo_id, "is_deleted": False},
+        {"$set": {"is_deleted": True, "updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Documento no encontrado")
+
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT,
+        current_user["id"],
+        "documentos",
+        {"action": "document_deleted", "doc_id": doc_id},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id,
+        user_email=current_user.get("email"),
+    )
+
+    return {"message": "Documento eliminado"}
+
+
+
 # ==================== NOTIFICATIONS V2 ====================
 # New notification system with broadcasts, preferences, and pagination
 # Coexists with existing /api/notifications endpoints
@@ -19056,6 +19406,10 @@ async def initialize_indexes():
         (db.casos, "status", {"background": True}),
         (db.casos, "created_at", {"background": True}),
         (db.caso_comments, "caso_id", {"background": True}),
+        # ==================== DOCUMENTOS ====================
+        (db.documents, "condominium_id", {"background": True}),
+        (db.documents, "category", {"background": True}),
+        (db.documents, "created_at", {"background": True}),
     ]
     
     success_count = 0
@@ -19135,6 +19489,14 @@ async def startup_event():
     except Exception as e:
         logger.error(f"[STARTUP] Billing scheduler failed to start: {e}")
         logger.warning("[STARTUP] Automatic billing checks will not run")
+
+    # Initialize document storage (non-fatal)
+    try:
+        _init_doc_storage()
+        logger.info("[STARTUP] Document storage initialized successfully")
+    except Exception as e:
+        logger.warning(f"[STARTUP] Document storage init failed: {e}")
+        logger.warning("[STARTUP] Document uploads will initialize on first use")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

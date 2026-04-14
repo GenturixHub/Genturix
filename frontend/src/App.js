@@ -34,6 +34,7 @@ import TermsOfServicePage from './pages/TermsOfServicePage';
 import DeveloperPage from './pages/DeveloperPage';
 import NotificationsPage from './pages/NotificationsPage';
 import CasosModule from './pages/CasosModule';
+import DocumentosModule from './pages/DocumentosModule';
 import UpdateAvailableModal from './components/UpdateAvailableModal';
 import InstallChoiceScreen from './components/InstallChoiceScreen';
 import useServiceWorkerUpdate from './hooks/useServiceWorkerUpdate';
@@ -379,6 +380,12 @@ function AppRoutes() {
       <Route path="/admin/casos" element={
         <ProtectedRoute allowedRoles={['Administrador', 'Supervisor', 'SuperAdmin']}>
           <CasosModule />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/admin/documentos" element={
+        <ProtectedRoute allowedRoles={['Administrador', 'Supervisor', 'SuperAdmin']}>
+          <DocumentosModule />
         </ProtectedRoute>
       } />
 

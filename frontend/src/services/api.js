@@ -680,6 +680,57 @@ class ApiService {
     return this.get(`/authorizations/history${queryString ? `?${queryString}` : ''}`);
   };
   getAuthorizationStats = () => this.get('/authorizations/stats');
+  // ==================== DOCUMENTOS ====================
+  uploadDocument = async (file, meta) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const params = new URLSearchParams();
+    params.append('name', meta.name);
+    if (meta.description) params.append('description', meta.description);
+    if (meta.category) params.append('category', meta.category);
+    if (meta.visibility) params.append('visibility', meta.visibility);
+    if (meta.allowed_roles) params.append('allowed_roles', meta.allowed_roles);
+    const url = `${API_URL}/api/documentos?${params.toString()}`;
+    const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+    const response = await apiRequest(url, {
+      method: 'POST',
+      headers: accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {},
+      body: formData,
+      credentials: 'include',
+    });
+    return response.json();
+  };
+  getDocuments = (params = {}) => {
+    const qp = new URLSearchParams();
+    if (params.category) qp.append('category', params.category);
+    if (params.page) qp.append('page', params.page);
+    if (params.page_size) qp.append('page_size', params.page_size);
+    const qs = qp.toString();
+    return this.get(`/documentos${qs ? `?${qs}` : ''}`);
+  };
+  getDocumentDetail = (id) => this.get(`/documentos/${id}`);
+  updateDocument = (id, data) => this.patch(`/documentos/${id}`, data);
+  deleteDocument = (id) => this.delete(`/documentos/${id}`);
+  downloadDocument = async (docId, fileName) => {
+    const url = `${API_URL}/api/documentos/${docId}/download`;
+    const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+    const resp = await apiRequest(url, {
+      method: 'GET',
+      headers: accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {},
+      credentials: 'include',
+    });
+    const text = await resp.text();
+    // Convert base64 or raw text to blob for download
+    const blob = new Blob([text], { type: 'application/octet-stream' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName || 'document';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  };
+
   // ==================== CASOS / INCIDENCIAS ====================
   createCaso = (data) => this.post('/casos', data);
   getCasos = (params = {}) => {

@@ -116,7 +116,9 @@
     "notifications": "Notificaciones",
     "notificationsDescription": "Alertas y broadcasts",
     "casos": "Casos",
-    "casosDescription": "Incidencias y reportes"
+    "casosDescription": "Incidencias y reportes",
+    "documentos": "Documentos",
+    "documentosDescription": "Archivos del condominio"
   },
   "profile": {
     "title": "Mi Perfil",
@@ -962,5 +964,17 @@
     "fillRequired": "Completa los campos requeridos",
     "noCases": "No tienes casos reportados",
     "tab": "Casos"
+  },
+  "documentos": {
+    "pageTitle": "Documentos",
+    "list": "Documentos del Condominio",
+    "upload": "Subir Documento",
+    "uploadBtn": "Subir Documento",
+    "title": "Documentos",
+    "tab": "Docs",
+    "uploaded": "Documento subido",
+    "fillRequired": "Selecciona un archivo y nombre",
+    "tooLarge": "Archivo excede 20 MB",
+    "noDocs": "No hay documentos disponibles"
   }
 }

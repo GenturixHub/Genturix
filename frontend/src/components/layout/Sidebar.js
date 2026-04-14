@@ -18,6 +18,7 @@ import {
   Calendar,
   Bell,
   ClipboardList,
+  FolderOpen,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
@@ -118,6 +119,13 @@ const Sidebar = ({ collapsed, onToggle }) => {
       href: '/admin/casos',
       roles: ['Administrador', 'Supervisor'],
       descriptionKey: 'nav.casosDescription'
+    },
+    {
+      titleKey: 'nav.documentos',
+      icon: FolderOpen,
+      href: '/admin/documentos',
+      roles: ['Administrador', 'Supervisor'],
+      descriptionKey: 'nav.documentosDescription'
     },
     {
       titleKey: 'nav.audit',

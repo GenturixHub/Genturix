@@ -116,7 +116,9 @@
     "notifications": "Notifications",
     "notificationsDescription": "Alerts and broadcasts",
     "casos": "Cases",
-    "casosDescription": "Incidents and reports"
+    "casosDescription": "Incidents and reports",
+    "documentos": "Documents",
+    "documentosDescription": "Condominium files"
   },
   "profile": {
     "title": "My Profile",
@@ -960,5 +962,17 @@
     "fillRequired": "Fill in required fields",
     "noCases": "You have no reported cases",
     "tab": "Cases"
+  },
+  "documentos": {
+    "pageTitle": "Documents",
+    "list": "Condominium Documents",
+    "upload": "Upload Document",
+    "uploadBtn": "Upload Document",
+    "title": "Documents",
+    "tab": "Docs",
+    "uploaded": "Document uploaded",
+    "fillRequired": "Select a file and name",
+    "tooLarge": "File exceeds 20 MB",
+    "noDocs": "No documents available"
   }
 }

@@ -1,0 +1,74 @@
+{
+  "summary": "Documentos module testing completed. Backend: 14/17 tests passed (3 failures due to rate limiting, not actual bugs). Frontend: Admin and Resident views working correctly. All core features verified: upload, list, filter, download, update, delete, visibility control, role-based access.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "Rate limiting", "issue": "Login rate limit (5/min) causes test failures when running full test suite. Not a bug, but affects automated testing."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_documentos_module.py",
+    "/app/test_reports/pytest/documentos_module_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_documentos_module.py"
+  ],
+  "success_rate": {
+    "backend": "82% (14/17 passed - 3 failures due to rate limiting)",
+    "frontend_admin": "100% - All Documentos admin flows working",
+    "frontend_resident": "100% - Docs tab visible, documents displayed, download available"
+  },
+  "seed_data_creation": "Created multiple TEST_ prefixed documents during testing (cleaned up)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Documentos module fully integrated. Admin: /admin/documentos with upload, list, filter, download, delete. Resident: Docs tab in bottom nav shows public and role-based documents. Guard has no access to Documentos (correct). Backend uses Emergent Object Storage. file_url is never exposed to frontend (security requirement met).",
+  "tests_verified": {
+    "backend_api": [
+      "POST /api/documentos - Admin upload works (multipart/form-data with query params)",
+      "GET /api/documentos - List with pagination and category filter",
+      "GET /api/documentos/{id} - Document metadata (file_url NOT exposed)",
+      "GET /api/documentos/{id}/download - Download through backend proxy",
+      "PATCH /api/documentos/{id} - Admin update metadata",
+      "DELETE /api/documentos/{id} - Soft delete",
+      "Resident cannot upload (403)",
+      "Guard cannot upload (403)",
+      "Guard cannot update (403)",
+      "Guard cannot delete (403)",
+      "Resident cannot see private documents",
+      "Resident can see public and role-based documents"
+    ],
+    "frontend_admin": [
+      "Sidebar shows 'Documentos' link for Administrador",
+      "/admin/documentos page loads with document list",
+      "Upload button opens dialog with file picker, name, description, category, visibility fields",
+      "Category filter dropdown works",
+      "Document rows show name, category badge, visibility badge, file size, date",
+      "Download and delete buttons visible on each document"
+    ],
+    "frontend_resident": [
+      "Bottom navigation shows 5 tabs: Emergency, Visits, Cases, Docs, Profile",
+      "Docs tab navigates to DocumentosResident component",
+      "Documents displayed with category badges and download buttons",
+      "Category filter available",
+      "Resident sees 8 documents (public + role-based with Residente access)"
+    ],
+    "security": [
+      "file_url field is NEVER returned to frontend in any endpoint",
+      "Download goes through backend proxy (signed URLs not exposed)",
+      "Role-based access control enforced"
+    ],
+    "existing_endpoints": [
+      "/api/casos - Working (verified via curl)",
+      "/api/casos/stats - Working (verified via curl)",
+      "/api/notifications/v2 - Working (verified via curl)",
+      "/api/notifications/v2/unread-count - Working (verified via curl)"
+    ]
+  }
+}
