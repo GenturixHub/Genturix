@@ -114,7 +114,9 @@
     "more": "More",
     "logout": "Logout",
     "notifications": "Notifications",
-    "notificationsDescription": "Alerts and broadcasts"
+    "notificationsDescription": "Alerts and broadcasts",
+    "casos": "Cases",
+    "casosDescription": "Incidents and reports"
   },
   "profile": {
     "title": "My Profile",
@@ -941,5 +943,22 @@
     "prefSystemDesc": "System notifications",
     "prefEmail": "Email",
     "prefEmailDesc": "Receive notifications by email"
+  },
+  "casos": {
+    "pageTitle": "Cases / Incidents",
+    "list": "Case List",
+    "myCases": "My Cases",
+    "newCase": "Report Incident",
+    "title": "Title",
+    "description": "Description",
+    "category": "Category",
+    "priority": "Priority",
+    "submit": "Submit Report",
+    "report": "Report",
+    "reportFirst": "Report your first case",
+    "created": "Case created successfully",
+    "fillRequired": "Fill in required fields",
+    "noCases": "You have no reported cases",
+    "tab": "Cases"
   }
 }

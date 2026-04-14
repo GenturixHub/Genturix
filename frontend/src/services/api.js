@@ -680,6 +680,23 @@ class ApiService {
     return this.get(`/authorizations/history${queryString ? `?${queryString}` : ''}`);
   };
   getAuthorizationStats = () => this.get('/authorizations/stats');
+  // ==================== CASOS / INCIDENCIAS ====================
+  createCaso = (data) => this.post('/casos', data);
+  getCasos = (params = {}) => {
+    const queryParams = new URLSearchParams();
+    if (params.status) queryParams.append('status', params.status);
+    if (params.category) queryParams.append('category', params.category);
+    if (params.priority) queryParams.append('priority', params.priority);
+    if (params.page) queryParams.append('page', params.page);
+    if (params.page_size) queryParams.append('page_size', params.page_size);
+    const qs = queryParams.toString();
+    return this.get(`/casos${qs ? `?${qs}` : ''}`);
+  };
+  getCasoDetail = (id) => this.get(`/casos/${id}`);
+  updateCaso = (id, data) => this.patch(`/casos/${id}`, data);
+  addCasoComment = (id, data) => this.post(`/casos/${id}/comments`, data);
+  getCasosStats = () => this.get('/casos/stats');
+
   // ==================== NOTIFICATIONS V2 ====================
   getNotificationsV2 = (page = 1, unreadOnly = false, notificationType = null) => {
     const params = new URLSearchParams({ page, page_size: 20 });

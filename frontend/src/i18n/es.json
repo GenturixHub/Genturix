@@ -114,7 +114,9 @@
     "more": "Más",
     "logout": "Cerrar Sesión",
     "notifications": "Notificaciones",
-    "notificationsDescription": "Alertas y broadcasts"
+    "notificationsDescription": "Alertas y broadcasts",
+    "casos": "Casos",
+    "casosDescription": "Incidencias y reportes"
   },
   "profile": {
     "title": "Mi Perfil",
@@ -943,5 +945,22 @@
     "prefSystemDesc": "Notificaciones del sistema",
     "prefEmail": "Email",
     "prefEmailDesc": "Recibir notificaciones por correo"
+  },
+  "casos": {
+    "pageTitle": "Casos / Incidencias",
+    "list": "Lista de Casos",
+    "myCases": "Mis Casos",
+    "newCase": "Reportar Incidencia",
+    "title": "Título",
+    "description": "Descripción",
+    "category": "Categoría",
+    "priority": "Prioridad",
+    "submit": "Enviar Reporte",
+    "report": "Reportar",
+    "reportFirst": "Reportar tu primer caso",
+    "created": "Caso creado exitosamente",
+    "fillRequired": "Completa los campos requeridos",
+    "noCases": "No tienes casos reportados",
+    "tab": "Casos"
   }
 }

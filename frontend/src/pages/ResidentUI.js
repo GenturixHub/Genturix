@@ -52,6 +52,7 @@ import EmbeddedProfile from '../components/EmbeddedProfile';
 import ResidentVisitsModule from '../components/ResidentVisitsModule';
 import PushPermissionBanner from '../components/PushPermissionBanner';
 import ResidentReservations from '../components/ResidentReservations';
+import CasosResident from '../components/CasosResident';
 import MobileBottomNav, { useIsMobile } from '../components/layout/BottomNav';
 // TanStack Query hooks for data fetching
 import { 
@@ -84,7 +85,8 @@ import {
   Check,
   CheckCheck,
   RefreshCw,
-  UserCheck
+  UserCheck,
+  ClipboardList,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -876,7 +878,7 @@ const RESIDENT_MOBILE_NAV = [
   { id: 'emergency', label: 'Pánico', icon: AlertTriangle, bgColor: 'bg-red-600', glowColor: 'shadow-red-500/50' },
   { id: 'authorizations', label: 'Visitas', icon: Shield },
   { id: 'reservations', label: 'Reservas', icon: CalendarIcon },
-  { id: 'directory', label: 'Personas', icon: Users },
+  { id: 'casos', label: 'Casos', icon: ClipboardList },
   { id: 'profile', label: 'Perfil', icon: User },
 ];
 
@@ -888,7 +890,7 @@ const ResidentUI = () => {
   const [activeTab, setActiveTab] = useState('emergency');
   
   // Tab order for swipe navigation
-  const TAB_ORDER = useMemo(() => ['emergency', 'authorizations', 'reservations', 'directory', 'profile'], []);
+  const TAB_ORDER = useMemo(() => ['emergency', 'authorizations', 'reservations', 'casos', 'directory', 'profile'], []);
   
   // Swipe handlers for mobile navigation - Applied to content area
   const swipeHandlers = useSwipeable({
@@ -1263,7 +1265,7 @@ const ResidentUI = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
         {/* Desktop Tabs - hidden on mobile */}
         {!isMobile && (
-          <TabsList className="grid grid-cols-5 bg-[#0F111A] border-b border-[#1E293B] rounded-none h-12 flex-shrink-0">
+          <TabsList className="grid grid-cols-6 bg-[#0F111A] border-b border-[#1E293B] rounded-none h-12 flex-shrink-0">
             <TabsTrigger 
               value="emergency" 
               className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-red-500 rounded-none flex flex-col items-center gap-0.5 text-[10px]"
@@ -1287,6 +1289,14 @@ const ResidentUI = () => {
             >
               <CalendarIcon className="w-4 h-4 text-green-400" />
               Reservas
+            </TabsTrigger>
+            <TabsTrigger 
+              value="casos" 
+              className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-orange-500 rounded-none flex flex-col items-center gap-0.5 text-[10px]"
+              data-testid="tab-casos"
+            >
+              <ClipboardList className="w-4 h-4 text-orange-400" />
+              Casos
             </TabsTrigger>
             <TabsTrigger 
               value="directory" 
@@ -1350,6 +1360,13 @@ const ResidentUI = () => {
             <ResidentReservations />
           </TabsContent>
           
+          <TabsContent 
+            value="casos" 
+            className="h-full mt-0"
+          >
+            <CasosResident />
+          </TabsContent>
+
           <TabsContent 
             value="directory" 
             className="h-full mt-0"
