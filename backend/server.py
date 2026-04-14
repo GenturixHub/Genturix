@@ -361,6 +361,7 @@ async def request_id_middleware(request: Request, call_next):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.emergentagent.com https://*.stripe.com https://*.genturix.com; frame-src https://*.stripe.com"
     
     # Optional: Log request completion (debug level)
     if LOG_LEVEL == 'DEBUG':
@@ -18224,6 +18225,7 @@ class CasoCommentCreate(BaseModel):
 
 
 @api_router.post("/casos")
+@limiter.limit(RATE_LIMIT_PUSH)
 async def create_caso(
     payload: CasoCreate,
     request: Request,
@@ -19517,6 +19519,7 @@ class DocUpdate(BaseModel):
 
 
 @api_router.post("/documentos")
+@limiter.limit(RATE_LIMIT_PUSH)
 async def upload_document(
     request: Request,
     file: UploadFile = FastAPIFile(...),

@@ -24,14 +24,12 @@ export const AuthProvider = ({ children }) => {
   // Initialize from localStorage and validate token
   useEffect(() => {
     const initializeAuth = async () => {
-      console.log('[Auth] Initializing auth from storage...');
       
       const storedAccessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
       const storedUser = localStorage.getItem(STORAGE_KEYS.USER);
       const storedPasswordReset = localStorage.getItem(STORAGE_KEYS.PASSWORD_RESET);
 
       if (storedAccessToken && storedUser) {
-        console.log('[Auth] Token found in storage, validating...');
         
         try {
           const parsedUser = JSON.parse(storedUser);
@@ -46,7 +44,6 @@ export const AuthProvider = ({ children }) => {
           });
 
           if (validationResponse.ok) {
-            console.log('[Auth] Token valid, session restored');
             const profileData = await validationResponse.json();
             
             // Update user with fresh profile data
@@ -70,7 +67,6 @@ export const AuthProvider = ({ children }) => {
               await changeLanguage(profileData.language);
             }
           } else if (validationResponse.status === 401) {
-            console.log('[Auth] Token expired, trying refresh via httpOnly cookie...');
             
             // Try to refresh token using httpOnly cookie
             try {
@@ -83,7 +79,6 @@ export const AuthProvider = ({ children }) => {
 
               if (refreshResponse.ok) {
                 const refreshData = await refreshResponse.json();
-                console.log('[Auth] Token refreshed successfully');
                 
                 localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, refreshData.access_token);
                 
@@ -96,7 +91,6 @@ export const AuthProvider = ({ children }) => {
                   await changeLanguage(parsedUser.language);
                 }
               } else {
-                console.log('[Auth] Refresh failed, clearing session');
                 clearStorage();
               }
             } catch (refreshError) {
@@ -124,7 +118,6 @@ export const AuthProvider = ({ children }) => {
           }
         }
       } else {
-        console.log('[Auth] No stored session found');
       }
 
       setIsLoading(false);
@@ -159,13 +152,11 @@ export const AuthProvider = ({ children }) => {
     }
 
     const data = await response.json();
-    console.log('[Auth] Login successful');
     
     // CRITICAL: Clear any previous user's cached data before setting new user
     // This prevents identity leak when switching users
     if (queryClient) {
       queryClient.clear();
-      console.log('[Auth] QueryClient cache cleared for new user');
     }
     
     // SECURITY: Only store access_token and user in localStorage
@@ -223,16 +214,13 @@ export const AuthProvider = ({ children }) => {
     try {
       // Check if push is supported
       if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        console.log('[Push] Not supported in this browser');
         return;
       }
 
       // Log current permission state
-      console.log('[Push] Permission:', Notification.permission);
 
       // Only sync if permission already granted - NEVER request permission here
       if (Notification.permission !== 'granted') {
-        console.log('[Push] Permission not granted - user can activate manually from profile');
         return;
       }
 
@@ -243,15 +231,12 @@ export const AuthProvider = ({ children }) => {
       const existingSubscription = await registration.pushManager.getSubscription();
       
       // Log subscription state
-      console.log('[Push] Existing subscription:', !!existingSubscription);
 
       if (!existingSubscription) {
-        console.log('[Push] No existing subscription - user can activate manually from profile');
         return;
       }
 
       // Silently sync existing subscription with backend
-      console.log(`[Push] Syncing existing subscription for role: ${userData?.roles?.join(', ')}`);
       
       const subscriptionJson = existingSubscription.toJSON();
       const response = await fetch(`${API_URL}/api/push/subscribe`, {
@@ -271,7 +256,6 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (response.ok) {
-        console.log(`[Push] Subscription synced successfully for: ${userData?.roles?.join(', ')}`);
         // NOTE: Removed localStorage.setItem('genturix_push_enabled', 'true')
         // The hook now manages state based on backend verification
       } else {
@@ -370,7 +354,6 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = useCallback(async () => {
-    console.log('[Auth] Manual logout - clearing all user data');
     
     try {
       if (accessToken) {
@@ -387,7 +370,6 @@ export const AuthProvider = ({ children }) => {
           },
           credentials: 'include',  // SECURITY: Clear httpOnly cookie
         });
-        console.log('[Auth] Logout API called');
       }
     } catch (error) {
       console.error('[Auth] Logout API error:', error);
@@ -405,19 +387,16 @@ export const AuthProvider = ({ children }) => {
       // This ensures no stale profile/user data persists after logout
       if (queryClient) {
         queryClient.clear();
-        console.log('[Auth] QueryClient cache cleared');
       }
       
       setUser(null);
       setAccessToken(null);
       setPasswordResetRequired(false);
       
-      console.log('[Auth] Logout complete - all caches cleared');
     }
   }, [accessToken]);
 
   const refreshAccessToken = useCallback(async () => {
-    console.log('[Auth] Refreshing access token...');
     
     const response = await fetch(`${API_URL}/api/auth/refresh`, {
       method: 'POST',
@@ -429,13 +408,11 @@ export const AuthProvider = ({ children }) => {
     });
 
     if (!response.ok) {
-      console.log('[Auth] Token refresh failed, logging out');
       await logout();
       throw new Error('Token refresh failed');
     }
 
     const data = await response.json();
-    console.log('[Auth] Token refreshed successfully');
     
     localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.access_token);
 
