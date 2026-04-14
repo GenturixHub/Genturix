@@ -945,6 +945,14 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
   - Clickable for direct navigation between modules
   - Smooth 0.2s transition animation
 
+### Document Storage Fallback (2026-04-14) - COMPLETE
+- [x] Graceful fallback: if EMERGENT_LLM_KEY missing → local storage at /app/backend/uploads/
+- [x] Upload works without crash: stores file locally, creates DB record, returns success
+- [x] Download works for both local:// and remote paths
+- [x] Clear startup log: "EMERGENT_LLM_KEY not configured — using fallback local storage"
+- [x] API response format identical regardless of storage backend
+- [x] Fixed async startup: _init_doc_storage() now properly awaited
+
 ### Financial SaaS Upgrade (2026-04-14) - COMPLETE
 
 #### Admin Features

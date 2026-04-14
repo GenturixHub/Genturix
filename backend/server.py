@@ -19858,6 +19858,14 @@ STORAGE_URL = "https://integrations.emergentagent.com/objstore/api/v1/storage"
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
 DOC_APP_NAME = "genturix"
 _doc_storage_key = None
+LOCAL_UPLOAD_DIR = Path("/app/backend/uploads")
+_use_local_storage = not EMERGENT_LLM_KEY
+
+if _use_local_storage:
+    LOCAL_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    logger.warning("[DOCUMENTOS] EMERGENT_LLM_KEY not configured — using fallback local storage at /app/backend/uploads")
+else:
+    logger.info("[DOCUMENTOS] Emergent Object Storage configured")
 
 MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB
 ALLOWED_EXTENSIONS = {
@@ -19909,6 +19917,8 @@ def _validate_upload_mime(content_type: str, ext: str) -> bool:
 
 async def _init_doc_storage(force_refresh: bool = False):
     global _doc_storage_key
+    if _use_local_storage:
+        return "__local__"
     if _doc_storage_key and not force_refresh:
         return _doc_storage_key
     if not EMERGENT_LLM_KEY:
@@ -19934,6 +19944,11 @@ async def _init_doc_storage(force_refresh: bool = False):
 
 
 async def _put_object(path: str, data: bytes, content_type: str) -> dict:
+    if _use_local_storage:
+        local_path = LOCAL_UPLOAD_DIR / path.replace("/", "_")
+        local_path.write_bytes(data)
+        logger.info(f"[DOCUMENTOS] Local storage: saved {len(data)} bytes to {local_path.name}")
+        return {"path": f"local://{local_path.name}"}
     key = await _init_doc_storage()
     try:
         async with httpx.AsyncClient(timeout=120) as client:
@@ -19946,7 +19961,6 @@ async def _put_object(path: str, data: bytes, content_type: str) -> dict:
             return resp.json()
     except httpx.HTTPStatusError as e:
         logger.error(f"[DOCUMENTOS] Upload to storage failed: HTTP {e.response.status_code} - {e.response.text[:200]}")
-        # If 401/403, key may be expired — clear cache and retry once
         if e.response.status_code in (401, 403):
             logger.warning("[DOCUMENTOS] Storage key possibly expired, retrying with fresh key...")
             key = await _init_doc_storage(force_refresh=True)
@@ -19965,6 +19979,15 @@ async def _put_object(path: str, data: bytes, content_type: str) -> dict:
 
 
 async def _get_object(path: str):
+    if path.startswith("local://"):
+        local_name = path[len("local://"):]
+        local_path = LOCAL_UPLOAD_DIR / local_name
+        if not local_path.exists():
+            raise HTTPException(status_code=404, detail="Archivo no encontrado en storage local")
+        data = local_path.read_bytes()
+        ext = local_name.rsplit(".", 1)[-1].lower() if "." in local_name else ""
+        ct = MIME_MAP.get(ext, "application/octet-stream")
+        return data, ct
     key = await _init_doc_storage()
     try:
         async with httpx.AsyncClient(timeout=60) as client:
@@ -19975,7 +19998,6 @@ async def _get_object(path: str):
             resp.raise_for_status()
             return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
     except httpx.HTTPStatusError as e:
-        # Retry with fresh key if unauthorized
         if e.response.status_code in (401, 403):
             key = await _init_doc_storage(force_refresh=True)
             async with httpx.AsyncClient(timeout=60) as client:
@@ -20884,10 +20906,10 @@ async def startup_event():
 
     # Initialize document storage (non-fatal)
     try:
-        _init_doc_storage()
+        await _init_doc_storage()
         logger.info("[STARTUP] Document storage initialized successfully")
     except Exception as e:
-        logger.warning(f"[STARTUP] Document storage init failed: {e}")
+        logger.warning(f"[STARTUP] Document storage init deferred: {e}")
         logger.warning("[STARTUP] Document uploads will initialize on first use")
 
 @app.on_event("shutdown")
