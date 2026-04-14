@@ -1249,3 +1249,27 @@ Full financial tracking per housing unit with multiple charge types, automatic b
 - 13/13 backend security tests passed, 8 skipped (rate-limit verification = expected)
 - All existing endpoints verified functional (finanzas, casos, documentos, notifications)
 - Frontend admin and resident flows working correctly
+
+
+---
+
+## Mass Charge Generation (2026-04-14) - COMPLETE
+
+### Endpoint
+`POST /api/finanzas/generate-bulk` - Admin generates charges for ALL units in a period
+
+### Features
+- Generates charges for all existing unit_accounts in the condominium
+- **Idempotent**: re-running same period skips all duplicates (0 created, N skipped)
+- Returns summary: total_units, created_count, skipped_count, charge_type, period, amount
+- Recalculates all unit balances after bulk generation
+- Rate limited (10/min)
+- Audit logged
+
+### Frontend
+- "Cargos Masivos" button on admin Finanzas page
+- Dialog with charge type selector, period, optional due date
+- Result summary with green checkmark showing created/skipped counts
+
+### Testing
+- 10/14 backend tests passed (4 rate-limit skips), frontend 100% verified
