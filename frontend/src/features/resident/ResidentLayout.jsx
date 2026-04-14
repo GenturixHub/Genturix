@@ -11,7 +11,7 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Shield, LogOut, Users, Calendar, User, AlertTriangle, Bell, RefreshCw, CheckCheck, UserCheck, Check } from 'lucide-react';
+import { Shield, LogOut, Users, Calendar, User, AlertTriangle, Bell, RefreshCw, CheckCheck, UserCheck, Check, ClipboardList } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import {
   DropdownMenu,
@@ -124,7 +124,7 @@ const ResidentLayout = ({
     },
     { id: 'visits', label: t('resident.visits'), icon: Users },
     { id: 'reservations', label: t('resident.reservations'), icon: Calendar },
-    { id: 'directory', label: t('resident.directory'), icon: Users },
+    { id: 'casos', label: t('casos.tab', 'Casos'), icon: ClipboardList },
     { id: 'profile', label: t('resident.profile'), icon: User },
   ], [t]);
 
