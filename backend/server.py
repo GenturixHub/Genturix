@@ -15,7 +15,7 @@ import hashlib
 import re
 import io
 import random
-import requests as http_requests
+import httpx
 from pathlib import Path
 from pydantic import BaseModel, Field, EmailStr, field_validator
 from typing import List, Optional, Dict, Any, Tuple
@@ -19457,43 +19457,43 @@ def _validate_upload_mime(content_type: str, ext: str) -> bool:
     return any(content_type.startswith(prefix) for prefix in ALLOWED_MIME_PREFIXES)
 
 
-def _init_doc_storage():
+async def _init_doc_storage():
     global _doc_storage_key
     if _doc_storage_key:
         return _doc_storage_key
     if not EMERGENT_LLM_KEY:
         raise HTTPException(status_code=503, detail="Storage not configured")
-    resp = http_requests.post(
-        f"{STORAGE_URL}/init",
-        json={"emergent_key": EMERGENT_LLM_KEY},
-        timeout=30,
-    )
-    resp.raise_for_status()
-    _doc_storage_key = resp.json()["storage_key"]
-    return _doc_storage_key
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(
+            f"{STORAGE_URL}/init",
+            json={"emergent_key": EMERGENT_LLM_KEY},
+        )
+        resp.raise_for_status()
+        _doc_storage_key = resp.json()["storage_key"]
+        return _doc_storage_key
 
 
-def _put_object(path: str, data: bytes, content_type: str) -> dict:
-    key = _init_doc_storage()
-    resp = http_requests.put(
-        f"{STORAGE_URL}/objects/{path}",
-        headers={"X-Storage-Key": key, "Content-Type": content_type},
-        data=data,
-        timeout=120,
-    )
-    resp.raise_for_status()
-    return resp.json()
+async def _put_object(path: str, data: bytes, content_type: str) -> dict:
+    key = await _init_doc_storage()
+    async with httpx.AsyncClient(timeout=120) as client:
+        resp = await client.put(
+            f"{STORAGE_URL}/objects/{path}",
+            headers={"X-Storage-Key": key, "Content-Type": content_type},
+            content=data,
+        )
+        resp.raise_for_status()
+        return resp.json()
 
 
-def _get_object(path: str):
-    key = _init_doc_storage()
-    resp = http_requests.get(
-        f"{STORAGE_URL}/objects/{path}",
-        headers={"X-Storage-Key": key},
-        timeout=60,
-    )
-    resp.raise_for_status()
-    return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
+async def _get_object(path: str):
+    key = await _init_doc_storage()
+    async with httpx.AsyncClient(timeout=60) as client:
+        resp = await client.get(
+            f"{STORAGE_URL}/objects/{path}",
+            headers={"X-Storage-Key": key},
+        )
+        resp.raise_for_status()
+        return resp.content, resp.headers.get("Content-Type", "application/octet-stream")
 
 
 class DocCategory(str, Enum):
@@ -19560,7 +19560,7 @@ async def upload_document(
     storage_path = f"{DOC_APP_NAME}/docs/{condo_id}/{uuid.uuid4()}.{ext}"
 
     try:
-        result = _put_object(storage_path, data, content_type)
+        result = await _put_object(storage_path, data, content_type)
     except Exception as e:
         logger.error(f"[DOCUMENTOS] Upload failed: {e}")
         raise HTTPException(status_code=500, detail="Error al subir archivo")
@@ -19698,7 +19698,7 @@ async def download_document(
             raise HTTPException(status_code=403, detail="No tienes acceso")
 
     try:
-        data, ct = _get_object(doc["file_url"])
+        data, ct = await _get_object(doc["file_url"])
     except Exception as e:
         logger.error(f"[DOCUMENTOS] Download failed: {e}")
         raise HTTPException(status_code=500, detail="Error al descargar archivo")
