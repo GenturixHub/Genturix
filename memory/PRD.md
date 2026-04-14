@@ -1273,3 +1273,37 @@ Full financial tracking per housing unit with multiple charge types, automatic b
 
 ### Testing
 - 10/14 backend tests passed (4 rate-limit skips), frontend 100% verified
+
+
+---
+
+## Financial Reports Export (2026-04-14) - COMPLETE
+
+### Endpoint
+`GET /api/finanzas/report?format=pdf|csv&period=YYYY-MM` - Admin exports financial report
+
+### PDF Report (ReportLab)
+- Title with condominium name
+- Summary table: Total Cobrado, Pagado, Pendiente, Crédito
+- Unit detail table with color-coded rows (red=atrasado, blue=adelantado)
+- Columns: Unidad, Cobrado, Pagado, Balance, Estado
+
+### CSV Report
+- UTF-8 BOM encoded for Excel compatibility
+- Summary section at top
+- Unit detail rows: unit_id, total_cobrado, total_pagado, balance, estado
+
+### Features
+- Optional period filter (YYYY-MM)
+- Admin-only access (403 for resident/guard)
+- Multi-tenant isolation (condominium_id scoped)
+- Auto-download in browser via blob URL
+
+### Frontend
+- PDF and CSV export buttons on admin Finanzas page (right-aligned)
+- Loading state during export
+- Toast confirmation on success
+
+### Testing
+- 13/13 backend tests passed, frontend 100% verified
+- Bug fixed: downloadFinancialReport changed to use window.fetch() for blob support
