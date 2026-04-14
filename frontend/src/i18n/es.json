@@ -118,7 +118,9 @@
     "casos": "Casos",
     "casosDescription": "Incidencias y reportes",
     "documentos": "Documentos",
-    "documentosDescription": "Archivos del condominio"
+    "documentosDescription": "Archivos del condominio",
+    "finanzas": "Finanzas",
+    "finanzasDescription": "Cobros, pagos, balances"
   },
   "profile": {
     "title": "Mi Perfil",
@@ -976,5 +978,12 @@
     "fillRequired": "Selecciona un archivo y nombre",
     "tooLarge": "Archivo excede 20 MB",
     "noDocs": "No hay documentos disponibles"
+  },
+  "finanzas": {
+    "pageTitle": "Finanzas",
+    "tab": "Finanzas",
+    "myFinances": "Mi Estado Financiero",
+    "breakdown": "Desglose",
+    "history": "Historial"
   }
 }

@@ -118,7 +118,9 @@
     "casos": "Cases",
     "casosDescription": "Incidents and reports",
     "documentos": "Documents",
-    "documentosDescription": "Condominium files"
+    "documentosDescription": "Condominium files",
+    "finanzas": "Finances",
+    "finanzasDescription": "Charges, payments, balances"
   },
   "profile": {
     "title": "My Profile",
@@ -974,5 +976,12 @@
     "fillRequired": "Select a file and name",
     "tooLarge": "File exceeds 20 MB",
     "noDocs": "No documents available"
+  },
+  "finanzas": {
+    "pageTitle": "Finances",
+    "tab": "Finances",
+    "myFinances": "My Financial Status",
+    "breakdown": "Breakdown",
+    "history": "History"
   }
 }

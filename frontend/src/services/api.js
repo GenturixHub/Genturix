@@ -680,6 +680,31 @@ class ApiService {
     return this.get(`/authorizations/history${queryString ? `?${queryString}` : ''}`);
   };
   getAuthorizationStats = () => this.get('/authorizations/stats');
+  // ==================== FINANZAS AVANZADAS ====================
+  createChargeCatalog = (data) => this.post('/finanzas/catalog', data);
+  getChargeCatalog = () => this.get('/finanzas/catalog');
+  updateChargeCatalog = (id, data) => this.patch(`/finanzas/catalog/${id}`, data);
+  createCharge = (data) => this.post('/finanzas/charges', data);
+  getCharges = (params = {}) => {
+    const qp = new URLSearchParams();
+    if (params.unit_id) qp.append('unit_id', params.unit_id);
+    if (params.status) qp.append('status', params.status);
+    if (params.period) qp.append('period', params.period);
+    if (params.page) qp.append('page', params.page);
+    const qs = qp.toString();
+    return this.get(`/finanzas/charges${qs ? `?${qs}` : ''}`);
+  };
+  registerPayment = (data) => this.post('/finanzas/payments', data);
+  getPayments = (params = {}) => {
+    const qp = new URLSearchParams();
+    if (params.unit_id) qp.append('unit_id', params.unit_id);
+    if (params.page) qp.append('page', params.page);
+    const qs = qp.toString();
+    return this.get(`/finanzas/payments${qs ? `?${qs}` : ''}`);
+  };
+  getUnitAccount = (unitId) => this.get(`/finanzas/unit/${unitId}`);
+  getFinanzasOverview = () => this.get('/finanzas/overview');
+
   // ==================== DOCUMENTOS ====================
   uploadDocument = async (file, meta) => {
     const formData = new FormData();

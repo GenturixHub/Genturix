@@ -18562,6 +18562,528 @@ async def add_caso_comment(
 
 
 
+# ==================== FINANZAS AVANZADAS ====================
+# Advanced Financial Module: charges, payments, unit accounts
+# Collections: charges_catalog, unit_accounts, payment_records
+
+class ChargeType(str, Enum):
+    FIXED = "fixed"
+    VARIABLE = "variable"
+
+class PaymentStatus(str, Enum):
+    PAID = "paid"
+    PENDING = "pending"
+    OVERDUE = "overdue"
+    PARTIAL = "partial"
+
+class AccountStatus(str, Enum):
+    AL_DIA = "al_dia"
+    ATRASADO = "atrasado"
+    ADELANTADO = "adelantado"
+
+class ChargeCatalogCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    type: ChargeType = ChargeType.FIXED
+    default_amount: float = Field(..., gt=0)
+
+class ChargeCatalogUpdate(BaseModel):
+    name: Optional[str] = None
+    default_amount: Optional[float] = Field(None, gt=0)
+    is_active: Optional[bool] = None
+
+class ChargeCreate(BaseModel):
+    unit_id: str
+    charge_type_id: str
+    period: str = Field(..., pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
+    amount_due: float = Field(..., gt=0)
+    due_date: Optional[str] = None
+
+class PaymentCreate(BaseModel):
+    unit_id: str
+    amount: float = Field(..., gt=0)
+    payment_method: str = Field("efectivo", max_length=50)
+    charge_ids: Optional[List[str]] = None
+    period: Optional[str] = Field(None, pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
+
+
+def _compute_account_status(balance: float) -> str:
+    if balance == 0:
+        return AccountStatus.AL_DIA.value
+    elif balance > 0:
+        return AccountStatus.ATRASADO.value
+    else:
+        return AccountStatus.ADELANTADO.value
+
+
+async def _recalculate_unit_balance(condo_id: str, unit_id: str):
+    """Recalculate a unit's balance from source records. Single source of truth."""
+    total_due = 0.0
+    total_paid = 0.0
+
+    async for rec in db.payment_records.find(
+        {"condominium_id": condo_id, "unit_id": unit_id}
+    ):
+        total_due += rec.get("amount_due", 0)
+        total_paid += rec.get("amount_paid", 0)
+
+    balance = round(total_due - total_paid, 2)
+    status = _compute_account_status(balance)
+    now = datetime.now(timezone.utc).isoformat()
+
+    await db.unit_accounts.update_one(
+        {"condominium_id": condo_id, "unit_id": unit_id},
+        {
+            "$set": {
+                "current_balance": balance,
+                "status": status,
+                "updated_at": now,
+            },
+            "$setOnInsert": {
+                "id": str(uuid.uuid4()),
+                "condominium_id": condo_id,
+                "unit_id": unit_id,
+                "resident_id": None,
+                "created_at": now,
+            },
+        },
+        upsert=True,
+    )
+    return balance, status
+
+
+# ── Charge Catalog ──
+
+@api_router.post("/finanzas/catalog")
+async def create_charge_catalog(
+    payload: ChargeCatalogCreate,
+    request: Request,
+    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN)),
+):
+    """Create a charge type in the catalog."""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="No condominium associated")
+
+    doc = {
+        "id": str(uuid.uuid4()),
+        "condominium_id": condo_id,
+        "name": sanitize_text(payload.name),
+        "type": payload.type.value,
+        "default_amount": round(payload.default_amount, 2),
+        "is_active": True,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.charges_catalog.insert_one(doc)
+
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT, current_user["id"], "finanzas",
+        {"action": "catalog_created", "charge_name": doc["name"]},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id, user_email=current_user.get("email"),
+    )
+
+    safe = {k: v for k, v in doc.items() if k != "_id"}
+    return safe
+
+
+@api_router.get("/finanzas/catalog")
+async def get_charge_catalog(
+    current_user=Depends(get_current_user),
+):
+    """List charge catalog for the condominium."""
+    condo_id = current_user.get("condominium_id")
+    items = await db.charges_catalog.find(
+        {"condominium_id": condo_id, "is_active": True}, {"_id": 0}
+    ).sort("name", 1).to_list(100)
+    return items
+
+
+@api_router.patch("/finanzas/catalog/{catalog_id}")
+async def update_charge_catalog(
+    catalog_id: str,
+    payload: ChargeCatalogUpdate,
+    request: Request,
+    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN)),
+):
+    """Update a charge catalog entry."""
+    condo_id = current_user.get("condominium_id")
+    update = {}
+    if payload.name is not None:
+        update["name"] = sanitize_text(payload.name)
+    if payload.default_amount is not None:
+        update["default_amount"] = round(payload.default_amount, 2)
+    if payload.is_active is not None:
+        update["is_active"] = payload.is_active
+
+    if not update:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    result = await db.charges_catalog.update_one(
+        {"id": catalog_id, "condominium_id": condo_id}, {"$set": update}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Cargo no encontrado")
+
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT, current_user["id"], "finanzas",
+        {"action": "catalog_updated", "catalog_id": catalog_id},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id, user_email=current_user.get("email"),
+    )
+
+    updated = await db.charges_catalog.find_one({"id": catalog_id}, {"_id": 0})
+    return updated
+
+
+# ── Charges (generate charges for units) ──
+
+@api_router.post("/finanzas/charges")
+async def create_charge(
+    payload: ChargeCreate,
+    request: Request,
+    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN)),
+):
+    """Create a charge for a specific unit and period."""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="No condominium associated")
+
+    # Validate charge type exists
+    charge_type = await db.charges_catalog.find_one(
+        {"id": payload.charge_type_id, "condominium_id": condo_id, "is_active": True}
+    )
+    if not charge_type:
+        raise HTTPException(status_code=404, detail="Tipo de cargo no encontrado")
+
+    # Prevent duplicate: same unit, charge_type, period
+    existing = await db.payment_records.find_one({
+        "condominium_id": condo_id,
+        "unit_id": payload.unit_id,
+        "charge_type_id": payload.charge_type_id,
+        "period": payload.period,
+    })
+    if existing:
+        raise HTTPException(status_code=409, detail=f"Ya existe un cargo de '{charge_type['name']}' para el período {payload.period}")
+
+    now = datetime.now(timezone.utc).isoformat()
+    due_date = payload.due_date or f"{payload.period}-15T00:00:00Z"
+
+    record = {
+        "id": str(uuid.uuid4()),
+        "condominium_id": condo_id,
+        "unit_id": payload.unit_id,
+        "resident_id": None,
+        "charge_type_id": payload.charge_type_id,
+        "charge_type_name": charge_type["name"],
+        "period": payload.period,
+        "amount_due": round(payload.amount_due, 2),
+        "amount_paid": 0.0,
+        "balance_after": 0.0,
+        "status": PaymentStatus.PENDING.value,
+        "due_date": due_date,
+        "paid_at": None,
+        "payment_method": None,
+        "created_at": now,
+        "updated_at": now,
+    }
+
+    await db.payment_records.insert_one(record)
+
+    # Recalculate balance
+    balance, acct_status = await _recalculate_unit_balance(condo_id, payload.unit_id)
+    record["balance_after"] = balance
+    await db.payment_records.update_one({"id": record["id"]}, {"$set": {"balance_after": balance}})
+
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT, current_user["id"], "finanzas",
+        {"action": "charge_created", "unit_id": payload.unit_id, "period": payload.period, "amount": record["amount_due"]},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id, user_email=current_user.get("email"),
+    )
+
+    safe = {k: v for k, v in record.items() if k != "_id"}
+    return safe
+
+
+@api_router.get("/finanzas/charges")
+async def get_charges(
+    unit_id: Optional[str] = None,
+    status: Optional[str] = None,
+    period: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 30,
+    current_user=Depends(get_current_user),
+):
+    """List charges. Admin sees all, resident sees own unit."""
+    condo_id = current_user.get("condominium_id")
+    roles = current_user.get("roles", [])
+    is_admin = any(r in roles for r in ["Administrador", "Supervisor", "SuperAdmin"])
+
+    query = {"condominium_id": condo_id}
+
+    if not is_admin:
+        # Resident sees charges for their unit (matched by resident_id or apartment)
+        query["$or"] = [
+            {"resident_id": current_user["id"]},
+            {"unit_id": current_user.get("apartment", "__none__")},
+        ]
+
+    if unit_id:
+        query["unit_id"] = unit_id
+    if status:
+        query["status"] = status
+    if period:
+        query["period"] = period
+
+    skip = (max(1, page) - 1) * page_size
+    total = await db.payment_records.count_documents(query)
+    items = (
+        await db.payment_records.find(query, {"_id": 0})
+        .sort("period", -1)
+        .skip(skip)
+        .limit(min(page_size, 100))
+        .to_list(min(page_size, 100))
+    )
+
+    return {"items": items, "total": total, "page": page, "page_size": page_size, "total_pages": max(1, -(-total // page_size))}
+
+
+# ── Payments ──
+
+@api_router.post("/finanzas/payments")
+async def register_payment(
+    payload: PaymentCreate,
+    request: Request,
+    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN)),
+):
+    """Register a payment for a unit. Handles partial, full, and overpayment (credit)."""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="No condominium associated")
+
+    amount_remaining = round(payload.amount, 2)
+    now = datetime.now(timezone.utc).isoformat()
+    applied_records = []
+
+    if payload.charge_ids and len(payload.charge_ids) > 0:
+        # Apply to specific charges
+        targets = await db.payment_records.find(
+            {"id": {"$in": payload.charge_ids}, "condominium_id": condo_id, "unit_id": payload.unit_id}
+        ).sort("period", 1).to_list(100)
+    else:
+        # Apply to oldest pending/partial/overdue charges
+        targets = await db.payment_records.find(
+            {"condominium_id": condo_id, "unit_id": payload.unit_id, "status": {"$in": ["pending", "partial", "overdue"]}}
+        ).sort("period", 1).to_list(100)
+
+    for rec in targets:
+        if amount_remaining <= 0:
+            break
+
+        remaining_due = round(rec["amount_due"] - rec["amount_paid"], 2)
+        if remaining_due <= 0:
+            continue
+
+        to_apply = min(amount_remaining, remaining_due)
+        new_paid = round(rec["amount_paid"] + to_apply, 2)
+        new_status = PaymentStatus.PAID.value if new_paid >= rec["amount_due"] else PaymentStatus.PARTIAL.value
+
+        update_set = {
+            "amount_paid": new_paid,
+            "status": new_status,
+            "payment_method": payload.payment_method,
+            "updated_at": now,
+        }
+        if new_status == PaymentStatus.PAID.value:
+            update_set["paid_at"] = now
+
+        await db.payment_records.update_one({"id": rec["id"]}, {"$set": update_set})
+        amount_remaining = round(amount_remaining - to_apply, 2)
+        applied_records.append({"record_id": rec["id"], "applied": to_apply, "new_status": new_status})
+
+    # If there's remaining amount → credit / advance payment
+    if amount_remaining > 0:
+        credit_period = payload.period or datetime.now(timezone.utc).strftime("%Y-%m")
+        credit_record = {
+            "id": str(uuid.uuid4()),
+            "condominium_id": condo_id,
+            "unit_id": payload.unit_id,
+            "resident_id": None,
+            "charge_type_id": "credit",
+            "charge_type_name": "Saldo a favor",
+            "period": credit_period,
+            "amount_due": 0.0,
+            "amount_paid": round(amount_remaining, 2),
+            "balance_after": 0.0,
+            "status": PaymentStatus.PAID.value,
+            "due_date": None,
+            "paid_at": now,
+            "payment_method": payload.payment_method,
+            "created_at": now,
+            "updated_at": now,
+        }
+        await db.payment_records.insert_one(credit_record)
+        applied_records.append({"record_id": credit_record["id"], "applied": amount_remaining, "new_status": "credit"})
+
+    # Recalculate balance
+    balance, acct_status = await _recalculate_unit_balance(condo_id, payload.unit_id)
+
+    await log_audit_event(
+        AuditEventType.PAYMENT_COMPLETED, current_user["id"], "finanzas",
+        {"action": "payment_registered", "unit_id": payload.unit_id, "total_amount": payload.amount, "applied_to": len(applied_records)},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id, user_email=current_user.get("email"),
+    )
+
+    return {
+        "message": "Pago registrado",
+        "total_paid": payload.amount,
+        "applied": applied_records,
+        "new_balance": balance,
+        "account_status": acct_status,
+    }
+
+
+@api_router.get("/finanzas/payments")
+async def get_payments(
+    unit_id: Optional[str] = None,
+    page: int = 1,
+    page_size: int = 30,
+    current_user=Depends(get_current_user),
+):
+    """List payment history."""
+    condo_id = current_user.get("condominium_id")
+    roles = current_user.get("roles", [])
+    is_admin = any(r in roles for r in ["Administrador", "Supervisor", "SuperAdmin"])
+
+    query = {"condominium_id": condo_id, "amount_paid": {"$gt": 0}}
+
+    if not is_admin:
+        query["$or"] = [
+            {"resident_id": current_user["id"]},
+            {"unit_id": current_user.get("apartment", "__none__")},
+        ]
+    elif unit_id:
+        query["unit_id"] = unit_id
+
+    skip = (max(1, page) - 1) * page_size
+    total = await db.payment_records.count_documents(query)
+    items = (
+        await db.payment_records.find(query, {"_id": 0})
+        .sort("updated_at", -1)
+        .skip(skip)
+        .limit(min(page_size, 100))
+        .to_list(min(page_size, 100))
+    )
+
+    return {"items": items, "total": total, "page": page, "page_size": page_size, "total_pages": max(1, -(-total // page_size))}
+
+
+# ── Unit Account ──
+
+@api_router.get("/finanzas/unit/{unit_id}")
+async def get_unit_account(
+    unit_id: str,
+    current_user=Depends(get_current_user),
+):
+    """Get full financial status for a unit."""
+    condo_id = current_user.get("condominium_id")
+    roles = current_user.get("roles", [])
+    is_admin = any(r in roles for r in ["Administrador", "Supervisor", "SuperAdmin"])
+
+    if not is_admin:
+        user_apt = current_user.get("apartment", "")
+        if unit_id != user_apt and unit_id != current_user["id"]:
+            raise HTTPException(status_code=403, detail="No tienes acceso a esta unidad")
+
+    # Get or create account
+    account = await db.unit_accounts.find_one(
+        {"condominium_id": condo_id, "unit_id": unit_id}, {"_id": 0}
+    )
+    if not account:
+        balance, status = await _recalculate_unit_balance(condo_id, unit_id)
+        account = await db.unit_accounts.find_one(
+            {"condominium_id": condo_id, "unit_id": unit_id}, {"_id": 0}
+        )
+
+    # Get charge breakdown
+    records = await db.payment_records.find(
+        {"condominium_id": condo_id, "unit_id": unit_id}, {"_id": 0}
+    ).sort("period", -1).to_list(200)
+
+    # Breakdown by charge type
+    breakdown = {}
+    for rec in records:
+        ct = rec.get("charge_type_name", "Otro")
+        if ct not in breakdown:
+            breakdown[ct] = {"total_due": 0, "total_paid": 0, "pending": 0}
+        breakdown[ct]["total_due"] = round(breakdown[ct]["total_due"] + rec.get("amount_due", 0), 2)
+        breakdown[ct]["total_paid"] = round(breakdown[ct]["total_paid"] + rec.get("amount_paid", 0), 2)
+        breakdown[ct]["pending"] = round(breakdown[ct]["total_due"] - breakdown[ct]["total_paid"], 2)
+
+    return {
+        "account": account or {"unit_id": unit_id, "current_balance": 0, "status": "al_dia"},
+        "records": records[:50],
+        "breakdown": breakdown,
+    }
+
+
+@api_router.get("/finanzas/overview")
+async def get_financial_overview(
+    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPERVISOR, RoleEnum.SUPER_ADMIN)),
+):
+    """Admin overview: all unit accounts, totals, overdue count."""
+    condo_id = current_user.get("condominium_id")
+    base = {"condominium_id": condo_id}
+
+    accounts = await db.unit_accounts.find(base, {"_id": 0}).sort("unit_id", 1).to_list(500)
+
+    total_due = 0.0
+    total_paid = 0.0
+    overdue_count = 0
+    al_dia_count = 0
+    adelantado_count = 0
+
+    for a in accounts:
+        bal = a.get("current_balance", 0)
+        if bal > 0:
+            overdue_count += 1
+            total_due += bal
+        elif bal < 0:
+            adelantado_count += 1
+            total_paid += abs(bal)
+        else:
+            al_dia_count += 1
+
+    # Global totals from records
+    pipeline = [
+        {"$match": base},
+        {"$group": {"_id": None, "sum_due": {"$sum": "$amount_due"}, "sum_paid": {"$sum": "$amount_paid"}}},
+    ]
+    agg = await db.payment_records.aggregate(pipeline).to_list(1)
+    global_due = round(agg[0]["sum_due"], 2) if agg else 0
+    global_paid = round(agg[0]["sum_paid"], 2) if agg else 0
+
+    return {
+        "accounts": accounts,
+        "summary": {
+            "total_units": len(accounts),
+            "al_dia": al_dia_count,
+            "atrasado": overdue_count,
+            "adelantado": adelantado_count,
+            "global_due": global_due,
+            "global_paid": global_paid,
+            "global_balance": round(global_due - global_paid, 2),
+        },
+    }
+
+
+
+
 # ==================== DOCUMENTOS ====================
 # Document management module with Emergent Object Storage
 # Collection: documents
@@ -19410,6 +19932,14 @@ async def initialize_indexes():
         (db.documents, "condominium_id", {"background": True}),
         (db.documents, "category", {"background": True}),
         (db.documents, "created_at", {"background": True}),
+        # ==================== FINANZAS ====================
+        (db.charges_catalog, "condominium_id", {"background": True}),
+        (db.payment_records, "condominium_id", {"background": True}),
+        (db.payment_records, "unit_id", {"background": True}),
+        (db.payment_records, "status", {"background": True}),
+        (db.payment_records, "period", {"background": True}),
+        (db.unit_accounts, "condominium_id", {"background": True}),
+        (db.unit_accounts, "unit_id", {"background": True}),
     ]
     
     success_count = 0
