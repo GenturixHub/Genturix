@@ -3806,6 +3806,15 @@ async def request_password_reset_code(
     
     logger.info(f"[PASSWORD-RESET] Code sent to {email}")
     
+    await log_audit_event(
+        AuditEventType.USER_UPDATED, user.get("id", "unknown"), "auth",
+        {"action": "password_reset_requested"},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=user.get("condominium_id"),
+        user_email=email,
+    )
+    
     return {"message": "Si el correo existe, recibirás un código de verificación"}
 
 
@@ -4091,6 +4100,14 @@ async def subscribe_to_push(
     
     logger.info(f"[PUSH-SUBSCRIBE-DEBUG] Subscription CREATED for user {user_id[:12]}... (role={primary_role}, condo={condo_id[:8] if condo_id else 'N/A'}...)")
     logger.info(f"[PUSH-SUBSCRIBE-DEBUG] ======= REQUEST SUCCESS =======")
+    await log_audit_event(
+        AuditEventType.USER_UPDATED, current_user["id"], "push",
+        {"action": "push_subscribe", "role": primary_role},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=current_user.get("condominium_id"),
+        user_email=current_user.get("email"),
+    )
     return {
         "message": "Suscripción exitosa",
         "status": "created",
@@ -4119,6 +4136,14 @@ async def unsubscribe_from_push(
         raise HTTPException(status_code=404, detail="Suscripción no encontrada")
     
     logger.info(f"[PUSH] Subscription REMOVED for user {user_id}")
+    await log_audit_event(
+        AuditEventType.USER_UPDATED, current_user["id"], "push",
+        {"action": "push_unsubscribe"},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=current_user.get("condominium_id"),
+        user_email=current_user.get("email"),
+    )
     return {"message": "Suscripción eliminada", "deleted_count": 1}
 
 
@@ -4135,6 +4160,14 @@ async def unsubscribe_all_push(current_user = Depends(get_current_user)):
     })
     
     logger.info(f"[PUSH] ALL subscriptions REMOVED for user {user_id}: {result.deleted_count} deleted")
+    await log_audit_event(
+        AuditEventType.USER_UPDATED, current_user["id"], "push",
+        {"action": "push_unsubscribe_all", "count": result.deleted_count},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=current_user.get("condominium_id"),
+        user_email=current_user.get("email"),
+    )
     return {
         "message": f"{result.deleted_count} suscripciones eliminadas",
         "deleted_count": result.deleted_count
@@ -4796,6 +4829,14 @@ async def update_language(language_data: LanguageUpdate, current_user = Depends(
         }}
     )
     
+    await log_audit_event(
+        AuditEventType.USER_UPDATED, current_user["id"], "profile",
+        {"action": "language_changed", "language": language_data.language},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=current_user.get("condominium_id"),
+        user_email=current_user.get("email"),
+    )
     return {"message": "Language updated successfully", "language": language_data.language}
 
 
@@ -5536,6 +5577,14 @@ async def cancel_visitor_preregistration(
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Visitor not found or cannot be cancelled")
     
+    await log_audit_event(
+        AuditEventType.USER_UPDATED, current_user["id"], "visitors",
+        {"action": "visitor_cancelled", "visitor_id": visitor_id},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=current_user.get("condominium_id"),
+        user_email=current_user.get("email"),
+    )
     return {"message": "Visitor pre-registration cancelled"}
 
 @api_router.get("/visitors/pending")
@@ -8049,6 +8098,14 @@ async def create_guard(guard: GuardCreate, request: Request, current_user = Depe
         {"$addToSet": {"roles": "Guarda"}}
     )
     
+    await log_audit_event(
+        AuditEventType.USER_UPDATED, current_user["id"], "hr",
+        {"action": "guard_created", "guard_id": guard_doc.get("id", "")},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=current_user.get("condominium_id"),
+        user_email=current_user.get("email"),
+    )
     return guard_doc
 
 @api_router.get("/hr/guards")
@@ -8273,6 +8330,14 @@ async def cleanup_invalid_guards(
                 "user_id": dup_uid
             })
     
+    await log_audit_event(
+        AuditEventType.USER_UPDATED, current_user["id"], "hr",
+        {"action": "guards_cleanup", "removed": len(invalid_guards)},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=current_user.get("condominium_id"),
+        user_email=current_user.get("email"),
+    )
     return results
 
 @api_router.get("/hr/evaluable-employees")
@@ -11132,6 +11197,14 @@ async def create_course(course: CourseCreate, request: Request, current_user = D
     }
     
     await db.courses.insert_one(course_doc)
+    await log_audit_event(
+        AuditEventType.USER_UPDATED, current_user["id"], "school",
+        {"action": "course_created", "course_name": course_data.name},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=current_user.get("condominium_id"),
+        user_email=current_user.get("email"),
+    )
     return course_doc
 
 @api_router.get("/school/courses")
@@ -11669,6 +11742,14 @@ async def update_grace_period(
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Condominio no encontrado")
     
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT, current_user["id"], "billing",
+        {"action": "grace_period_updated", "condo_id": condominium_id},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condominium_id,
+        user_email=current_user.get("email"),
+    )
     return {
         "success": True,
         "condominium_id": condominium_id,
@@ -13454,6 +13535,14 @@ async def update_condominium_billing(
         current_user["id"]
     )
     
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT, current_user["id"], "billing",
+        {"action": "billing_updated", "condo_id": condo_id},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id,
+        user_email=current_user.get("email"),
+    )
     return {"message": "Configuración de facturación actualizada", "updates": update_data}
 
 # ==================== AUDIT MODULE ====================
@@ -13949,6 +14038,14 @@ async def update_user_roles(user_id: str, roles: List[str], current_user = Depen
     )
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT, current_user["id"], "users",
+        {"action": "roles_updated", "target_user_id": user_id, "new_roles": role_data.roles},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=current_user.get("condominium_id"),
+        user_email=current_user.get("email"),
+    )
     return {"message": "Roles updated"}
 
 # ==================== SEAT MANAGEMENT MODELS ====================
@@ -14524,6 +14621,13 @@ async def update_user_status_legacy(user_id: str, is_active: bool, current_user 
     )
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT, current_user["id"], "users",
+        {"action": "status_updated_legacy", "target_user_id": user_id, "is_active": is_active},
+        "unknown", "unknown",
+        condominium_id=current_user.get("condominium_id"),
+        user_email=current_user.get("email"),
+    )
     return {"message": "Status updated"}
 
 # ==================== INVITATION & ACCESS REQUEST MODULE ====================
@@ -15880,6 +15984,14 @@ async def update_condominium(
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Condominium not found")
     
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT, current_user["id"], "condominiums",
+        {"action": "condominium_updated", "condo_id": condo_id},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id,
+        user_email=current_user.get("email"),
+    )
     return {"message": "Condominium updated successfully"}
 
 @api_router.delete("/condominiums/{condo_id}")
@@ -15896,6 +16008,14 @@ async def deactivate_condominium(
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Condominium not found")
     
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT, current_user["id"], "condominiums",
+        {"action": "condominium_deactivated", "condo_id": condo_id},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id,
+        user_email=current_user.get("email"),
+    )
     return {"message": "Condominium deactivated"}
 
 @api_router.get("/condominiums/{condo_id}/users")
@@ -15991,6 +16111,14 @@ async def update_module_config(
         raise HTTPException(status_code=404, detail="Condominium not found")
     
     logger.info(f"[module-toggle] SUCCESS: Module '{module_name}' {'enabled' if enabled else 'disabled'} for condo {condo_id}. Modified: {result.modified_count}")
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT, current_user["id"], "condominiums",
+        {"action": "module_config_updated", "condo_id": condo_id, "module": module_name},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id,
+        user_email=current_user.get("email"),
+    )
     return {"message": f"Module '{module_name}' {'enabled' if enabled else 'disabled'} successfully", "module": module_name, "enabled": enabled}
 
 # ==================== SUPER ADMIN ENDPOINTS ====================
@@ -16137,6 +16265,14 @@ async def make_demo_condominium(
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Condominium not found")
     
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT, current_user["id"], "condominiums",
+        {"action": "make_demo", "condo_id": condo_id},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id,
+        user_email=current_user.get("email"),
+    )
     return {"message": "Condominium converted to demo mode"}
 
 @api_router.post("/super-admin/condominiums/{condo_id}/reset-demo")
@@ -17441,6 +17577,14 @@ async def cleanup_used_authorizations(
     for a in all_pending[:5]:  # Log first 5
         logger.info(f"[cleanup] Pending: {a.get('visitor_name')} - type={a.get('authorization_type')}, status={a.get('status')}")
     
+    await log_audit_event(
+        AuditEventType.USER_UPDATED, current_user["id"], "guard",
+        {"action": "cleanup_authorizations"},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=current_user.get("condominium_id"),
+        user_email=current_user.get("email"),
+    )
     return {
         "success": True,
         "message": f"Se corrigieron {fixed_count} autorizaciones",
@@ -18174,6 +18318,14 @@ async def upload_developer_photo(
             }
             await db.platform_developer_profile.insert_one(new_profile)
         
+        await log_audit_event(
+            AuditEventType.USER_UPDATED, current_user["id"], "developer",
+            {"action": "photo_uploaded"},
+            request.client.host if request.client else "unknown",
+            request.headers.get("user-agent", "unknown"),
+            condominium_id=current_user.get("condominium_id"),
+            user_email=current_user.get("email"),
+        )
         return {"success": True, "message": "Photo uploaded successfully"}
         
     except Exception as e:
