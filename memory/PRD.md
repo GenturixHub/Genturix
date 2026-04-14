@@ -1217,3 +1217,35 @@ Full financial tracking per housing unit with multiple charge types, automatic b
 ### Testing
 - 21/25 backend tests passed (4 rate-limit, 0 actual bugs)
 - Full flow verified: catalog → charges → partial pay → overpay → credit → overview
+
+
+---
+
+## Security Hardening (2026-04-14) - COMPLETE
+
+### Vulnerabilities Found & Fixed
+
+| # | Vulnerability | Severity | Fix Applied | File |
+|---|---|---|---|---|
+| 1 | XSS in PDF generation via innerHTML | CRITICAL | Added escapeHtml() to sanitize all user data before HTML template injection | ResidentVisitHistory.jsx |
+| 2 | CORS_ORIGINS="*" in .env | HIGH | Removed dead config from .env (code already used explicit origins) | backend/.env |
+| 3 | CORS duplicate return statement | LOW | Removed duplicate `return all_origins` | server.py |
+| 4 | CORS allow_methods/allow_headers wildcard | MEDIUM | Restricted to specific methods and headers | server.py |
+| 5 | Missing security headers | MEDIUM | Added X-Content-Type-Options, X-Frame-Options, Referrer-Policy | server.py |
+| 6 | File upload: no MIME validation | HIGH | Added MIME type validation function | server.py |
+| 7 | File upload: no executable blocking | HIGH | Added BLOCKED_EXTENSIONS set for .exe, .sh, .bat, etc. | server.py |
+| 8 | File upload: no empty file check | LOW | Added zero-size file rejection | server.py |
+| 9 | File upload: unsanitized filenames | MEDIUM | Added _sanitize_filename() with path traversal prevention | server.py |
+| 10 | No rate limit on change-password | MEDIUM | Added RATE_LIMIT_SENSITIVE (3/min) | server.py |
+| 11 | No rate limit on reset-password | MEDIUM | Added RATE_LIMIT_SENSITIVE (3/min) | server.py |
+| 12 | No rate limit on payment endpoint | MEDIUM | Added RATE_LIMIT_PUSH (10/min) | server.py |
+| 13 | SANITIZE_FIELDS incomplete | LOW | Added title, comment, subject, body | server.py |
+| 14 | Log message exposes auth implementation | LOW | Cleaned up refresh token log message | server.py |
+
+### Skipped (with reason)
+- **Token from localStorage to memory**: HIGH RISK of breaking login flow on page refresh. Refresh token is already httpOnly cookie. Would require full auth architecture rewrite.
+
+### Testing
+- 13/13 backend security tests passed, 8 skipped (rate-limit verification = expected)
+- All existing endpoints verified functional (finanzas, casos, documentos, notifications)
+- Frontend admin and resident flows working correctly
