@@ -19201,6 +19201,202 @@ async def get_financial_overview(
 
 
 
+@api_router.get("/finanzas/report")
+async def generate_financial_report(
+    format: str = Query("pdf", regex="^(pdf|csv)$"),
+    period: Optional[str] = Query(None, regex=r"^\d{4}-(0[1-9]|1[0-2])$"),
+    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN)),
+):
+    """Generate a financial report as PDF or CSV."""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="No condominium associated")
+
+    # Get condominium name
+    condo = await db.condominiums.find_one({"id": condo_id}, {"name": 1, "_id": 0})
+    condo_name = condo.get("name", "Condominio") if condo else "Condominio"
+
+    # Build query
+    rec_query = {"condominium_id": condo_id}
+    if period:
+        rec_query["period"] = period
+
+    # Aggregate per unit
+    pipeline = [
+        {"$match": rec_query},
+        {"$group": {
+            "_id": "$unit_id",
+            "total_due": {"$sum": "$amount_due"},
+            "total_paid": {"$sum": "$amount_paid"},
+        }},
+        {"$sort": {"_id": 1}},
+    ]
+    unit_aggs = await db.payment_records.aggregate(pipeline).to_list(5000)
+
+    # Get account statuses
+    accounts_map = {}
+    async for acc in db.unit_accounts.find({"condominium_id": condo_id}, {"_id": 0}):
+        accounts_map[acc["unit_id"]] = acc
+
+    rows = []
+    total_due = 0.0
+    total_paid = 0.0
+    total_overdue = 0.0
+    total_credit = 0.0
+
+    for u in unit_aggs:
+        uid = u["_id"]
+        due = round(u["total_due"], 2)
+        paid = round(u["total_paid"], 2)
+        bal = round(due - paid, 2)
+        acct = accounts_map.get(uid, {})
+        status = acct.get("status", "al_dia" if bal == 0 else ("atrasado" if bal > 0 else "adelantado"))
+
+        total_due += due
+        total_paid += paid
+        if bal > 0:
+            total_overdue += bal
+        elif bal < 0:
+            total_credit += abs(bal)
+
+        rows.append({
+            "unit_id": uid,
+            "total_due": due,
+            "total_paid": paid,
+            "balance": bal,
+            "status": status,
+        })
+
+    report_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
+    period_label = period if period else "Todos los períodos"
+
+    if format == "csv":
+        return _build_csv_report(rows, total_due, total_paid, total_overdue, total_credit, condo_name, period_label, report_date)
+    else:
+        return _build_pdf_report(rows, total_due, total_paid, total_overdue, total_credit, condo_name, period_label, report_date)
+
+
+def _build_csv_report(rows, total_due, total_paid, total_overdue, total_credit, condo_name, period_label, report_date):
+    """Build a CSV financial report."""
+    output = io.StringIO()
+    output.write(f"Reporte Financiero - {condo_name}\n")
+    output.write(f"Período: {period_label}\n")
+    output.write(f"Generado: {report_date}\n")
+    output.write(f"Total Cobrado: {total_due}\n")
+    output.write(f"Total Pagado: {total_paid}\n")
+    output.write(f"Total Pendiente: {total_overdue}\n")
+    output.write(f"Total Crédito: {total_credit}\n")
+    output.write("\n")
+    output.write("Unidad,Total Cobrado,Total Pagado,Balance,Estado\n")
+    status_labels = {"al_dia": "Al día", "atrasado": "Atrasado", "adelantado": "Adelantado"}
+    for r in rows:
+        output.write(f"{r['unit_id']},{r['total_due']},{r['total_paid']},{r['balance']},{status_labels.get(r['status'], r['status'])}\n")
+
+    csv_bytes = output.getvalue().encode("utf-8-sig")
+    return Response(
+        content=csv_bytes,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="reporte_financiero_{period_label}.csv"'},
+    )
+
+
+def _build_pdf_report(rows, total_due, total_paid, total_overdue, total_credit, condo_name, period_label, report_date):
+    """Build a PDF financial report using ReportLab."""
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib import colors
+    from reportlab.lib.units import inch
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=letter, topMargin=0.5 * inch, bottomMargin=0.5 * inch)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    # Title
+    title_style = ParagraphStyle("Title2", parent=styles["Title"], fontSize=16, spaceAfter=4)
+    elements.append(Paragraph(f"Reporte Financiero", title_style))
+    elements.append(Paragraph(f"{condo_name}", styles["Heading2"]))
+    elements.append(Spacer(1, 8))
+
+    # Meta
+    meta_style = ParagraphStyle("Meta", parent=styles["Normal"], fontSize=9, textColor=colors.grey)
+    elements.append(Paragraph(f"Período: {period_label} | Generado: {report_date}", meta_style))
+    elements.append(Spacer(1, 16))
+
+    # Summary table
+    status_labels = {"al_dia": "Al día", "atrasado": "Atrasado", "adelantado": "Adelantado"}
+    summary_data = [
+        ["Total Cobrado", f"${total_due:,.2f}"],
+        ["Total Pagado", f"${total_paid:,.2f}"],
+        ["Total Pendiente", f"${total_overdue:,.2f}"],
+        ["Total Crédito (a favor)", f"${total_credit:,.2f}"],
+    ]
+    summary_table = Table(summary_data, colWidths=[2.5 * inch, 2 * inch])
+    summary_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#f0f0f0")),
+        ("FONTSIZE", (0, 0), (-1, -1), 10),
+        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#dddddd")),
+    ]))
+    elements.append(summary_table)
+    elements.append(Spacer(1, 20))
+
+    # Units table
+    elements.append(Paragraph("Detalle por Unidad", styles["Heading3"]))
+    elements.append(Spacer(1, 8))
+
+    header = ["Unidad", "Cobrado", "Pagado", "Balance", "Estado"]
+    data = [header]
+    for r in rows:
+        bal_str = f"${r['balance']:,.2f}"
+        data.append([
+            r["unit_id"],
+            f"${r['total_due']:,.2f}",
+            f"${r['total_paid']:,.2f}",
+            bal_str,
+            status_labels.get(r["status"], r["status"]),
+        ])
+
+    col_widths = [1.5 * inch, 1.2 * inch, 1.2 * inch, 1.2 * inch, 1.2 * inch]
+    t = Table(data, colWidths=col_widths, repeatRows=1)
+    style_cmds = [
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1a1a2e")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#dddddd")),
+        ("ALIGN", (1, 1), (-2, -1), "RIGHT"),
+    ]
+
+    # Color-code rows by status
+    for i, r in enumerate(rows, start=1):
+        if r["status"] == "atrasado":
+            style_cmds.append(("BACKGROUND", (0, i), (-1, i), colors.HexColor("#fff0f0")))
+        elif r["status"] == "adelantado":
+            style_cmds.append(("BACKGROUND", (0, i), (-1, i), colors.HexColor("#f0f8ff")))
+        else:
+            if i % 2 == 0:
+                style_cmds.append(("BACKGROUND", (0, i), (-1, i), colors.HexColor("#f8f8f8")))
+
+    t.setStyle(TableStyle(style_cmds))
+    elements.append(t)
+
+    doc.build(elements)
+    pdf_bytes = buf.getvalue()
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="reporte_financiero_{period_label}.pdf"'},
+    )
+
+
+
 
 # ==================== DOCUMENTOS ====================
 # Document management module with Emergent Object Storage

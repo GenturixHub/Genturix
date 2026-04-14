@@ -705,6 +705,35 @@ class ApiService {
   getUnitAccount = (unitId) => this.get(`/finanzas/unit/${unitId}`);
   getFinanzasOverview = () => this.get('/finanzas/overview');
   generateBulkCharges = (data) => this.post('/finanzas/generate-bulk', data);
+  downloadFinancialReport = async (format = 'pdf', period = null) => {
+    const params = new URLSearchParams({ format });
+    if (period) params.append('period', period);
+    const url = `${API_URL}/api/finanzas/report?${params.toString()}`;
+    const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+    
+    // Use native fetch for blob downloads since apiRequest doesn't support blob()
+    const resp = await window.fetch(url, {
+      method: 'GET',
+      headers: accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {},
+      credentials: 'include',
+    });
+    
+    if (!resp.ok) {
+      const errorText = await resp.text();
+      throw new Error(errorText || `Error ${resp.status}`);
+    }
+    
+    const blob = await resp.blob();
+    const ext = format === 'csv' ? 'csv' : 'pdf';
+    const filename = `reporte_financiero${period ? '_' + period : ''}.${ext}`;
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  };
 
   // ==================== DOCUMENTOS ====================
   uploadDocument = async (file, meta) => {

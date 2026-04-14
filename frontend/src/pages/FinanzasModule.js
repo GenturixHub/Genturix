@@ -34,6 +34,8 @@ import {
   Wallet,
   Receipt,
   ArrowDownCircle,
+  FileDown,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 const STATUS_COLORS = {
@@ -296,6 +298,7 @@ export default function FinanzasModule() {
   const [showCharge, setShowCharge] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showBulk, setShowBulk] = useState(false);
+  const [exporting, setExporting] = useState(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -308,6 +311,18 @@ export default function FinanzasModule() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleExport = async (fmt) => {
+    setExporting(fmt);
+    try {
+      await api.downloadFinancialReport(fmt);
+      toast.success(fmt === 'pdf' ? 'PDF descargado' : 'CSV descargado');
+    } catch (err) {
+      toast.error(err.message || 'Error al exportar');
+    } finally {
+      setExporting(null);
+    }
+  };
 
   return (
     <DashboardLayout title={t('finanzas.pageTitle', 'Finanzas')}>
@@ -332,6 +347,14 @@ export default function FinanzasModule() {
               <Button size="sm" onClick={() => setShowPayment(true)} data-testid="btn-new-payment">
                 <CreditCard className="w-4 h-4 mr-1" /> Registrar Pago
               </Button>
+              <div className="ml-auto flex gap-2">
+                <Button size="sm" variant="outline" onClick={() => handleExport('pdf')} disabled={!!exporting} data-testid="btn-export-pdf">
+                  {exporting === 'pdf' ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <FileDown className="w-4 h-4 mr-1" />} PDF
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => handleExport('csv')} disabled={!!exporting} data-testid="btn-export-csv">
+                  {exporting === 'csv' ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <FileSpreadsheet className="w-4 h-4 mr-1" />} CSV
+                </Button>
+              </div>
             </div>
 
             {/* Catalog */}
