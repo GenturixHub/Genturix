@@ -747,13 +747,26 @@ class ApiService {
     if (meta.allowed_roles) params.append('allowed_roles', meta.allowed_roles);
     const url = `${API_URL}/api/documentos?${params.toString()}`;
     const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-    const response = await apiRequest(url, {
-      method: 'POST',
-      headers: accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {},
-      body: formData,
-      credentials: 'include',
-    });
-    return response.json();
+    // Use fetch for file upload - better FormData/timeout support than XHR
+    try {
+      const headers = {};
+      if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+      // DO NOT set Content-Type - browser auto-sets multipart boundary
+      const response = await window.fetch(url, {
+        method: 'POST',
+        headers,
+        body: formData,
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.detail || `Error al subir (${response.status})`);
+      }
+      return await response.json();
+    } catch (err) {
+      console.error('[Documentos] Upload error:', err);
+      throw err;
+    }
   };
   getDocuments = (params = {}) => {
     const qp = new URLSearchParams();
@@ -769,21 +782,31 @@ class ApiService {
   downloadDocument = async (docId, fileName) => {
     const url = `${API_URL}/api/documentos/${docId}/download`;
     const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-    const resp = await apiRequest(url, {
-      method: 'GET',
-      headers: accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {},
-      credentials: 'include',
-    });
-    const text = await resp.text();
-    // Convert base64 or raw text to blob for download
-    const blob = new Blob([text], { type: 'application/octet-stream' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = fileName || 'document';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(a.href);
+    try {
+      // Use fetch for proper binary/blob download support
+      const headers = {};
+      if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+      const resp = await window.fetch(url, {
+        method: 'GET',
+        headers,
+        credentials: 'include',
+      });
+      if (!resp.ok) {
+        const errData = await resp.json().catch(() => ({}));
+        throw new Error(errData.detail || `Error al descargar (${resp.status})`);
+      }
+      const blob = await resp.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = fileName || 'document';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    } catch (err) {
+      console.error('[Documentos] Download error:', err);
+      throw err;
+    }
   };
 
   // ==================== CASOS / INCIDENCIAS ====================

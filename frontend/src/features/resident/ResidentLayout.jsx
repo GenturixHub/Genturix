@@ -113,7 +113,7 @@ const ResidentLayout = ({
     }
   };
 
-  // Navigation items with translations
+  // Navigation items with translations - ALL 8 modules
   const RESIDENT_NAV_ITEMS = useMemo(() => [
     { 
       id: 'emergency', 
@@ -123,7 +123,10 @@ const ResidentLayout = ({
       glowColor: 'shadow-red-500/40'
     },
     { id: 'visits', label: t('resident.visits'), icon: Users },
+    { id: 'reservations', label: t('resident.reservations', 'Reservas'), icon: Calendar },
+    { id: 'directory', label: t('resident.directory', 'Directorio'), icon: UserCheck },
     { id: 'casos', label: t('casos.tab', 'Casos'), icon: ClipboardList },
+    { id: 'documentos', label: t('documentos.tab', 'Docs'), icon: FolderOpen },
     { id: 'finanzas', label: t('finanzas.tab', 'Finanzas'), icon: Wallet },
     { id: 'profile', label: t('resident.profile'), icon: User },
   ], [t]);

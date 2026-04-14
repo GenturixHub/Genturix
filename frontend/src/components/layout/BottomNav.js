@@ -33,8 +33,8 @@ export const useIsMobile = (breakpoint = 1023) => {
   return isMobile;
 };
 
-// Componente de ítem de navegación - Native App Style
-const NavItem = ({ item, isActive, onClick, isCenter }) => {
+// Componente de ítem de navegación - Native App Style (compact for 8+ items)
+const NavItem = ({ item, isActive, onClick, isCenter, compact }) => {
   const Icon = item.icon;
   
   return (
@@ -43,41 +43,45 @@ const NavItem = ({ item, isActive, onClick, isCenter }) => {
       data-testid={`mobile-nav-${item.id}`}
       className={cn(
         'flex flex-col items-center justify-center transition-all duration-150',
-        'flex-1 py-2 min-h-[60px]',
+        compact ? 'py-1.5 min-h-[52px] min-w-0 px-0.5' : 'flex-1 py-2 min-h-[60px]',
         'active:scale-95 active:opacity-80',
         isCenter ? 'relative -mt-4' : '',
         isActive 
           ? 'text-primary' 
           : 'text-muted-foreground'
       )}
+      style={compact ? { flex: '1 1 0', maxWidth: '64px' } : undefined}
     >
       {isCenter ? (
         // Botón central destacado (ej: Pánico)
         <div className={cn(
-          'w-14 h-14 rounded-full flex items-center justify-center',
+          'rounded-full flex items-center justify-center',
           'shadow-lg transition-all duration-200',
+          compact ? 'w-10 h-10' : 'w-14 h-14',
           item.bgColor || 'bg-red-600',
           item.glowColor || 'shadow-red-500/40',
           isActive && 'ring-2 ring-white/30 scale-105'
         )}>
-          <Icon className="w-7 h-7 text-white" strokeWidth={2.5} />
+          <Icon className={cn(compact ? 'w-5 h-5' : 'w-7 h-7', 'text-white')} strokeWidth={2.5} />
         </div>
       ) : (
         <div className={cn(
-          'w-11 h-11 rounded-2xl flex items-center justify-center mb-0.5',
+          'rounded-2xl flex items-center justify-center mb-0.5',
           'transition-all duration-150',
+          compact ? 'w-8 h-8' : 'w-11 h-11',
           isActive 
             ? 'bg-primary/15' 
             : 'bg-transparent'
         )}>
           <Icon className={cn(
-            'w-[22px] h-[22px]',
+            compact ? 'w-[18px] h-[18px]' : 'w-[22px] h-[22px]',
             isActive ? 'text-primary' : 'text-muted-foreground'
           )} />
         </div>
       )}
       <span className={cn(
-        'text-[10px] font-medium leading-none',
+        'font-medium leading-none truncate w-full text-center',
+        compact ? 'text-[8px]' : 'text-[10px]',
         isCenter && 'mt-1',
         isActive ? 'text-primary' : 'text-muted-foreground'
       )}>
@@ -103,6 +107,7 @@ const MobileBottomNav = ({
   centerIndex = -1 // -1 = sin botón central
 }) => {
   const isMobile = useIsMobile();
+  const compact = items.length > 5;
 
   // No renderizar en desktop
   if (!isMobile) return null;
@@ -112,13 +117,13 @@ const MobileBottomNav = ({
       className="fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0F] border-t border-[#1E293B]/60"
       data-testid="mobile-bottom-nav"
       style={{ 
-        height: '72px',
+        height: compact ? '62px' : '72px',
         paddingBottom: 'env(safe-area-inset-bottom, 0px)'
       }}
     >
       <div 
-        className="flex items-center justify-around h-full px-2"
-        style={{ maxHeight: '72px' }}
+        className="flex items-center justify-around h-full px-1"
+        style={{ maxHeight: compact ? '62px' : '72px' }}
       >
         {items.map((item, index) => (
           <NavItem
@@ -127,6 +132,7 @@ const MobileBottomNav = ({
             isActive={activeTab === item.id}
             onClick={() => onTabChange(item.id)}
             isCenter={index === centerIndex}
+            compact={compact}
           />
         ))}
       </div>
