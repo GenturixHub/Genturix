@@ -945,6 +945,15 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
   - Clickable for direct navigation between modules
   - Smooth 0.2s transition animation
 
+### Mobile Navigation Refactor (2026-04-16) - COMPLETE
+- [x] Bottom nav reduced from 8 items to 4: Emergency (red center), Home, Alertas, Profile
+- [x] Drawer menu (hamburger in header): Visits, Reservations, Directory, Cases, Docs, Finances, Asamblea (disabled/"Pronto")
+- [x] Drawer footer shows user name + apartment
+- [x] "Home" maps to visits tab, "Alertas" opens notification dropdown
+- [x] Asamblea future-ready placeholder (disabled with "Pronto" label)
+- [x] Desktop admin sidebar completely unchanged
+- [x] Swipe navigation still works between tabs
+
 ### Document Storage Fallback (2026-04-14) - COMPLETE
 - [x] Graceful fallback: if EMERGENT_LLM_KEY missing → local storage at /app/backend/uploads/
 - [x] Upload works without crash: stores file locally, creates DB record, returns success
