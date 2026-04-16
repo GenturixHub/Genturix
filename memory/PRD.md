@@ -945,6 +945,18 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
   - Clickable for direct navigation between modules
   - Smooth 0.2s transition animation
 
+### Community Cases with Comments (2026-04-16) - COMPLETE
+- [x] New `visibility` field: "private" (default) or "community"
+- [x] Private: only creator + admin can see/comment
+- [x] Community: all residents in same condo can see + comment
+- [x] Resident sees: own cases + all community cases ($or query)
+- [x] Admin sees ALL cases regardless of visibility
+- [x] Frontend: visibility selector (Privado/Comunitario) in create dialog
+- [x] Badges: Lock+Privado or Globe+Comunitario in list and detail
+- [x] Community cases show "por {author_name}" and "Reportado por" in detail
+- [x] Comment thread with author info in detail dialog
+- [x] Backward compatible: old cases without visibility treated as private
+
 ### Resident Financial Accounts / Estados de Cuenta (2026-04-16) - COMPLETE
 - [x] New "Estados de Cuenta" tab in admin Finanzas
 - [x] Lists ALL 34 residents with: name, email, unit, balance, status (sorted: atrasados first)
