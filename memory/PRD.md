@@ -945,6 +945,18 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
   - Clickable for direct navigation between modules
   - Smooth 0.2s transition animation
 
+### Asamblea Virtual MVP (2026-04-16) - COMPLETE
+- [x] Admin creates assemblies: title, date, description, modality (presencial/virtual/hibrida), meeting_link
+- [x] Agenda items: title, description, is_votable — added inline or via separate endpoint
+- [x] Resident view: list assemblies, confirm attendance, view agenda, vote (yes/no/abstain)
+- [x] Voting: one vote per user per agenda item, updates allowed, results tallied in real-time
+- [x] Results: vote counts (yes/no/abstain/total) per votable agenda item
+- [x] Acta PDF generation: assembly info, attendance list, vote results, saved to Documents
+- [x] Status workflow: scheduled → in_progress → completed / cancelled
+- [x] Backend: POST/GET /api/asamblea, GET /{id}, POST attend/vote/agenda, GET results, POST generate-acta, PATCH status
+- [x] Frontend: Admin page /admin/asamblea with detail view, Resident drawer tab enabled
+- [x] Collections: assemblies, agenda_items, assembly_votes, assembly_attendance
+
 ### Cases Enhancement: Guard + Delete + Attachments + UI (2026-04-16) - COMPLETE
 - [x] DELETE /api/casos/{id}: Owner can delete own non-closed cases; admin can delete any
 - [x] Photo attachments: POST /api/casos/{id}/attachments (jpg/png/webp, 5MB limit)
