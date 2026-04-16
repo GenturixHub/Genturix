@@ -543,9 +543,240 @@ const UnitsPanel = ({ onRefresh }) => {
   );
 };
 
+// ── Resident Accounts Tab ──
+const ResidentAccountsTab = () => {
+  const [residents, setResidents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedResident, setSelectedResident] = useState(null);
+  const [detail, setDetail] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [exportingId, setExportingId] = useState(null);
+
+  const fetchResidents = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await api.getResidentAccounts(search, statusFilter);
+      setResidents(data.items || []);
+    } catch { setResidents([]); }
+    finally { setLoading(false); }
+  }, [search, statusFilter]);
+
+  useEffect(() => { fetchResidents(); }, [fetchResidents]);
+
+  const openDetail = async (r) => {
+    setSelectedResident(r);
+    setDetailLoading(true);
+    try {
+      const d = await api.getResidentAccountDetail(r.id);
+      setDetail(d);
+    } catch (err) { toast.error(err.message || 'Error'); setDetail(null); }
+    finally { setDetailLoading(false); }
+  };
+
+  const handleExport = async (userId, format, userName) => {
+    setExportingId(`${userId}-${format}`);
+    try {
+      await api.exportResidentStatement(userId, format, userName);
+      toast.success(format === 'pdf' ? 'PDF descargado' : 'CSV descargado');
+    } catch (err) { toast.error(err.message || 'Error al exportar'); }
+    finally { setExportingId(null); }
+  };
+
+  const STATUS_CFG = {
+    al_dia: { label: 'Al dia', color: 'text-green-400', bg: 'bg-green-500/15 border-green-500/30' },
+    atrasado: { label: 'Atrasado', color: 'text-red-400', bg: 'bg-red-500/15 border-red-500/30' },
+    adelantado: { label: 'Adelantado', color: 'text-blue-400', bg: 'bg-blue-500/15 border-blue-500/30' },
+  };
+  const REC_STATUS = {
+    paid: { label: 'Pagado', bg: 'bg-green-500/15 text-green-400 border-green-500/30' },
+    pending: { label: 'Pendiente', bg: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30' },
+    overdue: { label: 'Vencido', bg: 'bg-red-500/15 text-red-400 border-red-500/30' },
+    partial: { label: 'Parcial', bg: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
+  };
+  const PAY_STATUS = {
+    pending: { label: 'Pendiente', bg: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30' },
+    approved: { label: 'Aprobado', bg: 'bg-green-500/15 text-green-400 border-green-500/30' },
+    rejected: { label: 'Rechazado', bg: 'bg-red-500/15 text-red-400 border-red-500/30' },
+  };
+
+  return (
+    <div className="space-y-4" data-testid="resident-accounts-tab">
+      {/* Search & Filters */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nombre, email o unidad..." className="bg-[#181B25] border-[#1E293B] max-w-xs" data-testid="resident-search" />
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="bg-[#181B25] border-[#1E293B] w-40" data-testid="status-filter"><SelectValue /></SelectTrigger>
+          <SelectContent className="bg-[#0F111A] border-[#1E293B]">
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="atrasado">Atrasados</SelectItem>
+            <SelectItem value="al_dia">Al dia</SelectItem>
+            <SelectItem value="adelantado">Adelantados</SelectItem>
+          </SelectContent>
+        </Select>
+        <span className="text-xs text-muted-foreground ml-2">{residents.length} residentes</span>
+      </div>
+
+      {/* List */}
+      {loading ? (
+        <div className="flex justify-center py-10"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+      ) : residents.length === 0 ? (
+        <div className="text-center py-10">
+          <Users className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">No se encontraron residentes</p>
+        </div>
+      ) : (
+        <Card className="bg-[#0F111A] border-[#1E293B]">
+          <CardContent className="p-0">
+            {/* Header */}
+            <div className="hidden sm:grid sm:grid-cols-[1.5fr_1fr_100px_120px_120px] gap-3 px-4 py-2.5 text-xs text-muted-foreground font-medium border-b border-[#1E293B]/50">
+              <span>Residente</span>
+              <span>Unidad</span>
+              <span>Estado</span>
+              <span className="text-right">Balance</span>
+              <span className="text-right">Accion</span>
+            </div>
+            <div className="divide-y divide-[#1E293B]/30">
+              {residents.map((r) => {
+                const sc = STATUS_CFG[r.status] || STATUS_CFG.al_dia;
+                return (
+                  <div key={r.id} data-testid={`resident-row-${r.id}`} className="px-4 py-3 sm:grid sm:grid-cols-[1.5fr_1fr_100px_120px_120px] sm:items-center gap-3 hover:bg-white/[0.02] transition-colors">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-white truncate">{r.full_name}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{r.email}</p>
+                    </div>
+                    <div className="mt-1 sm:mt-0">
+                      <span className="text-sm text-white">{r.unit || <span className="text-muted-foreground/50 text-xs">Sin unidad</span>}</span>
+                    </div>
+                    <div className="mt-1 sm:mt-0">
+                      <Badge variant="outline" className={`text-[10px] h-5 ${sc.bg}`}>{sc.label}</Badge>
+                    </div>
+                    <div className="mt-1 sm:mt-0 text-right">
+                      <span className={`text-sm font-bold ${r.balance > 0 ? 'text-red-400' : r.balance < 0 ? 'text-blue-400' : 'text-green-400'}`}>
+                        {r.balance !== 0 ? fmt(Math.abs(r.balance)) : '$0.00'}
+                      </span>
+                    </div>
+                    <div className="mt-2 sm:mt-0 flex justify-end">
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openDetail(r)} data-testid={`detail-${r.id}`}>
+                        Ver detalle
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Detail Dialog */}
+      <Dialog open={!!selectedResident} onOpenChange={(v) => !v && setSelectedResident(null)}>
+        <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-2xl max-h-[85vh] overflow-y-auto" data-testid="resident-detail-dialog">
+          {detailLoading ? (
+            <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin" /></div>
+          ) : detail ? (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-3">
+                  <span>{detail.user.full_name}</span>
+                  <Badge variant="outline" className={`text-xs ${(STATUS_CFG[detail.status] || {}).bg}`}>
+                    {(STATUS_CFG[detail.status] || {}).label}
+                  </Badge>
+                </DialogTitle>
+              </DialogHeader>
+              {/* Summary */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                <div className="p-3 rounded-lg bg-[#181B25]">
+                  <p className="text-[10px] text-muted-foreground">Unidad</p>
+                  <p className="text-sm font-bold text-white">{detail.unit || 'Sin asignar'}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-[#181B25]">
+                  <p className="text-[10px] text-muted-foreground">Total Cobrado</p>
+                  <p className="text-sm font-bold text-white">{fmt(detail.total_due)}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-[#181B25]">
+                  <p className="text-[10px] text-muted-foreground">Total Pagado</p>
+                  <p className="text-sm font-bold text-green-400">{fmt(detail.total_paid)}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-[#181B25]">
+                  <p className="text-[10px] text-muted-foreground">Balance</p>
+                  <p className={`text-sm font-bold ${detail.balance > 0 ? 'text-red-400' : detail.balance < 0 ? 'text-blue-400' : 'text-green-400'}`}>
+                    {detail.balance !== 0 ? fmt(Math.abs(detail.balance)) : '$0.00'}
+                  </p>
+                </div>
+              </div>
+              {/* Export Buttons */}
+              <div className="flex gap-2 mb-4">
+                <Button size="sm" variant="outline" onClick={() => handleExport(detail.user.id, 'pdf', detail.user.full_name)} disabled={!!exportingId} data-testid="export-pdf-btn">
+                  {exportingId === `${detail.user.id}-pdf` ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <FileDown className="w-3 h-3 mr-1" />} PDF
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => handleExport(detail.user.id, 'csv', detail.user.full_name)} disabled={!!exportingId} data-testid="export-csv-btn">
+                  {exportingId === `${detail.user.id}-csv` ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <FileSpreadsheet className="w-3 h-3 mr-1" />} CSV
+                </Button>
+              </div>
+              {/* Charges */}
+              <div className="mb-4">
+                <h4 className="text-sm font-medium text-white mb-2 flex items-center gap-2"><Receipt className="w-4 h-4 text-primary" /> Cargos ({detail.charges.length})</h4>
+                {detail.charges.length === 0 ? (
+                  <p className="text-xs text-muted-foreground py-3 text-center">Sin cargos registrados</p>
+                ) : (
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                    {detail.charges.map((c) => {
+                      const rs = REC_STATUS[c.status] || {};
+                      return (
+                        <div key={c.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#181B25]" data-testid={`charge-${c.id}`}>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs text-white">{c.type} <span className="text-muted-foreground">({c.period})</span></p>
+                            <p className="text-[10px] text-muted-foreground">{c.date?.slice(0, 10)}</p>
+                          </div>
+                          <div className="text-right ml-3">
+                            <p className="text-xs font-medium text-white">{fmt(c.amount_due)}</p>
+                            <Badge variant="outline" className={`text-[9px] h-4 ${rs.bg || ''}`}>{rs.label || c.status}</Badge>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              {/* Payments */}
+              {detail.payments.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-white mb-2 flex items-center gap-2"><CreditCard className="w-4 h-4 text-green-400" /> Comprobantes ({detail.payments.length})</h4>
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                    {detail.payments.map((p) => {
+                      const ps = PAY_STATUS[p.status] || {};
+                      return (
+                        <div key={p.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#181B25]" data-testid={`payment-${p.id}`}>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs text-white">{p.method} {p.reference ? `| Ref: ${p.reference}` : ''}</p>
+                            <p className="text-[10px] text-muted-foreground">{p.date?.slice(0, 10)}</p>
+                          </div>
+                          <div className="text-right ml-3">
+                            <p className="text-xs font-medium text-green-400">{fmt(p.amount)}</p>
+                            <Badge variant="outline" className={`text-[9px] h-4 ${ps.bg || ''}`}>{ps.label || p.status}</Badge>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-6">No se pudo cargar el detalle</p>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
 // ── Main Page ──
 export default function FinanzasModule() {
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState('overview');
   const [overview, setOverview] = useState(null);
   const [catalog, setCatalog] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -586,6 +817,20 @@ export default function FinanzasModule() {
   return (
     <DashboardLayout title={t('finanzas.pageTitle', 'Finanzas')}>
       <div data-testid="finanzas-module" className="space-y-6">
+        {/* Tab Navigation */}
+        <div className="flex gap-1 p-1 bg-[#0F111A] rounded-lg border border-[#1E293B] w-fit" data-testid="finanzas-tabs">
+          <button onClick={() => setActiveTab('overview')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'overview' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`} data-testid="tab-overview">
+            <Wallet className="w-4 h-4 inline mr-1.5 -mt-0.5" />Resumen
+          </button>
+          <button onClick={() => setActiveTab('residents')} className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'residents' ? 'bg-primary text-white' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`} data-testid="tab-residents">
+            <Users className="w-4 h-4 inline mr-1.5 -mt-0.5" />Estados de Cuenta
+          </button>
+        </div>
+
+        {activeTab === 'residents' ? (
+          <ResidentAccountsTab />
+        ) : (
+        <>
         {loading ? (
           <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
         ) : (
@@ -708,6 +953,8 @@ export default function FinanzasModule() {
               </CardContent>
             </Card>
           </>
+        )}
+        </>
         )}
 
         <CatalogDialog open={showCatalog} onClose={() => setShowCatalog(false)} onCreated={fetchData} />

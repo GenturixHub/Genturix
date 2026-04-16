@@ -718,6 +718,32 @@ class ApiService {
   unassignUserFromUnit = (unitId, userId) => this.put(`/units/${unitId}/unassign-user?user_id=${userId}`);
   // Payment requests (resident → admin)
   createPaymentRequest = (data) => this.post('/finanzas/payment-request', data);
+  // Resident financial accounts
+  getResidentAccounts = (search, statusFilter) => {
+    const qp = new URLSearchParams();
+    if (search) qp.append('search', search);
+    if (statusFilter && statusFilter !== 'all') qp.append('status_filter', statusFilter);
+    const qs = qp.toString();
+    return this.get(`/finanzas/residents${qs ? `?${qs}` : ''}`);
+  };
+  getResidentAccountDetail = (userId) => this.get(`/finanzas/resident/${userId}`);
+  exportResidentStatement = async (userId, format = 'pdf', userName = 'residente') => {
+    const API_URL = process.env.REACT_APP_BACKEND_URL;
+    const accessToken = localStorage.getItem('genturix_access_token');
+    const url = `${API_URL}/api/finanzas/resident/${userId}/export?format=${format}`;
+    const headers = {};
+    if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+    const resp = await window.fetch(url, { method: 'GET', headers, credentials: 'include' });
+    if (!resp.ok) throw new Error('Error al exportar');
+    const blob = await resp.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `estado_cuenta_${userName.replace(/ /g, '_').slice(0, 30)}.${format}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  };
   getPaymentRequests = (status = null) => {
     const qp = new URLSearchParams();
     if (status) qp.append('status', status);

@@ -19873,6 +19873,301 @@ async def review_payment_request(
     return {"status": "ok", "action": action, "request_id": request_id}
 
 
+# ── Resident Financial Accounts ──
+
+@api_router.get("/finanzas/residents")
+async def list_resident_accounts(
+    search: Optional[str] = None,
+    status_filter: Optional[str] = None,
+    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPERVISOR, RoleEnum.SUPER_ADMIN)),
+):
+    """List ALL residents with unit, balance, and status (even if no payments)."""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        return {"items": []}
+
+    # Get all users in this condominium (residents)
+    user_query = {"condominium_id": condo_id, "status": {"$ne": "disabled"}}
+    users = await db.users.find(
+        user_query,
+        {"_id": 0, "id": 1, "full_name": 1, "email": 1, "roles": 1, "apartment": 1, "role_data": 1, "created_at": 1}
+    ).to_list(1000)
+
+    # Get all unit_accounts for balance lookups
+    account_map = {}
+    async for acc in db.unit_accounts.find({"condominium_id": condo_id}, {"_id": 0}):
+        account_map[acc["unit_id"]] = acc
+
+    items = []
+    for u in users:
+        apt = u.get("apartment") or u.get("role_data", {}).get("apartment_number", "")
+        acct = account_map.get(apt, {}) if apt else {}
+        balance = acct.get("current_balance", 0)
+        fin_status = "al_dia" if balance == 0 else ("atrasado" if balance > 0 else "adelantado")
+
+        # Apply search filter
+        if search:
+            q = search.lower()
+            if q not in (u.get("full_name", "")).lower() and q not in (u.get("email", "")).lower() and q not in (apt or "").lower():
+                continue
+
+        # Apply status filter
+        if status_filter and status_filter != "all" and fin_status != status_filter:
+            continue
+
+        items.append({
+            "id": u["id"],
+            "full_name": u.get("full_name", ""),
+            "email": u.get("email", ""),
+            "roles": u.get("roles", []),
+            "unit": apt or None,
+            "balance": round(balance, 2),
+            "status": fin_status,
+            "created_at": u.get("created_at", ""),
+        })
+
+    # Sort: atrasados first, then by name
+    status_order = {"atrasado": 0, "al_dia": 1, "adelantado": 2}
+    items.sort(key=lambda x: (status_order.get(x["status"], 9), x["full_name"]))
+
+    return {"items": items, "total": len(items)}
+
+
+@api_router.get("/finanzas/resident/{user_id}")
+async def get_resident_account_detail(
+    user_id: str,
+    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPERVISOR, RoleEnum.SUPER_ADMIN)),
+):
+    """Get detailed financial status for a specific resident."""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="No condominium associated")
+
+    user = await db.users.find_one(
+        {"id": user_id, "condominium_id": condo_id},
+        {"_id": 0, "id": 1, "full_name": 1, "email": 1, "roles": 1, "apartment": 1, "role_data": 1, "created_at": 1}
+    )
+    if not user:
+        raise HTTPException(status_code=404, detail="Residente no encontrado")
+
+    apt = user.get("apartment") or user.get("role_data", {}).get("apartment_number", "")
+
+    # Get charges (payment_records with amount_due > 0)
+    charges = []
+    payments_applied = []
+    total_due = 0.0
+    total_paid = 0.0
+
+    if apt:
+        records = await db.payment_records.find(
+            {"condominium_id": condo_id, "unit_id": apt}, {"_id": 0}
+        ).sort("created_at", -1).to_list(500)
+
+        for r in records:
+            due = r.get("amount_due", 0)
+            paid = r.get("amount_paid", 0)
+            total_due += due
+            total_paid += paid
+
+            charges.append({
+                "id": r.get("id", ""),
+                "date": r.get("created_at", ""),
+                "period": r.get("period", ""),
+                "type": r.get("charge_type_name", "Cargo"),
+                "amount_due": round(due, 2),
+                "amount_paid": round(paid, 2),
+                "status": r.get("status", "pending"),
+                "payment_method": r.get("payment_method", ""),
+                "paid_at": r.get("paid_at", ""),
+            })
+
+        # Get payment requests for this unit
+        pay_requests = await db.payment_requests.find(
+            {"condominium_id": condo_id, "unit_id": apt}, {"_id": 0}
+        ).sort("created_at", -1).to_list(100)
+        for pr in pay_requests:
+            payments_applied.append({
+                "id": pr.get("id", ""),
+                "date": pr.get("created_at", ""),
+                "amount": round(pr.get("amount", 0), 2),
+                "method": pr.get("payment_method", ""),
+                "reference": pr.get("reference", ""),
+                "status": pr.get("status", ""),
+                "notes": pr.get("notes", ""),
+            })
+
+    balance = round(total_due - total_paid, 2)
+    fin_status = "al_dia" if balance == 0 else ("atrasado" if balance > 0 else "adelantado")
+
+    return {
+        "user": {
+            "id": user["id"],
+            "full_name": user.get("full_name", ""),
+            "email": user.get("email", ""),
+            "roles": user.get("roles", []),
+            "created_at": user.get("created_at", ""),
+        },
+        "unit": apt or None,
+        "charges": charges,
+        "payments": payments_applied,
+        "total_due": round(total_due, 2),
+        "total_paid": round(total_paid, 2),
+        "balance": balance,
+        "status": fin_status,
+    }
+
+
+@api_router.get("/finanzas/resident/{user_id}/export")
+async def export_resident_statement(
+    user_id: str,
+    format: str = Query("pdf", regex="^(pdf|csv)$"),
+    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN)),
+):
+    """Export individual resident financial statement as PDF or CSV."""
+    condo_id = current_user.get("condominium_id")
+    detail = await get_resident_account_detail(user_id, current_user)
+
+    condo = await db.condominiums.find_one({"id": condo_id}, {"name": 1, "_id": 0})
+    condo_name = condo.get("name", "Condominio") if condo else "Condominio"
+    report_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
+
+    if format == "csv":
+        return _build_resident_csv(detail, condo_name, report_date)
+    else:
+        return _build_resident_pdf(detail, condo_name, report_date)
+
+
+def _build_resident_csv(detail, condo_name, report_date):
+    output = io.StringIO()
+    u = detail["user"]
+    output.write(f"Estado de Cuenta - {condo_name}\n")
+    output.write(f"Residente: {u['full_name']}\n")
+    output.write(f"Email: {u['email']}\n")
+    output.write(f"Unidad: {detail['unit'] or 'Sin asignar'}\n")
+    output.write(f"Generado: {report_date}\n")
+    output.write(f"Total Cobrado: {detail['total_due']}\n")
+    output.write(f"Total Pagado: {detail['total_paid']}\n")
+    output.write(f"Balance: {detail['balance']}\n")
+    sl = {"al_dia": "Al dia", "atrasado": "Atrasado", "adelantado": "Adelantado"}
+    output.write(f"Estado: {sl.get(detail['status'], detail['status'])}\n\n")
+    output.write("CARGOS\n")
+    output.write("Fecha,Periodo,Tipo,Monto Cobrado,Monto Pagado,Estado\n")
+    ss = {"paid": "Pagado", "pending": "Pendiente", "overdue": "Vencido", "partial": "Parcial"}
+    for c in detail["charges"]:
+        output.write(f"{c['date'][:10]},{c['period']},{c['type']},{c['amount_due']},{c['amount_paid']},{ss.get(c['status'], c['status'])}\n")
+    if detail["payments"]:
+        output.write("\nCOMPROBANTES DE PAGO\n")
+        output.write("Fecha,Monto,Metodo,Referencia,Estado\n")
+        ps = {"pending": "Pendiente", "approved": "Aprobado", "rejected": "Rechazado"}
+        for p in detail["payments"]:
+            output.write(f"{p['date'][:10]},{p['amount']},{p['method']},{p['reference']},{ps.get(p['status'], p['status'])}\n")
+    csv_bytes = output.getvalue().encode("utf-8-sig")
+    safe_name = u["full_name"].replace(" ", "_")[:30]
+    return Response(
+        content=csv_bytes,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="estado_cuenta_{safe_name}.csv"'},
+    )
+
+
+def _build_resident_pdf(detail, condo_name, report_date):
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib import colors
+    from reportlab.lib.units import inch
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=letter, topMargin=0.5*inch, bottomMargin=0.5*inch)
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle("Title2", parent=styles["Title"], fontSize=16, spaceAfter=6)
+    subtitle = ParagraphStyle("Sub", parent=styles["Normal"], fontSize=10, textColor=colors.grey, spaceAfter=4)
+    section = ParagraphStyle("Sec", parent=styles["Heading2"], fontSize=12, spaceAfter=6, spaceBefore=14)
+
+    u = detail["user"]
+    sl = {"al_dia": "Al dia", "atrasado": "Atrasado", "adelantado": "Adelantado"}
+    elements = []
+
+    elements.append(Paragraph(f"Estado de Cuenta", title_style))
+    elements.append(Paragraph(f"{condo_name} - {report_date}", subtitle))
+    elements.append(Spacer(1, 8))
+
+    # Resident info
+    info_data = [
+        ["Residente:", u["full_name"], "Email:", u["email"]],
+        ["Unidad:", detail["unit"] or "Sin asignar", "Estado:", sl.get(detail["status"], detail["status"])],
+        ["Total Cobrado:", f"${detail['total_due']:,.2f}", "Total Pagado:", f"${detail['total_paid']:,.2f}"],
+        ["Balance:", f"${detail['balance']:,.2f}", "", ""],
+    ]
+    info_tbl = Table(info_data, colWidths=[90, 180, 90, 180])
+    info_tbl.setStyle(TableStyle([
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+        ("FONTNAME", (2, 0), (2, -1), "Helvetica-Bold"),
+        ("TEXTCOLOR", (0, 0), (-1, -1), colors.black),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(info_tbl)
+    elements.append(Spacer(1, 12))
+
+    # Charges table
+    ss = {"paid": "Pagado", "pending": "Pendiente", "overdue": "Vencido", "partial": "Parcial"}
+    if detail["charges"]:
+        elements.append(Paragraph("Cargos", section))
+        ch_data = [["Fecha", "Periodo", "Tipo", "Cobrado", "Pagado", "Estado"]]
+        for c in detail["charges"]:
+            ch_data.append([
+                c["date"][:10], c["period"], c["type"],
+                f"${c['amount_due']:,.2f}", f"${c['amount_paid']:,.2f}",
+                ss.get(c["status"], c["status"]),
+            ])
+        ch_tbl = Table(ch_data, colWidths=[70, 60, 120, 75, 75, 65])
+        ch_tbl.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.Color(0.2, 0.2, 0.25)),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.lightgrey),
+            ("ALIGN", (3, 0), (4, -1), "RIGHT"),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.Color(0.97, 0.97, 0.97), colors.white]),
+        ]))
+        elements.append(ch_tbl)
+
+    # Payment requests
+    if detail["payments"]:
+        elements.append(Spacer(1, 10))
+        elements.append(Paragraph("Comprobantes de Pago", section))
+        ps = {"pending": "Pendiente", "approved": "Aprobado", "rejected": "Rechazado"}
+        p_data = [["Fecha", "Monto", "Metodo", "Referencia", "Estado"]]
+        for p in detail["payments"]:
+            p_data.append([
+                p["date"][:10], f"${p['amount']:,.2f}", p["method"],
+                p["reference"][:20] if p["reference"] else "-", ps.get(p["status"], p["status"]),
+            ])
+        p_tbl = Table(p_data, colWidths=[70, 80, 100, 120, 80])
+        p_tbl.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.Color(0.15, 0.3, 0.2)),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.lightgrey),
+            ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+        ]))
+        elements.append(p_tbl)
+
+    doc.build(elements)
+    buf.seek(0)
+    safe_name = u["full_name"].replace(" ", "_")[:30]
+    return Response(
+        content=buf.read(),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="estado_cuenta_{safe_name}.pdf"'},
+    )
+
 
 @api_router.get("/finanzas/report")
 async def generate_financial_report(
