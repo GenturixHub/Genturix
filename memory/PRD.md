@@ -945,6 +945,16 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
   - Clickable for direct navigation between modules
   - Smooth 0.2s transition animation
 
+### Resident Financial Accounts / Estados de Cuenta (2026-04-16) - COMPLETE
+- [x] New "Estados de Cuenta" tab in admin Finanzas
+- [x] Lists ALL 34 residents with: name, email, unit, balance, status (sorted: atrasados first)
+- [x] Search by name, email, or unit number
+- [x] Status filter: Todos, Atrasados, Al dia, Adelantados
+- [x] Detail dialog: summary cards (Unit, Total Cobrado, Total Pagado, Balance) + charges list + payment requests
+- [x] PDF export per resident (ReportLab: formatted financial statement)
+- [x] CSV export per resident (UTF-8 BOM for Excel)
+- [x] Backend: GET /api/finanzas/residents, GET /api/finanzas/resident/{user_id}, GET /api/finanzas/resident/{user_id}/export
+
 ### Units System (2026-04-16) - COMPLETE
 - [x] Collection `units` with: id, condominium_id, number, created_at
 - [x] CRUD: GET /api/units (enriched with residents+finance), POST /api/units, DELETE /api/units/{id}
