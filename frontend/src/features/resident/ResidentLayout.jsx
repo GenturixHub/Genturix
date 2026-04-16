@@ -184,7 +184,7 @@ const ResidentLayout = ({
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <button
               onClick={() => setIsDrawerOpen(true)}
-              className="p-2 min-h-[44px] min-w-[44px] rounded-xl text-muted-foreground hover:text-white hover:bg-white/5 transition-colors flex items-center justify-center"
+              className="w-10 h-10 min-h-[44px] min-w-[44px] rounded-xl bg-white/5 border border-[#1E293B]/60 text-muted-foreground hover:text-white hover:bg-white/10 transition-all duration-150 active:scale-95 flex items-center justify-center"
               data-testid="drawer-toggle"
             >
               <Menu className="w-5 h-5" />
