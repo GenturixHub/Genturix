@@ -1006,6 +1006,18 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
 - [x] "Eliminar caso" button only for owner + non-closed cases
 - [x] "Adjuntar foto" button with camera icon in case detail
 
+### Secure Image Proxy for Casos (2026-04-16) - COMPLETE
+- [x] GET /api/casos/image-proxy?path=...&token=... - Proxies images from Object Storage
+- [x] Accepts auth via Authorization header OR token query param (for <img src> usage)
+- [x] Multi-tenant isolation: validates condominium_id matches storage path
+- [x] Security: prevents path traversal (..), rejects absolute paths, blocks cross-condo access
+- [x] Frontend: toProxyUrl() helper converts storage paths to proxy URLs
+- [x] ImageGrid + ImageLightbox components use proxy URLs for thumbnails and fullscreen
+- [x] ImagePicker: Multi-file selection (up to 5 per case, 3 per comment) with preview/remove
+- [x] Case creation: images uploaded sequentially after case creation via FormData/fetch
+- [x] Comment creation: images uploaded after comment creation
+- [x] 25/25 backend tests passed, frontend fully verified (iteration_43)
+
 ### Community Cases with Comments (2026-04-16) - COMPLETE
 - [x] New `visibility` field: "private" (default) or "community"
 - [x] Private: only creator + admin can see/comment
@@ -1101,17 +1113,17 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
 - Root cause: RESIDENT_NAV_ITEMS had only 5 items after new module additions
 
 ### P1 - High Priority
-- [ ] Auth module modularization
-- [ ] Guards module modularization
-- [ ] Frontend component refactoring (SuperAdminDashboard, GuardUI)
-- [ ] UI for deleting used pre-registrations
+- [ ] Token Security: Move JWT from localStorage to memory + HttpOnly cookie refresh token
+- [ ] Activar Stripe para pagos de residentes
 - [ ] Configure production Resend domain
+- [ ] Full regression test after modularization
 
 ### P2 - Medium Priority
-- [ ] Condominiums module modularization
-- [ ] Reservations module modularization
+- [ ] App Store Readiness: monochrome icon, shortcuts in manifest.json
+- [ ] Run _build_pdf_report in ThreadPoolExecutor
 - [ ] CCTV module implementation
 - [ ] HR performance reports
+- [ ] Document versioning (parent_doc_id support)
 
 ### P3 - Low Priority
 - [ ] Additional audit logging
