@@ -172,11 +172,18 @@ const AssemblyDetail = ({ assemblyId, onBack }) => {
               </div>
               {item.description && <p className="text-xs text-muted-foreground mt-1">{item.description}</p>}
               {item.vote_results && (
-                <div className="flex gap-4 mt-2 text-xs">
-                  <span className="text-green-400 flex items-center gap-1"><ThumbsUp className="w-3 h-3" />{item.vote_results.yes}</span>
-                  <span className="text-red-400 flex items-center gap-1"><ThumbsDown className="w-3 h-3" />{item.vote_results.no}</span>
-                  <span className="text-muted-foreground flex items-center gap-1"><Minus className="w-3 h-3" />{item.vote_results.abstain}</span>
-                  <span className="text-muted-foreground">({item.vote_results.total} votos)</span>
+                <div className="mt-2 space-y-1.5">
+                  <div className="flex h-2 rounded-full overflow-hidden bg-[#0F111A]">
+                    {item.vote_results.yes > 0 && <div className="bg-emerald-500 transition-all" style={{ width: `${(item.vote_results.yes / Math.max(1, item.vote_results.yes + item.vote_results.no + item.vote_results.abstain)) * 100}%` }} />}
+                    {item.vote_results.no > 0 && <div className="bg-red-500 transition-all" style={{ width: `${(item.vote_results.no / Math.max(1, item.vote_results.yes + item.vote_results.no + item.vote_results.abstain)) * 100}%` }} />}
+                    {item.vote_results.abstain > 0 && <div className="bg-gray-500 transition-all" style={{ width: `${(item.vote_results.abstain / Math.max(1, item.vote_results.yes + item.vote_results.no + item.vote_results.abstain)) * 100}%` }} />}
+                  </div>
+                  <div className="flex gap-4 text-xs">
+                    <span className="text-emerald-400 flex items-center gap-1"><ThumbsUp className="w-3 h-3" />{item.vote_results.yes}</span>
+                    <span className="text-red-400 flex items-center gap-1"><ThumbsDown className="w-3 h-3" />{item.vote_results.no}</span>
+                    <span className="text-muted-foreground flex items-center gap-1"><Minus className="w-3 h-3" />{item.vote_results.abstain}</span>
+                    <span className="text-muted-foreground ml-auto">({item.vote_results.total} votos)</span>
+                  </div>
                 </div>
               )}
             </div>
