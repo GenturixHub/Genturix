@@ -1029,6 +1029,17 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
 - [x] Resident names display correctly in "Cuentas por Unidad" table
 - [x] 12/13 backend tests passed, frontend fully verified (iteration_45)
 
+### Bulk Charge Logic Fix (2026-04-16) - COMPLETE
+- [x] generate-bulk now queries `units` collection (was `unit_accounts` with stale entries)
+- [x] Bulk creates charges for exactly 5 real units (was 14 including 9 orphans)
+- [x] Balances correctly increase by charge amount after generation
+- [x] Status correctly changes to "atrasado" for units with debt
+- [x] Payment flow correctly changes status back to "al_dia" when balance=0
+- [x] Duplicate prevention working (same period = skipped)
+- [x] Cleaned 69 orphan payment_records and 9 stale unit_accounts
+- [x] Cleaned 10 TEST_* catalog entries (only Cuota Mensual and Agua remain)
+- [x] 10/10 backend tests passed, frontend fully verified (iteration_46)
+
 
 ### Community Cases with Comments (2026-04-16) - COMPLETE
 - [x] New `visibility` field: "private" (default) or "community"
