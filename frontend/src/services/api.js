@@ -708,8 +708,14 @@ class ApiService {
   // Payment settings (SINPE/Transfer info)
   getPaymentSettings = () => this.get('/finanzas/payment-settings');
   updatePaymentSettings = (data) => this.put('/finanzas/payment-settings', data);
-  // Unit assignment
+  // Unit assignment (legacy)
   assignUnit = (data) => this.post('/finanzas/assign-unit', data);
+  // Units CRUD
+  getUnits = () => this.get('/units');
+  createUnit = (data) => this.post('/units', data);
+  deleteUnit = (id) => this.delete(`/units/${id}`);
+  assignUserToUnit = (unitId, userId) => this.put(`/units/${unitId}/assign-user?user_id=${userId}`);
+  unassignUserFromUnit = (unitId, userId) => this.put(`/units/${unitId}/unassign-user?user_id=${userId}`);
   // Payment requests (resident → admin)
   createPaymentRequest = (data) => this.post('/finanzas/payment-request', data);
   getPaymentRequests = (status = null) => {

@@ -16,7 +16,7 @@ import api from '../services/api';
 import {
   DollarSign, Plus, CreditCard, AlertTriangle, CheckCircle, TrendingUp,
   Loader2, Filter, Wallet, Receipt, ArrowDownCircle, FileDown, FileSpreadsheet,
-  Users, Settings, Save, Ban, Check,
+  Users, Settings, Save, Ban, Check, Building2, UserPlus, Trash2, X,
 } from 'lucide-react';
 
 const ACCT_COLORS = { al_dia: 'text-green-400', atrasado: 'text-red-400', adelantado: 'text-blue-400' };
@@ -356,6 +356,193 @@ const PaymentRequestsPanel = () => {
   );
 };
 
+// ── Units Management Panel ──
+const UnitsPanel = ({ onRefresh }) => {
+  const [units, setUnits] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [showAssign, setShowAssign] = useState(null); // unit to assign to
+  const [newNumber, setNewNumber] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState(null);
+  const [users, setUsers] = useState([]);
+  const [assignUserId, setAssignUserId] = useState('');
+  const [assigning, setAssigning] = useState(false);
+
+  const fetchUnits = useCallback(async () => {
+    try {
+      const data = await api.getUnits();
+      setUnits(data.items || []);
+    } catch { setUnits([]); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchUnits(); }, [fetchUnits]);
+
+  const handleCreate = async () => {
+    if (!newNumber.trim()) return;
+    setCreating(true);
+    try {
+      await api.createUnit({ number: newNumber.trim() });
+      toast.success(`Unidad ${newNumber.trim()} creada`);
+      setNewNumber('');
+      setShowCreate(false);
+      fetchUnits();
+      onRefresh?.();
+    } catch (err) { toast.error(err.message || 'Error'); }
+    finally { setCreating(false); }
+  };
+
+  const handleDelete = async (unit) => {
+    if (!window.confirm(`Eliminar unidad ${unit.number}?`)) return;
+    setDeleting(unit.id);
+    try {
+      await api.deleteUnit(unit.id);
+      toast.success('Unidad eliminada');
+      fetchUnits();
+      onRefresh?.();
+    } catch (err) { toast.error(err.message || 'Error'); }
+    finally { setDeleting(null); }
+  };
+
+  const openAssign = async (unit) => {
+    setShowAssign(unit);
+    setAssignUserId('');
+    try {
+      const resp = await api.get('/admin/users?page_size=200');
+      const allUsers = resp.users || resp.items || [];
+      // Filter out users already in this unit
+      const unitResidentIds = (unit.residents || []).map(r => r.id);
+      setUsers(allUsers.filter(u => !unitResidentIds.includes(u.id)));
+    } catch { setUsers([]); }
+  };
+
+  const handleAssign = async () => {
+    if (!assignUserId || !showAssign) return;
+    setAssigning(true);
+    try {
+      await api.assignUserToUnit(showAssign.id, assignUserId);
+      toast.success('Usuario asignado a la unidad');
+      setShowAssign(null);
+      fetchUnits();
+      onRefresh?.();
+    } catch (err) { toast.error(err.message || 'Error'); }
+    finally { setAssigning(false); }
+  };
+
+  const handleUnassign = async (unit, userId) => {
+    try {
+      await api.unassignUserFromUnit(unit.id, userId);
+      toast.success('Usuario desvinculado');
+      fetchUnits();
+      onRefresh?.();
+    } catch (err) { toast.error(err.message || 'Error'); }
+  };
+
+  return (
+    <Card className="bg-[#0F111A] border-[#1E293B]" data-testid="units-panel">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Building2 className="w-4 h-4 text-primary" /> Unidades
+          </CardTitle>
+          <Button size="sm" onClick={() => setShowCreate(true)} data-testid="btn-create-unit">
+            <Plus className="w-4 h-4 mr-1" /> Nueva Unidad
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+        ) : units.length === 0 ? (
+          <div className="text-center py-6">
+            <Building2 className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">No hay unidades. Crea la primera.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {units.map(unit => (
+              <div key={unit.id} data-testid={`unit-${unit.number}`} className="p-3 rounded-lg bg-[#181B25] border border-[#1E293B]/50">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-white">{unit.number}</span>
+                    <Badge variant="outline" className={`text-[10px] h-5 ${
+                      unit.finance?.status === 'al_dia' ? 'bg-green-500/15 border-green-500/30 text-green-400' :
+                      unit.finance?.status === 'atrasado' ? 'bg-red-500/15 border-red-500/30 text-red-400' :
+                      'bg-blue-500/15 border-blue-500/30 text-blue-400'
+                    }`}>
+                      {unit.finance?.current_balance > 0 ? fmt(unit.finance.current_balance) : 'Al dia'}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => openAssign(unit)} data-testid={`assign-${unit.number}`}>
+                      <UserPlus className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-400 hover:text-red-300" onClick={() => handleDelete(unit)} disabled={deleting === unit.id} data-testid={`delete-unit-${unit.number}`}>
+                      {deleting === unit.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    </Button>
+                  </div>
+                </div>
+                {/* Residents */}
+                {unit.residents?.length > 0 ? (
+                  <div className="space-y-1">
+                    {unit.residents.map(r => (
+                      <div key={r.id} className="flex items-center justify-between px-2 py-1.5 rounded bg-[#0F111A]">
+                        <div className="min-w-0">
+                          <p className="text-xs text-white truncate">{r.full_name}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">{r.email}</p>
+                        </div>
+                        <button onClick={() => handleUnassign(unit, r.id)} className="p-1 text-muted-foreground hover:text-red-400 transition-colors flex-shrink-0" data-testid={`unassign-${r.id}`}>
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-muted-foreground/50 px-2">Sin residentes asignados</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Create Unit Dialog */}
+        <Dialog open={showCreate} onOpenChange={(v) => !v && setShowCreate(false)}>
+          <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-sm" data-testid="create-unit-dialog">
+            <DialogHeader><DialogTitle>Nueva Unidad</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <Input value={newNumber} onChange={(e) => setNewNumber(e.target.value)} placeholder="Numero (ej: A-101)" className="bg-[#181B25] border-[#1E293B]" data-testid="unit-number-input" maxLength={50} />
+              <Button onClick={handleCreate} disabled={creating || !newNumber.trim()} className="w-full" data-testid="submit-create-unit">
+                {creating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />} Crear Unidad
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Assign User Dialog */}
+        <Dialog open={!!showAssign} onOpenChange={(v) => !v && setShowAssign(null)}>
+          <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-sm" data-testid="assign-user-dialog">
+            <DialogHeader><DialogTitle>Asignar Usuario a {showAssign?.number}</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              <Select value={assignUserId} onValueChange={setAssignUserId}>
+                <SelectTrigger className="bg-[#181B25] border-[#1E293B]" data-testid="assign-user-select"><SelectValue placeholder="Seleccionar usuario" /></SelectTrigger>
+                <SelectContent className="bg-[#0F111A] border-[#1E293B] max-h-60">
+                  {users.map(u => (
+                    <SelectItem key={u.id} value={u.id}>{u.full_name} ({u.email})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={handleAssign} disabled={assigning || !assignUserId} className="w-full" data-testid="submit-assign-user">
+                {assigning ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <UserPlus className="w-4 h-4 mr-2" />} Asignar
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+};
+
 // ── Main Page ──
 export default function FinanzasModule() {
   const { t } = useTranslation();
@@ -407,6 +594,9 @@ export default function FinanzasModule() {
 
             {/* Pending Payment Requests */}
             <PaymentRequestsPanel />
+
+            {/* Units Management */}
+            <UnitsPanel onRefresh={fetchData} />
 
             {/* Actions */}
             <div className="flex flex-wrap gap-2">

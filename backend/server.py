@@ -19438,6 +19438,227 @@ class AssignUnitPayload(BaseModel):
     unit_id: str = Field(..., min_length=1, max_length=50)
 
 
+# ══════════════════════════════════════════════════════════════
+# UNITS MODULE — Collection: units
+# ══════════════════════════════════════════════════════════════
+
+class UnitCreate(BaseModel):
+    number: str = Field(..., min_length=1, max_length=50)
+
+
+class UnitUpdate(BaseModel):
+    number: Optional[str] = Field(None, min_length=1, max_length=50)
+
+
+@api_router.get("/units")
+async def list_units(
+    current_user=Depends(get_current_user),
+):
+    """List all units for the condominium, enriched with assigned residents."""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        return {"items": []}
+
+    units = await db.units.find(
+        {"condominium_id": condo_id}, {"_id": 0}
+    ).sort("number", 1).to_list(500)
+
+    # Build resident map: unit number -> list of users
+    resident_map = {}
+    async for u in db.users.find(
+        {"condominium_id": condo_id, "status": {"$ne": "disabled"}},
+        {"_id": 0, "id": 1, "full_name": 1, "email": 1, "roles": 1, "apartment": 1, "role_data": 1}
+    ):
+        apt = u.get("apartment") or u.get("role_data", {}).get("apartment_number", "")
+        if apt:
+            if apt not in resident_map:
+                resident_map[apt] = []
+            resident_map[apt].append({
+                "id": u["id"],
+                "full_name": u.get("full_name", ""),
+                "email": u.get("email", ""),
+                "roles": u.get("roles", []),
+            })
+
+    # Get financial data for each unit
+    account_map = {}
+    async for acc in db.unit_accounts.find({"condominium_id": condo_id}, {"_id": 0}):
+        account_map[acc["unit_id"]] = {
+            "current_balance": acc.get("current_balance", 0),
+            "status": acc.get("status", "al_dia"),
+        }
+
+    enriched = []
+    for unit in units:
+        num = unit["number"]
+        enriched.append({
+            **unit,
+            "residents": resident_map.get(num, []),
+            "finance": account_map.get(num, {"current_balance": 0, "status": "al_dia"}),
+        })
+
+    return {"items": enriched}
+
+
+@api_router.post("/units")
+async def create_unit(
+    payload: UnitCreate,
+    request: Request,
+    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN)),
+):
+    """Create a new unit in the condominium."""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="No condominium associated")
+
+    sanitized_number = sanitize_text(payload.number.strip())
+
+    # Check duplicate
+    existing = await db.units.find_one({"condominium_id": condo_id, "number": sanitized_number})
+    if existing:
+        raise HTTPException(status_code=409, detail=f"La unidad {sanitized_number} ya existe")
+
+    now = datetime.now(timezone.utc).isoformat()
+    unit = {
+        "id": str(uuid.uuid4()),
+        "condominium_id": condo_id,
+        "number": sanitized_number,
+        "created_at": now,
+    }
+    await db.units.insert_one(unit)
+
+    # Also create a unit_account for financial tracking
+    await db.unit_accounts.update_one(
+        {"condominium_id": condo_id, "unit_id": sanitized_number},
+        {"$setOnInsert": {
+            "id": str(uuid.uuid4()),
+            "condominium_id": condo_id,
+            "unit_id": sanitized_number,
+            "resident_id": None,
+            "current_balance": 0,
+            "status": "al_dia",
+            "created_at": now,
+            "updated_at": now,
+        }},
+        upsert=True,
+    )
+
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT, current_user["id"], "units",
+        {"action": "unit_created", "unit_number": sanitized_number},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id, user_email=current_user.get("email"),
+    )
+
+    safe = {k: v for k, v in unit.items() if k != "_id"}
+    return safe
+
+
+@api_router.delete("/units/{unit_id}")
+async def delete_unit(
+    unit_id: str,
+    request: Request,
+    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN)),
+):
+    """Delete a unit (only if no charges exist)."""
+    condo_id = current_user.get("condominium_id")
+    unit = await db.units.find_one({"id": unit_id, "condominium_id": condo_id})
+    if not unit:
+        raise HTTPException(status_code=404, detail="Unidad no encontrada")
+
+    # Check if unit has financial records
+    has_records = await db.payment_records.find_one({"condominium_id": condo_id, "unit_id": unit["number"]})
+    if has_records:
+        raise HTTPException(status_code=400, detail="No se puede eliminar: la unidad tiene registros financieros")
+
+    await db.units.delete_one({"id": unit_id})
+    await db.unit_accounts.delete_one({"condominium_id": condo_id, "unit_id": unit["number"]})
+
+    # Unassign users from this unit
+    await db.users.update_many(
+        {"condominium_id": condo_id, "apartment": unit["number"]},
+        {"$set": {"apartment": None, "role_data.apartment_number": None}},
+    )
+
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT, current_user["id"], "units",
+        {"action": "unit_deleted", "unit_number": unit["number"]},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id, user_email=current_user.get("email"),
+    )
+
+    return {"status": "ok"}
+
+
+@api_router.put("/units/{unit_id}/assign-user")
+async def assign_user_to_unit(
+    unit_id: str,
+    user_id: str = Query(...),
+    request: Request = None,
+    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN)),
+):
+    """Assign a user to a unit."""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="No condominium associated")
+
+    unit = await db.units.find_one({"id": unit_id, "condominium_id": condo_id}, {"_id": 0})
+    if not unit:
+        raise HTTPException(status_code=404, detail="Unidad no encontrada")
+
+    target_user = await db.users.find_one({"id": user_id, "condominium_id": condo_id}, {"_id": 0})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"apartment": unit["number"], "role_data.apartment_number": unit["number"]}},
+    )
+
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT, current_user["id"], "units",
+        {"action": "user_assigned_to_unit", "user_id": user_id, "unit": unit["number"]},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id, user_email=current_user.get("email"),
+    )
+
+    return {"status": "ok", "unit": unit["number"], "user_id": user_id}
+
+
+@api_router.put("/units/{unit_id}/unassign-user")
+async def unassign_user_from_unit(
+    unit_id: str,
+    user_id: str = Query(...),
+    request: Request = None,
+    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN)),
+):
+    """Remove a user from a unit."""
+    condo_id = current_user.get("condominium_id")
+    unit = await db.units.find_one({"id": unit_id, "condominium_id": condo_id}, {"_id": 0})
+    if not unit:
+        raise HTTPException(status_code=404, detail="Unidad no encontrada")
+
+    await db.users.update_one(
+        {"id": user_id, "condominium_id": condo_id},
+        {"$set": {"apartment": None, "role_data.apartment_number": None}},
+    )
+
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT, current_user["id"], "units",
+        {"action": "user_unassigned_from_unit", "user_id": user_id, "unit": unit["number"]},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id, user_email=current_user.get("email"),
+    )
+
+    return {"status": "ok"}
+
+
+# ── Assign Unit (legacy endpoint — kept for backward compatibility) ──
+
 @api_router.post("/finanzas/assign-unit")
 async def assign_unit_to_user(
     payload: AssignUnitPayload,
