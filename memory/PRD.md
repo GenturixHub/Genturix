@@ -945,6 +945,18 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
   - Clickable for direct navigation between modules
   - Smooth 0.2s transition animation
 
+### Core Submodule Split (2026-04-16) - COMPLETE
+- [x] core/__init__.py (3,226 lines) split into 6 submodules:
+  - imports.py (127 lines): All third-party and stdlib imports
+  - database.py (106 lines): MongoDB connection, JWT secrets, cookie config
+  - security.py (433 lines): Rate limiting, sanitization, middleware, exception handlers, health endpoints
+  - enums.py (94 lines): RoleEnum, AuditEventType, UserStatus, etc.
+  - models.py (690 lines): All Pydantic models
+  - helpers.py (1,802 lines): Auth, push, billing, audit helper functions
+- [x] __init__.py is now a 22-line re-export aggregator
+- [x] All routers use `from core import *` — zero changes needed
+- [x] Server starts, all endpoints verified working
+
 ### Backend Modularization P0 (2026-04-16) - COMPLETE
 - [x] Monolithic server.py (22,130 lines) split into modular structure
 - [x] server.py: 236 lines (thin entry point, includes all routers, CORS, startup/shutdown)
