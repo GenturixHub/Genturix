@@ -117,6 +117,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import EmbeddedProfile from '../components/EmbeddedProfile';
 import ProfileDirectory from '../components/ProfileDirectory';
 import MobileBottomNav, { useIsMobile } from '../components/layout/BottomNav';
+import CasosResident from '../components/CasosResident';
+import DocumentosResident from '../components/DocumentosResident';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet';
+import { ClipboardList, FolderOpen, Menu } from 'lucide-react';
 
 // ============================================
 // CONFIGURATION
@@ -2080,6 +2084,7 @@ const GuardUI = () => {
   const { user, logout } = useAuth();
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('alerts');
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [alerts, setAlerts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -2353,6 +2358,16 @@ const GuardUI = () => {
       {/* Header with Clock Status */}
       <header className="flex-shrink-0 p-2 flex items-center justify-between border-b border-[#1E293B] bg-[#0A0A0F]">
         <div className="flex items-center gap-2">
+          {/* Mobile drawer toggle */}
+          {isMobile && (
+            <button
+              onClick={() => setIsDrawerOpen(true)}
+              className="w-9 h-9 rounded-xl bg-white/5 border border-[#1E293B]/60 text-muted-foreground hover:text-white hover:bg-white/10 transition-all flex items-center justify-center"
+              data-testid="guard-drawer-toggle"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
+          )}
           {/* Clickable Avatar - opens embedded profile tab (no separate page) */}
           <div 
             className="cursor-pointer group"
@@ -2442,7 +2457,7 @@ const GuardUI = () => {
       <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1 flex flex-col min-h-0">
         {/* Desktop Tabs - hidden on mobile */}
         {!isMobile && (
-          <TabsList className="flex-shrink-0 grid grid-cols-8 bg-[#0A0A0F] border-b border-[#1E293B] rounded-none h-14 p-0">
+          <TabsList className="flex-shrink-0 grid grid-cols-10 bg-[#0A0A0F] border-b border-[#1E293B] rounded-none h-14 p-0">
             <TabsTrigger 
               value="alerts" 
               className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-red-500 flex flex-col gap-0.5"
@@ -2514,6 +2529,24 @@ const GuardUI = () => {
             </TabsTrigger>
             
             <TabsTrigger 
+              value="casos" 
+              className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-orange-500 flex flex-col gap-0.5"
+              data-testid="tab-casos"
+            >
+              <ClipboardList className="w-5 h-5" />
+              <span className="text-[10px]">Casos</span>
+            </TabsTrigger>
+            
+            <TabsTrigger 
+              value="documentos" 
+              className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-teal-500 flex flex-col gap-0.5"
+              data-testid="tab-documentos"
+            >
+              <FolderOpen className="w-5 h-5" />
+              <span className="text-[10px]">Documentos</span>
+            </TabsTrigger>
+            
+            <TabsTrigger 
               value="profile" 
               className="h-full rounded-none data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-amber-500 flex flex-col gap-0.5"
               data-testid="tab-profile"
@@ -2563,6 +2596,18 @@ const GuardUI = () => {
           
           <TabsContent value="directory" className="h-full m-0 data-[state=inactive]:hidden">
             <ProfileDirectory embedded={true} maxHeight="100%" />
+          </TabsContent>
+          
+          <TabsContent value="casos" className="h-full m-0 data-[state=inactive]:hidden">
+            <div className="p-4">
+              <CasosResident />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="documentos" className="h-full m-0 data-[state=inactive]:hidden">
+            <div className="p-4">
+              <DocumentosResident />
+            </div>
           </TabsContent>
           
           <TabsContent value="profile" className="h-full m-0 data-[state=inactive]:hidden">
@@ -2647,6 +2692,41 @@ const GuardUI = () => {
       
       {/* Push Permission Banner */}
       <PushPermissionBanner onSubscribed={() => console.log('Guard push enabled!')} />
+
+      {/* Guard Mobile Drawer — Casos + Documentos */}
+      <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+        <SheetContent side="left" className="w-[260px] bg-[#0A0A0F] border-r border-[#1E293B] p-0" data-testid="guard-drawer">
+          <SheetHeader className="px-4 pt-5 pb-3 border-b border-[#1E293B]/60">
+            <SheetTitle className="text-left text-sm font-bold text-white">Modulos</SheetTitle>
+          </SheetHeader>
+          <nav className="p-3 space-y-1.5">
+            {[
+              { id: 'casos', label: 'Casos', icon: ClipboardList, color: 'text-orange-400', bg: 'bg-orange-500/10' },
+              { id: 'documentos', label: 'Documentos', icon: FolderOpen, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+              { id: 'directory', label: 'Directorio', icon: UsersIcon, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+              { id: 'history', label: 'Historial', icon: History, color: 'text-muted-foreground', bg: 'bg-white/5' },
+              { id: 'myshift', label: 'Mi Turno', icon: Briefcase, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+              { id: 'absences', label: 'Ausencias', icon: CalendarOff, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+            ].map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => { setIsDrawerOpen(false); handleTabChange(item.id); }}
+                  data-testid={`guard-drawer-${item.id}`}
+                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all min-h-[48px] ${isActive ? 'bg-primary/10 border border-primary/20' : 'hover:bg-white/5 active:scale-[0.98]'}`}
+                >
+                  <div className={`w-9 h-9 rounded-lg ${item.bg} flex items-center justify-center flex-shrink-0`}>
+                    <Icon className={`w-4 h-4 ${item.color}`} />
+                  </div>
+                  <span className={`text-sm font-medium ${isActive ? 'text-white' : 'text-white/80'}`}>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

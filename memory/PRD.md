@@ -945,6 +945,14 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
   - Clickable for direct navigation between modules
   - Smooth 0.2s transition animation
 
+### Guard Role: Cases + Documents Access (2026-04-16) - COMPLETE
+- [x] Guard can access Casos (community cases visible, comments allowed)
+- [x] Guard can access Documentos (view/download only)
+- [x] Mobile: Hamburger drawer in guard header with Casos, Documentos, Directorio, Historial, Mi Turno, Ausencias
+- [x] Desktop: 10-column tab grid with Casos + Documentos tabs added
+- [x] Finanzas and Config remain hidden from guards (not in drawer/tabs)
+- [x] Backend already supported guard access — frontend was the missing piece
+
 ### Asamblea Virtual MVP (2026-04-16) - COMPLETE
 - [x] Admin creates assemblies: title, date, description, modality (presencial/virtual/hibrida), meeting_link
 - [x] Agenda items: title, description, is_votable — added inline or via separate endpoint
