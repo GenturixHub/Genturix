@@ -945,6 +945,15 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
   - Clickable for direct navigation between modules
   - Smooth 0.2s transition animation
 
+### Backend Modularization P0 (2026-04-16) - COMPLETE
+- [x] Monolithic server.py (22,130 lines) split into modular structure
+- [x] server.py: 236 lines (thin entry point, includes all routers, CORS, startup/shutdown)
+- [x] core/__init__.py: 3,226 lines (DB, models, enums, auth helpers, push helpers, billing helpers, middleware)
+- [x] routers/: 22 files (auth, push, profile, security, visitors, guard, hr, admin, reservations, school, payments, audit, users, invitations, settings, condominiums, superadmin, casos, asamblea, finanzas, documentos, notifications_v2)
+- [x] Zero logic changes — pure restructuring
+- [x] All endpoints verified working (health, login, profile, casos, finanzas, documentos, asamblea, units, notifications)
+- [x] Frontend verified working (home dashboard, drawer, bottom nav, all modules)
+
 ### Premium SaaS UI Redesign (2026-04-16) - COMPLETE
 - [x] Dark jewel theme: #06080D bg, glassmorphism, neon cyan/purple accents
 - [x] Bottom nav: 4 items — SOS (red glow), Inicio, Casos, Perfil
