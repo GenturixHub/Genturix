@@ -945,6 +945,17 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
   - Clickable for direct navigation between modules
   - Smooth 0.2s transition animation
 
+### Premium SaaS UI Redesign (2026-04-16) - COMPLETE
+- [x] Dark jewel theme: #06080D bg, glassmorphism, neon cyan/purple accents
+- [x] Bottom nav: 4 items — SOS (red glow), Inicio, Casos, Perfil
+- [x] Header: Glassmorphism with hamburger, GENTURIX title (Outfit font), notification bell, logout
+- [x] Sidebar drawer: 6 modules (Visitas, Reservas, Directorio, Documentos, Finanzas, Asamblea) with colored icons
+- [x] Home Dashboard: Status card (gradient), Quick Actions 2x2 bento grid, Recent Activity feed
+- [x] Google Fonts: Outfit (headings) + Manrope (body)
+- [x] Rounded corners: 16-24px (rounded-2xl to rounded-3xl)
+- [x] No Alerts tab in bottom nav — notifications via bell icon only
+- [x] Default tab: Home (was Emergency)
+
 ### Guard Role: Cases + Documents Access (2026-04-16) - COMPLETE
 - [x] Guard can access Casos (community cases visible, comments allowed)
 - [x] Guard can access Documentos (view/download only)

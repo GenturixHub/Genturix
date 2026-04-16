@@ -34,6 +34,7 @@ import CasosResident from '../../components/CasosResident';
 import DocumentosResident from '../../components/DocumentosResident';
 import FinanzasResident from '../../components/FinanzasResident';
 import AsambleaResident from '../../components/AsambleaResident';
+import HomeDashboard from '../../components/HomeDashboard';
 import DynamicEmergencyButtons from '../../components/DynamicEmergencyButtons';
 import ResidentLayout from './ResidentLayout';
 import { toast } from 'sonner';
@@ -210,7 +211,7 @@ const ResidentHome = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('emergency');
+  const [activeTab, setActiveTab] = useState('visits');
   
   // Location state
   const [location, setLocation] = useState(null);
@@ -408,7 +409,7 @@ const ResidentHome = () => {
           style={{ 
             display: activeTab === 'emergency' ? 'block' : 'none',
             WebkitOverflowScrolling: 'touch',
-            paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
+            paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 16px))'
           }}
         >
           <EmergencyTab
@@ -421,17 +422,21 @@ const ResidentHome = () => {
           />
         </div>
         
-        {/* Visits Module */}
+        {/* Visits / Home Module */}
         <div 
           className="h-full overflow-y-auto absolute inset-0"
           style={{ 
             display: activeTab === 'visits' ? 'block' : 'none',
             WebkitOverflowScrolling: 'touch',
-            paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
+            paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 16px))'
           }}
         >
-          <div className="px-3 py-4">
-            <ResidentVisitsModule />
+          <div className="px-3 py-4 space-y-6">
+            <HomeDashboard onNavigate={(id) => setActiveTab(id)} />
+            <div>
+              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-[0.2em] mb-3 px-1">Visitas</p>
+              <ResidentVisitsModule />
+            </div>
           </div>
         </div>
         
@@ -441,7 +446,7 @@ const ResidentHome = () => {
           style={{ 
             display: activeTab === 'reservations' ? 'block' : 'none',
             WebkitOverflowScrolling: 'touch',
-            paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
+            paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 16px))'
           }}
         >
           <div className="px-3 py-4">
@@ -455,7 +460,7 @@ const ResidentHome = () => {
           style={{ 
             display: activeTab === 'casos' ? 'block' : 'none',
             WebkitOverflowScrolling: 'touch',
-            paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
+            paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 16px))'
           }}
         >
           <CasosResident />
@@ -467,7 +472,7 @@ const ResidentHome = () => {
           style={{ 
             display: activeTab === 'documentos' ? 'block' : 'none',
             WebkitOverflowScrolling: 'touch',
-            paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
+            paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 16px))'
           }}
         >
           <DocumentosResident />
@@ -479,7 +484,7 @@ const ResidentHome = () => {
           style={{ 
             display: activeTab === 'finanzas' ? 'block' : 'none',
             WebkitOverflowScrolling: 'touch',
-            paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
+            paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 16px))'
           }}
         >
           <FinanzasResident />
@@ -491,7 +496,7 @@ const ResidentHome = () => {
           style={{ 
             display: activeTab === 'asamblea' ? 'block' : 'none',
             WebkitOverflowScrolling: 'touch',
-            paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
+            paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 16px))'
           }}
         >
           <AsambleaResident />
@@ -503,7 +508,7 @@ const ResidentHome = () => {
           style={{ 
             display: activeTab === 'directory' ? 'block' : 'none',
             WebkitOverflowScrolling: 'touch',
-            paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
+            paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 16px))'
           }}
         >
           <ProfileDirectory embedded={true} />
@@ -515,7 +520,7 @@ const ResidentHome = () => {
           style={{ 
             display: activeTab === 'profile' ? 'block' : 'none',
             WebkitOverflowScrolling: 'touch',
-            paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
+            paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 16px))'
           }}
         >
           <div className="px-3 py-4">

@@ -1,12 +1,11 @@
 /**
- * GENTURIX - Resident Layout (Refactored)
+ * GENTURIX — Resident Layout (Premium SaaS Redesign)
  * 
- * Mobile-first layout with:
- * - Clean 4-item bottom nav (Emergency, Home, Notifications, Profile)
- * - Slide-out drawer for all modules (Visits, Reservations, Directory, Cases, Docs, Finances)
- * - Hamburger menu in header
+ * Dark jewel theme with glassmorphism, neon accents.
+ * Bottom nav: Emergency (red glow), Home, Cases, Profile
+ * Sidebar drawer for secondary modules.
+ * Notification bell in header (no Alerts tab).
  */
-
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
@@ -14,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Shield, LogOut, Users, Calendar, User, AlertTriangle, Bell,
   RefreshCw, CheckCheck, UserCheck, Check, ClipboardList, FolderOpen,
-  Wallet, Menu, X, Home, ChevronRight, Landmark,
+  Wallet, Menu, Home, ChevronRight, Landmark, Siren,
 } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import {
@@ -24,23 +23,23 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from '../../components/ui/dropdown-menu';
-import MobileBottomNav from '../../components/layout/BottomNav.js';
 import api from '../../services/api';
 import { toast } from 'sonner';
 
-const ResidentLayout = ({ 
-  children, 
-  activeTab, 
-  onTabChange, 
-  title = 'GENTURIX'
-}) => {
+// ── Design tokens ──
+const BG = '#06080D';
+const SURFACE = '#11141D';
+const GLASS = 'rgba(255,255,255,0.03)';
+const BORDER = 'rgba(255,255,255,0.08)';
+const ACCENT = '#06B6D4';
+
+const ResidentLayout = ({ children, activeTab, onTabChange, title = 'GENTURIX' }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
-
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // Notifications state
+  // Notifications
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -50,13 +49,11 @@ const ResidentLayout = ({
     try {
       const [notifs, countData] = await Promise.all([
         api.getVisitorNotifications(),
-        api.get('/resident/visitor-notifications/unread-count')
+        api.get('/resident/visitor-notifications/unread-count'),
       ]);
       setNotifications(Array.isArray(notifs) ? notifs.slice(0, 20) : []);
       setUnreadCount(countData?.count || 0);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    }
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -65,27 +62,26 @@ const ResidentLayout = ({
     return () => clearInterval(interval);
   }, [fetchNotifications]);
 
-  const handleMarkRead = async (notificationId, e) => {
-    e?.stopPropagation();
-    try {
-      await api.markNotificationRead(notificationId);
-      setNotifications(prev => prev.map(n => n.id === notificationId ? {...n, read: true} : n));
-      setUnreadCount(prev => Math.max(0, prev - 1));
-    } catch (error) {
-      console.error('Error marking notification read:', error);
-    }
-  };
-
   const handleMarkAllRead = async (e) => {
     e?.stopPropagation();
     if (unreadCount === 0) return;
     try {
       await api.markAllNotificationsRead();
-      setNotifications(prev => prev.map(n => ({...n, read: true})));
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
-      toast.success(t('notifications.allMarkedRead', 'Notificaciones marcadas como leidas'));
-    } catch (error) {
-      toast.error('Error al marcar notificaciones');
+    } catch {}
+  };
+
+  const handleDropdownOpenChange = (open) => {
+    setIsNotificationsOpen(open);
+    if (open && unreadCount > 0) {
+      setTimeout(async () => {
+        try {
+          await api.markAllNotificationsRead();
+          setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+          setUnreadCount(0);
+        } catch {}
+      }, 3000);
     }
   };
 
@@ -96,52 +92,18 @@ const ResidentLayout = ({
     setIsRefreshing(false);
   };
 
-  const handleDropdownOpenChange = async (open) => {
-    setIsNotificationsOpen(open);
-    if (open && unreadCount > 0) {
-      setTimeout(async () => {
-        try {
-          await api.markAllNotificationsRead();
-          setNotifications(prev => prev.map(n => ({...n, read: true})));
-          setUnreadCount(0);
-        } catch (error) {
-          console.error('Error marking all as read:', error);
-        }
-      }, 3000);
-    }
-  };
-
-  // Bottom nav: 4 items only
-  const BOTTOM_NAV_ITEMS = useMemo(() => [
-    { 
-      id: 'emergency', 
-      label: t('resident.emergency', 'Emergencia'), 
-      icon: AlertTriangle,
-      bgColor: 'bg-red-600',
-      glowColor: 'shadow-red-500/40'
-    },
-    { id: 'home', label: t('resident.home', 'Inicio'), icon: Home },
-    { id: 'notifications', label: t('resident.notifications', 'Alertas'), icon: Bell },
-    { id: 'profile', label: t('resident.profile', 'Perfil'), icon: User },
-  ], [t]);
-
-  // Drawer menu items (modules)
+  // Drawer items
   const DRAWER_ITEMS = useMemo(() => [
-    { id: 'visits', label: t('resident.visits', 'Visitas'), icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-    { id: 'reservations', label: t('resident.reservations', 'Reservas'), icon: Calendar, color: 'text-green-400', bg: 'bg-green-500/10' },
-    { id: 'directory', label: t('resident.directory', 'Directorio'), icon: UserCheck, color: 'text-purple-400', bg: 'bg-purple-500/10' },
-    { id: 'casos', label: t('casos.tab', 'Casos'), icon: ClipboardList, color: 'text-orange-400', bg: 'bg-orange-500/10' },
-    { id: 'documentos', label: t('documentos.tab', 'Documentos'), icon: FolderOpen, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
-    { id: 'finanzas', label: t('finanzas.tab', 'Finanzas'), icon: Wallet, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-    { id: 'asamblea', label: t('asamblea.tab', 'Asamblea'), icon: Landmark, color: 'text-amber-400', bg: 'bg-amber-500/10' },
-  ], [t]);
+    { id: 'visits', label: 'Visitas', icon: Users, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+    { id: 'reservations', label: 'Reservas', icon: Calendar, color: 'text-violet-400', bg: 'bg-violet-500/10' },
+    { id: 'directory', label: 'Directorio', icon: UserCheck, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+    { id: 'documentos', label: 'Documentos', icon: FolderOpen, color: 'text-teal-400', bg: 'bg-teal-500/10' },
+    { id: 'finanzas', label: 'Finanzas', icon: Wallet, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+    { id: 'asamblea', label: 'Asamblea', icon: Landmark, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+  ], []);
 
-  const handleBottomNavChange = useCallback((tabId) => {
-    if (tabId === 'notifications') {
-      // Open notifications dropdown instead of tab
-      setIsNotificationsOpen(true);
-      return;
-    }
+  // Bottom nav: Emergency, Home, Cases, Profile
+  const handleBottomNav = useCallback((tabId) => {
     if (tabId === 'home') {
       onTabChange('visits');
       return;
@@ -149,9 +111,9 @@ const ResidentLayout = ({
     onTabChange(tabId);
   }, [onTabChange]);
 
-  const handleDrawerItemClick = useCallback((itemId) => {
+  const handleDrawerClick = useCallback((id) => {
     setIsDrawerOpen(false);
-    onTabChange(itemId);
+    onTabChange(id);
   }, [onTabChange]);
 
   const handleLogout = async () => {
@@ -159,186 +121,247 @@ const ResidentLayout = ({
     navigate('/login');
   };
 
-  // Determine which bottom nav item is "active"
+  // Active bottom tab mapping
   const activeBottomTab = useMemo(() => {
     if (activeTab === 'emergency') return 'emergency';
+    if (activeTab === 'casos') return 'casos';
     if (activeTab === 'profile') return 'profile';
-    if (activeTab === 'visits') return 'home';
-    // For drawer modules, highlight "home" as the closest
     return 'home';
   }, [activeTab]);
 
   return (
-    <div 
-      className="bg-[#05050A] flex flex-col w-full"
-      style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden' }}
+    <div
+      className="flex flex-col w-full"
+      style={{ height: '100dvh', maxHeight: '100dvh', overflow: 'hidden', background: BG, fontFamily: "'Manrope', sans-serif" }}
     >
-      {/* Header */}
-      <header 
-        className="z-40 bg-[#0A0A0F]/95 backdrop-blur-lg border-b border-[#1E293B]/60 flex-shrink-0"
-        style={{ height: '56px', minHeight: '56px' }}
+      {/* ═══ HEADER ═══ */}
+      <header
+        className="z-40 flex-shrink-0 backdrop-blur-2xl"
+        style={{
+          height: '60px', minHeight: '60px',
+          background: 'rgba(6,8,13,0.75)',
+          borderBottom: `1px solid ${BORDER}`,
+        }}
       >
-        <div className="flex items-center justify-between h-full px-3">
-          {/* Hamburger + Logo */}
-          <div className="flex items-center gap-2 min-w-0 flex-1">
+        <div className="flex items-center justify-between h-full px-4">
+          {/* Left: Hamburger + Title */}
+          <div className="flex items-center gap-3 min-w-0 flex-1">
             <button
               onClick={() => setIsDrawerOpen(true)}
-              className="w-10 h-10 min-h-[44px] min-w-[44px] rounded-xl bg-white/5 border border-[#1E293B]/60 text-muted-foreground hover:text-white hover:bg-white/10 transition-all duration-150 active:scale-95 flex items-center justify-center"
+              className="w-10 h-10 rounded-2xl flex items-center justify-center text-slate-400 hover:text-white transition-all active:scale-95"
+              style={{ background: GLASS, border: `1px solid ${BORDER}` }}
               data-testid="drawer-toggle"
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-5 h-5" strokeWidth={1.5} />
             </button>
             <div className="min-w-0 flex-1">
-              <h1 className="text-sm font-bold text-white">{title}</h1>
-              <p className="text-xs text-muted-foreground truncate">{user?.full_name}</p>
+              <h1 className="text-sm font-bold tracking-tight text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>
+                {title}
+              </h1>
+              <p className="text-[11px] text-slate-500 truncate">{user?.full_name}</p>
             </div>
           </div>
-          
-          {/* Notifications Bell + Logout */}
-          <div className="flex items-center gap-1 flex-shrink-0">
+
+          {/* Right: Bell + Logout */}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             <DropdownMenu open={isNotificationsOpen} onOpenChange={handleDropdownOpenChange}>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="relative h-11 w-11 min-h-[44px] min-w-[44px] rounded-xl"
+                <button
+                  className="relative w-10 h-10 rounded-2xl flex items-center justify-center text-slate-400 hover:text-white transition-all active:scale-95"
+                  style={{ background: GLASS, border: `1px solid ${BORDER}` }}
                   data-testid="resident-notifications-btn"
                 >
-                  <Bell className="w-5 h-5" />
+                  <Bell className="w-5 h-5" strokeWidth={1.5} />
                   {unreadCount > 0 && (
-                    <span 
-                      className="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-[10px] font-bold flex items-center justify-center animate-pulse"
-                      data-testid="resident-notification-badge"
-                    >
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-[9px] font-bold flex items-center justify-center animate-pulse" data-testid="resident-notification-badge">
                       {unreadCount > 99 ? '99+' : unreadCount}
                     </span>
                   )}
-                </Button>
+                </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[calc(100vw-2rem)] max-w-sm bg-[#0F111A] border-[#1E293B]">
+              <DropdownMenuContent align="end" className="w-[calc(100vw-2rem)] max-w-sm border-white/10" style={{ background: SURFACE }}>
                 <DropdownMenuLabel className="flex items-center justify-between px-3 py-2">
-                  <span className="text-sm">{t('notifications.title', 'Notificaciones')}</span>
+                  <span className="text-sm text-white">Notificaciones</span>
                   <div className="flex items-center gap-1.5">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={handleRefresh} disabled={isRefreshing}>
-                      <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={handleRefresh} disabled={isRefreshing}>
+                      <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
                     </Button>
                     {unreadCount > 0 && (
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-primary" onClick={handleMarkAllRead}>
-                        <CheckCheck className="w-4 h-4" />
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-cyan-400" onClick={handleMarkAllRead}>
+                        <CheckCheck className="w-3.5 h-3.5" />
                       </Button>
                     )}
                   </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-[#1E293B]" />
+                <DropdownMenuSeparator className="bg-white/5" />
                 {notifications.length === 0 ? (
-                  <div className="p-6 text-center text-sm text-muted-foreground">
-                    <Bell className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                    {t('notifications.empty', 'No tienes notificaciones')}
+                  <div className="p-6 text-center text-sm text-slate-500">
+                    <Bell className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                    Sin notificaciones
                   </div>
                 ) : (
-                  <div className="max-h-[60vh] overflow-y-auto overscroll-contain">
-                    {notifications.map((notif) => (
-                      <DropdownMenuItem 
-                        key={notif.id} 
-                        className={`flex items-start gap-3 py-3 px-3 min-h-[60px] cursor-pointer ${!notif.read ? 'bg-primary/5' : ''}`}
-                      >
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          notif.type === 'visitor_arrival' ? 'bg-green-500/20 text-green-400' : 'bg-orange-500/20 text-orange-400'
-                        }`}>
-                          {notif.type === 'visitor_arrival' ? <UserCheck className="w-4 h-4" /> : <LogOut className="w-4 h-4" />}
-                        </div>
+                  <div className="max-h-[50vh] overflow-y-auto">
+                    {notifications.map((n) => (
+                      <DropdownMenuItem key={n.id} className={`py-3 px-3 min-h-[52px] cursor-pointer ${!n.read ? 'bg-cyan-500/5' : ''}`}>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm line-clamp-2 ${notif.read ? 'text-muted-foreground' : 'text-white'}`}>{notif.message}</p>
-                          <p className="text-[10px] text-muted-foreground mt-1">
-                            {new Date(notif.created_at).toLocaleString('es-MX', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}
+                          <p className={`text-xs line-clamp-2 ${n.read ? 'text-slate-500' : 'text-white'}`}>{n.message}</p>
+                          <p className="text-[10px] text-slate-600 mt-1">
+                            {new Date(n.created_at).toLocaleString('es-MX', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}
                           </p>
                         </div>
-                        {!notif.read && (
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 flex-shrink-0" onClick={(e) => handleMarkRead(notif.id, e)}>
-                            <Check className="w-3.5 h-3.5" />
-                          </Button>
-                        )}
                       </DropdownMenuItem>
                     ))}
                   </div>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-            
+
             <button
               onClick={handleLogout}
-              className="p-2.5 min-h-[44px] min-w-[44px] rounded-xl text-muted-foreground hover:text-white hover:bg-white/5 transition-colors flex items-center justify-center"
+              className="w-10 h-10 rounded-2xl flex items-center justify-center text-slate-500 hover:text-white transition-all active:scale-95"
+              style={{ background: GLASS, border: `1px solid ${BORDER}` }}
               data-testid="logout-btn"
             >
-              <LogOut className="w-5 h-5" />
+              <LogOut className="w-4 h-4" strokeWidth={1.5} />
             </button>
           </div>
         </div>
       </header>
 
-      {/* Content */}
+      {/* ═══ CONTENT ═══ */}
       <main className="flex-1 min-h-0 flex flex-col" style={{ overflow: 'hidden' }}>
         {children}
       </main>
 
-      {/* Bottom Navigation — 4 clean items */}
-      <MobileBottomNav 
-        items={BOTTOM_NAV_ITEMS}
-        activeTab={activeBottomTab}
-        onTabChange={handleBottomNavChange}
-        centerIndex={0}
-      />
+      {/* ═══ BOTTOM NAV ═══ */}
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-2xl"
+        style={{
+          height: '80px',
+          background: 'rgba(6,8,13,0.85)',
+          borderTop: `1px solid ${BORDER}`,
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        }}
+        data-testid="mobile-bottom-nav"
+      >
+        <div className="flex items-center justify-around h-full px-4">
+          {/* Emergency */}
+          <button
+            onClick={() => handleBottomNav('emergency')}
+            data-testid="mobile-nav-emergency"
+            className="relative flex flex-col items-center justify-center -mt-5 active:scale-95 transition-transform"
+          >
+            <div
+              className={`w-16 h-16 rounded-full flex items-center justify-center transition-all ${
+                activeBottomTab === 'emergency' ? 'ring-2 ring-red-400/30 scale-105' : ''
+              }`}
+              style={{
+                background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
+                boxShadow: '0 0 28px rgba(239,68,68,0.45), 0 0 8px rgba(239,68,68,0.2)',
+              }}
+            >
+              <Siren className="w-7 h-7 text-white" strokeWidth={2} />
+            </div>
+            <span className="text-[10px] font-medium text-red-400 mt-1">SOS</span>
+          </button>
 
-      {/* Drawer Menu — Modules */}
+          {/* Home */}
+          <button
+            onClick={() => handleBottomNav('home')}
+            data-testid="mobile-nav-home"
+            className={`flex flex-col items-center justify-center py-2 min-h-[60px] transition-all active:scale-95 ${
+              activeBottomTab === 'home' ? 'text-cyan-400' : 'text-slate-500'
+            }`}
+          >
+            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center mb-0.5 transition-all ${
+              activeBottomTab === 'home' ? 'bg-cyan-500/15' : ''
+            }`}>
+              <Home className="w-[22px] h-[22px]" strokeWidth={1.5} />
+            </div>
+            <span className="text-[10px] font-medium">Inicio</span>
+          </button>
+
+          {/* Cases */}
+          <button
+            onClick={() => handleBottomNav('casos')}
+            data-testid="mobile-nav-casos"
+            className={`flex flex-col items-center justify-center py-2 min-h-[60px] transition-all active:scale-95 ${
+              activeBottomTab === 'casos' ? 'text-cyan-400' : 'text-slate-500'
+            }`}
+          >
+            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center mb-0.5 transition-all ${
+              activeBottomTab === 'casos' ? 'bg-cyan-500/15' : ''
+            }`}>
+              <ClipboardList className="w-[22px] h-[22px]" strokeWidth={1.5} />
+            </div>
+            <span className="text-[10px] font-medium">Casos</span>
+          </button>
+
+          {/* Profile */}
+          <button
+            onClick={() => handleBottomNav('profile')}
+            data-testid="mobile-nav-profile"
+            className={`flex flex-col items-center justify-center py-2 min-h-[60px] transition-all active:scale-95 ${
+              activeBottomTab === 'profile' ? 'text-cyan-400' : 'text-slate-500'
+            }`}
+          >
+            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center mb-0.5 transition-all ${
+              activeBottomTab === 'profile' ? 'bg-cyan-500/15' : ''
+            }`}>
+              <User className="w-[22px] h-[22px]" strokeWidth={1.5} />
+            </div>
+            <span className="text-[10px] font-medium">Perfil</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* ═══ SIDEBAR DRAWER ═══ */}
       <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <SheetContent side="left" className="w-[280px] bg-[#0A0A0F] border-r border-[#1E293B] p-0" data-testid="module-drawer">
-          <SheetHeader className="px-4 pt-5 pb-3 border-b border-[#1E293B]/60">
-            <SheetTitle className="text-left text-base font-bold text-white">
-              {t('drawer.modules', 'Modulos')}
+        <SheetContent
+          side="left"
+          className="w-[280px] p-0 border-r"
+          style={{ background: SURFACE, borderColor: BORDER }}
+          data-testid="module-drawer"
+        >
+          <SheetHeader className="px-5 pt-6 pb-4" style={{ borderBottom: `1px solid ${BORDER}` }}>
+            <SheetTitle className="text-left text-base font-bold tracking-tight text-white" style={{ fontFamily: "'Outfit', sans-serif" }}>
+              Modulos
             </SheetTitle>
           </SheetHeader>
-          <nav className="p-3 space-y-1.5" data-testid="drawer-nav">
+          <nav className="p-3 space-y-1" data-testid="drawer-nav">
             {DRAWER_ITEMS.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
               return (
                 <button
                   key={item.id}
-                  onClick={() => handleDrawerItemClick(item.id)}
-                  disabled={item.disabled}
+                  onClick={() => handleDrawerClick(item.id)}
                   data-testid={`drawer-item-${item.id}`}
-                  className={`w-full flex items-center gap-3 px-3 py-3.5 rounded-xl transition-all duration-150 min-h-[52px]
-                    ${item.disabled 
-                      ? 'opacity-30 cursor-not-allowed' 
-                      : isActive 
-                        ? 'bg-primary/10 border border-primary/20' 
-                        : 'hover:bg-white/5 active:scale-[0.98]'
-                    }`}
+                  className={`w-full flex items-center gap-3 px-3 py-3.5 rounded-2xl transition-all min-h-[52px] active:scale-[0.98] ${
+                    isActive ? 'bg-white/[0.06]' : 'hover:bg-white/[0.03]'
+                  }`}
+                  style={isActive ? { border: `1px solid ${BORDER}` } : { border: '1px solid transparent' }}
                 >
-                  <div className={`w-10 h-10 rounded-lg ${item.bg} flex items-center justify-center flex-shrink-0`}>
-                    <Icon className={`w-5 h-5 ${item.color}`} />
+                  <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center flex-shrink-0`}>
+                    <Icon className={`w-5 h-5 ${item.color}`} strokeWidth={1.5} />
                   </div>
-                  <span className={`text-sm font-medium flex-1 text-left ${isActive ? 'text-white' : item.disabled ? 'text-muted-foreground/40' : 'text-white/80'}`}>
+                  <span className={`text-sm font-medium ${isActive ? 'text-white' : 'text-slate-400'}`}>
                     {item.label}
                   </span>
-                  {item.disabled ? (
-                    <span className="text-[9px] text-muted-foreground/40 bg-white/5 px-1.5 py-0.5 rounded">Pronto</span>
-                  ) : (
-                    <ChevronRight className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground/30'}`} />
-                  )}
+                  <ChevronRight className={`w-4 h-4 ml-auto ${isActive ? 'text-cyan-400' : 'text-slate-700'}`} />
                 </button>
               );
             })}
           </nav>
-          {/* Drawer footer */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#1E293B]/60">
+          {/* Footer */}
+          <div className="absolute bottom-0 left-0 right-0 p-5" style={{ borderTop: `1px solid ${BORDER}` }}>
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center text-primary text-sm font-bold">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: 'linear-gradient(135deg, #6366F1, #06B6D4)', color: 'white' }}>
                 {user?.full_name?.charAt(0)?.toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-white truncate">{user?.full_name}</p>
-                <p className="text-[10px] text-muted-foreground truncate">{user?.apartment || ''}</p>
+                <p className="text-[11px] text-slate-500 truncate">{user?.apartment || ''}</p>
               </div>
             </div>
           </div>
