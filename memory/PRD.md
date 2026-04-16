@@ -945,6 +945,15 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
   - Clickable for direct navigation between modules
   - Smooth 0.2s transition animation
 
+### Cases Enhancement: Guard + Delete + Attachments + UI (2026-04-16) - COMPLETE
+- [x] DELETE /api/casos/{id}: Owner can delete own non-closed cases; admin can delete any
+- [x] Photo attachments: POST /api/casos/{id}/attachments (jpg/png/webp, 5MB limit)
+- [x] Attachment preview thumbnails in case detail
+- [x] Guard role: view/comment on community cases, update status (in_progress/closed)
+- [x] Dialog close button (X): 40x40px, subtle bg, rounded-xl, centered — consistent across Sheet+Dialog
+- [x] "Eliminar caso" button only for owner + non-closed cases
+- [x] "Adjuntar foto" button with camera icon in case detail
+
 ### Community Cases with Comments (2026-04-16) - COMPLETE
 - [x] New `visibility` field: "private" (default) or "community"
 - [x] Private: only creator + admin can see/comment
