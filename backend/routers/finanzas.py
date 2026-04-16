@@ -288,11 +288,11 @@ async def generate_bulk_charges(
     if payload.unit_ids and len(payload.unit_ids) > 0:
         target_units = payload.unit_ids
     else:
-        # All existing unit accounts in this condominium
-        accounts = await db.unit_accounts.find(
-            {"condominium_id": condo_id}, {"unit_id": 1, "_id": 0}
+        # All real units in this condominium (from units collection, not unit_accounts)
+        real_units = await db.units.find(
+            {"condominium_id": condo_id}, {"number": 1, "_id": 0}
         ).to_list(5000)
-        target_units = [a["unit_id"] for a in accounts]
+        target_units = [u["number"] for u in real_units]
 
     if not target_units:
         return {"total_units": 0, "created_count": 0, "skipped_count": 0, "message": "No hay unidades registradas"}
