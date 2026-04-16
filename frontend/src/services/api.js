@@ -870,6 +870,23 @@ class ApiService {
   getCasoDetail = (id) => this.get(`/casos/${id}`);
   updateCaso = (id, data) => this.patch(`/casos/${id}`, data);
   addCasoComment = (id, data) => this.post(`/casos/${id}/comments`, data);
+  deleteCaso = (id) => this.delete(`/casos/${id}`);
+  uploadCasoAttachment = async (casoId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const API_URL = process.env.REACT_APP_BACKEND_URL;
+    const accessToken = localStorage.getItem('genturix_access_token');
+    const headers = {};
+    if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+    const resp = await window.fetch(`${API_URL}/api/casos/${casoId}/attachments`, {
+      method: 'POST', headers, body: formData, credentials: 'include',
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.detail || 'Error al subir imagen');
+    }
+    return resp.json();
+  };
   getCasosStats = () => this.get('/casos/stats');
 
   // ==================== NOTIFICATIONS V2 ====================

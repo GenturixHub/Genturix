@@ -49,7 +49,8 @@ const DialogContent = React.forwardRef(({ className, children, mobileFullScreen 
       {...props}>
       {children}
       <DialogPrimitive.Close
-        className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground z-[80]">
+        className="absolute right-4 top-4 w-10 h-10 rounded-xl bg-white/5 border border-[#1E293B]/60 flex items-center justify-center text-muted-foreground hover:text-white hover:bg-white/10 transition-all duration-150 active:scale-95 focus:outline-none z-[80]"
+        data-testid="dialog-close-btn">
         <X className="h-5 w-5" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>

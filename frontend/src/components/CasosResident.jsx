@@ -31,7 +31,11 @@ import {
   Send,
   Lock,
   Globe,
+  Trash2,
+  Camera,
+  Image as ImageIcon,
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 const STATUS_CONFIG = {
   open: { label: 'Abierto', color: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
@@ -205,10 +209,13 @@ const CreateCaseDialog = ({ open, onClose, onCreated }) => {
 
 // ── Case Detail Dialog (Resident) ──
 const CaseDetailDialog = ({ caso, open, onClose, onUpdated }) => {
+  const { user } = useAuth();
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (caso && open) {
@@ -236,14 +243,45 @@ const CaseDetailDialog = ({ caso, open, onClose, onUpdated }) => {
     }
   };
 
+  const handleUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error('Imagen excede 5 MB'); return; }
+    setUploading(true);
+    try {
+      await api.uploadCasoAttachment(caso.id, file);
+      toast.success('Imagen adjuntada');
+      const d = await api.getCasoDetail(caso.id);
+      setDetail(d);
+      onUpdated?.();
+    } catch (err) { toast.error(err.message || 'Error al subir'); }
+    finally { setUploading(false); e.target.value = ''; }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Eliminar este caso? Esta accion no se puede deshacer.')) return;
+    setDeleting(true);
+    try {
+      await api.deleteCaso(caso.id);
+      toast.success('Caso eliminado');
+      onUpdated?.();
+      onClose();
+    } catch (err) { toast.error(err.message || 'Error al eliminar'); }
+    finally { setDeleting(false); }
+  };
+
   const sCfg = STATUS_CONFIG[detail?.status] || STATUS_CONFIG.open;
   const pCfg = PRIORITY_CONFIG[detail?.priority] || PRIORITY_CONFIG.medium;
+  const isOwner = detail && user && detail.created_by === user.id;
+  const canDelete = isOwner && detail?.status !== 'closed';
+  const canComment = detail?.status !== 'closed' && detail?.status !== 'rejected';
+  const canAttach = canComment;
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-lg max-h-[80vh] overflow-y-auto" data-testid="resident-caso-detail">
         <DialogHeader>
-          <DialogTitle className="text-base">{detail?.title || caso?.title}</DialogTitle>
+          <DialogTitle className="text-base pr-8">{detail?.title || caso?.title}</DialogTitle>
         </DialogHeader>
         {loading ? (
           <div className="flex items-center justify-center py-8">
@@ -268,6 +306,39 @@ const CaseDetailDialog = ({ caso, open, onClose, onUpdated }) => {
               Creado: {new Date(detail.created_at).toLocaleString('es-ES')}
             </div>
 
+            {/* Attachments */}
+            {detail.attachments?.length > 0 && (
+              <div>
+                <h4 className="text-xs font-medium mb-2 flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5" /> Adjuntos ({detail.attachments.length})
+                </h4>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {detail.attachments.map((url, i) => (
+                    <div key={i} className="w-20 h-20 rounded-lg bg-[#181B25] border border-[#1E293B] flex-shrink-0 overflow-hidden" data-testid={`attachment-${i}`}>
+                      {url.startsWith('local://') ? (
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                          <ImageIcon className="w-6 h-6" />
+                        </div>
+                      ) : (
+                        <img src={url} alt={`Adjunto ${i+1}`} className="w-full h-full object-cover" onError={(e) => { e.target.style.display='none'; }} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Upload attachment */}
+            {canAttach && (
+              <div>
+                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleUpload} className="hidden" id="caso-attachment-input" data-testid="caso-attachment-input" />
+                <label htmlFor="caso-attachment-input" className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-colors ${uploading ? 'opacity-50 pointer-events-none' : 'bg-[#181B25] border border-[#1E293B] text-muted-foreground hover:text-white hover:bg-white/5'}`}>
+                  {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+                  {uploading ? 'Subiendo...' : 'Adjuntar foto'}
+                </label>
+              </div>
+            )}
+
             {/* Comments */}
             <div>
               <h4 className="text-xs font-medium mb-2 flex items-center gap-1.5">
@@ -276,8 +347,11 @@ const CaseDetailDialog = ({ caso, open, onClose, onUpdated }) => {
               </h4>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {(detail.comments || []).map((c) => (
-                  <div key={c.id} className="p-2 rounded-lg bg-[#181B25] border border-[#1E293B]/50 text-sm">
-                    <span className="text-xs font-medium">{c.author_name}</span>
+                  <div key={c.id} className="p-2 rounded-lg bg-[#181B25] border border-[#1E293B]/50 text-sm" data-testid={`comment-${c.id}`}>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-medium">{c.author_name}</span>
+                      <span className="text-[9px] text-muted-foreground/50">{c.author_role}</span>
+                    </div>
                     <p className="text-xs text-muted-foreground mt-0.5">{c.comment}</p>
                     <span className="text-[10px] text-muted-foreground">
                       {new Date(c.created_at).toLocaleString('es-ES')}
@@ -290,7 +364,7 @@ const CaseDetailDialog = ({ caso, open, onClose, onUpdated }) => {
               </div>
             </div>
 
-            {detail.status !== 'closed' && detail.status !== 'rejected' && (
+            {canComment && (
               <div className="flex gap-2">
                 <Input
                   data-testid="resident-comment-input"
@@ -304,6 +378,14 @@ const CaseDetailDialog = ({ caso, open, onClose, onUpdated }) => {
                   {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </Button>
               </div>
+            )}
+
+            {/* Delete button */}
+            {canDelete && (
+              <Button variant="outline" size="sm" className="w-full text-red-400 border-red-500/30 hover:bg-red-500/10 hover:text-red-300" onClick={handleDelete} disabled={deleting} data-testid="delete-caso-btn">
+                {deleting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Trash2 className="w-4 h-4 mr-1" />}
+                Eliminar caso
+              </Button>
             )}
           </div>
         ) : null}
