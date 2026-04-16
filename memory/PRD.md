@@ -945,6 +945,16 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
   - Clickable for direct navigation between modules
   - Smooth 0.2s transition animation
 
+### Units System (2026-04-16) - COMPLETE
+- [x] Collection `units` with: id, condominium_id, number, created_at
+- [x] CRUD: GET /api/units (enriched with residents+finance), POST /api/units, DELETE /api/units/{id}
+- [x] Assignment: PUT /api/units/{id}/assign-user, PUT /api/units/{id}/unassign-user
+- [x] Auto-creates unit_account on unit creation (financial tracking)
+- [x] Delete protection: cannot delete unit with financial records
+- [x] Admin UI: "Unidades" panel in Finanzas with create/assign/unassign/delete
+- [x] Shows: Unit→Residents (name+email) and financial badge (balance/status)
+- [x] Multi-tenant isolation: all queries scoped by condominium_id
+
 ### Mobile Navigation Refactor (2026-04-16) - COMPLETE
 - [x] Bottom nav reduced from 8 items to 4: Emergency (red center), Home, Alertas, Profile
 - [x] Drawer menu (hamburger in header): Visits, Reservations, Directory, Cases, Docs, Finances, Asamblea (disabled/"Pronto")
