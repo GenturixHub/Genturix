@@ -10,6 +10,9 @@ import uuid, io, json, os, re
 # Import ALL shared dependencies from core
 from core import *
 
+# Import storage functions from documentos router
+from routers.documentos import _put_object, DOC_APP_NAME
+
 router = APIRouter()
 
 # ==================== CASOS / INCIDENCIAS ====================
@@ -356,6 +359,7 @@ async def add_caso_comment(
         "author_role": roles[0] if roles else "Unknown",
         "comment": sanitize_text(payload.comment),
         "is_internal": is_internal,
+        "images": [],
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -514,6 +518,58 @@ async def upload_caso_attachment(
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown"),
         condominium_id=condo_id, user_email=current_user.get("email"),
+    )
+
+    return {"status": "ok", "url": file_url}
+
+
+# ── Comment Image Upload ──
+
+@router.post("/casos/{caso_id}/comments/{comment_id}/images")
+@limiter.limit(RATE_LIMIT_PUSH)
+async def upload_comment_image(
+    caso_id: str,
+    comment_id: str,
+    file: UploadFile = FastAPIFile(...),
+    request: Request = None,
+    current_user=Depends(get_current_user),
+):
+    """Upload an image to a comment."""
+    condo_id = current_user.get("condominium_id")
+
+    comment = await db.caso_comments.find_one({"id": comment_id, "caso_id": caso_id})
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comentario no encontrado")
+
+    # Only comment author or admin
+    roles = current_user.get("roles", [])
+    is_admin = any(r in roles for r in ["Administrador", "Supervisor", "SuperAdmin"])
+    if not is_admin and comment.get("author_id") != current_user["id"]:
+        raise HTTPException(status_code=403, detail="No tienes permiso")
+
+    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
+    if ext not in CASO_ALLOWED_IMAGE:
+        raise HTTPException(status_code=400, detail=f"Formato no permitido. Usa: {', '.join(CASO_ALLOWED_IMAGE)}")
+
+    data = await file.read()
+    if len(data) > CASO_MAX_ATTACHMENT:
+        raise HTTPException(status_code=400, detail="Imagen excede 5 MB")
+    if len(data) == 0:
+        raise HTTPException(status_code=400, detail="Archivo vacio")
+
+    content_type = file.content_type or f"image/{ext}"
+    storage_path = f"{DOC_APP_NAME}/casos/{condo_id}/{caso_id}/comments/{comment_id}/{uuid.uuid4()}.{ext}"
+
+    try:
+        result = await _put_object(storage_path, data, content_type)
+        file_url = result.get("path") or result.get("url") or storage_path
+    except Exception as e:
+        logger.error(f"[CASOS] Comment image upload failed: {e}")
+        raise HTTPException(status_code=500, detail="Error al subir imagen")
+
+    await db.caso_comments.update_one(
+        {"id": comment_id},
+        {"$push": {"images": file_url}},
     )
 
     return {"status": "ok", "url": file_url}
