@@ -29,6 +29,8 @@ import {
   Loader2,
   MessageSquare,
   Send,
+  Lock,
+  Globe,
 } from 'lucide-react';
 
 const STATUS_CONFIG = {
@@ -63,6 +65,7 @@ const CreateCaseDialog = ({ open, onClose, onCreated }) => {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('mantenimiento');
   const [priority, setPriority] = useState('medium');
+  const [visibility, setVisibility] = useState('private');
   const [sending, setSending] = useState(false);
 
   const handleSubmit = async () => {
@@ -72,12 +75,13 @@ const CreateCaseDialog = ({ open, onClose, onCreated }) => {
     }
     setSending(true);
     try {
-      await api.createCaso({ title: title.trim(), description: description.trim(), category, priority });
+      await api.createCaso({ title: title.trim(), description: description.trim(), category, priority, visibility });
       toast.success(t('casos.created', 'Caso creado exitosamente'));
       setTitle('');
       setDescription('');
       setCategory('mantenimiento');
       setPriority('medium');
+      setVisibility('private');
       onCreated?.();
       onClose();
     } catch (err) {
@@ -95,7 +99,7 @@ const CreateCaseDialog = ({ open, onClose, onCreated }) => {
         </DialogHeader>
         <div className="space-y-4">
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">{t('casos.title', 'Título')} *</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t('casos.title', 'Titulo')} *</label>
             <Input
               data-testid="caso-title-input"
               value={title}
@@ -106,20 +110,58 @@ const CreateCaseDialog = ({ open, onClose, onCreated }) => {
             />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">{t('casos.description', 'Descripción')} *</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t('casos.description', 'Descripcion')} *</label>
             <textarea
               data-testid="caso-description-input"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe el problema con detalle..."
               maxLength={5000}
-              rows={4}
+              rows={3}
               className="w-full rounded-md bg-[#181B25] border border-[#1E293B] text-sm px-3 py-2 text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
             />
           </div>
+          {/* Visibility */}
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Visibilidad del caso</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setVisibility('private')}
+                data-testid="visibility-private"
+                className={`p-3 rounded-lg border text-left transition-colors ${
+                  visibility === 'private'
+                    ? 'bg-primary/10 border-primary/40'
+                    : 'bg-[#181B25] border-[#1E293B] hover:border-[#2E3B4B]'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-0.5">
+                  <Lock className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-white">Privado</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground">Solo tu y el administrador</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setVisibility('community')}
+                data-testid="visibility-community"
+                className={`p-3 rounded-lg border text-left transition-colors ${
+                  visibility === 'community'
+                    ? 'bg-primary/10 border-primary/40'
+                    : 'bg-[#181B25] border-[#1E293B] hover:border-[#2E3B4B]'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-0.5">
+                  <Globe className="w-4 h-4 text-blue-400" />
+                  <span className="text-sm font-medium text-white">Comunitario</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground">Visible para todos los residentes</p>
+              </button>
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">{t('casos.category', 'Categoría')}</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t('casos.category', 'Categoria')}</label>
               <Select value={category} onValueChange={setCategory}>
                 <SelectTrigger data-testid="caso-category-select" className="bg-[#181B25] border-[#1E293B]">
                   <SelectValue />
@@ -212,7 +254,15 @@ const CaseDetailDialog = ({ caso, open, onClose, onUpdated }) => {
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline" className={sCfg.color}>{sCfg.label}</Badge>
               <Badge variant="outline" className={pCfg.color}>{pCfg.label}</Badge>
+              {detail.visibility === 'community' ? (
+                <Badge variant="outline" className="bg-blue-500/15 text-blue-400 border-blue-500/30"><Globe className="w-3 h-3 mr-1" />Comunitario</Badge>
+              ) : (
+                <Badge variant="outline" className="bg-gray-500/15 text-gray-400 border-gray-500/30"><Lock className="w-3 h-3 mr-1" />Privado</Badge>
+              )}
             </div>
+            {detail.visibility === 'community' && (
+              <p className="text-[10px] text-muted-foreground">Reportado por: {detail.created_by_name}</p>
+            )}
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">{detail.description}</p>
             <div className="text-[10px] text-muted-foreground">
               Creado: {new Date(detail.created_at).toLocaleString('es-ES')}
@@ -354,6 +404,14 @@ export default function CasosResident() {
                     <p className="text-xs text-muted-foreground line-clamp-1">{c.description}</p>
                     <div className="flex items-center gap-2 mt-1.5">
                       <Badge variant="outline" className={`text-[9px] h-4 ${pCfg.color}`}>{pCfg.label}</Badge>
+                      {c.visibility === 'community' ? (
+                        <Badge variant="outline" className="text-[9px] h-4 bg-blue-500/15 text-blue-400 border-blue-500/30"><Globe className="w-2.5 h-2.5 mr-0.5" />Comunitario</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[9px] h-4 bg-gray-500/15 text-gray-400 border-gray-500/30"><Lock className="w-2.5 h-2.5 mr-0.5" />Privado</Badge>
+                      )}
+                      {c.visibility === 'community' && c.created_by_name && (
+                        <span className="text-[10px] text-muted-foreground/70">por {c.created_by_name}</span>
+                      )}
                       <span className="text-[10px] text-muted-foreground">
                         {new Date(c.created_at).toLocaleString('es-ES', { day: '2-digit', month: 'short' })}
                       </span>

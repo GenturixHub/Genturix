@@ -18367,6 +18367,7 @@ class CasoCreate(BaseModel):
     description: str = Field(..., min_length=1, max_length=5000)
     category: CasoCategory
     priority: CasoPriority = CasoPriority.MEDIUM
+    visibility: Optional[str] = Field("private", pattern=r"^(private|community)$")
 
 class CasoUpdate(BaseModel):
     status: Optional[CasoStatus] = None
@@ -18402,6 +18403,7 @@ async def create_caso(
         "description": sanitize_text(payload.description),
         "category": payload.category.value,
         "priority": payload.priority.value,
+        "visibility": payload.visibility or "private",
         "status": CasoStatus.OPEN.value,
         "attachments": [],
         "assigned_to": None,
@@ -18478,7 +18480,11 @@ async def get_casos(
     query = {"condominium_id": condo_id}
 
     if not is_admin:
-        query["created_by"] = current_user["id"]
+        # Residents see their own cases + all community cases
+        query["$or"] = [
+            {"created_by": current_user["id"]},
+            {"visibility": "community"},
+        ]
 
     if status:
         query["status"] = status
@@ -18547,7 +18553,9 @@ async def get_caso_detail(
         raise HTTPException(status_code=404, detail="Caso no encontrado")
 
     if not is_admin and caso["created_by"] != current_user["id"]:
-        raise HTTPException(status_code=403, detail="No tienes permiso para ver este caso")
+        # Allow access to community cases for all residents in same condo
+        if caso.get("visibility") != "community":
+            raise HTTPException(status_code=403, detail="No tienes permiso para ver este caso")
 
     # Fetch comments
     comment_query = {"caso_id": caso_id}
@@ -18657,7 +18665,9 @@ async def add_caso_comment(
         raise HTTPException(status_code=404, detail="Caso no encontrado")
 
     if not is_admin and caso["created_by"] != current_user["id"]:
-        raise HTTPException(status_code=403, detail="No tienes permiso")
+        # Allow comments on community cases for any resident in same condo
+        if caso.get("visibility") != "community":
+            raise HTTPException(status_code=403, detail="No tienes permiso")
 
     # Only admins can make internal comments
     is_internal = payload.is_internal and is_admin

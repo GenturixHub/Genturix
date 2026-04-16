@@ -34,6 +34,8 @@ import {
   Send,
   BarChart3,
   ArrowUpRight,
+  Lock,
+  Globe,
 } from 'lucide-react';
 
 const STATUS_CONFIG = {
@@ -384,6 +386,11 @@ export default function CasosModule() {
                           <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
                             <span>{c.created_by_name}</span>
                             <span>{CATEGORY_LABELS[c.category] || c.category}</span>
+                            {c.visibility === 'community' ? (
+                              <span className="flex items-center gap-0.5 text-blue-400"><Globe className="w-2.5 h-2.5" />Comunitario</span>
+                            ) : (
+                              <span className="flex items-center gap-0.5 text-gray-500"><Lock className="w-2.5 h-2.5" />Privado</span>
+                            )}
                             <span>
                               {new Date(c.created_at).toLocaleString('es-ES', {
                                 day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
