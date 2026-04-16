@@ -11,7 +11,7 @@ import uuid, io, json, os, re
 from core import *
 
 # Import storage functions from documentos router
-from routers.documentos import _put_object, DOC_APP_NAME
+from routers.documentos import _put_object, _get_object, DOC_APP_NAME
 
 router = APIRouter()
 
@@ -213,6 +213,68 @@ async def get_casos_stats(
         "urgent": urgent,
     }
 
+
+# ── Secure Image Proxy (MUST be before /casos/{caso_id} to avoid route shadowing) ──
+
+@router.get("/casos/image-proxy")
+async def caso_image_proxy(
+    request: Request,
+    path: str = Query(..., min_length=5),
+    token: Optional[str] = Query(None),
+):
+    """Securely proxy caso/comment images from Object Storage.
+    Accepts auth via Authorization header OR query param token (for <img src> usage).
+    """
+    # Auth: try header first, fall back to query param token
+    user = None
+    auth_header = request.headers.get("authorization", "")
+    raw_token = None
+    if auth_header.startswith("Bearer "):
+        raw_token = auth_header[7:]
+    elif token:
+        raw_token = token
+
+    if not raw_token:
+        raise HTTPException(status_code=401, detail="Token requerido")
+
+    payload = verify_access_token(raw_token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Token invalido o expirado")
+
+    user_id = payload.get("sub")
+    user = await db.users.find_one({"id": user_id})
+    if not user or not user.get("is_active"):
+        raise HTTPException(status_code=401, detail="Usuario no encontrado")
+
+    condo_id = user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=403, detail="No condominium associated")
+
+    # Security: prevent path traversal
+    if ".." in path or path.startswith("/"):
+        raise HTTPException(status_code=400, detail="Ruta invalida")
+
+    # Security: ensure path belongs to casos folder for this condo
+    expected_prefix = f"{DOC_APP_NAME}/casos/{condo_id}/"
+    is_local = path.startswith("local://")
+    is_remote_valid = path.startswith(expected_prefix)
+
+    if not is_local and not is_remote_valid:
+        raise HTTPException(status_code=403, detail="Acceso denegado a este recurso")
+
+    try:
+        data, content_type = await _get_object(path)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[CASOS] Image proxy error: {e}")
+        raise HTTPException(status_code=404, detail="Imagen no encontrada")
+
+    return Response(
+        content=data,
+        media_type=content_type,
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
 
 
 @router.get("/casos/{caso_id}")

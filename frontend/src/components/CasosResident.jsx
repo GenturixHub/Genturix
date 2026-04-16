@@ -3,6 +3,16 @@ import { useTranslation } from 'react-i18next';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+
+const API_URL = process.env.REACT_APP_BACKEND_URL;
+
+// Convert storage path to secure proxy URL
+const toProxyUrl = (path) => {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('blob:')) return path;
+  const token = localStorage.getItem('genturix_access_token');
+  return `${API_URL}/api/casos/image-proxy?path=${encodeURIComponent(path)}&token=${encodeURIComponent(token || '')}`;
+};
 import { Badge } from './ui/badge';
 import {
   Select,
@@ -70,7 +80,7 @@ const ImageLightbox = ({ src, onClose }) => {
       <button onClick={onClose} className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors z-10">
         <XCircle className="w-6 h-6" />
       </button>
-      <img src={src} alt="Ampliada" className="max-w-full max-h-[85vh] rounded-lg object-contain" onClick={e => e.stopPropagation()} />
+      <img src={toProxyUrl(src)} alt="Ampliada" className="max-w-full max-h-[85vh] rounded-lg object-contain" onClick={e => e.stopPropagation()} />
     </div>
   );
 };
@@ -87,7 +97,7 @@ const ImageGrid = ({ images, onImageClick }) => {
           className="w-16 h-16 rounded-xl overflow-hidden bg-[#181B25] border border-white/5 flex-shrink-0 hover:border-cyan-500/30 transition-colors"
           data-testid={`img-thumb-${i}`}
         >
-          <img src={url} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; }} />
+          <img src={toProxyUrl(url)} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; }} />
         </button>
       ))}
     </div>
