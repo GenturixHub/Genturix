@@ -713,9 +713,10 @@ class ApiService {
   // Units CRUD
   getUnits = () => this.get('/units');
   createUnit = (data) => this.post('/units', data);
-  deleteUnit = (id) => this.delete(`/units/${id}`);
+  deleteUnit = (id, force = false) => this.delete(`/units/${id}${force ? '?force=true' : ''}`);
   assignUserToUnit = (unitId, userId) => this.put(`/units/${unitId}/assign-user?user_id=${userId}`);
   unassignUserFromUnit = (unitId, userId) => this.put(`/units/${unitId}/unassign-user?user_id=${userId}`);
+  deleteCharge = (chargeId) => this.delete(`/finanzas/charges/${chargeId}`);
   // Payment requests (resident → admin)
   createPaymentRequest = (data) => this.post('/finanzas/payment-request', data);
   // Resident financial accounts

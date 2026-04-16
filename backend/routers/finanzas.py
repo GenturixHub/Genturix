@@ -410,6 +410,50 @@ async def get_charges(
     return {"items": items, "total": total, "page": page, "page_size": page_size, "total_pages": max(1, -(-total // page_size))}
 
 
+# ── Delete Charge ──
+
+@router.delete("/finanzas/charges/{charge_id}")
+async def delete_charge(
+    charge_id: str,
+    request: Request,
+    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN)),
+):
+    """Admin deletes a charge/payment record and recalculates unit balance."""
+    condo_id = current_user.get("condominium_id")
+    if not condo_id:
+        raise HTTPException(status_code=400, detail="No condominium associated")
+
+    record = await db.payment_records.find_one(
+        {"id": charge_id, "condominium_id": condo_id}, {"_id": 0}
+    )
+    if not record:
+        raise HTTPException(status_code=404, detail="Registro no encontrado")
+
+    await db.payment_records.delete_one({"id": charge_id})
+
+    # Recalculate balance for the affected unit
+    unit_id = record.get("unit_id", "")
+    if unit_id:
+        await _recalculate_unit_balance(condo_id, unit_id)
+
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT, current_user["id"], "finanzas",
+        {
+            "action": "charge_deleted",
+            "charge_id": charge_id,
+            "unit_id": unit_id,
+            "amount_due": record.get("amount_due", 0),
+            "charge_type": record.get("charge_type_name", ""),
+            "period": record.get("period", ""),
+        },
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=condo_id, user_email=current_user.get("email"),
+    )
+
+    return {"status": "ok", "deleted": charge_id, "unit_id": unit_id}
+
+
 # ── Payments ──
 
 @router.post("/finanzas/payments")
@@ -600,7 +644,16 @@ async def get_financial_overview(
     condo_id = current_user.get("condominium_id")
     base = {"condominium_id": condo_id}
 
+    # Get the set of real unit numbers from the units collection
+    real_units = set()
+    async for u in db.units.find(base, {"_id": 0, "number": 1}):
+        real_units.add(u["number"])
+
     accounts = await db.unit_accounts.find(base, {"_id": 0}).sort("unit_id", 1).to_list(500)
+
+    # Filter: only include accounts whose unit_id matches a real unit
+    if real_units:
+        accounts = [a for a in accounts if a.get("unit_id", "") in real_units]
 
     # Build a map of apartment_number -> user info for residents in this condo
     resident_map = {}
@@ -608,9 +661,8 @@ async def get_financial_overview(
         {"condominium_id": condo_id, "status": {"$ne": "disabled"}},
         {"_id": 0, "id": 1, "full_name": 1, "email": 1, "role_data": 1, "roles": 1, "apartment": 1}
     ):
-        apt = u.get("role_data", {}).get("apartment_number", "") or u.get("apartment", "")
+        apt = u.get("apartment", "") or u.get("role_data", {}).get("apartment_number", "")
         if apt:
-            # If multiple users share an apartment, prefer Residente role
             existing = resident_map.get(apt)
             if not existing or "Residente" in u.get("roles", []):
                 resident_map[apt] = {
@@ -619,22 +671,17 @@ async def get_financial_overview(
                     "resident_email": u.get("email", ""),
                 }
 
-    total_due = 0.0
-    total_paid = 0.0
     overdue_count = 0
     al_dia_count = 0
     adelantado_count = 0
 
-    # Enrich accounts with resident info
     enriched_accounts = []
     for a in accounts:
         bal = a.get("current_balance", 0)
         if bal > 0:
             overdue_count += 1
-            total_due += bal
         elif bal < 0:
             adelantado_count += 1
-            total_paid += abs(bal)
         else:
             al_dia_count += 1
 
@@ -643,11 +690,17 @@ async def get_financial_overview(
         enriched = {**a, **resident_info}
         enriched_accounts.append(enriched)
 
-    # Global totals from records
-    pipeline = [
-        {"$match": base},
-        {"$group": {"_id": None, "sum_due": {"$sum": "$amount_due"}, "sum_paid": {"$sum": "$amount_paid"}}},
-    ]
+    # Global totals from payment_records scoped to real units only
+    if real_units:
+        pipeline = [
+            {"$match": {**base, "unit_id": {"$in": list(real_units)}}},
+            {"$group": {"_id": None, "sum_due": {"$sum": "$amount_due"}, "sum_paid": {"$sum": "$amount_paid"}}},
+        ]
+    else:
+        pipeline = [
+            {"$match": base},
+            {"$group": {"_id": None, "sum_due": {"$sum": "$amount_due"}, "sum_paid": {"$sum": "$amount_paid"}}},
+        ]
     agg = await db.payment_records.aggregate(pipeline).to_list(1)
     global_due = round(agg[0]["sum_due"], 2) if agg else 0
     global_paid = round(agg[0]["sum_paid"], 2) if agg else 0
@@ -655,7 +708,7 @@ async def get_financial_overview(
     return {
         "accounts": enriched_accounts,
         "summary": {
-            "total_units": len(accounts),
+            "total_units": len(enriched_accounts),
             "al_dia": al_dia_count,
             "atrasado": overdue_count,
             "adelantado": adelantado_count,
@@ -845,25 +898,32 @@ async def create_unit(
 async def delete_unit(
     unit_id: str,
     request: Request,
+    force: bool = Query(False),
     current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN)),
 ):
-    """Delete a unit (only if no charges exist)."""
+    """Delete a unit. Use force=true to delete even if it has financial records."""
     condo_id = current_user.get("condominium_id")
     unit = await db.units.find_one({"id": unit_id, "condominium_id": condo_id})
     if not unit:
         raise HTTPException(status_code=404, detail="Unidad no encontrada")
 
+    unit_number = unit["number"]
+
     # Check if unit has financial records
-    has_records = await db.payment_records.find_one({"condominium_id": condo_id, "unit_id": unit["number"]})
-    if has_records:
-        raise HTTPException(status_code=400, detail="No se puede eliminar: la unidad tiene registros financieros")
+    has_records = await db.payment_records.find_one({"condominium_id": condo_id, "unit_id": unit_number})
+    if has_records and not force:
+        raise HTTPException(status_code=400, detail="La unidad tiene registros financieros. Usa force=true para eliminar de todas formas.")
+
+    # If force, also delete all financial records for this unit
+    if has_records and force:
+        await db.payment_records.delete_many({"condominium_id": condo_id, "unit_id": unit_number})
 
     await db.units.delete_one({"id": unit_id})
-    await db.unit_accounts.delete_one({"condominium_id": condo_id, "unit_id": unit["number"]})
+    await db.unit_accounts.delete_one({"condominium_id": condo_id, "unit_id": unit_number})
 
     # Unassign users from this unit
     await db.users.update_many(
-        {"condominium_id": condo_id, "apartment": unit["number"]},
+        {"condominium_id": condo_id, "apartment": unit_number},
         {"$set": {"apartment": None, "role_data.apartment_number": None}},
     )
 

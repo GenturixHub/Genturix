@@ -96,20 +96,19 @@ const CatalogDialog = ({ open, onClose, onCreated }) => {
 };
 
 // ── Charge Dialog ──
-const ChargeDialog = ({ open, onClose, onCreated, catalog, prefillUnit }) => {
-  const [unitId, setUnitId] = useState(prefillUnit || '');
+const ChargeDialog = ({ open, onClose, onCreated, catalog, units = [] }) => {
+  const [unitId, setUnitId] = useState('');
   const [chargeTypeId, setChargeTypeId] = useState('');
   const [period, setPeriod] = useState(() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; });
   const [amount, setAmount] = useState('');
   const [sending, setSending] = useState(false);
   const selectedCatalog = catalog.find(c => c.id === chargeTypeId);
   useEffect(() => { if (selectedCatalog && !amount) setAmount(String(selectedCatalog.default_amount)); }, [selectedCatalog, amount]);
-  useEffect(() => { if (prefillUnit) setUnitId(prefillUnit); }, [prefillUnit]);
   const handleSubmit = async () => {
-    if (!unitId.trim() || !chargeTypeId || !period || !amount) return;
+    if (!unitId || !chargeTypeId || !period || !amount) return;
     setSending(true);
     try {
-      await api.createCharge({ unit_id: unitId.trim(), charge_type_id: chargeTypeId, period, amount_due: parseFloat(amount) });
+      await api.createCharge({ unit_id: unitId, charge_type_id: chargeTypeId, period, amount_due: parseFloat(amount) });
       toast.success('Cargo creado'); setUnitId(''); setChargeTypeId(''); setAmount(''); onCreated?.(); onClose();
     } catch (err) { toast.error(err.message || 'Error'); }
     finally { setSending(false); }
@@ -117,9 +116,18 @@ const ChargeDialog = ({ open, onClose, onCreated, catalog, prefillUnit }) => {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-md" data-testid="charge-dialog">
-        <DialogHeader><DialogTitle>Generar Cargo</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Generar Cargo Individual</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <Input data-testid="charge-unit" value={unitId} onChange={(e) => setUnitId(e.target.value)} placeholder="Unidad (ej: A-101)" className="bg-[#181B25] border-[#1E293B]" />
+          <Select value={unitId} onValueChange={setUnitId}>
+            <SelectTrigger data-testid="charge-unit" className="bg-[#181B25] border-[#1E293B]"><SelectValue placeholder="Seleccionar unidad" /></SelectTrigger>
+            <SelectContent className="bg-[#0F111A] border-[#1E293B] max-h-60">
+              {units.map(u => (
+                <SelectItem key={u.number} value={u.number}>
+                  {u.number} {u.residents?.length > 0 ? `- ${u.residents[0].full_name}` : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={chargeTypeId} onValueChange={(v) => { setChargeTypeId(v); setAmount(''); }}>
             <SelectTrigger data-testid="charge-type-select" className="bg-[#181B25] border-[#1E293B]"><SelectValue placeholder="Tipo de cargo" /></SelectTrigger>
             <SelectContent className="bg-[#0F111A] border-[#1E293B]">
@@ -130,7 +138,7 @@ const ChargeDialog = ({ open, onClose, onCreated, catalog, prefillUnit }) => {
             <Input data-testid="charge-period" type="month" value={period} onChange={(e) => setPeriod(e.target.value)} className="bg-[#181B25] border-[#1E293B]" />
             <Input data-testid="charge-amount" type="number" step="0.01" min="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Monto" className="bg-[#181B25] border-[#1E293B]" />
           </div>
-          <Button onClick={handleSubmit} disabled={sending || !unitId.trim() || !chargeTypeId || !amount} data-testid="submit-charge" className="w-full">
+          <Button onClick={handleSubmit} disabled={sending || !unitId || !chargeTypeId || !amount} data-testid="submit-charge" className="w-full">
             {sending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Receipt className="w-4 h-4 mr-2" />} Generar Cargo
           </Button>
         </div>
@@ -140,17 +148,17 @@ const ChargeDialog = ({ open, onClose, onCreated, catalog, prefillUnit }) => {
 };
 
 // ── Register Payment Dialog (admin) ──
-const PaymentDialog = ({ open, onClose, onCreated, prefillUnit }) => {
+const PaymentDialog = ({ open, onClose, onCreated, prefillUnit, units = [] }) => {
   const [unitId, setUnitId] = useState(prefillUnit || '');
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState('efectivo');
   const [sending, setSending] = useState(false);
   useEffect(() => { if (prefillUnit) setUnitId(prefillUnit); }, [prefillUnit]);
   const handleSubmit = async () => {
-    if (!unitId.trim() || !amount) return;
+    if (!unitId || !amount) return;
     setSending(true);
     try {
-      const result = await api.registerPayment({ unit_id: unitId.trim(), amount: parseFloat(amount), payment_method: method });
+      const result = await api.registerPayment({ unit_id: unitId, amount: parseFloat(amount), payment_method: method });
       toast.success(`Pago registrado. Nuevo balance: ${fmt(result.new_balance)}`);
       setUnitId(''); setAmount(''); onCreated?.(); onClose();
     } catch (err) { toast.error(err.message || 'Error'); }
@@ -161,7 +169,16 @@ const PaymentDialog = ({ open, onClose, onCreated, prefillUnit }) => {
       <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-md" data-testid="payment-dialog">
         <DialogHeader><DialogTitle>Registrar Pago</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <Input data-testid="payment-unit" value={unitId} onChange={(e) => setUnitId(e.target.value)} placeholder="Unidad (ej: A-101)" className="bg-[#181B25] border-[#1E293B]" />
+          <Select value={unitId} onValueChange={setUnitId}>
+            <SelectTrigger data-testid="payment-unit" className="bg-[#181B25] border-[#1E293B]"><SelectValue placeholder="Seleccionar unidad" /></SelectTrigger>
+            <SelectContent className="bg-[#0F111A] border-[#1E293B] max-h-60">
+              {units.map(u => (
+                <SelectItem key={u.number} value={u.number}>
+                  {u.number} {u.residents?.length > 0 ? `- ${u.residents[0].full_name}` : ''} {u.finance?.current_balance > 0 ? `(${fmt(u.finance.current_balance)})` : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Input data-testid="payment-amount" type="number" step="0.01" min="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Monto a pagar" className="bg-[#181B25] border-[#1E293B]" />
           <Select value={method} onValueChange={setMethod}>
             <SelectTrigger data-testid="payment-method" className="bg-[#181B25] border-[#1E293B]"><SelectValue /></SelectTrigger>
@@ -172,7 +189,7 @@ const PaymentDialog = ({ open, onClose, onCreated, prefillUnit }) => {
               <SelectItem value="sinpe">SINPE</SelectItem>
             </SelectContent>
           </Select>
-          <Button onClick={handleSubmit} disabled={sending || !unitId.trim() || !amount} data-testid="submit-payment" className="w-full">
+          <Button onClick={handleSubmit} disabled={sending || !unitId || !amount} data-testid="submit-payment" className="w-full">
             {sending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CreditCard className="w-4 h-4 mr-2" />} Registrar Pago
           </Button>
         </div>
@@ -394,10 +411,14 @@ const UnitsPanel = ({ onRefresh }) => {
   };
 
   const handleDelete = async (unit) => {
-    if (!window.confirm(`Eliminar unidad ${unit.number}?`)) return;
+    const hasFinance = unit.finance?.current_balance !== 0;
+    const msg = hasFinance
+      ? `La unidad ${unit.number} tiene registros financieros. Eliminar de todas formas?`
+      : `Eliminar unidad ${unit.number}?`;
+    if (!window.confirm(msg)) return;
     setDeleting(unit.id);
     try {
-      await api.deleteUnit(unit.id);
+      await api.deleteUnit(unit.id, hasFinance);
       toast.success('Unidad eliminada');
       fetchUnits();
       onRefresh?.();
@@ -730,9 +751,27 @@ const ResidentAccountsTab = () => {
                             <p className="text-xs text-white">{c.type} <span className="text-muted-foreground">({c.period})</span></p>
                             <p className="text-[10px] text-muted-foreground">{c.date?.slice(0, 10)}</p>
                           </div>
-                          <div className="text-right ml-3">
-                            <p className="text-xs font-medium text-white">{fmt(c.amount_due)}</p>
-                            <Badge variant="outline" className={`text-[9px] h-4 ${rs.bg || ''}`}>{rs.label || c.status}</Badge>
+                          <div className="text-right ml-3 flex items-center gap-2">
+                            <div>
+                              <p className="text-xs font-medium text-white">{fmt(c.amount_due)}</p>
+                              <Badge variant="outline" className={`text-[9px] h-4 ${rs.bg || ''}`}>{rs.label || c.status}</Badge>
+                            </div>
+                            {c.id && (
+                              <button
+                                onClick={async () => {
+                                  if (!window.confirm(`Eliminar cargo ${c.type} (${c.period}) por ${fmt(c.amount_due)}?`)) return;
+                                  try {
+                                    await api.deleteCharge(c.id);
+                                    toast.success('Cargo eliminado');
+                                    openDetail(selectedResident);
+                                  } catch (err) { toast.error(err.message || 'Error'); }
+                                }}
+                                className="p-1 text-muted-foreground/50 hover:text-red-400 transition-colors"
+                                data-testid={`delete-charge-${c.id}`}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            )}
                           </div>
                         </div>
                       );
@@ -779,6 +818,7 @@ export default function FinanzasModule() {
   const [activeTab, setActiveTab] = useState('overview');
   const [overview, setOverview] = useState(null);
   const [catalog, setCatalog] = useState([]);
+  const [units, setUnits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCatalog, setShowCatalog] = useState(false);
   const [showCharge, setShowCharge] = useState(false);
@@ -791,9 +831,14 @@ export default function FinanzasModule() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [ov, cat] = await Promise.all([api.getFinanzasOverview(), api.getChargeCatalog()]);
+      const [ov, cat, unitData] = await Promise.all([
+        api.getFinanzasOverview(),
+        api.getChargeCatalog(),
+        api.getUnits(),
+      ]);
       setOverview(ov);
       setCatalog(cat || []);
+      setUnits(unitData?.items || []);
     } catch { /* empty state */ }
     finally { setLoading(false); }
   }, []);
@@ -958,8 +1003,8 @@ export default function FinanzasModule() {
         )}
 
         <CatalogDialog open={showCatalog} onClose={() => setShowCatalog(false)} onCreated={fetchData} />
-        <ChargeDialog open={showCharge} onClose={() => setShowCharge(false)} onCreated={fetchData} catalog={catalog} prefillUnit={prefillUnit} />
-        <PaymentDialog open={showPayment} onClose={() => { setShowPayment(false); setPrefillUnit(''); }} onCreated={fetchData} prefillUnit={prefillUnit} />
+        <ChargeDialog open={showCharge} onClose={() => setShowCharge(false)} onCreated={fetchData} catalog={catalog} units={units} />
+        <PaymentDialog open={showPayment} onClose={() => { setShowPayment(false); setPrefillUnit(''); }} onCreated={fetchData} prefillUnit={prefillUnit} units={units} />
         <BulkChargeDialog open={showBulk} onClose={() => setShowBulk(false)} onCreated={fetchData} catalog={catalog} />
         <PaymentSettingsDialog open={showSettings} onClose={() => setShowSettings(false)} />
       </div>
