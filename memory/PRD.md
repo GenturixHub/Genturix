@@ -1018,6 +1018,18 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
 - [x] Comment creation: images uploaded after comment creation
 - [x] 25/25 backend tests passed, frontend fully verified (iteration_43)
 
+### Finanzas Module Fix (2026-04-16) - COMPLETE
+- [x] Overview endpoint filters to only real units from `units` collection (was showing 14 stale entries, now 5)
+- [x] DELETE /api/finanzas/charges/{id}: Admin deletes charge, auto-recalculates unit balance
+- [x] ChargeDialog: Unit dropdown selector (was free text input)
+- [x] PaymentDialog: Unit dropdown selector (was free text input)
+- [x] DELETE /api/units/{id}?force=true: Force delete unit even with financial records
+- [x] ResidentAccountsTab: Delete buttons on individual charges in detail view
+- [x] Main page fetches units for dropdowns alongside overview and catalog
+- [x] Resident names display correctly in "Cuentas por Unidad" table
+- [x] 12/13 backend tests passed, frontend fully verified (iteration_45)
+
+
 ### Community Cases with Comments (2026-04-16) - COMPLETE
 - [x] New `visibility` field: "private" (default) or "community"
 - [x] Private: only creator + admin can see/comment
@@ -1116,7 +1128,7 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
 - [ ] Token Security: Move JWT from localStorage to memory + HttpOnly cookie refresh token
 - [ ] Activar Stripe para pagos de residentes
 - [ ] Configure production Resend domain
-- [ ] Full regression test after modularization
+- [ ] Clean up TEST_* catalog entries from database
 
 ### P2 - Medium Priority
 - [ ] App Store Readiness: monochrome icon, shortcuts in manifest.json
