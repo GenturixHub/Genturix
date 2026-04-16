@@ -33,6 +33,7 @@ import ResidentReservations from '../../components/ResidentReservations';
 import CasosResident from '../../components/CasosResident';
 import DocumentosResident from '../../components/DocumentosResident';
 import FinanzasResident from '../../components/FinanzasResident';
+import AsambleaResident from '../../components/AsambleaResident';
 import DynamicEmergencyButtons from '../../components/DynamicEmergencyButtons';
 import ResidentLayout from './ResidentLayout';
 import { toast } from 'sonner';
@@ -201,7 +202,7 @@ const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, s
 // ============================================
 
 // Tab order for animation direction calculation
-const TAB_ORDER = ['emergency', 'visits', 'reservations', 'casos', 'documentos', 'finanzas', 'directory', 'profile'];
+const TAB_ORDER = ['emergency', 'visits', 'reservations', 'casos', 'documentos', 'finanzas', 'asamblea', 'directory', 'profile'];
 
 const ResidentHome = () => {
   const navigate = useNavigate();
@@ -482,6 +483,18 @@ const ResidentHome = () => {
           }}
         >
           <FinanzasResident />
+        </div>
+
+        {/* Asamblea Module */}
+        <div 
+          className="h-full overflow-y-auto absolute inset-0"
+          style={{ 
+            display: activeTab === 'asamblea' ? 'block' : 'none',
+            WebkitOverflowScrolling: 'touch',
+            paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 16px))'
+          }}
+        >
+          <AsambleaResident />
         </div>
 
         {/* Directory Module */}

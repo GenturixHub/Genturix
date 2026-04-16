@@ -133,7 +133,7 @@ const ResidentLayout = ({
     { id: 'casos', label: t('casos.tab', 'Casos'), icon: ClipboardList, color: 'text-orange-400', bg: 'bg-orange-500/10' },
     { id: 'documentos', label: t('documentos.tab', 'Documentos'), icon: FolderOpen, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
     { id: 'finanzas', label: t('finanzas.tab', 'Finanzas'), icon: Wallet, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-    { id: 'asamblea', label: t('asamblea.tab', 'Asamblea'), icon: Landmark, color: 'text-muted-foreground/40', bg: 'bg-white/5', disabled: true },
+    { id: 'asamblea', label: t('asamblea.tab', 'Asamblea'), icon: Landmark, color: 'text-amber-400', bg: 'bg-amber-500/10' },
   ], [t]);
 
   const handleBottomNavChange = useCallback((tabId) => {
@@ -150,7 +150,6 @@ const ResidentLayout = ({
   }, [onTabChange]);
 
   const handleDrawerItemClick = useCallback((itemId) => {
-    if (itemId === 'asamblea') return; // disabled
     setIsDrawerOpen(false);
     onTabChange(itemId);
   }, [onTabChange]);

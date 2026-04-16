@@ -20,6 +20,7 @@ import {
   ClipboardList,
   FolderOpen,
   Wallet,
+  Landmark,
 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { ScrollArea } from '../ui/scroll-area';
@@ -134,6 +135,13 @@ const Sidebar = ({ collapsed, onToggle }) => {
       href: '/admin/finanzas',
       roles: ['Administrador'],
       descriptionKey: 'nav.finanzasDescription'
+    },
+    {
+      titleKey: 'nav.asamblea',
+      icon: Landmark,
+      href: '/admin/asamblea',
+      roles: ['Administrador'],
+      descriptionKey: 'nav.asambleaDescription'
     },
     {
       titleKey: 'nav.audit',

@@ -888,6 +888,33 @@ class ApiService {
     return resp.json();
   };
   getCasosStats = () => this.get('/casos/stats');
+  // Asamblea
+  getAsambleas = () => this.get('/asamblea');
+  createAsamblea = (data) => this.post('/asamblea', data);
+  getAsambleaDetail = (id) => this.get(`/asamblea/${id}`);
+  addAgendaItem = (id, data) => this.post(`/asamblea/${id}/agenda`, data);
+  confirmAttendance = (id) => this.post(`/asamblea/${id}/attend`);
+  castVote = (id, data) => this.post(`/asamblea/${id}/vote`, data);
+  getAsambleaResults = (id) => this.get(`/asamblea/${id}/results`);
+  updateAsambleaStatus = (id, status) => this.patch(`/asamblea/${id}?status=${status}`);
+  generateActa = async (assemblyId, title = 'acta') => {
+    const API_URL = process.env.REACT_APP_BACKEND_URL;
+    const accessToken = localStorage.getItem('genturix_access_token');
+    const headers = {};
+    if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
+    const resp = await window.fetch(`${API_URL}/api/asamblea/${assemblyId}/generate-acta`, {
+      method: 'POST', headers, credentials: 'include',
+    });
+    if (!resp.ok) throw new Error('Error al generar acta');
+    const blob = await resp.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `acta_${title.replace(/ /g, '_').slice(0, 30)}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  };
 
   // ==================== NOTIFICATIONS V2 ====================
   getNotificationsV2 = (page = 1, unreadOnly = false, notificationType = null) => {
