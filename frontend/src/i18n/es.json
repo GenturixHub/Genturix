@@ -120,7 +120,9 @@
     "documentos": "Documentos",
     "documentosDescription": "Archivos del condominio",
     "finanzas": "Finanzas",
-    "finanzasDescription": "Cobros, pagos, balances"
+    "finanzasDescription": "Cobros, pagos, balances",
+    "asamblea": "Asamblea",
+    "asambleaDescription": "Asambleas y votaciones"
   },
   "profile": {
     "title": "Mi Perfil",

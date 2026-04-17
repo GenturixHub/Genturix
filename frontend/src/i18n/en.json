@@ -120,7 +120,9 @@
     "documentos": "Documents",
     "documentosDescription": "Condominium files",
     "finanzas": "Finances",
-    "finanzasDescription": "Charges, payments, balances"
+    "finanzasDescription": "Charges, payments, balances",
+    "asamblea": "Assembly",
+    "asambleaDescription": "Assemblies and voting"
   },
   "profile": {
     "title": "My Profile",
