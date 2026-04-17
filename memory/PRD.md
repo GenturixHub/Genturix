@@ -1139,7 +1139,6 @@ All backend routes use `/api` prefix for Kubernetes ingress routing.
 - [ ] Token Security: Move JWT from localStorage to memory + HttpOnly cookie refresh token
 - [ ] Activar Stripe para pagos de residentes
 - [ ] Configure production Resend domain
-- [ ] Clean up TEST_* catalog entries from database
 
 ### P2 - Medium Priority
 - [ ] App Store Readiness: monochrome icon, shortcuts in manifest.json
@@ -1514,3 +1513,19 @@ Full financial tracking per housing unit with multiple charge types, automatic b
 ### Testing
 - 13/13 backend tests passed, frontend 100% verified
 - Bug fixed: downloadFinancialReport changed to use window.fetch() for blob support
+
+### Home Dashboard Engagement Features (2026-04-17) - COMPLETE
+- [x] Financial Summary Card: Shows balance (USD 70.00), Atrasado/Al dia badge, 'Pagar ahora' CTA
+- [x] Smart Alerts: Dynamic alerts based on open cases, pending balance, active assemblies (replaces static text)
+- [x] FAB (Floating Action Button): Crear caso, Nueva visita, Reservar area
+- [x] /auth/me endpoint updated to return apartment and role_data fields
+- [x] UserResponse model extended with apartment and role_data
+- [x] Skeleton loading state for async data
+- [x] All sections clickable and navigate to correct modules
+- [x] 22/22 features verified (iteration_47)
+
+### Visitas Removed from Home (2026-04-17) - COMPLETE
+- [x] Home tab (id='home') shows only HomeDashboard
+- [x] Visits moved to separate tab (id='visits'), accessible via drawer
+- [x] Bottom nav 'Inicio' maps to 'home' (was 'visits')
+
