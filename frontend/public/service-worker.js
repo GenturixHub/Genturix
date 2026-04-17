@@ -8,8 +8,8 @@
 // =========================================================================
 
 // IMPORTANT: Increment this version on each deploy
-const SW_VERSION = '18.0.0';
-const CACHE_NAME = 'genturix-cache-v18';
+const SW_VERSION = '19.0.0';
+const CACHE_NAME = 'genturix-cache-v19';
 const API_CACHE_NAME = 'genturix-api-cache-v17';
 
 // Notification icons with version suffix to bypass Android cache
