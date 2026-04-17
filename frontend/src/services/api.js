@@ -830,7 +830,7 @@ class ApiService {
     const url = `${API_URL}/api/documentos/${docId}/download`;
     const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
     try {
-      // Use fetch for proper binary/blob download support
+      // Try blob download first (works on desktop and most mobile browsers)
       const headers = {};
       if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
       const resp = await window.fetch(url, {
@@ -843,16 +843,27 @@ class ApiService {
         throw new Error(errData.detail || `Error al descargar (${resp.status})`);
       }
       const blob = await resp.blob();
+      const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
+      a.href = blobUrl;
       a.download = fileName || 'document';
+      a.style.display = 'none';
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(a.href);
+      // Delay cleanup so mobile browsers can start the download
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      }, 1000);
     } catch (err) {
-      console.error('[Documentos] Download error:', err);
-      throw err;
+      console.error('[Documentos] Blob download failed, trying direct URL:', err);
+      // Fallback: direct URL with token as query param (for mobile PWA / WebView)
+      if (accessToken) {
+        const directUrl = `${url}?token=${encodeURIComponent(accessToken)}`;
+        window.open(directUrl, '_blank');
+      } else {
+        throw err;
+      }
     }
   };
 

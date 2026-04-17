@@ -589,6 +589,15 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     
     return user
 
+async def get_current_user_optional(credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False))):
+    """Like get_current_user but returns None instead of raising on missing/invalid auth."""
+    if not credentials:
+        return None
+    try:
+        return await get_current_user(credentials)
+    except HTTPException:
+        return None
+
 def require_role(*allowed_roles):
     async def check_role(current_user = Depends(get_current_user)):
         user_roles = current_user.get("roles", [])

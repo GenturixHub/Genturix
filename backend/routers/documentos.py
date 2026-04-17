@@ -366,10 +366,25 @@ async def get_document_detail(
 @router.get("/documentos/{doc_id}/download")
 async def download_document(
     doc_id: str,
-    current_user=Depends(get_current_user),
+    request: Request,
+    token: Optional[str] = Query(None),
+    current_user=Depends(get_current_user_optional),
 ):
-    """Download a document. Streams from object storage."""
-    condo_id = current_user.get("condominium_id")
+    """Download a document. Streams from object storage.
+    Supports auth via Authorization header OR token query param (for direct URL download on mobile).
+    """
+    # Auth: use dependency result or fall back to query param token
+    user = current_user
+    if not user and token:
+        payload = verify_access_token(token)
+        if payload:
+            user_id = payload.get("sub")
+            user = await db.users.find_one({"id": user_id}, {"_id": 0})
+
+    if not user or not user.get("is_active"):
+        raise HTTPException(status_code=401, detail="Autenticacion requerida")
+
+    condo_id = user.get("condominium_id")
     doc = await db.documents.find_one(
         {"id": doc_id, "condominium_id": condo_id, "is_deleted": False},
         {"_id": 0},
@@ -377,7 +392,7 @@ async def download_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Documento no encontrado")
 
-    roles = current_user.get("roles", [])
+    roles = user.get("roles", [])
     is_admin = any(r in roles for r in ["Administrador", "Supervisor", "SuperAdmin"])
 
     if not is_admin:
@@ -389,7 +404,7 @@ async def download_document(
     try:
         data, ct = await _get_object(doc["file_url"])
     except Exception as e:
-        logger.error(f"[DOCUMENTOS] Download failed: {e}")
+        logger.error(f"[DOCUMENTOS] Download failed for doc {doc_id}: {e}")
         raise HTTPException(status_code=500, detail="Error al descargar archivo")
 
     return Response(
@@ -397,6 +412,7 @@ async def download_document(
         media_type=doc.get("file_type", ct),
         headers={
             "Content-Disposition": f'attachment; filename="{doc["file_name"]}"',
+            "Cache-Control": "no-cache",
         },
     )
 
