@@ -1366,12 +1366,25 @@ async def get_resident_account_detail(
 @router.get("/finanzas/resident/{user_id}/export")
 async def export_resident_statement(
     user_id: str,
+    request: Request,
     format: str = Query("pdf", regex="^(pdf|csv)$"),
-    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN)),
+    token: Optional[str] = Query(None),
+    current_user=Depends(get_current_user_optional),
 ):
     """Export individual resident financial statement as PDF or CSV."""
-    condo_id = current_user.get("condominium_id")
-    detail = await get_resident_account_detail(user_id, current_user)
+    user = current_user
+    if not user and token:
+        payload = verify_access_token(token)
+        if payload:
+            uid = payload.get("sub")
+            user = await db.users.find_one({"id": uid}, {"_id": 0})
+    if not user or not user.get("is_active"):
+        raise HTTPException(status_code=401, detail="Autenticacion requerida")
+    user_roles = user.get("roles", [])
+    if not any(r in user_roles for r in ["Administrador", "Supervisor", "SuperAdmin"]):
+        raise HTTPException(status_code=403, detail="Permiso denegado")
+    condo_id = user.get("condominium_id")
+    detail = await get_resident_account_detail(user_id, user)
 
     condo = await db.condominiums.find_one({"id": condo_id}, {"name": 1, "_id": 0})
     condo_name = condo.get("name", "Condominio") if condo else "Condominio"
@@ -1517,12 +1530,26 @@ def _build_resident_pdf(detail, condo_name, report_date):
 
 @router.get("/finanzas/report")
 async def generate_financial_report(
+    request: Request,
     format: str = Query("pdf", regex="^(pdf|csv)$"),
     period: Optional[str] = Query(None, regex=r"^\d{4}-(0[1-9]|1[0-2])$"),
-    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN)),
+    token: Optional[str] = Query(None),
+    current_user=Depends(get_current_user_optional),
 ):
     """Generate a financial report as PDF or CSV."""
-    condo_id = current_user.get("condominium_id")
+    # Auth: header or query param
+    user = current_user
+    if not user and token:
+        payload = verify_access_token(token)
+        if payload:
+            uid = payload.get("sub")
+            user = await db.users.find_one({"id": uid}, {"_id": 0})
+    if not user or not user.get("is_active"):
+        raise HTTPException(status_code=401, detail="Autenticacion requerida")
+    user_roles = user.get("roles", [])
+    if not any(r in user_roles for r in ["Administrador", "Supervisor", "SuperAdmin"]):
+        raise HTTPException(status_code=403, detail="Permiso denegado")
+    condo_id = user.get("condominium_id")
     if not condo_id:
         raise HTTPException(status_code=400, detail="No condominium associated")
 

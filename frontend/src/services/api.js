@@ -728,22 +728,38 @@ class ApiService {
     return this.get(`/finanzas/residents${qs ? `?${qs}` : ''}`);
   };
   getResidentAccountDetail = (userId) => this.get(`/finanzas/resident/${userId}`);
-  exportResidentStatement = async (userId, format = 'pdf', userName = 'residente') => {
-    const API_URL = process.env.REACT_APP_BACKEND_URL;
-    const accessToken = localStorage.getItem('genturix_access_token');
-    const url = `${API_URL}/api/finanzas/resident/${userId}/export?format=${format}`;
+  // ── Shared download helper (mobile-safe) ──
+  _downloadBlob = async (url, fileName, method = 'GET') => {
+    const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
+    const isMobile = /Android|iPhone|iPad|iPod|webOS|Mobile/i.test(navigator.userAgent) || window.matchMedia('(display-mode: standalone)').matches;
+
+    if (isMobile) {
+      const sep = url.includes('?') ? '&' : '?';
+      window.location.href = `${url}${sep}token=${encodeURIComponent(accessToken || '')}`;
+      return;
+    }
+
     const headers = {};
     if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
-    const resp = await window.fetch(url, { method: 'GET', headers, credentials: 'include' });
-    if (!resp.ok) throw new Error('Error al exportar');
+    const resp = await window.fetch(url, { method, headers, credentials: 'include' });
+    if (!resp.ok) {
+      const errText = await resp.text().catch(() => '');
+      throw new Error(errText || `Error ${resp.status}`);
+    }
     const blob = await resp.blob();
+    const blobUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `estado_cuenta_${userName.replace(/ /g, '_').slice(0, 30)}.${format}`;
+    a.href = blobUrl;
+    a.download = fileName;
+    a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(a.href);
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(blobUrl); }, 1000);
+  };
+
+  exportResidentStatement = async (userId, format = 'pdf', userName = 'residente') => {
+    const url = `${API_URL}/api/finanzas/resident/${userId}/export?format=${format}`;
+    await this._downloadBlob(url, `estado_cuenta_${userName.replace(/ /g, '_').slice(0, 30)}.${format}`);
   };
   getPaymentRequests = (status = null) => {
     const qp = new URLSearchParams();
@@ -756,30 +772,8 @@ class ApiService {
     const params = new URLSearchParams({ format });
     if (period) params.append('period', period);
     const url = `${API_URL}/api/finanzas/report?${params.toString()}`;
-    const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-    
-    // Use native fetch for blob downloads since apiRequest doesn't support blob()
-    const resp = await window.fetch(url, {
-      method: 'GET',
-      headers: accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {},
-      credentials: 'include',
-    });
-    
-    if (!resp.ok) {
-      const errorText = await resp.text();
-      throw new Error(errorText || `Error ${resp.status}`);
-    }
-    
-    const blob = await resp.blob();
     const ext = format === 'csv' ? 'csv' : 'pdf';
-    const filename = `reporte_financiero${period ? '_' + period : ''}.${ext}`;
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(a.href);
+    await this._downloadBlob(url, `reporte_financiero${period ? '_' + period : ''}.${ext}`);
   };
 
   // ==================== DOCUMENTOS ====================
@@ -828,43 +822,7 @@ class ApiService {
   deleteDocument = (id) => this.delete(`/documentos/${id}`);
   downloadDocument = async (docId, fileName) => {
     const url = `${API_URL}/api/documentos/${docId}/download`;
-    const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
-    try {
-      // Try blob download first (works on desktop and most mobile browsers)
-      const headers = {};
-      if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
-      const resp = await window.fetch(url, {
-        method: 'GET',
-        headers,
-        credentials: 'include',
-      });
-      if (!resp.ok) {
-        const errData = await resp.json().catch(() => ({}));
-        throw new Error(errData.detail || `Error al descargar (${resp.status})`);
-      }
-      const blob = await resp.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = fileName || 'document';
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      // Delay cleanup so mobile browsers can start the download
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(blobUrl);
-      }, 1000);
-    } catch (err) {
-      console.error('[Documentos] Blob download failed, trying direct URL:', err);
-      // Fallback: direct URL with token as query param (for mobile PWA / WebView)
-      if (accessToken) {
-        const directUrl = `${url}?token=${encodeURIComponent(accessToken)}`;
-        window.open(directUrl, '_blank');
-      } else {
-        throw err;
-      }
-    }
+    await this._downloadBlob(url, fileName || 'document');
   };
 
   // ==================== CASOS / INCIDENCIAS ====================
@@ -926,22 +884,8 @@ class ApiService {
   getAsambleaResults = (id) => this.get(`/asamblea/${id}/results`);
   updateAsambleaStatus = (id, status) => this.patch(`/asamblea/${id}?status=${status}`);
   generateActa = async (assemblyId, title = 'acta') => {
-    const API_URL = process.env.REACT_APP_BACKEND_URL;
-    const accessToken = localStorage.getItem('genturix_access_token');
-    const headers = {};
-    if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
-    const resp = await window.fetch(`${API_URL}/api/asamblea/${assemblyId}/generate-acta`, {
-      method: 'POST', headers, credentials: 'include',
-    });
-    if (!resp.ok) throw new Error('Error al generar acta');
-    const blob = await resp.blob();
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `acta_${title.replace(/ /g, '_').slice(0, 30)}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(a.href);
+    const url = `${API_URL}/api/asamblea/${assemblyId}/generate-acta`;
+    await this._downloadBlob(url, `acta_${title.replace(/ /g, '_').slice(0, 30)}.pdf`, 'POST');
   };
 
   // ==================== NOTIFICATIONS V2 ====================

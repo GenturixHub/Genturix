@@ -361,7 +361,8 @@ async def get_assembly_results(
 async def generate_acta(
     assembly_id: str,
     request: Request,
-    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN)),
+    token: Optional[str] = Query(None),
+    current_user=Depends(get_current_user_optional),
 ):
     """Generate a PDF Acta for the assembly and save to Documents."""
     from reportlab.lib.pagesizes import letter
@@ -370,7 +371,19 @@ async def generate_acta(
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
-    condo_id = current_user.get("condominium_id")
+    user = current_user
+    if not user and token:
+        payload = verify_access_token(token)
+        if payload:
+            uid = payload.get("sub")
+            user = await db.users.find_one({"id": uid}, {"_id": 0})
+    if not user or not user.get("is_active"):
+        raise HTTPException(status_code=401, detail="Autenticacion requerida")
+    user_roles = user.get("roles", [])
+    if not any(r in user_roles for r in ["Administrador", "Supervisor", "SuperAdmin"]):
+        raise HTTPException(status_code=403, detail="Permiso denegado")
+
+    condo_id = user.get("condominium_id")
     assembly = await db.assemblies.find_one({"id": assembly_id, "condominium_id": condo_id}, {"_id": 0})
     if not assembly:
         raise HTTPException(status_code=404, detail="Asamblea no encontrada")
@@ -493,8 +506,8 @@ async def generate_acta(
         "category": "acta",
         "visibility": "public",
         "allowed_roles": "Administrador,Residente",
-        "uploaded_by": current_user["id"],
-        "uploaded_by_name": current_user.get("full_name", "Admin"),
+        "uploaded_by": user["id"],
+        "uploaded_by_name": user.get("full_name", "Admin"),
         "original_filename": f"acta_{safe_title}.pdf",
         "created_at": now,
         "updated_at": now,
@@ -502,11 +515,11 @@ async def generate_acta(
     await db.documents.insert_one(doc_record)
 
     await log_audit_event(
-        AuditEventType.SECURITY_ALERT, current_user["id"], "asamblea",
+        AuditEventType.SECURITY_ALERT, user["id"], "asamblea",
         {"action": "acta_generated", "assembly_id": assembly_id},
         request.client.host if request.client else "unknown",
         request.headers.get("user-agent", "unknown"),
-        condominium_id=condo_id, user_email=current_user.get("email"),
+        condominium_id=condo_id, user_email=user.get("email"),
     )
 
     return Response(
