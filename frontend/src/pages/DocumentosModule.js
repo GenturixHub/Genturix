@@ -156,7 +156,7 @@ const UploadDialog = ({ open, onClose, onUploaded }) => {
                 <p className="text-sm text-muted-foreground">Haz clic para seleccionar archivo (max 20 MB)</p>
               )}
             </div>
-            <input ref={fileRef} type="file" className="hidden" onChange={handleFileChange} data-testid="file-input" />
+            <input ref={fileRef} type="file" className="absolute w-0 h-0 opacity-0 overflow-hidden" onChange={handleFileChange} data-testid="file-input" />
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Nombre *</label>

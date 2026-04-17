@@ -137,10 +137,10 @@ const ImagePicker = ({ files, setFiles, maxFiles = 5 }) => {
         </div>
       )}
       {files.length < maxFiles && (
-        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium cursor-pointer bg-white/[0.03] border border-white/[0.08] text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors">
+        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium cursor-pointer bg-white/[0.03] border border-white/[0.08] text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors active:scale-95">
           <Camera className="w-3.5 h-3.5" />
           {files.length === 0 ? 'Adjuntar fotos' : `Agregar (${files.length}/${maxFiles})`}
-          <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleAdd} className="hidden" data-testid="image-picker-input" />
+          <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={handleAdd} className="absolute w-0 h-0 opacity-0 overflow-hidden" data-testid="image-picker-input" />
         </label>
       )}
     </div>
@@ -415,8 +415,8 @@ const CaseDetailDialog = ({ caso, open, onClose, onUpdated }) => {
             {/* Upload to case */}
             {canAttach && (
               <div>
-                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleUploadToCase} className="hidden" id="caso-upload-input" data-testid="caso-attachment-input" />
-                <label htmlFor="caso-upload-input" className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition-colors ${uploading ? 'opacity-50 pointer-events-none' : 'bg-white/[0.03] border border-white/[0.08] text-slate-400 hover:text-white hover:bg-white/[0.06]'}`}>
+                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleUploadToCase} className="absolute w-0 h-0 opacity-0 overflow-hidden" id="caso-upload-input" data-testid="caso-attachment-input" />
+                <label htmlFor="caso-upload-input" className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium cursor-pointer transition-colors active:scale-95 ${uploading ? 'opacity-50 pointer-events-none' : 'bg-white/[0.03] border border-white/[0.08] text-slate-400 hover:text-white hover:bg-white/[0.06]'}`}>
                   {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
                   {uploading ? 'Subiendo...' : 'Adjuntar foto al caso'}
                 </label>
