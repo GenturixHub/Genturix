@@ -388,7 +388,9 @@ async def get_me(current_user = Depends(get_current_user)):
         roles=current_user["roles"],
         is_active=current_user["is_active"],
         created_at=current_user["created_at"],
-        condominium_id=current_user.get("condominium_id")
+        condominium_id=current_user.get("condominium_id"),
+        apartment=current_user.get("apartment"),
+        role_data=current_user.get("role_data"),
     )
 
 @router.post("/auth/change-password")

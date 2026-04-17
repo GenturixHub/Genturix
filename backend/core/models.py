@@ -26,6 +26,8 @@ class UserResponse(BaseModel):
     created_at: str
     condominium_id: Optional[str] = None  # Multi-tenant support
     password_reset_required: bool = False  # True if user needs to change password
+    apartment: Optional[str] = None  # Unit number (e.g., A-102)
+    role_data: Optional[dict] = None  # Additional role-specific data
 
 class TokenResponse(BaseModel):
     access_token: str
