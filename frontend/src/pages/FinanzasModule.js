@@ -431,8 +431,7 @@ const UnitsPanel = ({ onRefresh }) => {
     setAssignUserId('');
     try {
       const resp = await api.get('/admin/users?page_size=200');
-      const allUsers = resp.users || resp.items || [];
-      // Filter out users already in this unit
+      const allUsers = Array.isArray(resp) ? resp : (resp.users || resp.items || []);
       const unitResidentIds = (unit.residents || []).map(r => r.id);
       setUsers(allUsers.filter(u => !unitResidentIds.includes(u.id)));
     } catch { setUsers([]); }
