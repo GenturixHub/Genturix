@@ -105,7 +105,7 @@ const ResidentLayout = ({ children, activeTab, onTabChange, title = 'GENTURIX' }
   // Bottom nav: Emergency, Home, Cases, Profile
   const handleBottomNav = useCallback((tabId) => {
     if (tabId === 'home') {
-      onTabChange('visits');
+      onTabChange('home');
       return;
     }
     onTabChange(tabId);
@@ -126,6 +126,7 @@ const ResidentLayout = ({ children, activeTab, onTabChange, title = 'GENTURIX' }
     if (activeTab === 'emergency') return 'emergency';
     if (activeTab === 'casos') return 'casos';
     if (activeTab === 'profile') return 'profile';
+    if (activeTab === 'home') return 'home';
     return 'home';
   }, [activeTab]);
 

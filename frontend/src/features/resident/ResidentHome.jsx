@@ -203,7 +203,7 @@ const EmergencyTab = ({ location, locationLoading, locationError, onEmergency, s
 // ============================================
 
 // Tab order for animation direction calculation
-const TAB_ORDER = ['emergency', 'visits', 'reservations', 'casos', 'documentos', 'finanzas', 'asamblea', 'directory', 'profile'];
+const TAB_ORDER = ['emergency', 'home', 'visits', 'reservations', 'casos', 'documentos', 'finanzas', 'asamblea', 'directory', 'profile'];
 
 const ResidentHome = () => {
   const navigate = useNavigate();
@@ -211,7 +211,7 @@ const ResidentHome = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('visits');
+  const [activeTab, setActiveTab] = useState('home');
   
   // Location state
   const [location, setLocation] = useState(null);
@@ -422,7 +422,21 @@ const ResidentHome = () => {
           />
         </div>
         
-        {/* Visits / Home Module */}
+        {/* Home Module (Dashboard only, no visits) */}
+        <div 
+          className="h-full overflow-y-auto absolute inset-0"
+          style={{ 
+            display: activeTab === 'home' ? 'block' : 'none',
+            WebkitOverflowScrolling: 'touch',
+            paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 16px))'
+          }}
+        >
+          <div className="px-3 py-4">
+            <HomeDashboard onNavigate={(id) => setActiveTab(id)} />
+          </div>
+        </div>
+
+        {/* Visits Module (standalone tab, accessible via drawer) */}
         <div 
           className="h-full overflow-y-auto absolute inset-0"
           style={{ 
@@ -431,12 +445,8 @@ const ResidentHome = () => {
             paddingBottom: 'calc(80px + env(safe-area-inset-bottom, 16px))'
           }}
         >
-          <div className="px-3 py-4 space-y-6">
-            <HomeDashboard onNavigate={(id) => setActiveTab(id)} />
-            <div>
-              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-[0.2em] mb-3 px-1">Visitas</p>
-              <ResidentVisitsModule />
-            </div>
+          <div className="px-3 py-4">
+            <ResidentVisitsModule />
           </div>
         </div>
         
