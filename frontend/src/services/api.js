@@ -84,6 +84,45 @@ const STORAGE_KEYS = {
   ACCESS_TOKEN: 'genturix_access_token',
 };
 
+// ── Shared refresh mutex (prevents race conditions from StrictMode / concurrent 401s) ──
+let _refreshPromise = null;
+
+export async function refreshToken() {
+  if (_refreshPromise) {
+    console.log('[Auth] Refresh already in progress, waiting...');
+    return _refreshPromise;
+  }
+
+  console.log('[Auth] Calling /auth/refresh');
+  _refreshPromise = (async () => {
+    try {
+      const resp = await window.fetch(`${API_URL}/api/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({}),
+      });
+
+      if (resp.ok) {
+        const data = await resp.json();
+        localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.access_token);
+        console.log('[Auth] Refresh success');
+        return data.access_token;
+      }
+
+      console.warn('[Auth] Refresh failed:', resp.status);
+      return null;
+    } catch (err) {
+      console.error('[Auth] Refresh network error:', err.message);
+      return null;
+    } finally {
+      _refreshPromise = null;
+    }
+  })();
+
+  return _refreshPromise;
+}
+
 class ApiService {
   async request(endpoint, options = {}) {
     const url = `${API_URL}/api${endpoint}`;
@@ -99,46 +138,29 @@ class ApiService {
     }
 
     try {
-      const response = await apiRequest(url, {
+      return await apiRequest(url, {
         ...options,
         headers,
-        credentials: 'include',  // SECURITY: Always include httpOnly cookies
+        credentials: 'include',
       });
-      
-      // Successful response
-      return response;
-      
     } catch (error) {
-      // Handle 401 - try to refresh token via httpOnly cookie
       if (error.status === 401) {
-        try {
-          const refreshResponse = await window.fetch(`${API_URL}/api/auth/refresh`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',  // SECURITY: Send httpOnly cookie
-            body: JSON.stringify({}),  // Empty body, token comes from cookie
-          });
+        const newToken = await refreshToken();
 
-          if (refreshResponse.ok) {
-            const data = await refreshResponse.json();
-            localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.access_token);
-            
-            // Retry original request with new token
-            headers['Authorization'] = `Bearer ${data.access_token}`;
-            return await apiRequest(url, { ...options, headers, credentials: 'include' });
-          }
-        } catch (e) {
-          // Refresh failed, clear storage
-          localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-          window.location.href = '/login';
-          throw error;
+        if (newToken) {
+          console.log('[Auth] Retrying request:', endpoint);
+          headers['Authorization'] = `Bearer ${newToken}`;
+          return await apiRequest(url, { ...options, headers, credentials: 'include' });
         }
-        // Refresh failed, clear storage
+
+        // Refresh truly failed → logout
+        console.warn('[Auth] Session expired → redirecting to login');
         localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+        localStorage.removeItem('genturix_user');
+        localStorage.removeItem('genturix_password_reset');
         window.location.href = '/login';
       }
-      
-      // Re-throw the error for other status codes
+
       throw error;
     }
   }

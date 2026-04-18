@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { changeLanguage } from '../i18n';
 import { clearPersistedCache } from '../config/queryPersister';
 import { queryClient } from '../App';
+import { refreshToken as sharedRefreshToken } from '../services/api';
 
 const AuthContext = createContext(undefined);
 
@@ -69,33 +70,34 @@ export const AuthProvider = ({ children }) => {
           } else if (validationResponse.status === 401) {
             
             // Try to refresh token using httpOnly cookie
-            try {
-              const refreshResponse = await fetch(`${API_URL}/api/auth/refresh`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',  // SECURITY: Send httpOnly cookie
-                body: JSON.stringify({}),  // Empty body, token comes from cookie
-              });
-
-              if (refreshResponse.ok) {
-                const refreshData = await refreshResponse.json();
-                
-                localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, refreshData.access_token);
-                
-                setAccessToken(refreshData.access_token);
-                setUser(parsedUser);
-                setPasswordResetRequired(storedPasswordReset === 'true');
-                
-                // Sync language
-                if (parsedUser.language && ['es', 'en'].includes(parsedUser.language)) {
-                  await changeLanguage(parsedUser.language);
+            console.log('[Auth Init] Access token expired → refreshing via cookie');
+            const newToken = await sharedRefreshToken();
+            
+            if (newToken) {
+              console.log('[Auth Init] Refresh success → session restored');
+              setAccessToken(newToken);
+              setUser(parsedUser);
+              setPasswordResetRequired(storedPasswordReset === 'true');
+              
+              // Fetch fresh profile with new token
+              try {
+                const profileResp = await fetch(`${API_URL}/api/profile`, {
+                  headers: { 'Authorization': `Bearer ${newToken}`, 'Content-Type': 'application/json' },
+                  credentials: 'include',
+                });
+                if (profileResp.ok) {
+                  const profileData = await profileResp.json();
+                  const updatedUser = { ...parsedUser, full_name: profileData.full_name, phone: profileData.phone, profile_photo: profileData.profile_photo, language: profileData.language };
+                  setUser(updatedUser);
+                  localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(updatedUser));
+                  if (profileData.language && ['es', 'en'].includes(profileData.language)) {
+                    await changeLanguage(profileData.language);
+                  }
                 }
-              } else {
-                clearStorage();
-              }
-            } catch (refreshError) {
-              console.error('[Auth] Refresh error:', refreshError);
-              // Don't clear on network error - might be temporary
+              } catch { /* profile fetch optional */ }
+            } else {
+              console.warn('[Auth Init] Refresh failed → clearing session');
+              clearStorage();
             }
           } else {
             // Other error - don't clear, might be network issue
