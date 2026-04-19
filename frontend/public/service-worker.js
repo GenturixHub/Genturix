@@ -8,8 +8,8 @@
 // =========================================================================
 
 // IMPORTANT: Increment this version on each deploy
-const SW_VERSION = '19.0.0';
-const CACHE_NAME = 'genturix-cache-v19';
+const SW_VERSION = '20.0.0';
+const CACHE_NAME = 'genturix-cache-v20';
 const API_CACHE_NAME = 'genturix-api-cache-v17';
 
 // Notification icons with version suffix to bypass Android cache
@@ -47,11 +47,16 @@ const CACHEABLE_API_PATTERNS = [
   /\/api\/settings/
 ];
 
-// Patterns to NEVER cache
+// Patterns to NEVER cache (and pass through without interception)
 const NO_CACHE_PATTERNS = [
   /chrome-extension/,
   /sockjs-node/,
-  /hot-update/
+  /hot-update/,
+  /\/download/,           // All download endpoints
+  /\/image-proxy/,        // Image proxy endpoints
+  /\/generate-acta/,      // PDF generation endpoints
+  /\/export/,             // Export endpoints (CSV, PDF)
+  /\/report/,             // Financial report endpoints
 ];
 
 // Check if request should use static asset cache

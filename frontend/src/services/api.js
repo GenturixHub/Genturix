@@ -756,11 +756,19 @@ class ApiService {
     const isMobile = /Android|iPhone|iPad|iPod|webOS|Mobile/i.test(navigator.userAgent) || window.matchMedia('(display-mode: standalone)').matches;
 
     if (isMobile) {
+      // Mobile/PWA: open in system browser — handles Content-Disposition: attachment
+      // window.location.href breaks in PWA standalone mode (navigates the app itself)
       const sep = url.includes('?') ? '&' : '?';
-      window.location.href = `${url}${sep}token=${encodeURIComponent(accessToken || '')}`;
+      const directUrl = `${url}${sep}token=${encodeURIComponent(accessToken || '')}`;
+      const opened = window.open(directUrl, '_blank');
+      // Some WebViews block window.open — fall back to location.href
+      if (!opened) {
+        window.location.href = directUrl;
+      }
       return;
     }
 
+    // Desktop: blob download for clean filename
     const headers = {};
     if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
     const resp = await window.fetch(url, { method, headers, credentials: 'include' });
