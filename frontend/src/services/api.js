@@ -751,24 +751,23 @@ class ApiService {
   };
   getResidentAccountDetail = (userId) => this.get(`/finanzas/resident/${userId}`);
   // ── Shared download helper (mobile-safe) ──
+  // Returns: { method: 'blob'|'browser'|'fallback', url?: string }
   _downloadBlob = async (url, fileName, method = 'GET') => {
     const accessToken = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN);
     const isMobile = /Android|iPhone|iPad|iPod|webOS|Mobile/i.test(navigator.userAgent) || window.matchMedia('(display-mode: standalone)').matches;
 
     if (isMobile) {
-      // Mobile/PWA: open in system browser — handles Content-Disposition: attachment
-      // window.location.href breaks in PWA standalone mode (navigates the app itself)
       const sep = url.includes('?') ? '&' : '?';
       const directUrl = `${url}${sep}token=${encodeURIComponent(accessToken || '')}`;
       const opened = window.open(directUrl, '_blank');
-      // Some WebViews block window.open — fall back to location.href
       if (!opened) {
-        window.location.href = directUrl;
+        // window.open blocked — return URL so caller can show fallback UI
+        return { method: 'fallback', url: directUrl };
       }
-      return;
+      return { method: 'browser' };
     }
 
-    // Desktop: blob download for clean filename
+    // Desktop: blob download
     const headers = {};
     if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
     const resp = await window.fetch(url, { method, headers, credentials: 'include' });
@@ -785,6 +784,7 @@ class ApiService {
     document.body.appendChild(a);
     a.click();
     setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(blobUrl); }, 1000);
+    return { method: 'blob' };
   };
 
   exportResidentStatement = async (userId, format = 'pdf', userName = 'residente') => {
@@ -852,7 +852,7 @@ class ApiService {
   deleteDocument = (id) => this.delete(`/documentos/${id}`);
   downloadDocument = async (docId, fileName) => {
     const url = `${API_URL}/api/documentos/${docId}/download`;
-    await this._downloadBlob(url, fileName || 'document');
+    return await this._downloadBlob(url, fileName || 'document');
   };
 
   // ==================== CASOS / INCIDENCIAS ====================

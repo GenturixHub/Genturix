@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import {
   Select,
   SelectContent,
@@ -21,6 +22,7 @@ import {
   FileSpreadsheet,
   Loader2,
   Filter,
+  ExternalLink,
 } from 'lucide-react';
 
 const CATEGORY_LABELS = {
@@ -52,6 +54,7 @@ export default function DocumentosResident() {
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState('all');
   const [downloading, setDownloading] = useState(null);
+  const [fallbackUrl, setFallbackUrl] = useState(null);
 
   const fetchDocs = useCallback(async () => {
     setLoading(true);
@@ -74,7 +77,18 @@ export default function DocumentosResident() {
   const handleDownload = async (doc) => {
     setDownloading(doc.id);
     try {
-      await api.downloadDocument(doc.id, doc.file_name);
+      const isMobile = /Android|iPhone|iPad|iPod|webOS|Mobile/i.test(navigator.userAgent) || window.matchMedia('(display-mode: standalone)').matches;
+      if (isMobile) {
+        toast.info('Abriendo documento en el navegador...', { duration: 2000 });
+      }
+
+      const result = await api.downloadDocument(doc.id, doc.file_name);
+
+      if (result?.method === 'fallback' && result.url) {
+        setFallbackUrl(result.url);
+      } else if (result?.method === 'browser') {
+        toast.success('Documento abierto', { duration: 2000 });
+      }
     } catch (err) {
       toast.error(err.message || 'Error al descargar');
     } finally {
@@ -152,6 +166,29 @@ export default function DocumentosResident() {
           </div>
         )}
       </div>
+
+      {/* Fallback modal when window.open is blocked */}
+      <Dialog open={!!fallbackUrl} onOpenChange={(v) => !v && setFallbackUrl(null)}>
+        <DialogContent className="bg-[#0F111A] border-[#1E293B] max-w-sm" data-testid="download-fallback-modal">
+          <DialogHeader>
+            <DialogTitle className="text-base">Descarga bloqueada</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-400 mb-4">
+            Tu navegador bloqueo la descarga automatica. Toca el boton para abrir el documento.
+          </p>
+          <a
+            href={fallbackUrl || '#'}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setFallbackUrl(null)}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold bg-cyan-500 text-white active:scale-[0.97] transition-transform"
+            data-testid="fallback-download-link"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Abrir documento
+          </a>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
