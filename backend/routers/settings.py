@@ -151,3 +151,39 @@ async def get_public_condominium_settings(
 # ==================== MULTI-TENANT MODULE ====================
 # Condominium/Tenant Management Endpoints (Super Admin)
 
+
+
+# ==================== SYSTEM STATUS (Maintenance Mode) ====================
+
+@router.get("/system/status")
+async def get_system_status():
+    """Public endpoint — returns maintenance flag. No auth required."""
+    doc = await db.system_config.find_one({"key": "maintenance"}, {"_id": 0})
+    return {"maintenance": doc.get("enabled", False) if doc else False}
+
+
+@router.put("/system/maintenance")
+async def toggle_maintenance(
+    request: Request,
+    current_user=Depends(require_role(RoleEnum.ADMINISTRADOR, RoleEnum.SUPER_ADMIN)),
+):
+    """Admin toggles maintenance mode on/off."""
+    body = await request.json()
+    enabled = bool(body.get("enabled", False))
+
+    await db.system_config.update_one(
+        {"key": "maintenance"},
+        {"$set": {"enabled": enabled, "updated_by": current_user["id"], "updated_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
+
+    await log_audit_event(
+        AuditEventType.SECURITY_ALERT, current_user["id"], "system",
+        {"action": "maintenance_toggled", "enabled": enabled},
+        request.client.host if request.client else "unknown",
+        request.headers.get("user-agent", "unknown"),
+        condominium_id=current_user.get("condominium_id"),
+        user_email=current_user.get("email"),
+    )
+
+    return {"maintenance": enabled}

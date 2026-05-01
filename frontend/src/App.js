@@ -495,38 +495,68 @@ function AppRoutes() {
   );
 }
 
-// ==================== MAINTENANCE MODE ====================
-// Set to true to block ALL users from accessing the app
-// Set to false to restore normal operation
-const MAINTENANCE_MODE = false;
-// ===========================================================
+// ==================== MAINTENANCE MODE (Dynamic) ====================
+const API_URL = process.env.REACT_APP_BACKEND_URL;
+
+function MaintenanceScreen({ onAdminLogin }) {
+  return (
+    <div style={{
+      display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center',
+      flexDirection: 'column', fontFamily: 'sans-serif', backgroundColor: '#0f172a',
+      color: 'white', textAlign: 'center', padding: '20px'
+    }}>
+      <h1 style={{fontSize: '28px', marginBottom: '10px'}}>
+        Servicio temporalmente no disponible
+      </h1>
+      <p style={{opacity: 0.7, marginBottom: '40px'}}>
+        Estamos realizando ajustes tecnicos. Intenta mas tarde.
+      </p>
+      <button
+        onClick={onAdminLogin}
+        style={{ opacity: 0.25, fontSize: '12px', background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '8px 16px' }}
+        data-testid="maintenance-admin-login"
+      >
+        Acceso administrador
+      </button>
+    </div>
+  );
+}
+
+function useMaintenanceCheck() {
+  const [maintenance, setMaintenance] = React.useState(false);
+  const [checked, setChecked] = React.useState(false);
+  const [bypassLogin, setBypassLogin] = React.useState(false);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    fetch(`${API_URL}/api/system/status`, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : { maintenance: false })
+      .then(data => { if (!cancelled) { setMaintenance(!!data.maintenance); setChecked(true); } })
+      .catch(() => { if (!cancelled) { setMaintenance(false); setChecked(true); } }); // fail-open
+    return () => { cancelled = true; };
+  }, []);
+
+  return { maintenance, checked, bypassLogin, setBypassLogin };
+}
+
+function isAdminUser() {
+  try {
+    const raw = localStorage.getItem('genturix_user');
+    if (!raw) return false;
+    const user = JSON.parse(raw);
+    const roles = user.roles || [];
+    return roles.some(r => ['Administrador', 'SuperAdmin', 'Supervisor'].includes(r));
+  } catch { return false; }
+}
 
 function App() {
   const { showUpdate, isUpdating, triggerUpdate, dismissUpdate } = useServiceWorkerUpdate();
+  const { maintenance, checked, bypassLogin, setBypassLogin } = useMaintenanceCheck();
 
-  // Maintenance mode - blocks entire app before any routing/auth
-  if (MAINTENANCE_MODE) {
-    return (
-      <div style={{
-        display: 'flex',
-        height: '100vh',
-        justifyContent: 'center',
-        alignItems: 'center',
-        flexDirection: 'column',
-        fontFamily: 'sans-serif',
-        backgroundColor: '#0f172a',
-        color: 'white',
-        textAlign: 'center',
-        padding: '20px'
-      }}>
-        <h1 style={{fontSize: '28px', marginBottom: '10px'}}>
-          Servicio temporalmente no disponible
-        </h1>
-        <p style={{opacity: 0.7}}>
-          Estamos realizando ajustes tecnicos. Intenta mas tarde.
-        </p>
-      </div>
-    );
+  // Block non-admin users during maintenance
+  // Admin bypass: either already logged in as admin, or clicked "Acceso administrador"
+  if (checked && maintenance && !isAdminUser() && !bypassLogin) {
+    return <MaintenanceScreen onAdminLogin={() => setBypassLogin(true)} />;
   }
 
   return (
